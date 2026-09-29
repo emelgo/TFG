@@ -311,6 +311,12 @@ importers:
       '@pymekit/cms-api':
         specifier: workspace:*
         version: link:../../packages/cms/api
+      '@pymekit/cms-data-explorer-ui':
+        specifier: workspace:*
+        version: link:../../packages/cms/data-explorer-ui
+      '@pymekit/cms-formatters':
+        specifier: workspace:*
+        version: link:../../packages/cms/formatters
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../../packages/cms/ui-core
@@ -785,6 +791,110 @@ importers:
         specifier: 'catalog:'
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
 
+  packages/cms/data-explorer-ui:
+    dependencies:
+      '@pymekit/cms-data-explorer-core':
+        specifier: workspace:*
+        version: link:../data-explorer-core
+      '@pymekit/cms-filters':
+        specifier: workspace:*
+        version: link:../filters
+      '@pymekit/cms-formatters':
+        specifier: workspace:*
+        version: link:../formatters
+      '@pymekit/cms-table':
+        specifier: workspace:*
+        version: link:../table
+      '@pymekit/cms-types':
+        specifier: workspace:*
+        version: link:../types
+      '@pymekit/cms-ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
+    devDependencies:
+      '@pymekit/tsconfig':
+        specifier: workspace:*
+        version: link:../../../tooling/typescript
+      '@pymekit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      '@tanstack/react-form':
+        specifier: 'catalog:'
+        version: 1.33.5(@tanstack/react-start@1.168.58(crossws@0.4.12(srvx@1.0.5))(esbuild@0.28.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))(webpack@5.105.4(@swc/core@1.15.40(@swc/helpers@0.5.23))(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-query':
+        specifier: 'catalog:'
+        version: 5.103.2(react@19.3.0)
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.39(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-table':
+        specifier: 'catalog:'
+        version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.48.0(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      use-intl:
+        specifier: 'catalog:'
+        version: 4.14.6(react@19.3.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
+
+  packages/cms/filters:
+    dependencies:
+      '@pymekit/cms-filters-core':
+        specifier: workspace:*
+        version: link:../filters-core
+      '@pymekit/cms-formatters':
+        specifier: workspace:*
+        version: link:../formatters
+      '@pymekit/cms-types':
+        specifier: workspace:*
+        version: link:../types
+      '@pymekit/cms-ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
+    devDependencies:
+      '@pymekit/tsconfig':
+        specifier: workspace:*
+        version: link:../../../tooling/typescript
+      '@pymekit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      '@tanstack/react-form':
+        specifier: 'catalog:'
+        version: 1.33.5(@tanstack/react-start@1.168.58(crossws@0.4.12(srvx@1.0.5))(esbuild@0.28.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))(webpack@5.105.4(@swc/core@1.15.40(@swc/helpers@0.5.23))(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-query':
+        specifier: 'catalog:'
+        version: 5.103.2(react@19.3.0)
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.39(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.48.0(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      use-intl:
+        specifier: 'catalog:'
+        version: 4.14.6(react@19.3.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
+
   packages/cms/filters-core:
     dependencies:
       '@date-fns/tz':
@@ -819,6 +929,15 @@ importers:
       '@pymekit/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/typescript
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      use-intl:
+        specifier: 'catalog:'
+        version: 4.14.6(react@19.3.0)
       vitest:
         specifier: 'catalog:'
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
@@ -1004,6 +1123,43 @@ importers:
         specifier: workspace:*
         version: link:../../../tooling/typescript
 
+  packages/cms/table:
+    dependencies:
+      '@pymekit/cms-formatters':
+        specifier: workspace:*
+        version: link:../formatters
+      '@pymekit/cms-types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@pymekit/tsconfig':
+        specifier: workspace:*
+        version: link:../../../tooling/typescript
+      '@pymekit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.39(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-table':
+        specifier: 'catalog:'
+        version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.48.0(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      use-intl:
+        specifier: 'catalog:'
+        version: 4.14.6(react@19.3.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
+
   packages/cms/types:
     devDependencies:
       '@pymekit/tsconfig':
@@ -1019,9 +1175,15 @@ importers:
         specifier: workspace:*
         version: link:../shared
     devDependencies:
+      '@pymekit/cms-data-explorer':
+        specifier: workspace:*
+        version: link:../data-explorer
       '@pymekit/cms-navigation':
         specifier: workspace:*
         version: link:../navigation
+      '@pymekit/cms-permissions':
+        specifier: workspace:*
+        version: link:../permissions
       '@pymekit/cms-resources':
         specifier: workspace:*
         version: link:../resources

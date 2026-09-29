@@ -11,7 +11,8 @@
     }
   },
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./hooks": "./src/hooks/index.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
@@ -25,6 +26,9 @@
   },
   "devDependencies": {
     "@pymekit/tsconfig": "workspace:*",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "use-intl": "catalog:",
     "vitest": "catalog:"
   }
 }

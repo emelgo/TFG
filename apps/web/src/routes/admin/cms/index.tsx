@@ -4,9 +4,10 @@
  * Lista los recursos de `GET /v1/navigation` (las tablas de
  * `cms.table_metadata` que las políticas RLS dejan ver al usuario según su
  * rol del CMS), agrupados por esquema y en el orden configurado. Cada tabla
- * enlaza con su explorador de datos (`/admin/cms/resources/$schema/$table`,
- * que llega en F2.4). Es también la página a la que se redirige al personal
- * del CMS que entra en `/admin`.
+ * enlaza con su explorador de datos (`/admin/cms/resources/$schema/$table`).
+ * Encima se muestran las pestañas abiertas del explorador y las tablas
+ * recientes, para retomar el trabajo. Es también la página a la que se
+ * redirige al personal del CMS que entra en `/admin`.
  *
  * [TFG] RF-09: el explorador de datos solo ofrece lo que el RBAC del CMS
  * permite leer.
@@ -15,6 +16,10 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { Database, Table2 } from 'lucide-react';
 
+import {
+  DataExplorerRecentTables,
+  DataExplorerTabs,
+} from '@pymekit/cms-data-explorer-ui/components';
 import { groupResourcesBySchema } from '@pymekit/cms-ui-core/resources';
 import { Badge } from '@pymekit/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@pymekit/ui/card';
@@ -50,10 +55,17 @@ function CmsOverviewPage() {
 
   return (
     <PageBody>
+      {/* Pestañas y tablas recientes del explorador (solo en el navegador). */}
+      <DataExplorerTabs />
+
       <PageHeader
         title={<Trans i18nKey="cms.overview.title" />}
         description={<Trans i18nKey="cms.overview.description" />}
       />
+
+      <div className="pb-6 empty:hidden">
+        <DataExplorerRecentTables />
+      </div>
 
       {groups.length === 0 ? (
         <EmptyState data-testid="cms-resources-empty" className="min-h-64 p-6">

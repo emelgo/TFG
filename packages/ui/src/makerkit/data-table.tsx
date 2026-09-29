@@ -543,7 +543,10 @@ function Pagination<T>({
 
   return (
     <div className="flex items-center space-x-4">
-      <span className="text-muted-foreground flex items-center text-xs">
+      <span
+        className="text-muted-foreground flex items-center text-xs"
+        data-testid="data-table-page-indicator"
+      >
         <Trans
           i18nKey={'common.pageOfPages'}
           values={{
@@ -559,6 +562,7 @@ function Pagination<T>({
           className={'h-6 w-6'}
           size={'icon'}
           variant={'outline'}
+          data-testid="data-table-first-page"
           onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage()}
         >
@@ -570,6 +574,7 @@ function Pagination<T>({
           className={'h-6 w-6'}
           size={'icon'}
           variant={'outline'}
+          data-testid="data-table-previous-page"
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
@@ -581,6 +586,7 @@ function Pagination<T>({
           className={'h-6 w-6'}
           size={'icon'}
           variant={'outline'}
+          data-testid="data-table-next-page"
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
@@ -592,6 +598,7 @@ function Pagination<T>({
           className={'h-6 w-6'}
           size={'icon'}
           variant={'outline'}
+          data-testid="data-table-last-page"
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
         >

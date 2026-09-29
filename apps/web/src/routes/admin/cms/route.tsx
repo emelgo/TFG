@@ -30,7 +30,10 @@ import {
 } from '@tanstack/react-router';
 import { TriangleAlert } from 'lucide-react';
 
+import { FormatterPreferencesProvider } from '@pymekit/cms-formatters/hooks';
 import { CmsAccountProvider } from '@pymekit/cms-ui-core/account-context';
+import { CmsApiProvider } from '@pymekit/cms-ui-core/api-context';
+import { getCmsPreferences } from '@pymekit/cms-ui-core/preferences';
 import {
   EmptyMedia,
   EmptyState,
@@ -43,7 +46,7 @@ import { Trans } from '@pymekit/ui/trans';
 
 import { CmsAccessRequired } from '#/components/admin/cms/cms-access-required.tsx';
 import { loadCmsAccess } from '#/lib/cms/cms-access.ts';
-import { cmsQueries } from '#/lib/cms/cms-queries.ts';
+import { cmsApi, cmsQueries } from '#/lib/cms/cms-queries.ts';
 
 export const Route = createFileRoute('/admin/cms')({
   beforeLoad: async ({ context, location }) => {
@@ -69,18 +72,27 @@ function CmsLayout() {
   return <CmsAccountOutlet />;
 }
 
+/** API del CMS para los componentes de los paquetes (instancia estable). */
+const cmsApiContext = { api: cmsApi, queries: cmsQueries };
+
 /**
- * Publica la cuenta del CMS para las pantallas hijas. Los datos ya están en
+ * Publica la cuenta del CMS, el acceso a su API y la zona horaria de sus
+ * preferencias (para formatear fechas en las tablas) para las pantallas hijas. Los datos ya están en
  * la caché (los cargó `beforeLoad`), así que `useSuspenseQuery` no suspende;
  * se lee de la caché y no del contexto del *router* para que la cuenta se
  * mantenga al día si TanStack Query la vuelve a pedir.
  */
 function CmsAccountOutlet() {
   const { data } = useSuspenseQuery(cmsQueries.account());
+  const { timezone } = getCmsPreferences(data.account.preferences);
 
   return (
     <CmsAccountProvider value={data}>
-      <Outlet />
+      <CmsApiProvider value={cmsApiContext}>
+        <FormatterPreferencesProvider timezone={timezone}>
+          <Outlet />
+        </FormatterPreferencesProvider>
+      </CmsApiProvider>
     </CmsAccountProvider>
   );
 }

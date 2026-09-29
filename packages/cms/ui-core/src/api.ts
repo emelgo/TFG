@@ -19,7 +19,15 @@ import {
   createHonoClient,
   handleHonoClientResponse,
 } from '@pymekit/cms-api/client';
+import type {
+  CreateSavedViewRoute,
+  DeleteSavedViewRoute,
+  GetSavedViewsRoute,
+  GetTableRoute,
+  UpdateSavedViewRoute,
+} from '@pymekit/cms-data-explorer/routes';
 import type { GetNavigationRoute } from '@pymekit/cms-navigation/routes';
+import type { GetRolesForSharingRoute } from '@pymekit/cms-permissions/routes';
 import type { GetAccountRoute } from '@pymekit/cms-settings/routes';
 
 /** Implementación de `fetch` que usan los clientes RPC. */
@@ -54,7 +62,163 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
 
       return handleHonoClientResponse(await client.v1.navigation.$get());
     },
+
+    /**
+     * Devuelve una página de filas de una tabla (`GET /v1/tables/:schema/:table`)
+     * junto con su metadato (`table`, `columns`), las etiquetas de las
+     * relaciones de las filas (`relations`) y la paginación.
+     *
+     * La API vuelve a comprobar el permiso `select` sobre la tabla: si no lo
+     * tiene, responde 403 y se lanza `ApiError`.
+     */
+    async getTableData(params: TableDataParams) {
+      const client = createHonoClient<GetTableRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][':table'].$get({
+        param: { schema: params.schema, table: params.table },
+        query: toTableDataQuery(params),
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /** Devuelve las vistas guardadas (personales y de equipo) de una tabla. */
+    async getSavedViews(params: { schema: string; table: string }) {
+      const client = createHonoClient<GetSavedViewsRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][':table'].views.$get({
+        param: params,
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /** Crea una vista guardada con los filtros, la ordenación y la búsqueda. */
+    async createSavedView(params: {
+      schema: string;
+      table: string;
+      data: SavedViewInput;
+    }) {
+      const client = createHonoClient<CreateSavedViewRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][':table'].views.$post({
+        param: { schema: params.schema, table: params.table },
+        json: params.data,
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /** Actualiza una vista guardada propia (la BD rechaza las ajenas). */
+    async updateSavedView(params: {
+      schema: string;
+      table: string;
+      id: string;
+      data: Partial<SavedViewInput>;
+    }) {
+      const client = createHonoClient<UpdateSavedViewRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][':table'].views[
+        ':id'
+      ].$put({
+        param: { schema: params.schema, table: params.table, id: params.id },
+        json: params.data,
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /** Borra una vista guardada propia. */
+    async deleteSavedView(params: {
+      schema: string;
+      table: string;
+      id: string;
+    }) {
+      const client = createHonoClient<DeleteSavedViewRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][':table'].views[
+        ':id'
+      ].$delete({ param: params });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /** Devuelve los roles con los que el usuario puede compartir una vista. */
+    async getRolesForSharing() {
+      const client = createHonoClient<GetRolesForSharingRoute>(clientOptions);
+
+      return handleHonoClientResponse(await client.v1.roles.sharing.$get());
+    },
   };
+}
+
+/**
+ * Parámetros de una consulta del listado de una tabla. Los filtros van con el
+ * formato de la API: `{ "columna.operador": "valor" }`.
+ */
+export type TableDataParams = {
+  schema: string;
+  table: string;
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
+  filters?: Record<string, string>;
+};
+
+/** Datos que acepta la API para crear o actualizar una vista guardada. */
+export type SavedViewInput = {
+  name: string;
+  description?: string;
+  roles?: string[];
+  config: {
+    filters: Array<{
+      name: string;
+      values: Array<{ operator: string; value: unknown }>;
+    }>;
+    sort?: { column?: string; direction?: 'asc' | 'desc' };
+    search?: string;
+  };
+};
+
+/**
+ * Traduce los parámetros del listado a la *query string* de la API: solo se
+ * envían los que tienen valor, y los filtros viajan serializados en JSON en
+ * `properties`, que es lo que interpreta el servidor.
+ */
+export function toTableDataQuery(params: TableDataParams) {
+  const query: {
+    page?: string;
+    page_size?: string;
+    search?: string;
+    sort_column?: string;
+    sort_direction?: 'asc' | 'desc';
+    properties?: string;
+  } = {};
+
+  if (params.page) {
+    query.page = String(params.page);
+  }
+
+  if (params.pageSize) {
+    query.page_size = String(params.pageSize);
+  }
+
+  if (params.search) {
+    query.search = params.search;
+  }
+
+  if (params.sortColumn) {
+    query.sort_column = params.sortColumn;
+    query.sort_direction = params.sortDirection ?? 'asc';
+  }
+
+  if (params.filters && Object.keys(params.filters).length > 0) {
+    query.properties = JSON.stringify(params.filters);
+  }
+
+  return query;
 }
 
 export type CmsApi = ReturnType<typeof createCmsApi>;
@@ -66,3 +230,12 @@ export type CmsAccountData = Awaited<ReturnType<CmsApi['getAccount']>>;
 export type CmsNavigationItem = Awaited<
   ReturnType<CmsApi['getNavigation']>
 >[number];
+
+/** Respuesta del listado de una tabla (`GET /v1/tables/:schema/:table`). */
+export type CmsTableData = Awaited<ReturnType<CmsApi['getTableData']>>;
+
+/** Vistas guardadas de una tabla, separadas en personales y de equipo. */
+export type CmsSavedViews = Awaited<ReturnType<CmsApi['getSavedViews']>>;
+
+/** Una vista guardada tal como la devuelve la API. */
+export type CmsSavedView = CmsSavedViews['personal'][number];

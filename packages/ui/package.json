@@ -79,6 +79,7 @@
     "./mode-toggle": "./src/makerkit/mode-toggle.tsx",
     "./mobile-mode-toggle": "./src/makerkit/mobile-mode-toggle.tsx",
     "./enhanced-data-table": "./src/makerkit/data-table.tsx",
+    "./datatype-icon": "./src/makerkit/datatype-icon.tsx",
     "./language-selector": "./src/makerkit/language-selector.tsx",
     "./stepper": "./src/makerkit/stepper.tsx",
     "./lazy-render": "./src/makerkit/lazy-render.tsx",

@@ -16,7 +16,9 @@
     "./errors": "./src/errors.ts",
     "./sections": "./src/sections.ts",
     "./resources": "./src/resources.ts",
-    "./account-context": "./src/account-context.tsx"
+    "./account-context": "./src/account-context.tsx",
+    "./api-context": "./src/api-context.tsx",
+    "./preferences": "./src/preferences.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
@@ -28,7 +30,9 @@
     "@pymekit/cms-shared": "workspace:*"
   },
   "devDependencies": {
+    "@pymekit/cms-data-explorer": "workspace:*",
     "@pymekit/cms-navigation": "workspace:*",
+    "@pymekit/cms-permissions": "workspace:*",
     "@pymekit/cms-resources": "workspace:*",
     "@pymekit/cms-settings": "workspace:*",
     "@pymekit/tsconfig": "workspace:*",

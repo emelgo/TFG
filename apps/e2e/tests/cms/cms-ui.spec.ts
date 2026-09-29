@@ -59,7 +59,7 @@ test.describe('CMS: super-admin con MFA', () => {
     await cms.resourceLink('public.accounts').click();
 
     await page.waitForURL('**/admin/cms/resources/public/accounts');
-    await expect(page.getByTestId('cms-placeholder')).toBeVisible();
+    await expect(page.getByTestId('data-explorer')).toBeVisible();
   });
 });
 
