@@ -10,7 +10,7 @@
  */
 import { queryOptions } from '@tanstack/react-query';
 
-import type { CmsApi, TableDataParams } from './api';
+import type { CmsApi, RecordParams, TableDataParams } from './api';
 import { shouldRetryCmsQuery } from './errors';
 
 /** Claves de caché de TanStack Query del CMS. */
@@ -36,6 +36,20 @@ export const cmsQueryKeys = {
     ] as const,
   savedViews: (schema: string, table: string) =>
     [...cmsQueryKeys.table(schema, table), 'views'] as const,
+  tableMetadata: (schema: string, table: string) =>
+    [...cmsQueryKeys.table(schema, table), 'metadata'] as const,
+  /**
+   * Ficha de un registro. Las claves se ordenan para que `{a, b}` y `{b, a}`
+   * (el orden de los parámetros de la URL) compartan la misma entrada.
+   */
+  record: (params: RecordParams) =>
+    [
+      ...cmsQueryKeys.table(params.schema, params.table),
+      'record',
+      Object.fromEntries(
+        Object.entries(params.keys).sort(([a], [b]) => a.localeCompare(b)),
+      ),
+    ] as const,
   rolesForSharing: () => [...cmsQueryKeys.all, 'roles', 'sharing'] as const,
 };
 
@@ -73,6 +87,31 @@ export function createCmsQueries(api: CmsApi) {
         queryFn: () => api.getTableData(params),
         retry: shouldRetryCmsQuery,
         staleTime: 30 * 1000,
+      }),
+
+    /**
+     * Metadato de una tabla. Cambia muy poco (solo desde los ajustes del
+     * recurso), así que se considera fresco 5 minutos.
+     */
+    tableMetadata: (schema: string, table: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.tableMetadata(schema, table),
+        queryFn: () => api.getTableMetadata({ schema, table }),
+        retry: shouldRetryCmsQuery,
+        staleTime: 5 * 60 * 1000,
+      }),
+
+    /**
+     * Ficha de un registro con sus claves foráneas resueltas. Se considera
+     * fresca 15 segundos: al volver a la ficha desde una fila relacionada se
+     * ve al instante, y tras editarla (F2.4c) se invalidará su prefijo.
+     */
+    record: (params: RecordParams) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.record(params),
+        queryFn: () => api.getRecord(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
       }),
 
     /** Vistas guardadas (personales y de equipo) de una tabla. */

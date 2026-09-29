@@ -1,39 +1,65 @@
 /**
- * Ficha de un registro por su clave (`.../record/$id`).
+ * Explorador de datos: ficha de un registro por su clave de una columna
+ * (`/admin/cms/resources/$schema/$table/record/$id`).
  *
- * Página provisional: el listado (F2.4a) ya enlaza aquí al pulsar una fila;
- * la ficha, la edición y el borrado llegan en F2.4b y F2.4c. Hereda la
- * guarda de acceso del *layout* `/admin/cms`.
+ * El valor de la clave va en la ruta; la columna se deduce del metadato de
+ * la tabla (`loadCmsRecordById`). La URL solo guarda además la página de
+ * cada sección de registros relacionados (`RecordSearchSchema`). Un 403 o
+ * 404 de la API se muestra como «no encontrado». Hereda la guarda de acceso
+ * del *layout* `/admin/cms`.
+ *
+ * [TFG] RF-09 · ADR-011 · ADR-013: ficha del explorador como ruta de la web.
  */
 import { createFileRoute } from '@tanstack/react-router';
 
-import { Trans } from '@pymekit/ui/trans';
+import {
+  RecordSearchSchema,
+  withRelatedPage,
+} from '@pymekit/cms-data-explorer-ui/utils';
 
-import { CmsPlaceholderPage } from '#/components/admin/cms/cms-placeholder-page.tsx';
+import {
+  CmsRecordError,
+  CmsRecordPage,
+} from '#/components/admin/cms/cms-record-page.tsx';
+import { loadCmsRecordById } from '#/lib/cms/cms-record.ts';
 
 export const Route = createFileRoute(
   '/admin/cms/resources/$schema/$table/record/$id',
 )({
+  validateSearch: RecordSearchSchema,
+  loader: async ({ context, params }) => {
+    // Sin acceso válido (aviso de MFA) el *layout* no renderiza la página.
+    if (context.cmsAccess.status !== 'ok') {
+      return { keys: {} };
+    }
+
+    return loadCmsRecordById(context.queryClient, params);
+  },
   head: ({ params }) => ({
     meta: [{ title: `${params.schema}.${params.table} · ${params.id}` }],
   }),
-  component: CmsRecordPage,
+  component: RecordByIdPage,
+  errorComponent: ({ reset }) => <CmsRecordError reset={reset} />,
 });
 
-function CmsRecordPage() {
-  const { schema, table, id } = Route.useParams();
+function RecordByIdPage() {
+  const { schema, table } = Route.useParams();
+  const { keys } = Route.useLoaderData();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   return (
-    <div data-testid="cms-record-page" data-record-id={id}>
-      <CmsPlaceholderPage
-        title={
-          <Trans
-            i18nKey="cms.placeholder.resourceTitle"
-            values={{ schema, table }}
-          />
-        }
-        increment="F2.4b"
-      />
-    </div>
+    <CmsRecordPage
+      schema={schema}
+      table={table}
+      keys={keys}
+      relatedPages={search.relatedPages}
+      onRelatedPageChange={(relationKey, page) => {
+        void navigate({
+          search: (previous) => withRelatedPage(previous, relationKey, page),
+          resetScroll: false,
+        });
+      }}
+    />
   );
 }

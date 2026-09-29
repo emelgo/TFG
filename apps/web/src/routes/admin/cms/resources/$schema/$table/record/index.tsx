@@ -1,36 +1,68 @@
 /**
- * Ficha de un registro con clave compuesta (`.../record?col1=a&col2=b`).
+ * Explorador de datos: ficha de un registro con clave compuesta
+ * (`/admin/cms/resources/$schema/$table/record?col1=a&col2=b`).
  *
- * Página provisional hasta F2.4b: el listado enlaza aquí cuando la tabla
- * identifica sus filas con varias columnas. Hereda la guarda de acceso del
- * *layout* `/admin/cms`.
+ * Cada columna de la clave es un parámetro de la URL, tal como la genera
+ * `buildResourceUrl` (por ejemplo, un miembro de una cuenta:
+ * `?user_id=…&account_id=…`). `parseRecordKeysSearch` las valida como texto
+ * y reserva `relatedPages` para la página de cada sección relacionada; solo
+ * las claves son dependencias del `loader`, así que paginar una sección no
+ * vuelve a pedir la ficha. Sin claves, o con un 403/404 de la API, la página
+ * es «no encontrado».
+ *
+ * [TFG] RF-09 · ADR-011 · ADR-013: ficha del explorador como ruta de la web.
  */
 import { createFileRoute } from '@tanstack/react-router';
 
-import { Trans } from '@pymekit/ui/trans';
+import {
+  getRecordKeysFromSearch,
+  parseRecordKeysSearch,
+  withRelatedPage,
+} from '@pymekit/cms-data-explorer-ui/utils';
 
-import { CmsPlaceholderPage } from '#/components/admin/cms/cms-placeholder-page.tsx';
+import {
+  CmsRecordError,
+  CmsRecordPage,
+} from '#/components/admin/cms/cms-record-page.tsx';
+import { loadCmsRecord } from '#/lib/cms/cms-record.ts';
 
 export const Route = createFileRoute(
   '/admin/cms/resources/$schema/$table/record/',
 )({
-  component: CmsRecordByKeysPage,
+  validateSearch: parseRecordKeysSearch,
+  loaderDeps: ({ search }) => ({ keys: getRecordKeysFromSearch(search) }),
+  loader: async ({ context, params, deps }) => {
+    // Sin acceso válido (aviso de MFA) el *layout* no renderiza la página.
+    if (context.cmsAccess.status !== 'ok') {
+      return;
+    }
+
+    await loadCmsRecord(context.queryClient, { ...params, keys: deps.keys });
+  },
+  head: ({ params }) => ({
+    meta: [{ title: `${params.schema}.${params.table}` }],
+  }),
+  component: RecordByKeysPage,
+  errorComponent: ({ reset }) => <CmsRecordError reset={reset} />,
 });
 
-function CmsRecordByKeysPage() {
+function RecordByKeysPage() {
   const { schema, table } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   return (
-    <div data-testid="cms-record-page">
-      <CmsPlaceholderPage
-        title={
-          <Trans
-            i18nKey="cms.placeholder.resourceTitle"
-            values={{ schema, table }}
-          />
-        }
-        increment="F2.4b"
-      />
-    </div>
+    <CmsRecordPage
+      schema={schema}
+      table={table}
+      keys={getRecordKeysFromSearch(search)}
+      relatedPages={search.relatedPages}
+      onRelatedPageChange={(relationKey, page) => {
+        void navigate({
+          search: (previous) => withRelatedPage(previous, relationKey, page),
+          resetScroll: false,
+        });
+      }}
+    />
   );
 }

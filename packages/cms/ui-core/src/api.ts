@@ -22,7 +22,9 @@ import {
 import type {
   CreateSavedViewRoute,
   DeleteSavedViewRoute,
+  GetRecordRoute,
   GetSavedViewsRoute,
+  GetTableMetadataRoute,
   GetTableRoute,
   UpdateSavedViewRoute,
 } from '@pymekit/cms-data-explorer/routes';
@@ -77,6 +79,43 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
       const response = await client.v1.tables[':schema'][':table'].$get({
         param: { schema: params.schema, table: params.table },
         query: toTableDataQuery(params),
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Devuelve el metadato de una tabla (`GET /v1/tables/:schema/:table/metadata`):
+     * nombre visible, formato de las etiquetas, claves primarias y únicas
+     * (`uiConfig`), relaciones y columnas. Exige permiso `select` (403 si no).
+     */
+    async getTableMetadata(params: { schema: string; table: string }) {
+      const client = createHonoClient<GetTableMetadataRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][
+        ':table'
+      ].metadata.$get({ param: params });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Devuelve la ficha de un registro (`GET /v1/tables/:schema/:table/record`)
+     * identificado por su clave: una columna (`{ id: '…' }`) o varias si la
+     * clave es compuesta. La respuesta trae la fila (`data`), el metadato de
+     * la tabla, los permisos del usuario, las filas a las que apuntan sus
+     * claves foráneas legibles (`foreignKeyRecords`) y el metadato de las
+     * tablas intermedias legibles (`junctionMetadataMap`, para las M2M).
+     *
+     * Lanza `ApiError` con `status` 403 si el usuario no puede leer la tabla
+     * y 404 si la clave no identifica ninguna fila.
+     */
+    async getRecord(params: RecordParams) {
+      const client = createHonoClient<GetRecordRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][':table'].record.$get({
+        param: { schema: params.schema, table: params.table },
+        query: params.keys,
       });
 
       return handleHonoClientResponse(response);
@@ -167,6 +206,16 @@ export type TableDataParams = {
   filters?: Record<string, string>;
 };
 
+/**
+ * Registro que se quiere abrir: tabla y valores de su clave, como
+ * `{ columna: valor }` (varias entradas si la clave es compuesta).
+ */
+export type RecordParams = {
+  schema: string;
+  table: string;
+  keys: Record<string, string>;
+};
+
 /** Datos que acepta la API para crear o actualizar una vista guardada. */
 export type SavedViewInput = {
   name: string;
@@ -233,6 +282,12 @@ export type CmsNavigationItem = Awaited<
 
 /** Respuesta del listado de una tabla (`GET /v1/tables/:schema/:table`). */
 export type CmsTableData = Awaited<ReturnType<CmsApi['getTableData']>>;
+
+/** Metadato de una tabla (`GET /v1/tables/:schema/:table/metadata`). */
+export type CmsTableMetadata = Awaited<ReturnType<CmsApi['getTableMetadata']>>;
+
+/** Ficha de un registro (`GET /v1/tables/:schema/:table/record`). */
+export type CmsRecordData = Awaited<ReturnType<CmsApi['getRecord']>>;
 
 /** Vistas guardadas de una tabla, separadas en personales y de equipo. */
 export type CmsSavedViews = Awaited<ReturnType<CmsApi['getSavedViews']>>;

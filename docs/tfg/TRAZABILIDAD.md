@@ -4,7 +4,7 @@ Esta matriz relaciona cada requisito (`REQUISITOS.md`) con el código que lo imp
 
 **Leyenda:** ⬜ pendiente · 🟨 en curso o parcial · ✅ implementado y verificado.
 
-_Última actualización: 2026-09-29 (F2.4a cerrada, F2.4b en curso)._
+_Última actualización: 2026-09-29 (F2.4b cerrada)._
 
 | Req. | Código principal | Pruebas (evidencia) | Memoria | Estado | Notas |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@ _Última actualización: 2026-09-29 (F2.4a cerrada, F2.4b en curso)._
 | RF-06 | `packages/features/team-accounts`, `schemas/04–07` | pgTAP (roles, membresías, invitaciones), E2E `team-accounts`, `invitations` | Diseño > Modelo de datos | 🟨 | Funciona con los roles heredados; roles para pymes en F5 |
 | RF-07 | `packages/billing/*` | E2E `billing` (desactivado: faltan claves de Stripe) | Diseño > Pagos | 🟨 | Planes de pyme y pruebas con Stripe en modo test: F5 |
 | RF-08 | `packages/features/admin`, `apps/web/src/routes/admin` | E2E `admin`, `cms-ui` | Implementación > Administración | ✅ | Consola compartida con el CMS; plataforma solo para super-admin (ADR-016) |
-| RF-09 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms`, `schemas/20–53` | pgTAP `cms-*` (1.154 del CMS), unit (1.313), E2E `cms-api`, `cms-ui`, `cms-data-explorer` | Diseño > CMS | 🟨 | BD, API, base de UI y listado hechos (F2.1–F2.4a); ficha, CRUD, usuarios, almacenamiento y ajustes: F2.4b–F2.7 |
+| RF-09 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms`, `schemas/20–53` | pgTAP `cms-*` (1.154 del CMS), unit (1.313), E2E `cms-api`, `cms-ui`, `cms-data-explorer` | Diseño > CMS | 🟨 | BD, API, base de UI, listado y ficha hechos (F2.1–F2.4b); CRUD, usuarios, almacenamiento y ajustes: F2.4c–F2.7 |
 | RF-10 | `schemas/47-cms-audit-logs.sql`, `packages/cms/audit-logs` | pgTAP `cms-audit-triggers` | Diseño > CMS | 🟨 | BD y API listas; interfaz en F2.6 |
 | RF-11 | `schemas/52-cms-dashboards.sql`, `packages/cms/dashboards` | pgTAP `cms-dashboards-*`, unit (262) | Implementación > CMS | 🟨 | BD y API listas; interfaz en F2.8 (recortable) |
 | RF-12 | `packages/features/notifications`, `packages/mailers` | — | Implementación | 🟨 | Heredado; sin prueba específica todavía |
@@ -34,11 +34,12 @@ _Última actualización: 2026-09-29 (F2.4a cerrada, F2.4b en curso)._
 ## Etiquetas `[TFG]` en el código
 
 <!-- tfg-tags:inicio -->
-_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (57 etiquetas). No se edita a mano._
+_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (58 etiquetas). No se edita a mano._
 
 | Fichero:línea | Referencias | Qué ilustra |
 |---|---|---|
 | `apps/e2e/tests/cms/cms-api.spec.ts:14` | RF-09, RNF-02 | RF-09 · RNF-02: el acceso al CMS se verifica de extremo a extremo. |
+| `apps/e2e/tests/cms/cms-data-explorer-record.spec.ts:16` | RF-09, ADR-014 | RF-09 · ADR-014: ficha del explorador con permisos del RBAC del CMS. |
 | `apps/e2e/tests/cms/cms-data-explorer.spec.ts:16` | RF-09, ADR-014 | RF-09 · ADR-014: explorador de datos con permisos del RBAC del CMS. |
 | `apps/e2e/tests/cms/cms-ui.spec.ts:17` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014. |
 | `apps/web/src/components/admin/admin-navigation.ts:13` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014. |

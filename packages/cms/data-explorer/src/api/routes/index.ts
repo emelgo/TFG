@@ -200,14 +200,43 @@ function registerGetTableDataRoute(router: Hono) {
 }
 
 /**
- * Get record route
+ * Tipo de la ruta de la ficha de un registro, para el cliente RPC.
  */
 export type GetRecordRoute = ReturnType<typeof registerGetRecordRoute>;
 
 /**
- * @name registerGetRecordRoute
- * @description Register a route for getting a record
- * @param router
+ * Códigos SQLSTATE que indican que la clave pedida no identifica ninguna fila:
+ * `cms.get_record_by_keys` no la encuentra (`P0002`, `no_data_found`), el
+ * valor no tiene un formato válido para su tipo (clase `22`, por ejemplo un
+ * UUID mal escrito) o la columna no existe (`42703`). Para quien pide la
+ * ficha es lo mismo que un registro inexistente: se responde 404 y no 500.
+ */
+function isRecordKeyError(error: unknown) {
+  let current: unknown = error;
+
+  // Drizzle envuelve el error de `postgres` en `cause`: se recorre la cadena.
+  for (let depth = 0; depth < 5 && current; depth++) {
+    const code = (current as { code?: unknown }).code;
+
+    if (typeof code === 'string') {
+      return code === 'P0002' || code === '42703' || code.startsWith('22');
+    }
+
+    current = (current as { cause?: unknown }).cause;
+  }
+
+  return false;
+}
+
+/**
+ * Registra `GET /v1/tables/:schema/:table/record?<columna>=<valor>...`: la
+ * ficha de un registro identificado por su clave (una o varias columnas), con
+ * el metadato de la tabla, los permisos del usuario, las filas a las que
+ * apuntan sus claves foráneas (solo las de tablas que puede leer) y el
+ * metadato de las tablas intermedias (M2M) legibles.
+ *
+ * Respuestas: 403 sin permiso `select` (o esquema protegido), 404 si la clave
+ * no identifica ninguna fila. La interfaz muestra ambos como «no encontrado».
  */
 function registerGetRecordRoute(router: Hono) {
   return router.get(
@@ -215,19 +244,32 @@ function registerGetRecordRoute(router: Hono) {
     zValidator('param', ParamsSchema),
     zValidator('query', z.record(z.string(), z.any())),
     async (c) => {
+      const logger = await getLogger();
       const service = createDataExplorerService(c);
       const { schema: schemaName, table: tableName } = c.req.valid('param');
 
-      // Convert query params to key values
+      // Cada parámetro de la URL es una columna de la clave (`?id=…`).
       const keyValues = Object.fromEntries(Object.entries(c.req.query()));
 
       try {
-        // Security: never expose Supabase/CMS-managed schemas here.
+        // Seguridad: los esquemas gestionados (`auth`, `cms`…) nunca se exponen.
         if (isProtectedSchema(schemaName)) {
-          throw c.notFound();
+          return c.json({ success: false, error: 'Access denied' }, 403);
         }
 
-        const [recordData, tableMetadata, permissions] = await Promise.all([
+        // Se comprueba el permiso antes de leer nada, igual que el listado:
+        // así una tabla sin permiso responde 403 y no un error genérico.
+        // (`get_record_by_keys` lo vuelve a comprobar en la base de datos.)
+        const permissions = await service.getDataPermissions({
+          schemaName,
+          tableName,
+        });
+
+        if (!permissions.canSelect) {
+          return c.json({ success: false, error: 'Access denied' }, 403);
+        }
+
+        const [recordData, tableMetadata] = await Promise.all([
           service.getRecordByKeys({
             schemaName,
             tableName,
@@ -237,39 +279,36 @@ function registerGetRecordRoute(router: Hono) {
             schemaName,
             tableName,
           }),
-          service.getDataPermissions({
-            schemaName,
-            tableName,
-          }),
         ]);
 
-        if (!permissions.canSelect) {
-          throw c.notFound();
+        if (!recordData || Object.keys(recordData).length === 0) {
+          return c.json({ success: false, error: 'Record not found' }, 404);
         }
 
-        // we now need to collect the metadta for the foreig keys columns
-        // so we can display the related records in the UI
+        // Filas a las que apuntan las claves foráneas del registro, para que
+        // la ficha muestre su etiqueta y enlace a ellas.
         const foreignKeyColumns = getLookupRelations(
           tableMetadata.table.relationsConfig,
         );
 
         const foreignKeyRecords = (
           await Promise.all(
-            (
-              foreignKeyColumns as Array<{
-                source_column: string;
-                target_table: string;
-                target_schema: string;
-                target_column: string;
-              }>
-            ).map(async (column) => {
+            foreignKeyColumns.map(async (column) => {
               try {
                 const value = recordData[column.source_column];
 
-                if (value === null || value === undefined) {
+                // Los esquemas protegidos (`auth.users`…) nunca se leen: se
+                // evita la consulta, que la base de datos rechazaría igualmente.
+                if (
+                  value === null ||
+                  value === undefined ||
+                  isProtectedSchema(column.target_schema)
+                ) {
                   return null;
                 }
 
+                // `get_record_by_keys` exige `select` sobre la tabla destino:
+                // si el usuario no puede leerla, lanza y la fila no se incluye.
                 const [data, tableMetadata] = await Promise.all([
                   service.getRecordByKeys({
                     schemaName: column.target_schema,
@@ -284,23 +323,36 @@ function registerGetRecordRoute(router: Hono) {
                   }),
                 ]);
 
-                return { data, metadata: tableMetadata };
+                if (!data || Object.keys(data).length === 0) {
+                  return null;
+                }
+
+                // `column` indica de qué clave foránea sale la fila: una tabla
+                // puede apuntar varias veces a la misma tabla destino.
+                return {
+                  column: column.source_column,
+                  data,
+                  metadata: tableMetadata,
+                };
               } catch (error) {
-                console.error(error);
+                logger.debug(
+                  { error, relation: column.source_column },
+                  'Related record not readable',
+                );
 
                 return null;
               }
             }),
           )
-        ).filter(Boolean);
+        ).filter((record) => record !== null);
 
-        // Fetch O2M target table metadata for M2M derivation
+        // Metadato de las tablas hijas (uno a muchos): la interfaz lo usa para
+        // detectar tablas intermedias y mostrar relaciones muchos a muchos.
         const o2mRelations = getOneToManyRelations(
           tableMetadata.table.relationsConfig,
         );
 
-        // Deduplicate junction tables first to avoid redundant fetches
-        // Multiple O2M relations may point to the same junction table
+        // Varias relaciones pueden apuntar a la misma tabla: se piden una vez.
         const uniqueJunctionTables = new Map<
           string,
           { schema: string; table: string }
@@ -315,8 +367,8 @@ function registerGetRecordRoute(router: Hono) {
           }
         }
 
-        // Bulk permission check for unique junction tables only
-        // Security: Only fetch metadata for tables the user can actually select
+        // Seguridad: solo se devuelve el metadato de las tablas que el
+        // usuario puede leer (una comprobación de permisos en bloque).
         const authorizationService = createAuthorizationService(c);
         const junctionPermissionChecks = Array.from(
           uniqueJunctionTables.entries(),
@@ -334,11 +386,9 @@ function registerGetRecordRoute(router: Hono) {
               )
             : {};
 
-        // Fetch metadata for unique tables only
         const junctionMetadataEntries = await Promise.all(
           Array.from(uniqueJunctionTables.entries()).map(
             async ([key, { schema, table }]) => {
-              // Security: Skip if user doesn't have select permission on junction table
               if (!junctionPermissions[key]) {
                 return null;
               }
@@ -357,11 +407,12 @@ function registerGetRecordRoute(router: Hono) {
                   },
                 ] as const;
               } catch (error) {
-                // Log but don't fail - M2M derivation will just skip this table
-                console.warn(
-                  `Failed to fetch junction metadata for ${schema}.${table}:`,
-                  error,
+                // No es grave: la tabla simplemente no se tratará como M2M.
+                logger.warn(
+                  { error, schema, table },
+                  'Failed to fetch junction metadata',
                 );
+
                 return null;
               }
             },
@@ -382,7 +433,9 @@ function registerGetRecordRoute(router: Hono) {
           junctionMetadataMap,
         });
       } catch (error) {
-        const logger = await getLogger();
+        if (isRecordKeyError(error)) {
+          return c.json({ success: false, error: 'Record not found' }, 404);
+        }
 
         logger.error(
           {

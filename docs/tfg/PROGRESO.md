@@ -45,7 +45,8 @@
 - [x] F2.3 · Base de UI: `/admin` admite super-admins y personal del CMS (`has_cms_access`); las páginas de plataforma siguen siendo solo de super-admin (ADR-016). Layout `/admin/cms` con comprobación de acceso y aviso de MFA, barra lateral «Plataforma»/«CMS» según permisos, paquete cliente `@pymekit/cms-ui-core`, fetch isomorfo (SSR sin salto de red), namespace i18n `cms` (en) y usuario de demo `cms-staff@pymekit.test` (rol Soporte). E2E: 60 ✔ (8 nuevos del CMS)
 - [ ] Pendientes de F2.3 para F2.4–F2.8: filtrado por pestaña en Ajustes y Paneles; visibilidad de Almacenamiento aproximada (cualquier permiso de lectura); `/v1/permissions` registrado dos veces (paquetes permissions y settings)
 - [x] F2.4a · Listado del explorador de datos en `/admin/cms/resources/$schema/$table`: paginación, orden, filtros (fechas relativas, JSON, autocompletado de relaciones), búsqueda, columnas (visibilidad, fijado y orden), formato por tipo y vistas guardadas. Paquetes nuevos `@pymekit/cms-{filters,table,data-explorer-ui}`. Unit 1.313 ✔, E2E 69 ✔
-- [ ] F2.4b · Ficha de registro y registros relacionados
+- [x] F2.4b · Ficha de registro (solo lectura) con claves simples y compuestas, diseño guardado o por defecto, registros relacionados (O2M y M2M) y enlaces de claves ajenas según permisos. La API devuelve 403/404 en lugar de 500. E2E 76 ✔
+- [ ] Mejoras menores (F2.4b): una clave compuesta de texto con aspecto numérico (`1e3`) se normaliza al leer la URL; los campos HTML/Markdown se muestran escapados y las rutas de Storage como texto
 - [ ] F2.4c · Crear, editar y borrar (TanStack Form), acciones en lote y edición en línea
 - [ ] Mejora menor (F2.4): el filtro por autocompletado muestra el id si la fila relacionada no está en la página actual
 - [ ] F2.5 · Explorador de usuarios y de almacenamiento
@@ -114,13 +115,15 @@ Sirve para el capítulo de *Planificación* (temporización y costes: horas real
 | 2026-09-29 | 14:19–15:05 | F2.2 (API del CMS) | ≈ 0,75 | commits |
 | 2026-09-29 | 15:05–15:50 | F2.3 (base de la interfaz) | ≈ 0,75 | commits |
 | 2026-09-29 | 15:50–17:02 | Corrección MFA `/admin` + F2.4a (listado) | ≈ 1,25 | commits |
-| **Total** | | | **≈ 6,0** | |
+| 2026-09-29 | 17:02–17:50 | F2.4b (ficha de registro) + bitácora y trazabilidad | ≈ 0,75 | commits |
+| **Total** | | | **≈ 6,75** | |
 
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-29 | F2.4b | Ficha de registro del CMS con relaciones y enlaces según permisos; E2E 76 ✔. Bitácora de incidencias y trazabilidad al día |
 | 2026-09-29 | F2.4a | Listado del explorador de datos del CMS (filtros, orden, búsqueda, columnas y vistas guardadas); E2E 69 ✔ |
 | 2026-09-29 | F2.3 | Corrección de seguridad (detectada por el autor): `/admin` se cargaba con sesión aal1; ahora exige aal2 (verificación MFA o 404). Test E2E de regresión añadido |
 | 2026-09-29 | F2.3 | Base de la interfaz del CMS en `/admin/cms`: acceso de super-admin y personal, barra lateral por permisos y aviso de MFA; E2E 60 ✔ |

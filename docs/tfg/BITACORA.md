@@ -31,6 +31,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-14 | 2026-09-29 | F2.3 | seguridad | propio | La consola `/admin` se cargaba sin segundo factor | Media |
 | B-15 | 2026-09-29 | F2.4a | proceso | entorno | Corte de conexión con un agente trabajando | Baja |
 | B-16 | 2026-09-29 | F2.4a | calidad | propio | Dependencia circular entre paquetes del CMS | Baja |
+| B-17 | 2026-09-29 | F2.4b | calidad | heredado | La API del CMS respondía 500 a registros inexistentes | Baja |
 
 ---
 
@@ -134,3 +135,9 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** al poner los componentes del explorador de datos en el mismo paquete que su API (`@pymekit/cms-data-explorer`), se formaba un ciclo con `@pymekit/cms-ui-core`, que importa los tipos de esa API. Turborepo lo rechaza.
 - **Solución:** separar los componentes en un paquete cliente propio, `@pymekit/cms-data-explorer-ui`.
 - **Lección:** en un monorepo, separar paquetes de servidor y de cliente no es solo una cuestión de seguridad: también evita ciclos de dependencias.
+
+## B-17 · La API del CMS respondía 500 a registros inexistentes
+- **Qué pasó:** al construir la ficha de registro, pedir un id inexistente, una clave con formato no válido o una columna que no existe devolvía un error 500 genérico. El cliente Drizzle envolvía el error de Postgres y perdía su código.
+- **Solución:** el cliente Drizzle conserva el error original en `cause`. La ruta traduce los códigos SQLSTATE a respuestas HTTP correctas: `P0002` (sin fila), la clase `22` (dato no válido para el tipo) y `42703` (columna inexistente) dan 404; la falta de permiso o un esquema protegido dan 403.
+- **Evidencia:** E2E de `cms-data-explorer-record.spec.ts` (id inexistente → página 404).
+- **Lección:** envolver errores sin conservar la causa impide distinguir el «no existe» del «ha fallado», y eso empeora tanto la interfaz como la observabilidad.

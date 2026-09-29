@@ -177,7 +177,10 @@ export async function getDrizzleSupabaseClient(c: Context) {
           return `Error in Drizzle transaction: \n\n"${message}".\n\nPlease check the logs for more details.`;
         };
 
-        throw new Error(formatErrorMessage(error));
+        // Se conserva el error original en `cause`: las rutas lo necesitan
+        // para distinguir por su código SQLSTATE (por ejemplo, «no existe la
+        // fila» → 404) sin depender del texto del mensaje.
+        throw new Error(formatErrorMessage(error), { cause: error });
       } finally {
         try {
           // Clean up (settings above are transaction-local, but reset defensively)

@@ -49,7 +49,28 @@
     },
     "record": {
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "empty": "Empty",
+      "noName": "Unnamed record",
+      "backToList": "Back to the table",
+      "openInNewTab": "Open in a new tab",
+      "loadErrorHeading": "The record could not be loaded",
+      "loadErrorText": "Something went wrong while loading this record. Please try again in a moment.",
+      "groups": {
+        "main": "Basic information",
+        "relations": "Relations",
+        "system": "System fields"
+      },
+      "related": {
+        "title": "Related records",
+        "empty": "No related records",
+        "noLinkedRecords": "No linked records",
+        "loadError": "The related records could not be loaded",
+        "sectionError": "This section could not be displayed",
+        "openTable": "Open in table",
+        "open": "Open",
+        "viewAll": "View all ({count})"
+      }
     },
     "columns": {
       "title": "Columns",
