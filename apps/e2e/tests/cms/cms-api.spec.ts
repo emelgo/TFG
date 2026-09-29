@@ -72,6 +72,12 @@ test.describe('API del CMS: super-admin sin MFA', () => {
     const response = await page.request.get('/api/cms/v1/navigation');
 
     expect(response.status()).toBe(403);
+
+    // La interfaz distingue este 403 (resoluble verificando el segundo
+    // factor) de un rechazo definitivo gracias a su `errorCode`.
+    expect(await response.json()).toMatchObject({
+      errorCode: 'CMS_MFA_OR_INACTIVE_ACCOUNT',
+    });
   });
 });
 

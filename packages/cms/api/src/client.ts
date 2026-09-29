@@ -65,15 +65,19 @@ type HonoClient<T extends Hono> = ReturnType<typeof hc<T>>;
  * @param options.baseUrl Origen absoluto opcional, para llamar a la API desde
  *   el servidor (por ejemplo, en un *loader* durante el SSR), donde una ruta
  *   relativa no se puede resolver.
+ * @param options.fetch Implementación de `fetch` alternativa. La web la usa
+ *   durante el SSR para atender la petición dentro del propio proceso (sin
+ *   salir a la red) reenviando las *cookies* de la petición entrante.
  */
 export function createHonoClient<T extends Hono>(
-  options: { baseUrl?: string } = {},
+  options: { baseUrl?: string; fetch?: typeof fetch } = {},
 ): HonoClient<T> {
   const url = options.baseUrl
     ? new URL(CMS_API_BASE_PATH, options.baseUrl).toString()
     : CMS_API_BASE_PATH;
 
   return hc<T>(url, {
+    fetch: options.fetch,
     init: {
       credentials: 'include',
     },

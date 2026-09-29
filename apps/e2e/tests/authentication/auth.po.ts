@@ -140,6 +140,21 @@ export class AuthPageObject {
     await this.page.waitForURL(params.next ?? '/dashboard');
   }
 
+  /**
+   * Inicia sesión como el personal de soporte del CMS del *seed*
+   * (`cms-staff@pymekit.test`), completando el segundo factor con el mismo
+   * secreto TOTP que el super-admin.
+   */
+  async loginAsCmsStaff(params: { next?: string }) {
+    await this.loginAsUser({
+      email: 'cms-staff@pymekit.test',
+      next: '/auth/verify',
+    });
+
+    await this.submitMFAVerification(MFA_KEY);
+    await this.page.waitForURL(params.next ?? '/dashboard');
+  }
+
   async bootstrapUser({
     email,
     password,

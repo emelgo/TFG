@@ -563,6 +563,61 @@ export class AuthorizationService {
   }
 
   /**
+   * Devuelve qué secciones de la interfaz del CMS puede usar el usuario.
+   *
+   * La consola de administración lo usa para decidir qué entradas del grupo
+   * «CMS» de la barra lateral se muestran (usuarios, almacenamiento y
+   * auditoría). Se calcula en UNA sola transacción con las mismas funciones
+   * SQL que aplican después las rutas y las políticas RLS, para que la
+   * interfaz y la autorización real no puedan divergir:
+   *
+   *  - `users`: `has_admin_permission('auth_user', 'select')`, la misma
+   *    comprobación que hace el explorador de usuarios.
+   *  - `auditLogs`: `has_admin_permission('log', 'select')`, requisito previo
+   *    de `can_read_audit_log`.
+   *  - `storage`: existe algún permiso de datos con ámbito `storage` y acción
+   *    `select` (o `*`) concedido a la cuenta. Es una aproximación: el acceso
+   *    real a cada bucket y ruta lo decide `has_storage_permission`.
+   *
+   * Ocultar una entrada es solo una ayuda de interfaz: si alguien navega a
+   * la ruta, la API vuelve a comprobar el permiso concreto.
+   *
+   * [TFG] RF-09 · ADR-014: la visibilidad de la interfaz se deriva del RBAC
+   * del CMS, no de una lista fija por rol.
+   */
+  async getSectionAccess() {
+    const client = this.context.get('drizzle');
+
+    const result = await client.runTransaction(async (tx) => {
+      return tx.execute<{
+        users: boolean | null;
+        audit_logs: boolean | null;
+        storage: boolean | null;
+      }>(
+        sql`SELECT
+              cms.has_admin_permission('auth_user'::cms.system_resource, 'select'::cms.system_action) as users,
+              cms.has_admin_permission('log'::cms.system_resource, 'select'::cms.system_action) as audit_logs,
+              exists (
+                select 1
+                from cms.permissions p
+                where p.permission_type = 'data'
+                  and p.scope = 'storage'
+                  and p.action in ('select', '*')
+                  and cms.has_permission(cms.get_current_user_account_id(), p.id)
+              ) as storage`,
+      );
+    });
+
+    const row = result[0];
+
+    return {
+      users: row?.users === true,
+      auditLogs: row?.audit_logs === true,
+      storage: row?.storage === true,
+    };
+  }
+
+  /**
    * Get role access rights (backwards compatibility)
    * @param roleId - The role ID
    * @returns The role access rights

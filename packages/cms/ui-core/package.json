@@ -1,0 +1,41 @@
+{
+  "name": "@pymekit/cms-ui-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./api": "./src/api.ts",
+    "./queries": "./src/queries.ts",
+    "./errors": "./src/errors.ts",
+    "./sections": "./src/sections.ts",
+    "./resources": "./src/resources.ts",
+    "./account-context": "./src/account-context.tsx"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@pymekit/cms-api": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@pymekit/cms-navigation": "workspace:*",
+    "@pymekit/cms-resources": "workspace:*",
+    "@pymekit/cms-settings": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "@types/react": "catalog:",
+    "hono": "catalog:",
+    "react": "catalog:",
+    "vitest": "catalog:"
+  }
+}

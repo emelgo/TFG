@@ -20,6 +20,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@pymekit/cms-shared": "workspace:*",
     "@pymekit/cms-supabase": "workspace:*",
     "@pymekit/shared": "workspace:*",
     "drizzle-orm": "catalog:",

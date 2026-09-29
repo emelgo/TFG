@@ -27,6 +27,7 @@
     "@pymekit/cms-permissions": "workspace:*",
     "@pymekit/cms-resources": "workspace:*",
     "@pymekit/cms-settings": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*",
     "@pymekit/cms-storage-explorer": "workspace:*",
     "@pymekit/cms-supabase": "workspace:*",
     "@pymekit/cms-users-explorer": "workspace:*",

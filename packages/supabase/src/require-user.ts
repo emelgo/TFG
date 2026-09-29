@@ -91,6 +91,7 @@ export async function requireUser(
       email: data.claims.email,
       phone: data.claims.phone,
       is_superadmin: role === 'super-admin' && data.claims.aal === 'aal2',
+      has_cms_access: data.claims.app_metadata?.cms_access === 'true',
       id: data.claims.sub,
       amr: data.claims.amr,
     },

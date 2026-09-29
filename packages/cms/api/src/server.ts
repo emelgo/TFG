@@ -60,6 +60,7 @@ import {
   registerUpdateTableMetadataRouter,
   registerUpdateTablesRouter,
 } from '@pymekit/cms-settings/routes';
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
 import {
   registerBucketContentsRouter,
   registerFileOperationsRouter,
@@ -163,10 +164,13 @@ export function createCmsApiRouter() {
       });
 
       if (!hasAdminAccess) {
+        // `errorCode` permite a la interfaz distinguir este caso (se puede
+        // resolver verificando el segundo factor) de un 403 definitivo.
         return c.json(
           {
             error:
               'CMS access requires an active CMS account and, if enabled, MFA',
+            errorCode: CMS_API_ERROR_CODES.MFA_OR_INACTIVE_ACCOUNT,
           },
           403,
         );

@@ -2,19 +2,24 @@
 
 Lógica del CMS de datos integrado en la consola de super-admin (RF-09, ADR-011). Todos los paquetes se publican en el *workspace* como `@pymekit/cms-<nombre>`.
 
-**Estado actual: solo servidor.** Aquí vive la API Hono del CMS (servicios Drizzle, rutas y esquemas Zod). La interfaz (`apps/web/src/routes/admin/cms/**`) se escribirá en incrementos posteriores con la pila de la web (TanStack Router + Query, `@tanstack/react-form`, `@pymekit/i18n`, `@pymekit/ui`); no se añaden componentes React a estos paquetes sin decidirlo antes.
+Aquí vive la API Hono del CMS (servicios Drizzle, rutas y esquemas Zod) y, desde F2.3, el núcleo de cliente de su interfaz (`@pymekit/cms-ui-core`). Las pantallas son rutas de la web (`apps/web/src/routes/admin/cms/**`) con su misma pila (TanStack Router + Query, `@tanstack/react-form`, `@pymekit/i18n`, `@pymekit/ui`); los componentes visuales van en la web o en `@pymekit/ui`, no en estos paquetes.
 
 ## Paquetes
 
 | Paquete | Contenido |
 |---|---|
-| `@pymekit/cms-api` | `./server`: `createCmsApiApp()` / `createCmsApiRouter()`, la aplicación Hono que registra todas las rutas. `./client`: cliente RPC tipado (`createHonoClient`, base `/api/cms`) para la futura interfaz |
+| `@pymekit/cms-api` | `./server`: `createCmsApiApp()` / `createCmsApiRouter()`, la aplicación Hono que registra todas las rutas. `./client`: cliente RPC tipado (`createHonoClient`, base `/api/cms`, `fetch` inyectable) que usa `@pymekit/cms-ui-core` |
 | `@pymekit/cms-auth` | *Middleware* de autenticación (`./routes`) y `AuthorizationService` (`./services`) |
 | `@pymekit/cms-supabase` | Clientes Drizzle (`./client`), esquema Drizzle del esquema SQL `cms` (`./schema`) y clientes Supabase para Hono (`./hono`) |
 | `@pymekit/cms-permissions`, `@pymekit/cms-resources` | Roles/permisos del RBAC del CMS y recursos legibles por el usuario |
 | `@pymekit/cms-data-explorer`, `@pymekit/cms-dashboards`, `@pymekit/cms-settings`, `@pymekit/cms-audit-logs`, `@pymekit/cms-users-explorer`, `@pymekit/cms-storage-explorer`, `@pymekit/cms-navigation` | Rutas y servicios de cada funcionalidad (export `./routes`) |
 | `@pymekit/cms-data-explorer-core`, `@pymekit/cms-query-builder`, `@pymekit/cms-filters-core`, `@pymekit/cms-formatters` | Núcleo sin interfaz: consultas dinámicas, filtros y formateo (con tests unitarios) |
-| `@pymekit/cms-types`, `@pymekit/cms-shared` | Tipos compartidos y utilidades de errores (`getErrorMessage`, `getPublicErrorMessage`) |
+| `@pymekit/cms-types`, `@pymekit/cms-shared` | Tipos compartidos, utilidades de errores (`getErrorMessage`, `getPublicErrorMessage`) y códigos de error estables de la API (`./error-codes`, compartidos con el cliente) |
+| `@pymekit/cms-ui-core` | **Solo cliente.** Núcleo de la interfaz del CMS: funciones de la API sobre el cliente RPC (`./api`), claves y opciones de TanStack Query (`./queries`), clasificación de errores de acceso (`./errors`), visibilidad de secciones (`./sections`), agrupación de recursos (`./resources`) y el contexto `useCmsAccount()` (`./account-context`) |
+
+### Por qué `@pymekit/cms-ui-core` es un paquete aparte
+
+El código de cliente reutilizable del CMS no puede vivir en los paquetes de funcionalidad (`cms-settings`, `cms-navigation`…): sus exports arrastran Hono, Drizzle y la clave secreta, y cualquier import de valor desde un componente acabaría en el *bundle* del navegador. Tampoco encaja en `@pymekit/cms-api`, que es el punto de montaje del servidor. Un paquete propio deja la frontera explícita: `cms-ui-core` solo importa `@pymekit/cms-api/client`, `@pymekit/cms-shared/error-codes` y **tipos** de rutas (`import type`), así que es seguro en el navegador; lo que depende de TanStack Start (el `fetch` isomorfo para el SSR) se inyecta desde la web (`apps/web/src/lib/cms/`). Su lógica pura tiene tests unitarios (`src/__tests__`).
 
 Los *logs* usan `getLogger()` de `@pymekit/shared/logger`, igual que el resto de PymeKit.
 
@@ -26,6 +31,12 @@ Los *logs* usan `getLogger()` de `@pymekit/shared/logger`, igual que el resto de
 4. `registerAuthMiddleware` (`@pymekit/cms-auth/routes`): verifica el JWT con `getClaims()` (401 si no hay sesión), exige `app_metadata.cms_access = 'true'` (403) y que el usuario no esté bloqueado. Deja el cliente Supabase verificado en `c.get('supabase')`.
 5. Se crean `c.get('drizzle')` (transacciones con los *claims* del usuario) y `c.get('authorization')`.
 6. La ruta de la funcionalidad llama a su servicio.
+
+## Cómo llega la interfaz a la API
+
+1. El `beforeLoad` de `apps/web/src/routes/admin/cms/route.tsx` llama a `loadCmsAccess()` (`apps/web/src/lib/cms/cms-access.ts`), que pide `GET /v1/account` con `context.queryClient.ensureQueryData(cmsQueries.account())`. La respuesta trae la cuenta del CMS y `access` (secciones con permiso propio: `users`, `storage`, `auditLogs`). 401 → inicio de sesión; 403 con `errorCode = CMS_MFA_OR_INACTIVE_ACCOUNT` → aviso de verificación en dos pasos; otro 403 → 404.
+2. Las consultas usan `cmsFetch` (`apps/web/src/lib/cms/cms-fetch.ts`, `createIsomorphicFn`): en el navegador es el `fetch` nativo contra `/api/cms`; durante el SSR se llama a la aplicación Hono **dentro del mismo proceso** reenviando la cabecera `cookie` de la petición entrante, sin salto de red.
+3. La barra lateral de `/admin` calcula qué entradas del grupo «CMS» mostrar con `getCmsSectionVisibility()` a partir de `/v1/account` y `/v1/navigation` (tablas legibles).
 
 ## Cómo añadir un *endpoint*
 

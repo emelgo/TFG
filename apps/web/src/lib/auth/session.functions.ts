@@ -34,6 +34,10 @@ export const fetchSession = createServerFn({ method: 'GET' }).handler(
       aal: claims.aal,
       amr: claims.amr,
       is_superadmin: role === 'super-admin' && claims.aal === 'aal2',
+      // Acceso al CMS (ADR-014): solo el *claim*. No se exige aal2 aquí para
+      // que la consola pueda mostrar al personal sin MFA verificado el aviso
+      // de verificación en dos pasos en lugar de un 404.
+      has_cms_access: claims.app_metadata?.cms_access === 'true',
       is_anonymous: claims.is_anonymous ?? false,
     };
   },

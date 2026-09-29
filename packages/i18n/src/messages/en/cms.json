@@ -1,0 +1,37 @@
+{
+  "consoleTitle": "Admin console",
+  "sidebar": {
+    "platformGroup": "Platform",
+    "cmsGroup": "CMS",
+    "platformDashboard": "Dashboard",
+    "platformAccounts": "Accounts",
+    "resources": "Data explorer",
+    "users": "Users",
+    "storage": "Storage",
+    "auditLogs": "Audit logs",
+    "dashboards": "Dashboards",
+    "settings": "Settings",
+    "openMenu": "Open the navigation menu"
+  },
+  "overview": {
+    "title": "Data explorer",
+    "description": "Tables you can read, grouped by database schema.",
+    "tablesCount": "{count, plural, one {# table} other {# tables}}",
+    "emptyHeading": "No tables available",
+    "emptyText": "Your CMS role does not grant read access to any table yet. Ask an administrator to assign you the permissions you need."
+  },
+  "access": {
+    "mfaRequiredHeading": "Two-factor verification or an active CMS account is required",
+    "mfaRequiredText": "The CMS only opens for staff with an active CMS account whose session has passed two-factor verification. Verify your second factor to continue. If you have not set one up yet, add it from your profile settings; if the problem persists, your CMS account may have been deactivated.",
+    "verifyMfa": "Verify two-factor authentication",
+    "setupMfa": "Go to profile settings",
+    "loadErrorHeading": "The CMS could not be loaded",
+    "loadErrorText": "Something went wrong while contacting the CMS. Please try again in a moment.",
+    "retry": "Try again"
+  },
+  "placeholder": {
+    "heading": "Coming soon",
+    "text": "This section of the CMS will be available in increment {increment}.",
+    "resourceTitle": "{schema}.{table}"
+  }
+}

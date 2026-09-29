@@ -21,30 +21,17 @@
  */
 import { createFileRoute } from '@tanstack/react-router';
 
-type CmsApiApp = ReturnType<
-  typeof import('@pymekit/cms-api/server').createCmsApiApp
->;
-
-let cmsApiApp: Promise<CmsApiApp> | undefined;
-
 /**
- * Devuelve la aplicación Hono del CMS, creándola la primera vez.
+ * Reenvía la petición a la aplicación Hono del CMS.
  *
- * Se importa de forma dinámica y perezosa por dos motivos: el código del CMS
- * (Drizzle, driver de Postgres, clave secreta) solo se carga en el servidor
- * cuando llega la primera petición al CMS, y queda fuera de cualquier *chunk*
- * del navegador aunque este fichero forme parte del árbol de rutas.
+ * La aplicación se obtiene de `cms-api-app.server.ts`, compartida con el
+ * `fetch` que usan los *loaders* durante el SSR. Se importa de forma dinámica
+ * dentro del manejador para que el código del CMS (Drizzle, driver de
+ * Postgres, clave secreta) nunca forme parte de un *chunk* del navegador,
+ * aunque este fichero pertenezca al árbol de rutas.
  */
-function getCmsApiApp() {
-  cmsApiApp ??= import('@pymekit/cms-api/server').then((module) =>
-    module.createCmsApiApp(),
-  );
-
-  return cmsApiApp;
-}
-
-/** Reenvía la petición a la aplicación Hono del CMS. */
 async function handleCmsApiRequest({ request }: { request: Request }) {
+  const { getCmsApiApp } = await import('#/lib/cms/cms-api-app.server.ts');
   const app = await getCmsApiApp();
 
   return app.fetch(request);

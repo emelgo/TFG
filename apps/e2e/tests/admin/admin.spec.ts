@@ -20,12 +20,21 @@ test.describe('Admin Auth flow without MFA', () => {
 test.describe('Admin Auth flow with Super Admin but without MFA', () => {
   AuthPageObject.setupSession(AUTH_STATES.TEST_USER);
 
-  test('will redirect to 404 for admin users without MFA', async ({ page }) => {
+  // Desde la integración del CMS (ADR-014), un super-admin sin segundo
+  // factor tiene el claim `cms_access`, así que entra en la consola, pero no
+  // como super-admin (exige aal2): las páginas de la plataforma lo llevan al
+  // CMS, que muestra el aviso de verificación en dos pasos en lugar de datos.
+  test('sends admin users without MFA to the CMS MFA notice', async ({
+    page,
+  }) => {
     await page.goto('/admin');
 
-    // the admin route throws notFound(): the root not-found component renders
-    // while the URL stays /admin (no /404 redirect like Next.js)
-    await expect(page.locator('[data-testid="root-not-found"]')).toBeVisible();
+    await page.waitForURL('**/admin/cms');
+
+    await expect(page.getByTestId('cms-mfa-required')).toBeVisible();
+    await expect(page.getByTestId('admin-sidebar-platform-group')).toHaveCount(
+      0,
+    );
   });
 });
 
@@ -38,8 +47,14 @@ test.describe('Admin', () => {
     test('displays all stat cards', async ({ page }) => {
       await page.goto('/admin');
 
-      // Check all stat cards are present
-      await expect(page.getByText('Users', { exact: true })).toBeVisible();
+      // Check all stat cards are present. «Users» se busca solo entre los
+      // títulos de las tarjetas: la barra lateral también tiene una entrada
+      // «Users» (explorador de usuarios del CMS).
+      await expect(
+        page.locator('[data-slot="card-title"]').getByText('Users', {
+          exact: true,
+        }),
+      ).toBeVisible();
 
       await expect(
         page.getByText('Team Accounts', { exact: true }),

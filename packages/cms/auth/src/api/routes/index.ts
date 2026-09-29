@@ -28,18 +28,39 @@
  */
 import type { Context, Hono } from 'hono';
 
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
 import {
   createSupabaseRequestClient,
   getSupabaseAdminClient,
 } from '@pymekit/cms-supabase/hono';
 import { getLogger } from '@pymekit/shared/logger';
 
-/** Motivos por los que se rechaza una petición, con su código HTTP. */
+/**
+ * Motivos por los que se rechaza una petición, con su código HTTP y un
+ * `errorCode` estable. La interfaz decide qué mostrar a partir del código,
+ * nunca del texto del mensaje (que puede cambiar o traducirse).
+ */
 const REJECTIONS = {
-  not_authenticated: { status: 401, error: 'User is not logged in' },
-  user_not_found: { status: 403, error: 'Your account was not found' },
-  not_admin: { status: 403, error: 'You do not have admin access' },
-  user_banned: { status: 403, error: 'Your account was banned' },
+  not_authenticated: {
+    status: 401,
+    error: 'User is not logged in',
+    errorCode: CMS_API_ERROR_CODES.NOT_AUTHENTICATED,
+  },
+  user_not_found: {
+    status: 403,
+    error: 'Your account was not found',
+    errorCode: CMS_API_ERROR_CODES.USER_NOT_FOUND,
+  },
+  not_admin: {
+    status: 403,
+    error: 'You do not have admin access',
+    errorCode: CMS_API_ERROR_CODES.NO_CMS_ACCESS,
+  },
+  user_banned: {
+    status: 403,
+    error: 'Your account was banned',
+    errorCode: CMS_API_ERROR_CODES.USER_BANNED,
+  },
 } as const;
 
 type RejectionReason = keyof typeof REJECTIONS;
@@ -66,9 +87,9 @@ export function registerAuthMiddleware(router: Hono) {
     const result = await authenticate(c);
 
     if (!result.ok) {
-      const { status, error } = REJECTIONS[result.reason];
+      const { status, error, errorCode } = REJECTIONS[result.reason];
 
-      return c.json({ error }, status);
+      return c.json({ error, errorCode }, status);
     }
 
     await next();

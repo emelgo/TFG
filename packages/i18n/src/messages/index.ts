@@ -2,6 +2,7 @@ import { defaultLocale } from '../config';
 import enAccount from './en/account.json';
 import enAuth from './en/auth.json';
 import enBilling from './en/billing.json';
+import enCms from './en/cms.json';
 import enCommon from './en/common.json';
 import enMarketing from './en/marketing.json';
 import enTeams from './en/teams.json';
@@ -16,6 +17,7 @@ const registry: Record<string, Messages> = {
     teams: enTeams,
     billing: enBilling,
     marketing: enMarketing,
+    cms: enCms,
   },
 };
 

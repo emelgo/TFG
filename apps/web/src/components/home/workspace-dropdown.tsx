@@ -300,7 +300,8 @@ export function WorkspaceDropdown({
             }
           />
 
-          <If condition={user.is_superadmin}>
+          {/* La consola también la usa el personal del CMS (ADR-014). */}
+          <If condition={user.is_superadmin || user.has_cms_access}>
             <DropdownMenuItem
               render={
                 <a

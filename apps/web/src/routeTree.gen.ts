@@ -28,6 +28,8 @@ import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricin
 import { Route as MarketingPrivacyPolicyRouteImport } from './routes/_marketing/privacy-policy'
 import { Route as MarketingTermsOfServiceRouteImport } from './routes/_marketing/terms-of-service'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAccountsRouteRouteImport } from './routes/admin/accounts/route'
+import { Route as AdminCmsRouteRouteImport } from './routes/admin/cms/route'
 import { Route as ApiHealthcheckRouteImport } from './routes/api/healthcheck'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
@@ -44,6 +46,7 @@ import { Route as AuthenticatedSettingsMembersRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
 import { Route as AdminAccountsIndexRouteImport } from './routes/admin/accounts/index'
 import { Route as AdminAccountsIdRouteImport } from './routes/admin/accounts/$id'
+import { Route as AdminCmsIndexRouteImport } from './routes/admin/cms/index'
 import { Route as ApiBillingWebhookRouteImport } from './routes/api/billing/webhook'
 import { Route as ApiCmsSplatRouteImport } from './routes/api/cms/$'
 import { Route as ApiDbWebhookRouteImport } from './routes/api/db/webhook'
@@ -52,6 +55,13 @@ import { Route as AuthCallbackErrorRouteImport } from './routes/auth/callback/er
 import { Route as AuthenticatedSettingsBillingIndexRouteImport } from './routes/_authenticated/settings/billing/index'
 import { Route as AuthenticatedSettingsBillingReturnRouteImport } from './routes/_authenticated/settings/billing/return'
 import { Route as AuthenticatedSettingsMembersPoliciesRouteImport } from './routes/_authenticated/settings/members/policies'
+import { Route as AdminCmsAuditLogsIndexRouteImport } from './routes/admin/cms/audit-logs/index'
+import { Route as AdminCmsDashboardsIndexRouteImport } from './routes/admin/cms/dashboards/index'
+import { Route as AdminCmsResourcesIndexRouteImport } from './routes/admin/cms/resources/index'
+import { Route as AdminCmsSettingsIndexRouteImport } from './routes/admin/cms/settings/index'
+import { Route as AdminCmsStorageIndexRouteImport } from './routes/admin/cms/storage/index'
+import { Route as AdminCmsUsersIndexRouteImport } from './routes/admin/cms/users/index'
+import { Route as AdminCmsResourcesSchemaTableRouteImport } from './routes/admin/cms/resources/$schema/$table'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -148,6 +158,16 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAccountsRouteRoute = AdminAccountsRouteRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminCmsRouteRoute = AdminCmsRouteRouteImport.update({
+  id: '/cms',
+  path: '/cms',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const ApiHealthcheckRoute = ApiHealthcheckRouteImport.update({
   id: '/api/healthcheck',
   path: '/api/healthcheck',
@@ -224,14 +244,19 @@ const AuthenticatedSettingsProfileRoute =
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
 const AdminAccountsIndexRoute = AdminAccountsIndexRouteImport.update({
-  id: '/accounts/',
-  path: '/accounts/',
-  getParentRoute: () => AdminRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAccountsRouteRoute,
 } as any)
 const AdminAccountsIdRoute = AdminAccountsIdRouteImport.update({
-  id: '/accounts/$id',
-  path: '/accounts/$id',
-  getParentRoute: () => AdminRouteRoute,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminAccountsRouteRoute,
+} as any)
+const AdminCmsIndexRoute = AdminCmsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminCmsRouteRoute,
 } as any)
 const ApiBillingWebhookRoute = ApiBillingWebhookRouteImport.update({
   id: '/api/billing/webhook',
@@ -276,6 +301,42 @@ const AuthenticatedSettingsMembersPoliciesRoute =
     path: '/policies',
     getParentRoute: () => AuthenticatedSettingsMembersRoute,
   } as any)
+const AdminCmsAuditLogsIndexRoute = AdminCmsAuditLogsIndexRouteImport.update({
+  id: '/audit-logs/',
+  path: '/audit-logs/',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
+const AdminCmsDashboardsIndexRoute = AdminCmsDashboardsIndexRouteImport.update({
+  id: '/dashboards/',
+  path: '/dashboards/',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
+const AdminCmsResourcesIndexRoute = AdminCmsResourcesIndexRouteImport.update({
+  id: '/resources/',
+  path: '/resources/',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
+const AdminCmsSettingsIndexRoute = AdminCmsSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
+const AdminCmsStorageIndexRoute = AdminCmsStorageIndexRouteImport.update({
+  id: '/storage/',
+  path: '/storage/',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
+const AdminCmsUsersIndexRoute = AdminCmsUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
+const AdminCmsResourcesSchemaTableRoute =
+  AdminCmsResourcesSchemaTableRouteImport.update({
+    id: '/resources/$schema/$table',
+    path: '/resources/$schema/$table',
+    getParentRoute: () => AdminCmsRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
@@ -287,6 +348,8 @@ export interface FileRoutesByFullPath {
   '/update-password': typeof UpdatePasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
+  '/admin/accounts': typeof AdminAccountsRouteRouteWithChildren
+  '/admin/cms': typeof AdminCmsRouteRouteWithChildren
   '/create-team': typeof AuthenticatedCreateTeamRoute
   '/contact': typeof MarketingContactRoute
   '/cookie-policy': typeof MarketingCookiePolicyRoute
@@ -315,10 +378,18 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
+  '/admin/cms/': typeof AdminCmsIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
   '/settings/billing/': typeof AuthenticatedSettingsBillingIndexRoute
+  '/admin/cms/audit-logs/': typeof AdminCmsAuditLogsIndexRoute
+  '/admin/cms/dashboards/': typeof AdminCmsDashboardsIndexRoute
+  '/admin/cms/resources/': typeof AdminCmsResourcesIndexRoute
+  '/admin/cms/settings/': typeof AdminCmsSettingsIndexRoute
+  '/admin/cms/storage/': typeof AdminCmsStorageIndexRoute
+  '/admin/cms/users/': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/resources/$schema/$table': typeof AdminCmsResourcesSchemaTableRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
@@ -354,10 +425,18 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/accounts': typeof AdminAccountsIndexRoute
+  '/admin/cms': typeof AdminCmsIndexRoute
   '/auth/callback': typeof AuthCallbackIndexRoute
   '/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingIndexRoute
+  '/admin/cms/audit-logs': typeof AdminCmsAuditLogsIndexRoute
+  '/admin/cms/dashboards': typeof AdminCmsDashboardsIndexRoute
+  '/admin/cms/resources': typeof AdminCmsResourcesIndexRoute
+  '/admin/cms/settings': typeof AdminCmsSettingsIndexRoute
+  '/admin/cms/storage': typeof AdminCmsStorageIndexRoute
+  '/admin/cms/users': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/resources/$schema/$table': typeof AdminCmsResourcesSchemaTableRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -371,6 +450,8 @@ export interface FileRoutesById {
   '/update-password': typeof UpdatePasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
+  '/admin/accounts': typeof AdminAccountsRouteRouteWithChildren
+  '/admin/cms': typeof AdminCmsRouteRouteWithChildren
   '/_authenticated/create-team': typeof AuthenticatedCreateTeamRoute
   '/_marketing/contact': typeof MarketingContactRoute
   '/_marketing/cookie-policy': typeof MarketingCookiePolicyRoute
@@ -400,10 +481,18 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
+  '/admin/cms/': typeof AdminCmsIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/_authenticated/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/_authenticated/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
   '/_authenticated/settings/billing/': typeof AuthenticatedSettingsBillingIndexRoute
+  '/admin/cms/audit-logs/': typeof AdminCmsAuditLogsIndexRoute
+  '/admin/cms/dashboards/': typeof AdminCmsDashboardsIndexRoute
+  '/admin/cms/resources/': typeof AdminCmsResourcesIndexRoute
+  '/admin/cms/settings/': typeof AdminCmsSettingsIndexRoute
+  '/admin/cms/storage/': typeof AdminCmsStorageIndexRoute
+  '/admin/cms/users/': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/resources/$schema/$table': typeof AdminCmsResourcesSchemaTableRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -417,6 +506,8 @@ export interface FileRouteTypes {
     | '/update-password'
     | '/dashboard'
     | '/settings'
+    | '/admin/accounts'
+    | '/admin/cms'
     | '/create-team'
     | '/contact'
     | '/cookie-policy'
@@ -445,10 +536,18 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/settings/'
     | '/admin/accounts/'
+    | '/admin/cms/'
     | '/auth/callback/'
     | '/settings/billing/return'
     | '/settings/members/policies'
     | '/settings/billing/'
+    | '/admin/cms/audit-logs/'
+    | '/admin/cms/dashboards/'
+    | '/admin/cms/resources/'
+    | '/admin/cms/settings/'
+    | '/admin/cms/storage/'
+    | '/admin/cms/users/'
+    | '/admin/cms/resources/$schema/$table'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -484,10 +583,18 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/admin/accounts'
+    | '/admin/cms'
     | '/auth/callback'
     | '/settings/billing/return'
     | '/settings/members/policies'
     | '/settings/billing'
+    | '/admin/cms/audit-logs'
+    | '/admin/cms/dashboards'
+    | '/admin/cms/resources'
+    | '/admin/cms/settings'
+    | '/admin/cms/storage'
+    | '/admin/cms/users'
+    | '/admin/cms/resources/$schema/$table'
   id:
     | '__root__'
     | '/_authenticated'
@@ -500,6 +607,8 @@ export interface FileRouteTypes {
     | '/update-password'
     | '/_authenticated/dashboard'
     | '/_authenticated/settings'
+    | '/admin/accounts'
+    | '/admin/cms'
     | '/_authenticated/create-team'
     | '/_marketing/contact'
     | '/_marketing/cookie-policy'
@@ -529,10 +638,18 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/'
     | '/_authenticated/settings/'
     | '/admin/accounts/'
+    | '/admin/cms/'
     | '/auth/callback/'
     | '/_authenticated/settings/billing/return'
     | '/_authenticated/settings/members/policies'
     | '/_authenticated/settings/billing/'
+    | '/admin/cms/audit-logs/'
+    | '/admin/cms/dashboards/'
+    | '/admin/cms/resources/'
+    | '/admin/cms/settings/'
+    | '/admin/cms/storage/'
+    | '/admin/cms/users/'
+    | '/admin/cms/resources/$schema/$table'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -688,6 +805,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/accounts': {
+      id: '/admin/accounts'
+      path: '/accounts'
+      fullPath: '/admin/accounts'
+      preLoaderRoute: typeof AdminAccountsRouteRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/cms': {
+      id: '/admin/cms'
+      path: '/cms'
+      fullPath: '/admin/cms'
+      preLoaderRoute: typeof AdminCmsRouteRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/api/healthcheck': {
       id: '/api/healthcheck'
       path: '/api/healthcheck'
@@ -788,17 +919,24 @@ declare module '@tanstack/react-router' {
     }
     '/admin/accounts/': {
       id: '/admin/accounts/'
-      path: '/accounts'
+      path: '/'
       fullPath: '/admin/accounts/'
       preLoaderRoute: typeof AdminAccountsIndexRouteImport
-      parentRoute: typeof AdminRouteRoute
+      parentRoute: typeof AdminAccountsRouteRoute
     }
     '/admin/accounts/$id': {
       id: '/admin/accounts/$id'
-      path: '/accounts/$id'
+      path: '/$id'
       fullPath: '/admin/accounts/$id'
       preLoaderRoute: typeof AdminAccountsIdRouteImport
-      parentRoute: typeof AdminRouteRoute
+      parentRoute: typeof AdminAccountsRouteRoute
+    }
+    '/admin/cms/': {
+      id: '/admin/cms/'
+      path: '/'
+      fullPath: '/admin/cms/'
+      preLoaderRoute: typeof AdminCmsIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
     }
     '/api/billing/webhook': {
       id: '/api/billing/webhook'
@@ -855,6 +993,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/members/policies'
       preLoaderRoute: typeof AuthenticatedSettingsMembersPoliciesRouteImport
       parentRoute: typeof AuthenticatedSettingsMembersRoute
+    }
+    '/admin/cms/audit-logs/': {
+      id: '/admin/cms/audit-logs/'
+      path: '/audit-logs'
+      fullPath: '/admin/cms/audit-logs/'
+      preLoaderRoute: typeof AdminCmsAuditLogsIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/dashboards/': {
+      id: '/admin/cms/dashboards/'
+      path: '/dashboards'
+      fullPath: '/admin/cms/dashboards/'
+      preLoaderRoute: typeof AdminCmsDashboardsIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/resources/': {
+      id: '/admin/cms/resources/'
+      path: '/resources'
+      fullPath: '/admin/cms/resources/'
+      preLoaderRoute: typeof AdminCmsResourcesIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/settings/': {
+      id: '/admin/cms/settings/'
+      path: '/settings'
+      fullPath: '/admin/cms/settings/'
+      preLoaderRoute: typeof AdminCmsSettingsIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/storage/': {
+      id: '/admin/cms/storage/'
+      path: '/storage'
+      fullPath: '/admin/cms/storage/'
+      preLoaderRoute: typeof AdminCmsStorageIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/users/': {
+      id: '/admin/cms/users/'
+      path: '/users'
+      fullPath: '/admin/cms/users/'
+      preLoaderRoute: typeof AdminCmsUsersIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/resources/$schema/$table': {
+      id: '/admin/cms/resources/$schema/$table'
+      path: '/resources/$schema/$table'
+      fullPath: '/admin/cms/resources/$schema/$table'
+      preLoaderRoute: typeof AdminCmsResourcesSchemaTableRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
     }
   }
 }
@@ -968,16 +1155,55 @@ const MarketingRouteRouteWithChildren = MarketingRouteRoute._addFileChildren(
   MarketingRouteRouteChildren,
 )
 
-interface AdminRouteRouteChildren {
-  AdminIndexRoute: typeof AdminIndexRoute
+interface AdminAccountsRouteRouteChildren {
   AdminAccountsIdRoute: typeof AdminAccountsIdRoute
   AdminAccountsIndexRoute: typeof AdminAccountsIndexRoute
 }
 
-const AdminRouteRouteChildren: AdminRouteRouteChildren = {
-  AdminIndexRoute: AdminIndexRoute,
+const AdminAccountsRouteRouteChildren: AdminAccountsRouteRouteChildren = {
   AdminAccountsIdRoute: AdminAccountsIdRoute,
   AdminAccountsIndexRoute: AdminAccountsIndexRoute,
+}
+
+const AdminAccountsRouteRouteWithChildren =
+  AdminAccountsRouteRoute._addFileChildren(AdminAccountsRouteRouteChildren)
+
+interface AdminCmsRouteRouteChildren {
+  AdminCmsIndexRoute: typeof AdminCmsIndexRoute
+  AdminCmsAuditLogsIndexRoute: typeof AdminCmsAuditLogsIndexRoute
+  AdminCmsDashboardsIndexRoute: typeof AdminCmsDashboardsIndexRoute
+  AdminCmsResourcesIndexRoute: typeof AdminCmsResourcesIndexRoute
+  AdminCmsSettingsIndexRoute: typeof AdminCmsSettingsIndexRoute
+  AdminCmsStorageIndexRoute: typeof AdminCmsStorageIndexRoute
+  AdminCmsUsersIndexRoute: typeof AdminCmsUsersIndexRoute
+  AdminCmsResourcesSchemaTableRoute: typeof AdminCmsResourcesSchemaTableRoute
+}
+
+const AdminCmsRouteRouteChildren: AdminCmsRouteRouteChildren = {
+  AdminCmsIndexRoute: AdminCmsIndexRoute,
+  AdminCmsAuditLogsIndexRoute: AdminCmsAuditLogsIndexRoute,
+  AdminCmsDashboardsIndexRoute: AdminCmsDashboardsIndexRoute,
+  AdminCmsResourcesIndexRoute: AdminCmsResourcesIndexRoute,
+  AdminCmsSettingsIndexRoute: AdminCmsSettingsIndexRoute,
+  AdminCmsStorageIndexRoute: AdminCmsStorageIndexRoute,
+  AdminCmsUsersIndexRoute: AdminCmsUsersIndexRoute,
+  AdminCmsResourcesSchemaTableRoute: AdminCmsResourcesSchemaTableRoute,
+}
+
+const AdminCmsRouteRouteWithChildren = AdminCmsRouteRoute._addFileChildren(
+  AdminCmsRouteRouteChildren,
+)
+
+interface AdminRouteRouteChildren {
+  AdminAccountsRouteRoute: typeof AdminAccountsRouteRouteWithChildren
+  AdminCmsRouteRoute: typeof AdminCmsRouteRouteWithChildren
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAccountsRouteRoute: AdminAccountsRouteRouteWithChildren,
+  AdminCmsRouteRoute: AdminCmsRouteRouteWithChildren,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
 const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(

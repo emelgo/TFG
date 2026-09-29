@@ -306,3 +306,93 @@ SELECT pg_catalog.setval('"supabase_functions"."hooks_id_seq"', 19, true);
 select cms.sync_managed_tables('public');
 
 select cms.sync_managed_tables('auth', 'users');
+
+--
+-- CMS: personal de soporte de demostración (acceso limitado al CMS)
+--
+-- El super-admin de la plataforma es la raíz del CMS sin configuración
+-- adicional (ver 53-cms-super-admin.sql). Para poder probar a mano y con E2E
+-- el otro perfil que contempla ADR-014, el del personal con permisos
+-- LIMITADOS, se crea aquí un usuario de soporte:
+--
+--  - `cms-staff@pymekit.test`, con la misma contraseña de pruebas que el resto
+--    de usuarios del *seed* (`testingpassword`) y el *claim*
+--    `cms_access = 'true'` en `app_metadata` (en producción lo escribe
+--    `cms.grant_admin_access`; el *seed* se ejecuta sin sesión, por eso se
+--    inserta directamente);
+--  - un factor TOTP verificado con el MISMO secreto que el super-admin, para
+--    que las pruebas E2E generen el código con la misma clave y obtengan una
+--    sesión aal2 (el CMS exige MFA por defecto);
+--  - una cuenta activa en `cms.accounts` con el rol «Soporte» (rango 30, muy
+--    por debajo de Root, 100), que solo puede LEER dos tablas de `public`
+--    (`accounts` y `accounts_memberships`) y el registro de auditoría.
+--
+-- Todo se inserta como `postgres` (propietario de las tablas), por eso las
+-- políticas RLS no intervienen; los identificadores son fijos para que las
+-- pruebas puedan referirse a ellos.
+--
+-- [TFG] RF-09 · ADR-014: RBAC del CMS para el personal que no es super-admin.
+
+INSERT INTO "auth"."users" ("instance_id", "id", "aud", "role", "email", "encrypted_password", "email_confirmed_at",
+                            "invited_at", "confirmation_token", "confirmation_sent_at", "recovery_token",
+                            "recovery_sent_at", "email_change_token_new", "email_change", "email_change_sent_at",
+                            "last_sign_in_at", "raw_app_meta_data", "raw_user_meta_data", "is_super_admin",
+                            "created_at", "updated_at", "phone", "phone_confirmed_at", "phone_change",
+                            "phone_change_token", "phone_change_sent_at", "email_change_token_current",
+                            "email_change_confirm_status", "banned_until", "reauthentication_token",
+                            "reauthentication_sent_at", "is_sso_user", "deleted_at", "is_anonymous")
+VALUES ('00000000-0000-0000-0000-000000000000', 'd3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21', 'authenticated',
+        'authenticated', 'cms-staff@pymekit.test',
+        '$2a$10$gzxQw3vaVni8Ke9UVcn6ueWh674.6xImf6/yWYNc23BSeYdE9wmki', '2025-02-24 13:25:11.176987+00', null, '',
+        '2025-02-24 13:25:01.649714+00', '', null, '', '', null, '2025-02-24 13:25:11.17957+00',
+        '{"provider": "email", "providers": ["email"], "cms_access": "true"}',
+        '{"sub": "d3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21", "email": "cms-staff@pymekit.test", "email_verified": true, "phone_verified": false}',
+        null, '2025-02-24 13:25:01.646641+00', '2025-02-24 13:25:11.181332+00', null, null, '', '', null,
+        '', 0, null, '', null, false, null, false);
+
+INSERT INTO "auth"."identities" ("provider_id", "user_id", "identity_data", "provider", "last_sign_in_at", "created_at",
+                                 "updated_at", "id")
+VALUES ('d3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21', 'd3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21',
+        '{"sub": "d3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21", "email": "cms-staff@pymekit.test", "email_verified": true, "phone_verified": false}',
+        'email', '2025-02-24 13:25:01.646641+00', '2025-02-24 13:25:11.181332+00', '2025-02-24 13:25:11.181332+00',
+        'd3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21');
+
+-- Mismo secreto TOTP que el super-admin (ver `AuthPageObject.MFA_KEY` en
+-- apps/e2e): solo es válido en local. `last_challenged_at` queda a NULL
+-- porque Auth exige que sea único entre factores.
+INSERT INTO "auth"."mfa_factors" ("id", "user_id", "friendly_name", "factor_type", "status", "created_at", "updated_at",
+                                  "secret", "phone", "last_challenged_at")
+VALUES ('4f2b7c1e-8a3d-4b6f-9e2c-5d1a7b3c9e80', 'd3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21', 'iPhone', 'totp', 'verified',
+        '2025-02-24 13:23:55.5805+00', '2025-02-24 13:24:32.591999+00', 'NHOHJVGPO3R3LKVPRMNIYLCDMBHUM2SE', null,
+        null);
+
+insert into cms.accounts (id, auth_user_id, is_active, metadata)
+values ('6a0f3e2d-1c4b-4a59-8e7d-3b2c1a0f9e8d', 'd3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21', true,
+        '{"username": "Soporte (demo)", "picture_url": ""}');
+
+-- Rol «Soporte»: rango 30. El rango es único en `cms.roles` y decide la
+-- jerarquía (un rol solo gestiona a los de rango inferior), así que este
+-- personal no puede tocar a nadie con Root.
+insert into cms.roles (id, name, description, rank)
+values ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', 'Soporte',
+        'Personal de soporte: lectura de cuentas y del registro de auditoría', 30);
+
+-- Permisos de solo lectura (`select`). Los de datos van por tabla concreta,
+-- sin comodines: el explorador solo le mostrará estas dos tablas.
+insert into cms.permissions (id, name, description, permission_type, system_resource, scope, schema_name, table_name,
+                             action)
+values ('1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', 'Soporte: leer public.accounts',
+        'Lectura de las cuentas (personales y de equipo)', 'data', null, 'table', 'public', 'accounts', 'select'),
+       ('2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e', 'Soporte: leer public.accounts_memberships',
+        'Lectura de los miembros de las cuentas de equipo', 'data', null, 'table', 'public', 'accounts_memberships',
+        'select'),
+       ('3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f', 'Soporte: leer auditoría',
+        'Lectura del registro de auditoría del CMS', 'system', 'log', null, null, null, 'select');
+
+insert into cms.role_permissions (role_id, permission_id)
+values ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d'),
+       ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e'),
+       ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', '3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f');
+
+insert into cms.account_roles (account_id, role_id)
+values ('6a0f3e2d-1c4b-4a59-8e7d-3b2c1a0f9e8d', '9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e');

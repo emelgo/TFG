@@ -11,7 +11,8 @@
     }
   },
   "exports": {
-    "./utils": "./src/utils/get-error-message.ts"
+    "./utils": "./src/utils/get-error-message.ts",
+    "./error-codes": "./src/constants/error-codes.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
