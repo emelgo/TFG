@@ -37,16 +37,22 @@ Este documento registra qué partes de `../makerkit` (referencia SaaS) y `../sup
 
 ## Referencia CMS → PymeKit
 
+El CMS se integra en la web (ADR-011): no hay `apps/cms` ni `apps/cms-api`.
+
 | Origen (`../supamode/…`) | Destino | Tipo | Estado | Notas |
 |---|---|---|---|---|
-| `apps/app` | `apps/cms` | A | ⬜ | |
-| `apps/api` | `apps/cms-api` | A | ⬜ | |
-| `apps/e2e` | `apps/e2e` (subcarpeta cms) | A | ⬜ | |
-| `apps/app/supabase/migrations` | `apps/web/supabase/…` | A | ⬜ | P-02 |
-| `packages/*` | `packages/cms/*` (`@pymekit/cms-*`) | R | ⬜ | |
-| `Dockerfile`, `docker-compose.yml` | base para F7 | A | ⬜ | |
+| `apps/app/supabase/{schemas,migrations,tests}` | `apps/web/supabase/…` | A | ⬜ | Esquema renombrado a `cms` (ADR-012). F2.1 |
+| `apps/api/app/routes.ts` | `apps/web/src/routes/api/cms/$.ts` + `packages/cms/api` | A | ⬜ | Hono montado en `/api/cms`. F2.2 |
+| `packages/features/*` (parte `/routes`, servidor) | `packages/cms/<feature>` | R/A | ⬜ | Servicios Drizzle y rutas Hono. F2.2 |
+| `packages/{supabase,permissions,resources,query-builder,filters-core,data-explorer-core,formatters,schema,types}` | `packages/cms/*` | R/A | ⬜ | F2.2 |
+| `packages/features/*` (parte `/router`, cliente) | `apps/web/src/routes/admin/cms/**` + componentes en `packages/cms/<feature>` | A | ⬜ | Reescritura a TanStack Router, Form y use-intl (ADR-013). F2.3–F2.8 |
+| `packages/ui` | `@pymekit/ui` | A | ⬜ | Solo se incorporan los componentes que falten |
+| `packages/shared` (router-query-bridge) | — | X | — | Sustituido por *loaders* de TanStack + Query |
+| `apps/app/src` (entrada de la SPA, `main.tsx`) | — | X | — | Lo sustituye el router de la web |
+| `apps/e2e` | `apps/e2e/tests/cms` | A | ⬜ | F2.9 |
+| `Dockerfile`, `nginx.conf.template`, `vercel.json` | — | X | — | Un único servicio (la web). Despliegue en F7 |
 | `docs/`, `.junie`, `.cursor` | — | X | — | No se copian |
-| `.claude/skills/*` | fusionadas con las de la referencia SaaS | A | ✅ | F0 |
+| `.claude/skills/*` | fusionadas con las de la referencia SaaS | A | ✅ | F0; se revisan en F2.9 |
 
 ## Código nuevo (aportación propia)
 

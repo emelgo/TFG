@@ -12,7 +12,7 @@ Esta matriz relaciona cada requisito (`REQUISITOS.md`) con el código que lo imp
 | RF-06 | `packages/features/team-accounts`, `supabase/schemas/*roles*`, `*memberships*` | pgTAP, E2E `team-accounts`, `invitations` | Diseño > Modelo de datos | ⬜ |
 | RF-07 | `packages/billing/*` | E2E `billing` | Diseño > Pagos | ⬜ |
 | RF-08 | `packages/features/admin` | E2E `admin` | Implementación > Administración | ⬜ |
-| RF-09 | `apps/cms`, `apps/cms-api`, `packages/cms/*` | E2E CMS, pgTAP | Diseño > CMS | ⬜ |
+| RF-09 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms` | E2E CMS, pgTAP | Diseño > CMS | ⬜ |
 | RF-10 | `packages/cms/*` (auditoría) | E2E CMS | Diseño > CMS | ⬜ |
 | RF-11 | `packages/cms/*` (dashboards) | E2E CMS | Implementación > CMS | ⬜ |
 | RF-12 | `packages/features/notifications`, `packages/mailers` | — | Implementación | ⬜ |

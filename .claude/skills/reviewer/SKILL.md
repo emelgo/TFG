@@ -40,7 +40,7 @@ Pásale la lista de ficheros modificados. Puntos que debe vigilar en este stack:
 
 - La lógica de servidor usa `createServerFn` de `@tanstack/react-start` en ficheros `*.functions.ts`, con la llamada literal en el punto de definición (nunca detrás de una factoría) y con las tuplas de *middleware* de `@pymekit/function-middleware/functions` (`authFunctionMiddleware`, `teamAccountFunctionMiddleware`, `adminFunctionMiddleware`) más `withMinRole` / `withFeaturePermission` de `@pymekit/function-middleware/server`.
 - El cliente administrador (`getSupabaseServerAdminClient`) ignora RLS: cada uso necesita una validación manual previa y un comentario que la justifique.
-- En el CMS (`apps/cms-api`), las consultas pasan por el cliente Drizzle con contexto RLS, no por el cliente administrador.
+- En el CMS (`packages/cms/*` (API en `/api/cms`)), las consultas pasan por el cliente Drizzle con contexto RLS, no por el cliente administrador.
 - No se mezclan imports de cliente y servidor (los módulos solo de servidor llevan el sufijo `.server.ts`).
 
 ### Pista B — Revisión adversarial de lógica y bugs

@@ -16,9 +16,9 @@ Prioridad: **M** = imprescindible (prototipo mínimo de la propuesta) · **D** =
 | RF-06 | Cuentas de equipo (una por pyme cliente): crear equipos, invitar miembros, asignar roles y aplicar permisos por funcionalidad | M | `packages/features/team-accounts` |
 | RF-07 | Suscripciones con pasarela de pago (Stripe): planes, *checkout*, portal de cliente y sincronización mediante *webhooks* | M | `packages/billing/*` |
 | RF-08 | Panel de super-administración de la plataforma: listar y gestionar usuarios y cuentas, bloquear, suplantar y restablecer | M | `packages/features/admin` |
-| RF-09 | CMS de administración de datos: explorar y editar tablas de la BD, gestionar usuarios y almacenamiento, con permisos propios | M | `apps/cms`, `apps/cms-api` |
-| RF-10 | Registro de auditoría de las acciones realizadas desde el CMS | D | `apps/cms-api` |
-| RF-11 | Paneles (*dashboards*) configurables en el CMS | D | `apps/cms` |
+| RF-09 | CMS de administración de datos, integrado en la consola de administración: explorar y editar tablas de la BD, gestionar usuarios y almacenamiento, con permisos propios | M | `packages/cms/*`, `/admin/cms` |
+| RF-10 | Registro de auditoría de las acciones realizadas desde el CMS | D | `packages/cms/audit-logs` |
+| RF-11 | Paneles (*dashboards*) configurables en el CMS | D | `packages/cms/dashboards` |
 | RF-12 | Notificaciones dentro de la aplicación y emails transaccionales | D | `packages/features/notifications`, `packages/mailers` |
 | RF-13 | Interfaz multidioma: español por defecto e inglés | M | `packages/i18n` |
 

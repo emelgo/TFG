@@ -35,7 +35,7 @@ git show HEAD
 Lee los ficheros modificados. Para cada fragmento anota tras qué frontera de confianza está y qué entrada nueva hace alcanzable. En PymeKit las fronteras son:
 
 - **App web:** *server functions* (`createServerFn` en `*.functions.ts` con los *middleware* de `@pymekit/function-middleware`), `loader` de ruta, *webhooks* de pagos, consultas a Supabase (RLS) y usos del cliente administrador.
-- **CMS:** rutas Hono de `apps/cms-api`, servicios Drizzle con contexto RLS, `loader`/`action` de React Router en `apps/cms`.
+- **CMS:** rutas Hono de `packages/cms/*` (API en `/api/cms`), servicios Drizzle con contexto RLS, `loader`/`action` de React Router en `/admin/cms`.
 - **Base de datos:** políticas RLS, funciones `security definer` y RPC expuestas por PostgREST (esquema `public` y esquema del CMS).
 
 Este es todo el «reconocimiento»: mantenlo en la cabeza, no escribas un mapa.

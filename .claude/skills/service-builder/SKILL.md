@@ -3,6 +3,9 @@ name: service-builder
 description: Construye services puros e independientes de la interfaz, con dependencias inyectadas, para las dos variantes de PymeKit — web (cliente Supabase llamado desde server functions `createServerFn`) y cms-api (Drizzle llamado desde rutas Hono). Úsala al crear lógica de negocio que deba reutilizarse entre server functions, rutas, tests o herramientas. Invócala con /service-builder.
 ---
 
+> **Aviso (F2, ADR-011 y ADR-013):** el CMS ya no es una app separada. Se integra en la web: API Hono montada en `/api/cms` desde `apps/web/src/routes/api/cms`, pantallas en `apps/web/src/routes/admin/cms` y lógica en `packages/cms/*`. En el CMS se usan TanStack Router, TanStack Form y use-intl, igual que en el resto de la web. Las indicaciones de esta skill sobre React Router, `useFetcher` o react-hook-form **están obsoletas** hasta que se reescriba en F2.9.
+
+
 # Constructor de servicios
 
 Eres experto en construir servicios puros y testeables, desacoplados de quien los llama.

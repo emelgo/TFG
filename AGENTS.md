@@ -23,7 +23,7 @@ PymeKit es una **plataforma base reutilizable** para construir aplicaciones SaaS
 | Usuarios, equipos (multi-tenant), roles y permisos | `packages/features/{accounts,team-accounts}` | RF-05, RF-06 |
 | Pagos y suscripciones (Stripe) | `packages/billing/*` | RF-07 |
 | Panel de super-administración | `packages/features/admin` | RF-08 |
-| CMS de datos (explorador de BD, usuarios, almacenamiento, auditoría) | `apps/cms`, `apps/cms-api`, `packages/cms/*` | RF-09 |
+| CMS de datos (explorador de BD, usuarios, almacenamiento, auditoría), integrado en la consola admin | `apps/web/src/routes/admin/cms`, `apps/web/src/routes/api/cms`, `packages/cms/*` | RF-09, RF-10 |
 
 Los requisitos completos están en `docs/tfg/REQUISITOS.md`.
 
@@ -32,7 +32,7 @@ Los requisitos completos están en `docs/tfg/REQUISITOS.md`.
 | Ruta | Contenido | Se reutiliza para |
 |---|---|---|
 | `../makerkit` | Kit SaaS: TanStack Start + Supabase + Stripe | `apps/web`, `apps/e2e` y la mayoría de `packages/*` |
-| `../supamode` | CMS para Supabase: SPA + API Hono | `apps/cms`, `apps/cms-api` y `packages/cms/*` |
+| `../supamode` | CMS para Supabase: SPA + API Hono | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms` y el esquema `cms` de la BD |
 
 **Reglas:**
 - **Nunca** se modifica nada dentro de `../makerkit` ni de `../supamode`.
@@ -69,13 +69,12 @@ Los comentarios se escriben **para quien lee el código por primera vez** (el tr
 ```
 apps/
   web/            App SaaS: TanStack Start (rutas por fichero + createServerFn), React 19
-  web/supabase/   Esquemas, migraciones, seed y tests pgTAP de TODA la BD (incluye el esquema del CMS)
-  cms/            CMS: SPA con Vite + React Router 7
-  cms-api/        API del CMS: Hono + Drizzle
+                  · CMS integrado: pantallas en src/routes/admin/cms, API Hono en src/routes/api/cms
+  web/supabase/   Esquemas, migraciones, seed y tests pgTAP de TODA la BD (incluye el esquema `cms`)
   e2e/            Pruebas Playwright (web y CMS)
 packages/
   ui, supabase, function-middleware, features/*, billing/*, i18n, shared, …   → @pymekit/*
-  cms/*           Paquetes del CMS                                             → @pymekit/cms-*
+  cms/*           Lógica del CMS: servicios Drizzle, rutas Hono, componentes    → @pymekit/cms-*
 tooling/          Configuración compartida (TypeScript, scripts)
 docs/tfg/         Planificación, requisitos, decisiones y guías del TFG
 memoria/          Memoria del TFG en LaTeX
@@ -104,17 +103,24 @@ Hasta que termine la Fase 1 solo existen `docs/`, `scripts/`, `memoria/` y el *h
 - **Multi-tenant**: la cuenta personal cumple `auth.users.id = accounts.id`. Los equipos tienen miembros, roles y permisos. Los datos de negocio se enlazan con `account_id`.
 - Los módulos que solo deben ejecutarse en el servidor usan el sufijo `.server.ts`. No se mezclan imports de cliente y de servidor.
 
-### 4.2 CMS (`apps/cms` + `apps/cms-api`): patrones clave
+### 4.2 CMS integrado (`/admin/cms`): patrones clave
 
-- **Flujo de una funcionalidad**:
-  1. Servicio con Drizzle (clase más su fábrica `createXService()`).
-  2. Ruta Hono (RPC tipado) registrada en `apps/cms-api`.
-  3. `loader` / `action` de React Router en la SPA.
-  4. Componentes de React.
-- Las **rutas Hono y los servicios son solo de servidor**, y nunca se importan desde la SPA. Los componentes se exportan desde `/components`.
-- Los servicios son ligeros: los algoritmos van en `/utils` como funciones puras.
-- Formularios con **react-hook-form** + Zod, siguiendo el estilo del CMS. No se mezcla con TanStack Form.
-- El RBAC del CMS vive en su propio esquema de la BD. Sus políticas se revisan igual que las de la app (`/rls-review`).
+El CMS forma parte de la web (ADR-011): no es una app aparte. Se accede desde la consola de super-admin.
+
+- **API (servidor):** una app Hono montada en `/api/cms/*` desde una ruta de servidor de TanStack Start.
+  - Cada funcionalidad sigue el flujo servicio Drizzle (clase + fábrica `createXService()`) → ruta Hono registrada en el paquete `packages/cms/<feature>` (export `/routes`).
+  - Las rutas Hono y los servicios son **solo de servidor**; nunca se importan desde componentes.
+  - Los servicios son ligeros: los algoritmos van en `/utils` como funciones puras.
+  - Drizzle ejecuta cada transacción con los *claims* JWT del usuario, así que las políticas RLS del esquema `cms` también se aplican.
+- **Interfaz (cliente):** rutas de TanStack Router en `apps/web/src/routes/admin/cms/**`.
+  - Datos: `loader` + TanStack Query con el cliente RPC tipado de Hono.
+  - Mutaciones: `useMutation`.
+  - **No se usan** `loader`/`action`/`useFetcher` de React Router: al portar, se reescriben.
+- **Misma pila que el resto de la web** (ADR-013):
+  - formularios con `@tanstack/react-form` + `@pymekit/ui/field` (no react-hook-form);
+  - textos con `@pymekit/i18n` (use-intl, namespace `cms`), no i18next;
+  - componentes de `@pymekit/ui`, añadiendo allí los que falten.
+- **Acceso (ADR-014):** el super-admin de la plataforma es la raíz del CMS. El RBAC propio del CMS (esquema `cms`: roles, grupos y permisos) da acceso limitado a otro personal. Sus políticas se revisan con `/rls-review`, igual que las de la app.
 
 ### 4.3 Base de datos (`apps/web/supabase`)
 

@@ -1,7 +1,10 @@
 ---
 name: playwright-e2e
-description: Escribe, revisa o depura tests end-to-end (E2E) con Playwright para las dos apps de PymeKit (`apps/web` y `apps/cms`). Úsala al crear suites de tests, arreglar tests inestables (flaky), automatizar secuencias de interacción con la UI o mejorar la fiabilidad de los tests. Invócala con /playwright-e2e o cuando se mencionen tests E2E, Playwright o test automation.
+description: Escribe, revisa o depura tests end-to-end (E2E) con Playwright para las dos apps de PymeKit (`apps/web` y `/admin/cms`). Úsala al crear suites de tests, arreglar tests inestables (flaky), automatizar secuencias de interacción con la UI o mejorar la fiabilidad de los tests. Invócala con /playwright-e2e o cuando se mencionen tests E2E, Playwright o test automation.
 ---
+
+> **Aviso (F2, ADR-011 y ADR-013):** el CMS ya no es una app separada. Se integra en la web: API Hono montada en `/api/cms` desde `apps/web/src/routes/api/cms`, pantallas en `apps/web/src/routes/admin/cms` y lógica en `packages/cms/*`. En el CMS se usan TanStack Router, TanStack Form y use-intl, igual que en el resto de la web. Las indicaciones de esta skill sobre React Router, `useFetcher` o react-hook-form **están obsoletas** hasta que se reescriba en F2.9.
+
 
 # Experto en tests E2E con Playwright
 
@@ -12,7 +15,7 @@ En PymeKit hay **una única app de tests** (`apps/e2e`) que cubre dos aplicacion
 | App | Tecnología | URL local | Carpeta de tests |
 |---|---|---|---|
 | `apps/web` (SaaS) | TanStack Start | `http://localhost:3000` | `apps/e2e/tests/web/` |
-| `apps/cms` (panel de administración) | Vite + React Router 7 (SPA) que llama a `apps/cms-api` (Hono) | `http://localhost:5173` | `apps/e2e/tests/cms/` |
+| `/admin/cms` (panel de administración) | Vite + React Router 7 (SPA) que llama a `packages/cms/*` (API en `/api/cms`) (Hono) | `http://localhost:5173` | `apps/e2e/tests/cms/` |
 
 Los patrones concretos (Page Objects, usuarios de prueba, selectores y comandos) están en [pymekit.md](pymekit.md). Léelo antes de escribir un test.
 
@@ -47,7 +50,7 @@ Al escribir tests:
 5. No uses `page.waitForTimeout()` salvo como último recurso justificado con un comentario.
 6. Encadena las acciones con lógica: interactuar → esperar la respuesta → comprobar → continuar.
 7. En `apps/web`, las mutaciones son *server functions* de TanStack Start: espera la respuesta con `isServerFnResponse` (URL `/_serverFn/...`), no la ruta de la página.
-8. En `apps/cms`, las mutaciones pasan por `apps/cms-api`: espera la respuesta a `/api/v1/...`.
+8. En `/admin/cms`, las mutaciones pasan por `packages/cms/*` (API en `/api/cms`): espera la respuesta a `/api/v1/...`.
 
 ## Errores habituales que evitas
 

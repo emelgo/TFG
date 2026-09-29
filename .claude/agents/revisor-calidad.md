@@ -25,11 +25,11 @@ Antes de revisar, lee `AGENTS.md` (normas del proyecto) y `docs/tfg/GUIA-COMENTA
 - `getSupabaseServerAdminClient` solo se usa cuando es imprescindible, con validación manual y un comentario que lo justifique.
 - Se muestra `Spinner` en las operaciones asíncronas y hay `data-testid` donde lo necesitan los E2E.
 
-### CMS (`apps/cms`, `apps/cms-api`, `packages/cms/*`)
-- Flujo servicio Drizzle → ruta Hono (RPC tipado) → `loader`/`action` de React Router → componente.
-- Las rutas y los servicios nunca se importan desde la SPA.
-- Formularios con react-hook-form + Zod.
-- Los permisos del RBAC del CMS se comprueban en la API.
+### CMS integrado (`packages/cms/*`, `/admin/cms`, `/api/cms`)
+- Flujo servicio Drizzle → ruta Hono (RPC tipado) montada en `/api/cms` → `loader` de TanStack Router + TanStack Query en `/admin/cms/**`.
+- Las rutas Hono y los servicios nunca se importan desde componentes.
+- No quedan restos de React Router (`useFetcher`, `action`), react-hook-form ni i18next (ADR-013).
+- Los permisos del RBAC del CMS se comprueban en la API y en RLS. El super-admin tiene acceso raíz (ADR-014).
 
 ### React
 - Componentes pequeños y con nombre claro. El código repetido se extrae.

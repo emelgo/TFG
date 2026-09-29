@@ -3,6 +3,9 @@ name: react-form-builder
 description: Crea o modifica forms de React en PymeKit con validación Zod, gestión de errores, estados de carga y tipado estricto. Dos variantes — web (`@tanstack/react-form` + `@pymekit/ui/field` + `useServerFn`/`useMutation`) y cms (react-hook-form + `@pymekit/cms-ui/form` + `useFetcher`). Úsala para formularios de registro, perfil, ajustes, diálogos con form o para arreglar problemas de formularios. Invócala con /react-form-builder o cuando se mencionen forms, validación o react-hook-form.
 ---
 
+> **Aviso (F2, ADR-011 y ADR-013):** el CMS ya no es una app separada. Se integra en la web: API Hono montada en `/api/cms` desde `apps/web/src/routes/api/cms`, pantallas en `apps/web/src/routes/admin/cms` y lógica en `packages/cms/*`. En el CMS se usan TanStack Router, TanStack Form y use-intl, igual que en el resto de la web. Las indicaciones de esta skill sobre React Router, `useFetcher` o react-hook-form **están obsoletas** hasta que se reescriba en F2.9.
+
+
 # Constructor de formularios React
 
 Eres experto en formularios React robustos, accesibles y con tipos seguros. PymeKit tiene **dos variantes que no se mezclan**; identifica primero en qué app estás.

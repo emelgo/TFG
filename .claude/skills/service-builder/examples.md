@@ -206,7 +206,7 @@ class MemberAccountService {
 /**
  * Ruta de actualización de la cuenta de un miembro del CMS.
  *
- * Es código SOLO de servidor: se registra en `apps/cms-api` y la SPA la
+ * Es código SOLO de servidor: se registra en `packages/cms/*` (API en `/api/cms`) y la SPA la
  * consume a través del cliente RPC tipado con `UpdateAccountRoute`.
  */
 import { zValidator } from '@hono/zod-validator';
@@ -264,7 +264,7 @@ export type UpdateAccountRoute = ReturnType<typeof registerUpdateAccountRouter>;
 Registro en el servidor (nunca en la SPA):
 
 ```typescript
-// apps/cms-api/app/routes.ts
+// apps/web/src/routes/api/cms/$.ts
 import { registerUpdateAccountRouter } from '@pymekit/cms-settings/routes';
 
 registerUpdateAccountRouter(router);
@@ -278,7 +278,7 @@ registerUpdateAccountRouter(router);
  *
  * Solo importa el TIPO de la ruta; el código de servidor no llega al bundle.
  * `@pymekit/cms-api` es el paquete del cliente RPC (packages/cms/api), no
- * la app `apps/cms-api`.
+ * la app `packages/cms/*` (API en `/api/cms`).
  */
 import { createHonoClient, handleHonoClientResponse } from '@pymekit/cms-api';
 

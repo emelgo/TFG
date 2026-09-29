@@ -56,18 +56,26 @@ El estado de cada fase se sigue en `PROGRESO.md`.
 **Hecho cuando:** la app arranca en local, CU-01 funciona a mano y la CI está en verde. Ya no hay ninguna referencia a `@kit/` (puede seguir habiendo textos de marca, que se limpian en F3).
 
 ## F2 · Integración del CMS
-**Objetivo:** tener el CMS dentro del monorepo, usando la misma base de datos.
+**Objetivo:** el CMS de datos forma parte de la consola de administración de la web (`/admin/cms`), con su API montada en `/api/cms`. La decisión está en ADR-011; los detalles de diseño, en ADR-012, ADR-013 y ADR-014.
 
-**Tareas:**
-1. Copiar `../supamode/apps/app` → `apps/cms`, `apps/api` → `apps/cms-api` y `packages/*` → `packages/cms/*`.
-2. Renombrar el scope a `@pymekit/cms-*`.
-3. Unificar el catálogo de `pnpm-workspace.yaml` y las versiones de React, Vite, Tailwind y TypeScript. Resolver los conflictos de dependencias.
-4. Integrar las migraciones del CMS en `apps/web/supabase` (una sola instancia de Supabase). Registrar un ADR sobre el nombre del esquema del CMS y sobre la numeración o el orden de las migraciones.
-5. Resolver cómo conviven el acceso al CMS y el super-admin de la app (ADR). Por ejemplo, cuentas del CMS vinculadas a `auth.users` y una plantilla de permisos inicial.
-6. Unificar puertos (en las referencias, la web y la API del CMS usan ambos el :3000), variables de entorno y los scripts `dev` en Turbo.
-7. Integrar las pruebas E2E del CMS en `apps/e2e`.
+**Estructura de destino:**
+- `packages/cms/*` (`@pymekit/cms-*`): la lógica de servidor (servicios Drizzle, rutas Hono, filtros, consultas) y los componentes reutilizables del CMS.
+- `apps/web/src/routes/api/cms/$.ts`: monta la app Hono.
+- `apps/web/src/routes/admin/cms/**`: las pantallas.
 
-**Hecho cuando:** `pnpm dev` levanta la web, el CMS y la API del CMS, y CU-06 funciona en local. `/rls-review` se ha pasado sobre el esquema del CMS.
+Se avanza por incrementos. Cada uno cierra con typecheck, lint, tests y revisión, y se registra en `PROGRESO.md` y `MAPA-REFERENCIAS.md`:
+
+| Paso | Contenido | Hecho cuando |
+|---|---|---|
+| F2.1 · BD | Migraciones del CMS en `apps/web/supabase`, esquema renombrado a `cms` (ADR-012), pegamento super-admin → raíz del CMS (ADR-014) y tests pgTAP del CMS | `supabase:web:reset` + pgTAP en verde; `/rls-review` hecho |
+| F2.2 · API | Paquetes de servidor del CMS en `packages/cms/*`, cliente Drizzle con los *claims* del usuario, *middleware* de auth adaptado a la sesión de PymeKit y montaje en `/api/cms` | Endpoints respondiendo con auth y permisos; tests unitarios |
+| F2.3 · Base de UI | Layout `/admin/cms`, navegación dentro de la consola admin, cliente RPC + TanStack Query, componentes que falten en `@pymekit/ui` y namespace i18n `cms` | Navegación vacía funcionando para el super-admin |
+| F2.4 · Explorador de datos | Listado, filtros, detalle y CRUD de tablas (RF-09) | E2E de CRUD |
+| F2.5 · Usuarios y almacenamiento | Explorador de usuarios y de *storage* | E2E básicos |
+| F2.6 · Auditoría | Registro de auditoría (RF-10) | Las acciones del CMS quedan auditadas |
+| F2.7 · Ajustes y RBAC | Gestión de roles, grupos, permisos y miembros del CMS | E2E: un usuario con rol limitado solo ve lo permitido |
+| F2.8 · Paneles | Dashboards configurables (RF-11, deseable). **Primer candidato a recortar** | E2E básico |
+| F2.9 · Cierre | E2E completos del CMS, limpieza, actualización de skills y `AGENTS.md`, borrador de la memoria (integración) | CI en verde |
 
 ## F3 · Desmarcado completo e i18n español
 **Tareas:**
@@ -149,9 +157,9 @@ La memoria se redacta **a lo largo de todo el proyecto** con `/seccion-memoria`.
 | ID | Tema | Estado |
 |---|---|---|
 | P-01 | La propuesta pide *«evaluación de la reutilización de la plataforma en un escenario de ejemplo»*, pero el alcance acordado es una plataforma genérica. **Propuesta inicial:** medir los pasos y el tiempo necesarios para arrancar un SaaS nuevo desde PymeKit. El autor lo abordará más adelante (a más tardar, antes de F6). | Aplazado |
-| P-02 | Nombre definitivo del esquema SQL del CMS (renombrarlo o mantenerlo) | Se decide en F2 |
+| P-02 | Nombre definitivo del esquema SQL del CMS (renombrarlo o mantenerlo) | ✅ Cerrado: `cms` (ADR-012) |
 | P-03 | Qué hacer con el servidor MCP de desarrollo heredado | ✅ Cerrado: descartado (ADR-008) |
 | P-04 | Integrar la plantilla LaTeX oficial desde Overleaf (ver `memoria/README.md`) | Pendiente: el autor pasará el `.zip` |
 | P-05 | Crear el repositorio remoto (GitHub privado) y configurar `origin` | ✅ Cerrado: `https://github.com/emelgo/TFG` |
-| P-07 | **Idea del autor:** integrar el CMS dentro de la consola de super-admin de la web (`/admin`) en lugar de como app separada. Opciones que hay que evaluar al empezar F2: (a) apps separadas con SSO y un enlace desde `/admin` (lo previsto en ADR-002); (b) montar la API Hono del CMS dentro de `apps/web` (p. ej. `/api/cms/*`) y portar sus pantallas como rutas de TanStack bajo `/admin/cms`; (c) híbrido: API integrada y SPA embebida. Afecta a ADR-002, al RBAC (super-admin frente a roles del CMS) y al despliegue (un servicio frente a tres) | Abierto (decidir al inicio de F2) |
+| P-07 | **Idea del autor:** integrar el CMS dentro de la consola de super-admin de la web (`/admin`) en lugar de como app separada. Opciones que hay que evaluar al empezar F2: (a) apps separadas con SSO y un enlace desde `/admin` (lo previsto en ADR-002); (b) montar la API Hono del CMS dentro de `apps/web` (p. ej. `/api/cms/*`) y portar sus pantallas como rutas de TanStack bajo `/admin/cms`; (c) híbrido: API integrada y SPA embebida. Afecta a ADR-002, al RBAC (super-admin frente a roles del CMS) y al despliegue (un servicio frente a tres) | ✅ Cerrado: integración total (ADR-011) |
 | P-06 | Cómo presenta la memoria la parte reutilizada sin nombrar los proyectos de referencia (ADR-007); confirmar con el tutor | Abierto |

@@ -25,7 +25,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Requisitos relacionados:** RNF-01, RNF-04.
 
 ## ADR-002 · Monorepo único con la app y el CMS sobre una sola base de datos
-- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada
+- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada en parte; la estructura de apps separadas queda sustituida por ADR-011
 - **Contexto:** el CMS debe administrar los datos de la propia plataforma. Las dos bases usan el mismo scope de paquetes (`@kit/*`) y *toolchains* parecidas.
 - **Decisión:** un único monorepo Turborepo con `apps/web`, `apps/cms` y `apps/cms-api`. Los paquetes de la app usan `@pymekit/*` y los del CMS `@pymekit/cms-*`. Hay una sola instancia de Supabase y el esquema del CMS convive con el público.
 - **Alternativas consideradas:** dos repositorios con la misma BD (duplica la CI, el despliegue y la documentación, y dificulta la trazabilidad).
@@ -80,3 +80,49 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Decisión:** la web usa el **3100** en desarrollo (`vite.config.ts`, con `strictPort`), en producción local (`PORT` en `.env`/`.env.test`), en Supabase Auth (`site_url`, redirecciones, `rp_origins`), en el webhook del seed, en Playwright, en el reenvío de Stripe y en la CI. Dentro de los contenedores Docker se mantiene el 3000 interno.
 - **Consecuencias:** los puertos del CMS se asignarán en F2 sin chocar (se propone la franja 31xx).
 - **Requisitos relacionados:** RNF-07.
+
+## ADR-010 · Aislar de Internet los servicios locales del entorno de desarrollo
+- **Fecha:** 2026-09-29 · **Fase:** F2 · **Estado:** Aceptada
+- **Contexto:** el entorno de desarrollo es un servidor remoto (VPS con IP pública). Supabase local publica sus puertos (54321–54327) en `0.0.0.0` mediante Docker, que se salta UFW, y usa credenciales conocidas públicamente (`postgres/postgres` y las claves de desarrollo). Durante la F1 la API quedó accesible desde Internet durante aproximadamente una hora (solo con datos de prueba).
+- **Decisión:**
+  - Regla persistente en la cadena `DOCKER-USER` (`/etc/ufw/after.rules`, con copia de seguridad `after.rules.bak-pymekit`) que descarta el tráfico entrante por `eth0` hacia 54321–54327.
+  - Se borraron los volúmenes de la instancia expuesta.
+  - La app se consulta mediante un túnel SSH (`ssh -L 3100:localhost:3100 …`), nunca abriendo puertos.
+- **Consecuencias:** cualquier servicio nuevo en Docker (por ejemplo, el CMS en F2 o los contenedores de F7) debe revisarse con este mismo criterio. El manual de instalación (F7) documentará el riesgo.
+- **Requisitos relacionados:** RNF-02, RNF-07.
+
+## ADR-011 · Integración total del CMS en la consola de administración (P-07)
+- **Fecha:** 2026-09-29 · **Fase:** F2 · **Estado:** Aceptada (sustituye la parte de apps separadas de ADR-002)
+- **Contexto:** el CMS de referencia es una SPA (Vite + React Router, ~30 pantallas, fuertemente acoplada a las APIs de datos de React Router) con una API Hono y Drizzle. La web usa TanStack Start. El autor propuso integrarlo en la consola de super-admin.
+- **Decisión:** el CMS pasa a formar parte de `apps/web`:
+  - **API:** la aplicación Hono del CMS se monta dentro del servidor de la web en `/api/cms/*` (ruta de servidor de TanStack Start). Se reutilizan sus servicios Drizzle y sus rutas.
+  - **Interfaz:** las pantallas se reescriben como rutas de TanStack Router bajo `/admin/cms/*`, con *loaders* y mutaciones (TanStack Query + cliente RPC de Hono) en lugar de `loader`/`action`/`useFetcher`.
+  - Se hace por incrementos (F2.1–F2.9 en `PLAN.md`), cada uno funcional y verificado.
+- **Alternativas consideradas:**
+  - (a) apps separadas (3–6 días; tres servicios, dos logins y cookies duplicadas);
+  - (c) híbrida, con la API integrada y la SPA servida como estática (1–2 semanas; dos routers y dos formas de programar conviviendo).
+- **Consecuencias:** mayor esfuerzo (estimado en 6–12+ semanas). A cambio hay un único servicio, un único login y un único estilo de código, y un caso de estudio de integración para la memoria. Si el plazo aprieta, los paneles (RF-11, deseable) son el primer candidato a recortar.
+- **Requisitos relacionados:** RF-08, RF-09, RF-10, RF-11, RNF-04, RNF-05.
+
+## ADR-012 · El esquema SQL del CMS se llama `cms` (P-02)
+- **Fecha:** 2026-09-29 · **Fase:** F2 · **Estado:** Aceptada
+- **Decisión:** el esquema del CMS se renombra a `cms` en migraciones, funciones, políticas, esquema Drizzle, API y tests. Se hace de forma mecánica y se verifica con pgTAP.
+- **Motivo:** es coherente con el desmarcado (ADR-007) y con el nombre funcional del módulo.
+- **Alternativa descartada:** mantener el nombre original, que obligaría a añadir una excepción permanente en `check-branding` y lo dejaría visible en la BD y en Supabase Studio.
+
+## ADR-013 · Una sola pila de librerías en toda la web (CMS incluido)
+- **Fecha:** 2026-09-29 · **Fase:** F2 · **Estado:** Aceptada
+- **Decisión:** al portar el CMS se unifica con lo que ya usa la web:
+  - formularios con `@tanstack/react-form` + `@pymekit/ui/field` (sustituye a react-hook-form);
+  - i18n con `use-intl` a través de `@pymekit/i18n` (sustituye a i18next);
+  - componentes de `@pymekit/ui`, incorporando solo los que falten (sustituye al kit de UI duplicado).
+- **Motivo:** una sola forma de hacer cada cosa (RNF-05). Además, el español (F3) solo hay que añadirlo en un sistema.
+- **Consecuencias:** hay que migrar unos 64 formularios y unos 183 ficheros con textos. Las skills `react-form-builder` y `service-builder` deben actualizarse: el sabor «CMS con react-hook-form» deja de aplicarse.
+
+## ADR-014 · El super-admin es la raíz del CMS; el RBAC del CMS se mantiene para el resto del personal
+- **Fecha:** 2026-09-29 · **Fase:** F2 · **Estado:** Aceptada
+- **Decisión:**
+  - Un super-admin de la plataforma (`is_super_admin()`, con MFA) accede al CMS con todos los permisos, sin configuración adicional. Para ello hay «pegamento» entre los dos modelos: función o *trigger* que le da acceso y le asigna el rol raíz.
+  - El RBAC propio del CMS (roles, grupos y permisos por tabla o almacenamiento) se conserva para dar acceso **limitado** a otro personal (soporte, gestor de contenidos).
+- **Alternativa descartada:** solo super-admin, sin RBAC granular (incumpliría RF-09, «con permisos propios»).
+- **Requisitos relacionados:** RF-08, RF-09, RNF-02.
