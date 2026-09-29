@@ -145,7 +145,7 @@ Estructura prevista de la memoria (se ajustará a la plantilla de la ESI):
 | 6. Implementación | Estructura del monorepo, módulos, reutilización y adaptación |
 | 7. Pruebas y validación | Resultados de F6 |
 | 8. Despliegue | Resultados de F7 |
-| 9. Conclusiones y trabajo futuro | |
+| 9. Conclusiones y trabajo futuro | Lecciones aprendidas de `BITACORA.md` |
 | Anexos | Manual de instalación, manual de uso y documentación técnica |
 
 La memoria se redacta **a lo largo de todo el proyecto** con `/seccion-memoria`. Cada fase terminada deja un borrador de su parte.

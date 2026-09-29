@@ -102,6 +102,20 @@
 
 ---
 
+## Dedicación
+
+Sirve para el capítulo de *Planificación* (temporización y costes: horas reales frente a estimadas). Las horas marcadas con «≈» son **estimaciones** hechas a partir de la hora de los commits, desde el primer mensaje de la sesión hasta el último commit de cada tramo, redondeadas al cuarto de hora. **El autor debe revisarlas** y registrar las siguientes sesiones con su dedicación real.
+
+| Fecha | Tramo | Fases | Horas | Fuente |
+|---|---|---|---|---|
+| 2026-09-29 | 11:15–11:58 | F0 (harness y plan) | ≈ 0,75 | commits |
+| 2026-09-29 | 11:58–12:35 | F1 (base SaaS, Docker, CI) | ≈ 0,75 | commits |
+| 2026-09-29 | 12:35–14:19 | F2 (análisis del CMS, decisión P-07) + F2.1 (BD y `/rls-review`) | ≈ 1,75 | commits |
+| 2026-09-29 | 14:19–15:05 | F2.2 (API del CMS) | ≈ 0,75 | commits |
+| 2026-09-29 | 15:05–15:50 | F2.3 (base de la interfaz) | ≈ 0,75 | commits |
+| 2026-09-29 | 15:50–17:02 | Corrección MFA `/admin` + F2.4a (listado) | ≈ 1,25 | commits |
+| **Total** | | | **≈ 6,0** | |
+
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|

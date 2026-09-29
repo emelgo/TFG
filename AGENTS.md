@@ -150,9 +150,10 @@ Al terminar cualquier cambio:
 6. Skill `/reviewer` (revisión adversarial del diff).
 7. **Si el cambio tocó la BD o RLS** (política, `grant`, `security definer`, vista, migración o cualquier fichero de `apps/web/supabase/`): skill `/rls-review`.
 8. Subagente `revisor-comentarios` sobre los ficheros nuevos o portados.
-9. Actualizar `docs/tfg/PROGRESO.md`. Si procede, actualizar también `DECISIONES.md`, `TRAZABILIDAD.md` y `MAPA-REFERENCIAS.md`.
+9. Actualizar `docs/tfg/PROGRESO.md` (casillas, registro de sesiones y **dedicación**). Si procede, actualizar también `DECISIONES.md`, `MAPA-REFERENCIAS.md` y la matriz de `TRAZABILIDAD.md` (su tabla de etiquetas `[TFG]` se regenera con `node scripts/tfg/tfg-tags.mjs --write`).
+10. **Toda incidencia** (fallo de seguridad, error propio o heredado, problema de entorno o de herramientas) se anota **en el momento** en `docs/tfg/BITACORA.md`, con el formato qué pasó → causa → solución → evidencia → lección. Es material directo para la memoria.
 
-Mientras no exista el código de la app (Fase 0), solo se aplican los pasos 4 y 9.
+Mientras no exista el código de la app (Fase 0), solo se aplican los pasos 4, 9 y 10.
 
 ## 7. Git
 
