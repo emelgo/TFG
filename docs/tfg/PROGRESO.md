@@ -38,7 +38,8 @@
 
 ## F2 · Integración del CMS (en `/admin/cms`, ADR-011)
 - [x] Análisis del código del CMS y decisión de P-07 (ADR-011 a ADR-014)
-- [ ] F2.1 · BD: migraciones, esquema `cms`, pegamento super-admin, pgTAP, `/rls-review`
+- [x] F2.1 · BD: esquema `cms` (34 esquemas, 9 migraciones), pegamento super-admin → Root (ADR-014) y MFA obligatorio por defecto
+- [x] F2.1 · `/rls-review` completa (etapas 1–4): 2 brechas heredadas confirmadas y corregidas (escalada por UPDATE sin WITH CHECK; lectura de `pg_catalog.pg_authid`), más 6 endurecimientos (ADR-015). La refutación independiente confirmó el resto. pgTAP: 57 ficheros, 1.550 tests en verde
 - [ ] F2.2 · API: paquetes de servidor, Drizzle, auth y montaje en `/api/cms`
 - [ ] F2.3 · Base de UI: layout, navegación, cliente RPC, componentes e i18n
 - [ ] F2.4 · Explorador de datos (RF-09)
@@ -49,6 +50,7 @@
 - [ ] F2.9 · Cierre: E2E, skills (`react-form-builder`, `service-builder`, `playwright-e2e`) y `AGENTS.md` actualizados
 
 ## F3 · Desmarcado e i18n
+- [ ] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS
 - [ ] `check-branding` a cero
 - [ ] Locale `es` por defecto (web, emails, CMS)
 - [ ] Plantillas y `config.toml` de Supabase
@@ -60,7 +62,7 @@
 ## F4 · Comentarios en español
 | Módulo | Estado | Revisado |
 |---|---|---|
-| `apps/web/supabase` | ⬜ | ⬜ |
+| `apps/web/supabase` (incluidas 5 funciones del CMS cuya única deriva frente a las migraciones son los comentarios: al reescribirlos hay que redefinirlas en una migración) | ⬜ | ⬜ |
 | `packages/function-middleware`, `supabase`, `policies` | ⬜ | ⬜ |
 | `packages/features/*` | ⬜ | ⬜ |
 | `packages/billing/*` | ⬜ | ⬜ |
@@ -100,6 +102,7 @@
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-29 | F2.1 | BD del CMS integrada y endurecida: 2 brechas heredadas (escalada RBAC, lectura de pg_authid) y el MFA que fallaba en abierto, corregidos (ADR-015); 1.550 pgTAP en verde |
 | 2026-09-29 | F2 | P-07 decidido: integración total del CMS en `/admin/cms` (ADR-011), esquema `cms` (ADR-012), librerías unificadas (ADR-013) y super-admin como raíz del CMS (ADR-014) |
 | 2026-09-29 | F2 | Detectado Supabase local expuesto a Internet (Docker se salta UFW): parado, regla DOCKER-USER persistente y volúmenes recreados (ADR-010). Inicio del análisis de P-07 |
 | 2026-09-29 | F1 | Docker operativo: Supabase local, pgTAP (396 ✔) y E2E (43 ✔, 1 flaky). Web movida al 3100 (ADR-009) |

@@ -41,7 +41,7 @@ El CMS se integra en la web (ADR-011): no hay `apps/cms` ni `apps/cms-api`.
 
 | Origen (`../supamode/…`) | Destino | Tipo | Estado | Notas |
 |---|---|---|---|---|
-| `apps/app/supabase/{schemas,migrations,tests}` | `apps/web/supabase/…` | A | ⬜ | Esquema renombrado a `cms` (ADR-012). F2.1 |
+| `apps/app/supabase/{schemas,migrations,tests}` | `apps/web/supabase/…` | A | 🏷️ | Esquema `cms` (ADR-012), pegamento super-admin (ADR-014), endurecimiento (ADR-015). Sin el seed de demo ni el instalador de extensiones de los tests. Comentarios en español: F4 |
 | `apps/api/app/routes.ts` | `apps/web/src/routes/api/cms/$.ts` + `packages/cms/api` | A | ⬜ | Hono montado en `/api/cms`. F2.2 |
 | `packages/features/*` (parte `/routes`, servidor) | `packages/cms/<feature>` | R/A | ⬜ | Servicios Drizzle y rutas Hono. F2.2 |
 | `packages/{supabase,permissions,resources,query-builder,filters-core,data-explorer-core,formatters,schema,types}` | `packages/cms/*` | R/A | ⬜ | F2.2 |

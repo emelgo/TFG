@@ -6,6 +6,10 @@ Aquí viven los esquemas, las migraciones, el *seed* y las pruebas pgTAP de **to
 
 Los esquemas declarativos están en `schemas/`, con un prefijo numérico que fija el orden de dependencias (`00-privileges.sql` … `18-roles-seed.sql`). Hay que respetar ese orden al añadir ficheros nuevos.
 
+- `00`–`18`: plataforma SaaS (esquema `public`).
+- `20`–`53`: CMS integrado (esquema `cms`, ADR-011 y ADR-012). La numeración es la del CMS original más 20, con el prefijo `cms-`. `53-cms-super-admin.sql` es el pegamento que convierte al super-admin de la plataforma en raíz del CMS (ADR-014).
+- Los tests del CMS se llaman `cms-*.test.sql` y usan los helpers de `00001-cms-test-helpers.sql` (esquema `cms_tests`). PymeKit exige MFA en el CMS por defecto: los tests funcionales lo desactivan explícitamente dentro de su transacción.
+
 ## Skills
 
 Para implementar cambios en la base de datos:

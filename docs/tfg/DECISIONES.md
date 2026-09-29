@@ -126,3 +126,22 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
   - El RBAC propio del CMS (roles, grupos y permisos por tabla o almacenamiento) se conserva para dar acceso **limitado** a otro personal (soporte, gestor de contenidos).
 - **Alternativa descartada:** solo super-admin, sin RBAC granular (incumpliría RF-09, «con permisos propios»).
 - **Requisitos relacionados:** RF-08, RF-09, RNF-02.
+
+## ADR-015 · Endurecimiento de seguridad del CMS heredado
+- **Fecha:** 2026-09-29 · **Fase:** F2.1 · **Estado:** Aceptada
+- **Contexto:** la revisión adversarial `/rls-review` del esquema `cms` portado encontró fallos en el código heredado. Algunos se confirmaron con pruebas ejecutadas; otros se detectaron en la lectura estática.
+- **Decisión:** se corrigen en las migraciones `20260929120600_cms_mfa_fail_closed`, `20260929120700_cms_rls_hardening` y `20260929120800_cms_rls_hardening_2`, cada una con su test de regresión (`cms-isolation.test.sql`, `cms-super-admin-root.test.sql`):
+  1. **Brecha de escalada (confirmada):** las políticas `UPDATE` de `role_permissions`, `account_permissions` y `permission_group_permissions` no tenían `WITH CHECK`. Un administrador delegado podía cambiar `permission_id` para colgar de un rol inferior un permiso que él no poseía. Se añade `WITH CHECK` con `can_grant_permission`.
+  2. **MFA que fallaba en abierto:** con MFA configurado y sesión aal1, la política restrictiva ocultaba la opción `requires_mfa`, y el CMS la interpretaba como «opcional». Ahora se lee con `cms.get_mfa_requirement()` (`security definer`), y una opción ausente o no válida cuenta como «obligatorio».
+  3. **Lectura de esquemas protegidos:** `query_table` y `get_record_by_keys` no llamaban a `validate_schema_access`, y `query_table` tampoco a `verify_admin_access`. Con un permiso comodín, como el de Root, se podía leer `auth.users`. Ahora ambas exigen las dos comprobaciones.
+  4. **Paneles:** `can_access_dashboard`, `can_edit_dashboard` y `list_dashboards` no exigían acceso de administración vigente. Ahora sí lo exigen (claim, cuenta activa y MFA).
+  5. **Marcadores de sistema:** hay índices únicos para el rol y el grupo raíz.
+  6. **Catálogos del sistema (hallado en la refutación independiente, gravedad alta):** `validate_schema_access` no bloqueaba `pg_catalog`. Root podía leer `pg_authid`, con los hashes de contraseña de los roles de Postgres. Ahora se bloquea cualquier esquema `pg_*` (migración `20260929120800_cms_rls_hardening_2`).
+  7. **Política tautológica:** en `view_role_permissions`, `ar.role_id = role_id` comparaba la columna consigo misma y cualquiera con un rol veía todas las asignaciones. Ahora cada usuario ve las de sus roles, y quien tiene `permission:select` las ve todas.
+  8. **Deriva heredada:** 4 funciones cuyo esquema declarativo no coincidía con las migraciones (`can_read_audit_log`, `create_dashboard`, `grant_admin_access` y `share_dashboard_with_role`) se alinean con la versión de las migraciones.
+- **Pendiente (debilidades menores, se revisan en F2.7):**
+  - un permiso de almacenamiento sin `bucket_name` equivale a comodín;
+  - `has_permission`, `account_has_role` y `build_where_clause` son invocables con ids arbitrarios (filtran respuestas sí/no);
+  - el personal puede insertar entradas de auditoría a su nombre;
+  - el INSERT en `saved_view_roles` no comprueba la propiedad de la vista.
+- **Requisitos relacionados:** RF-09, RF-10, RNF-02, RNF-03.

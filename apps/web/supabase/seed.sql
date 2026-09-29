@@ -285,3 +285,24 @@ SELECT pg_catalog.setval('"public"."role_permissions_id_seq"', 7, true);
 --
 
 SELECT pg_catalog.setval('"supabase_functions"."hooks_id_seq"', 19, true);
+
+
+--
+-- CMS: registro de las tablas de la plataforma en el explorador de datos
+--
+-- El explorador del CMS solo muestra las tablas descritas en
+-- `cms.table_metadata`. `cms.sync_managed_tables` lee el catálogo de
+-- PostgreSQL (columnas, claves y relaciones) y crea o actualiza esa
+-- descripción. Aquí se registran las tablas de `public` y `auth.users` (para
+-- el explorador de usuarios) en el entorno local.
+--
+-- En producción hay que ejecutar las mismas llamadas una vez aplicadas las
+-- migraciones (y de nuevo cada vez que se añadan tablas), con un rol
+-- propietario como `postgres`: la función no está concedida a los roles de
+-- la API.
+--
+-- [TFG] RF-09, RF-10.
+
+select cms.sync_managed_tables('public');
+
+select cms.sync_managed_tables('auth', 'users');
