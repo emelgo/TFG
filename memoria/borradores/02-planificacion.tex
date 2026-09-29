@@ -1,0 +1,396 @@
+% =====================================================================
+% Capítulo 2 · Planificación
+% Borrador generado a partir de docs/tfg/{PLAN,PROGRESO,BITACORA,DECISIONES}.md,
+% AGENTS.md, .claude/, .github/workflows/ci.yml y el historial de git.
+% Estado de las fuentes: 2026-09-29 (F2.4b cerrada).
+% Paquetes necesarios: booktabs, tabularx, todonotes, hyperref.
+% =====================================================================
+
+\chapter{Planificación}
+\label{cap:planificacion}
+
+En este capítulo se describe cómo se ha organizado el trabajo: la metodología
+seguida, la descomposición en fases y su relación con la Estructura de
+Descomposición del Trabajo (EDT) de la propuesta, la temporización, la gestión
+de riesgos, las herramientas empleadas y la estructura de costes.
+
+% ---------------------------------------------------------------------
+\section{Metodología}
+\label{sec:metodologia}
+
+\subsection{Desarrollo incremental por fases}
+
+El proyecto se ha abordado con un modelo de desarrollo \textbf{incremental}:
+el trabajo se divide en fases (F0--F8) y, dentro de las fases más grandes, en
+incrementos más pequeños (por ejemplo, F2.1--F2.9 en la integración del CMS).
+Cada fase o incremento tiene tres elementos fijados de antemano en el plan del
+proyecto:
+
+\begin{itemize}
+  \item un \textbf{objetivo} y una lista de entregables;
+  \item un \textbf{criterio de «hecho»} verificable (por ejemplo, «la
+        aplicación arranca en local, CU-01 funciona a mano y la integración
+        continua está en verde»);
+  \item las \textbf{dependencias} con otras fases.
+\end{itemize}
+
+Un incremento solo se da por cerrado cuando supera su criterio de «hecho» y la
+verificación común descrita en la sección~\ref{sec:verificacion-proceso}. Así,
+al final de cada incremento el sistema queda en un estado funcional y
+comprobado, y los retrasos afectan al alcance de los incrementos posteriores,
+no a la estabilidad de lo ya construido. Esta forma de trabajar encaja con el
+objetivo del TFG, una arquitectura \emph{reutilizable}: cada incremento añade
+un módulo que debe poder integrarse sin romper los anteriores (RNF-04,
+RNF-06).
+
+Las decisiones de arquitectura o de alcance se registran en el momento en que
+se toman como \textit{Architecture Decision Records} (ADR, registros de
+decisiones de arquitectura)~\cite{nygard2011adr}, con su contexto, las
+alternativas consideradas y sus consecuencias. En el momento de redactar este
+borrador hay dieciséis (ADR-001 a ADR-016); los relevantes para el diseño se
+resumen en el capítulo~\ref{cap:diseno}. Las incidencias (fallos propios o
+heredados, problemas de entorno y de herramientas) se anotan también en el
+momento en una bitácora con el formato \emph{qué pasó, causa, solución,
+evidencia y lección}; esa bitácora es la fuente de los riesgos materializados
+de la sección~\ref{sec:riesgos}.
+
+\subsection{Desarrollo asistido por agentes de IA}
+\label{sec:metodologia-ia}
+
+% PENDIENTE (autor): comprobar si la ESI/UCA exige una declaración formal del
+% uso de herramientas de IA generativa en el TFG (formato y ubicación) y
+% ajustar este apartado a esa normativa.
+
+Una parte sustancial del código, de las pruebas y de la documentación se ha
+producido con la ayuda de un asistente de programación basado en modelos de
+lenguaje que actúa como \textit{agente} (un programa que, a partir de una
+instrucción, lee ficheros, ejecuta órdenes y propone o aplica cambios en el
+repositorio). En concreto se ha usado Claude Code~\cite{claudecode}. Todos los
+\textit{commits} del repositorio registran esa coautoría mediante la línea
+\texttt{Co-Authored-By} del mensaje.
+\todo{Confirmar el modelo o modelos de IA empleados y el periodo de uso para
+la declaración de uso de IA.}
+
+Para que este modo de trabajo sea controlable y evaluable, antes de escribir
+código de la aplicación (fase F0) se construyó un \textit{harness}, es decir,
+un arnés de directrices y controles automáticos que acota lo que hacen los
+agentes y comprueba el resultado. Sus componentes son:
+
+\begin{itemize}
+  \item \textbf{Directrices escritas.} Un fichero raíz de directrices para
+        agentes y desarrolladores (\texttt{AGENTS.md}) y otros por paquete que
+        fijan el \textit{stack}, las convenciones, las reglas de seguridad de
+        la base de datos, el idioma de comentarios y documentación (ADR-003) y
+        una lista de verificación obligatoria al terminar cualquier cambio.
+  \item \textbf{Documentación de seguimiento} en \texttt{docs/tfg/}: plan,
+        requisitos, decisiones, trazabilidad, progreso, dedicación y bitácora.
+        Un agente debe leer el progreso y el plan de la fase antes de empezar,
+        y no puede reabrir una decisión sin registrar un ADR nuevo.
+  \item \textbf{Procedimientos reutilizables} (\textit{skills}) para tareas
+        repetitivas o delicadas: portar un módulo, reescribir comentarios,
+        registrar una decisión, revisar un cambio de forma adversarial, auditar
+        las políticas de seguridad de la base de datos o redactar un borrador
+        de la memoria.
+  \item \textbf{Controles automáticos} (\textit{hooks}) que se ejecutan sin
+        intervención: al inicio de cada sesión se inyecta la fase actual y sus
+        tareas pendientes; tras cada edición se comprueba que el fichero no
+        contiene referencias prohibidas (ADR-007); y antes de terminar se
+        recuerda actualizar el progreso si hay cambios de código sin
+        registrar.
+  \item \textbf{Permisos} explícitos: el código de partida es de solo lectura
+        para los agentes y no pueden leer ficheros de secretos.
+\end{itemize}
+
+\paragraph{Reparto de responsabilidades.}
+El reparto entre el autor y los agentes ha sido el siguiente:
+
+\begin{itemize}
+  \item \textbf{El autor} fija el alcance y los requisitos, toma las decisiones
+        de arquitectura (por ejemplo, la integración del CMS en la consola de
+        administración, ADR-011, fue una propuesta suya), revisa y acepta o
+        rechaza los cambios, realiza pruebas manuales exploratorias y es el
+        único que autoriza los \textit{commits} y su publicación. Las
+        directrices prohíben a los agentes hacer \textit{commit} o
+        \textit{push} sin su orden expresa.
+  \item \textbf{Los agentes} analizan el código existente, proponen
+        alternativas, implementan los incrementos, escriben las pruebas,
+        ejecutan la verificación, redactan la documentación de seguimiento y
+        los borradores de la memoria, y realizan las revisiones adversariales.
+\end{itemize}
+\todo{El autor debe revisar y completar este reparto con su propia valoración:
+qué partes ha escrito o reescrito a mano, qué criterio ha seguido para aceptar
+cambios y cuánto tiempo ha dedicado a la revisión.}
+
+\paragraph{Cómo se verifica el trabajo.}
+\label{sec:verificacion-proceso}
+Ningún cambio se acepta por el mero hecho de haberlo producido un agente. Todo
+cambio pasa por la misma cadena de comprobaciones, que el
+\texttt{AGENTS.md} declara obligatoria:
+
+\begin{enumerate}
+  \item comprobación de tipos (TypeScript estricto), \textit{lint} y formato;
+  \item comprobación de desmarcado (\texttt{check-branding});
+  \item pruebas afectadas: unitarias, de base de datos (pgTAP) y
+        \textit{end-to-end} (E2E) si se toca un flujo de usuario;
+  \item revisión adversarial del \textit{diff} en dos pistas paralelas
+        (calidad y arquitectura; búsqueda de errores y fallos de seguridad);
+  \item si el cambio afecta a la base de datos, auditoría adversarial de las
+        políticas de seguridad a nivel de fila con pruebas de ataque ejecutables
+        y una etapa de refutación independiente (véase la
+        sección~\ref{sec:verificacion-seguridad});
+  \item revisión de los comentarios del código;
+  \item actualización del progreso, la trazabilidad y, si procede, las
+        decisiones y la bitácora.
+\end{enumerate}
+
+Las comprobaciones automatizables se repiten en la integración continua
+(sección~\ref{sec:herramientas}). La revisión humana sigue siendo necesaria:
+la incidencia B-14 (la consola de administración se cargaba sin segundo
+factor) la detectó el autor con una prueba manual que ninguna prueba
+automática cubría. De igual modo, la incidencia B-11 muestra que un test en
+verde no garantiza la corrección: un test heredado afirmaba precisamente el
+comportamiento inseguro. Por eso la metodología combina la verificación
+automática con la lectura crítica de las aserciones y con pruebas
+exploratorias del autor.
+
+% ---------------------------------------------------------------------
+\section{Fases y relación con la EDT}
+\label{sec:fases}
+
+La propuesta del TFG define una EDT con seis paquetes de trabajo:
+(1)~Análisis, (2)~Arquitectura, (3)~Modelo de datos, (4)~Implementación,
+(5)~Validación y (6)~Documentación. La tabla~\ref{tab:fases} relaciona cada
+fase con esos paquetes.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Fases del proyecto, paquetes de la EDT que cubren y criterio de «hecho».}
+  \label{tab:fases}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.4cm}cX@{}}
+    \toprule
+    \textbf{Fase} & \textbf{Nombre} & \textbf{EDT} & \textbf{Hecho cuando\ldots} \\
+    \midrule
+    F0 & Harness y planificación & 1 & El control de desmarcado pasa, los \textit{hooks} funcionan y existe el primer \textit{commit} \\
+    F1 & Base SaaS importada y funcionando & 4 & La aplicación arranca en local, CU-01 funciona a mano y la CI está en verde \\
+    F2 & Integración del CMS & 2, 3, 4 & Cada incremento F2.1--F2.9 cumple su criterio (BD, API, interfaz, explorador, usuarios y almacenamiento, auditoría, RBAC, paneles, cierre) \\
+    F3 & Desmarcado completo e i18n en español & 4 & Control de desmarcado sin excepciones e interfaz en español por defecto \\
+    F4 & Comentarios didácticos en español & 4, 6 & Sin comentarios en inglés en los módulos críticos y revisión aprobada \\
+    F5 & Adaptación a pymes y configurabilidad & 2, 3, 4 & CU-02 a CU-05 funcionan y la configuración está documentada \\
+    F6 & Validación & 5 & CI en verde y resultados documentados \\
+    F7 & Despliegue & 4, 6 & Despliegue de demostración accesible y manual probado desde cero \\
+    F8 & Memoria y manuales & 1, 2, 3, 6 & Continua; se cierra tras F6 y F7 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Las dependencias principales son lineales (F0 $\rightarrow$ F1 $\rightarrow$
+F2 $\rightarrow$ F3 $\rightarrow$ F5 $\rightarrow$ F6), con dos excepciones:
+F4 puede solaparse con F3 y F5, y F8 se desarrolla de forma continua, de modo
+que cada fase cerrada deja un borrador de su parte de la memoria.
+
+La fase F2 es la de mayor esfuerzo. Al comenzarla se evaluaron tres formas de
+integrar el CMS (aplicaciones separadas, integración híbrida e integración
+total) y se eligió la integración total en la consola de administración
+(ADR-011), a pesar de su mayor coste estimado, por dar lugar a un único
+servicio, un único inicio de sesión y un único estilo de código. Para
+controlar ese riesgo, la fase se dividió en nueve incrementos y se identificó
+de antemano el candidato a recortar si el plazo lo exige: los paneles
+configurables (RF-11, requisito deseable).
+
+\paragraph{Estado en la fecha de este borrador.}
+F0 y F1 están cerradas. En F2 están cerrados los incrementos F2.1 (base de
+datos), F2.2 (API), F2.3 (base de la interfaz), F2.4a (listado del explorador
+de datos) y F2.4b (ficha de registro).
+% PENDIENTE: actualizar este párrafo al integrar el capítulo.
+
+% ---------------------------------------------------------------------
+\section{Temporización}
+\label{sec:temporizacion}
+
+La dedicación se registra en el documento de progreso del proyecto. Las cifras
+de la tabla~\ref{tab:dedicacion} son \textbf{estimaciones} obtenidas a partir
+de la hora de los \textit{commits} (desde el inicio de la sesión hasta el
+último \textit{commit} de cada tramo), redondeadas al cuarto de hora; el autor
+debe revisarlas y registrar las siguientes sesiones con su dedicación real.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Dedicación registrada (estimada) por tramos de trabajo.}
+  \label{tab:dedicacion}
+  \begin{tabularx}{\textwidth}{@{}llXr@{}}
+    \toprule
+    \textbf{Fecha} & \textbf{Tramo} & \textbf{Fases} & \textbf{Horas} \\
+    \midrule
+    29/09/2026 & 11:15--11:58 & F0 (harness y plan) & $\approx$ 0,75 \\
+    29/09/2026 & 11:58--12:35 & F1 (base SaaS, Docker, CI) & $\approx$ 0,75 \\
+    29/09/2026 & 12:35--14:19 & F2 (análisis del CMS y decisión de integración) + F2.1 (BD y auditoría de seguridad) & $\approx$ 1,75 \\
+    29/09/2026 & 14:19--15:05 & F2.2 (API del CMS) & $\approx$ 0,75 \\
+    29/09/2026 & 15:05--15:50 & F2.3 (base de la interfaz) & $\approx$ 0,75 \\
+    29/09/2026 & 15:50--17:02 & Corrección del MFA en la consola + F2.4a (listado) & $\approx$ 1,25 \\
+    29/09/2026 & 17:02--17:50 & F2.4b (ficha de registro) + bitácora y trazabilidad & $\approx$ 0,75 \\
+    \midrule
+    \multicolumn{3}{@{}l}{\textbf{Total registrado}} & $\approx$ \textbf{6,75} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\todo{Completar la tabla con las sesiones posteriores y con la dedicación
+real revisada por el autor (incluido el tiempo de revisión, pruebas manuales,
+reuniones con el tutor y redacción que no deja \textit{commits}).}
+
+\todo{Añadir la planificación inicial estimada por fase (horas previstas) para
+compararla con la real, y un diagrama de Gantt (p.\,ej.\ con el paquete
+\texttt{pgfgantt}) con las fechas previstas y reales de cada fase.}
+
+% PENDIENTE (autor): las horas registradas corresponden a sesiones de trabajo
+% asistido por agentes (sección~\ref{sec:metodologia-ia}). Conviene explicar en
+% la memoria qué incluyen y qué no, para que la comparación con la carga de
+% créditos del TFG sea honesta.
+
+% ---------------------------------------------------------------------
+\section{Gestión de riesgos}
+\label{sec:riesgos}
+
+La tabla~\ref{tab:riesgos} recoge los riesgos identificados. Para cada uno se
+indica la medida de mitigación y si se ha llegado a materializar, con la
+incidencia de la bitácora que lo documenta (identificadores B-xx).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Riesgos del proyecto, mitigación y materialización.}
+  \label{tab:riesgos}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}Xl@{}}
+    \toprule
+    \textbf{ID} & \textbf{Riesgo} & \textbf{Mitigación} & \textbf{Materializado} \\
+    \midrule
+    R-01 & Desbordamiento del plazo por el esfuerzo de integración del CMS &
+      Incrementos F2.1--F2.9 funcionales; RF-11 identificado como primer recorte (ADR-011) & No (en seguimiento) \\
+    R-02 & Fallos de seguridad en el código de partida &
+      Auditoría adversarial de RLS con pruebas pgTAP y refutación independiente; pruebas de regresión (ADR-015) & Sí: B-05--B-09 \\
+    R-03 & Exposición del entorno de desarrollo (servidor remoto con IP pública) &
+      Filtrado en la cadena \texttt{DOCKER-USER}, acceso por túnel SSH y revisión de cada servicio nuevo (ADR-010) & Sí: B-04 \\
+    R-04 & Errores introducidos por cambios masivos o por agentes de IA &
+      Controles automáticos ampliados a las variantes del error, revisión adversarial y prueba manual del autor & Sí: B-01, B-14, B-16 \\
+    R-05 & Deriva entre el esquema declarativo y las migraciones &
+      \texttt{supabase db diff} en la verificación de todo cambio de BD & Sí: B-10 \\
+    R-06 & Pruebas que no prueban lo que dicen &
+      Leer las aserciones de las pruebas heredadas, no solo sus nombres & Sí: B-11 \\
+    R-07 & Interrupción de las herramientas o de la conexión durante una tarea &
+      Cerrar cada incremento con su \textit{commit}; tareas de seguridad formuladas como verificación defensiva y divididas en etapas & Sí: B-12, B-15 \\
+    R-08 & Falsos positivos de las herramientas automáticas (secretos, pruebas inestables) &
+      Documentar las credenciales públicas de desarrollo; ejecutar los E2E contra la \textit{build} de test & Sí: B-03, B-13 \\
+    R-09 & Conflicto de licencia del código de partida &
+      Repositorio privado y origen documentado internamente (ADR-001, ADR-006) & No \\
+    R-10 & Validación de la reutilización sin un dominio de negocio concreto &
+      Medir el arranque de un SaaS nuevo a partir de la plataforma (ADR-005, punto abierto P-01) & Pendiente \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\todo{Asignar probabilidad e impacto (p.\,ej.\ bajo/medio/alto) a cada riesgo
+según el criterio del autor y, si la plantilla lo pide, una matriz de
+riesgos.}
+
+Entre los riesgos materializados destacan tres por su enseñanza para la
+planificación:
+
+\begin{itemize}
+  \item \textbf{B-04, exposición del entorno.} El entorno de desarrollo es un
+        servidor remoto. Los servicios locales de la base de datos publicaban
+        sus puertos en todas las interfaces y el motor de contenedores
+        insertaba reglas que se saltaban el cortafuegos, de modo que la API y
+        la base de datos (con credenciales de desarrollo conocidas) fueron
+        accesibles desde Internet durante aproximadamente una hora, solo con
+        datos de prueba. Se corrigió con una regla persistente, se recrearon
+        los volúmenes y se pasó a acceder mediante un túnel SSH (ADR-010).
+        Además, dio lugar a un criterio de revisión para cualquier servicio
+        nuevo y a una advertencia que figurará en el manual de instalación.
+  \item \textbf{B-05 a B-09, fallos heredados.} La auditoría de la base de
+        datos del CMS encontró dos brechas confirmadas y varios
+        endurecimientos necesarios en el código de partida (se analizan en la
+        sección~\ref{sec:verificacion-seguridad}). El riesgo se había previsto
+        y la mitigación (auditoría obligatoria en todo cambio de BD) fue la
+        que permitió detectarlos.
+  \item \textbf{B-15, corte de conexión con un agente trabajando.} El trabajo
+        quedó a medias sin \textit{commit} y mezclado con una corrección de
+        seguridad pendiente. La lección se incorporó al proceso: cada
+        incremento se cierra con su propio \textit{commit}.
+\end{itemize}
+
+% ---------------------------------------------------------------------
+\section{Herramientas}
+\label{sec:herramientas}
+
+\begin{itemize}
+  \item \textbf{Control de versiones: git y GitHub.} Repositorio privado
+        (condición de la licencia del código de partida, ADR-001). La rama
+        principal es \texttt{main} y se trabaja en ramas por fase
+        (\texttt{fase-1/base}, \texttt{fase-2/cms}). Los mensajes de
+        \textit{commit} están en español y siguen la especificación
+        \textit{Conventional Commits}~\cite{conventionalcommits}, con el
+        módulo como ámbito.
+  \item \textbf{Integración continua: GitHub Actions.} Un único
+        \textit{workflow} con tres trabajos: (1)~controles propios del TFG
+        (el \textit{scope} de paquetes es bloqueante; el desmarcado completo
+        y el informe de comentarios en inglés son informativos hasta cerrar
+        F3 y F4); (2)~comprobación de tipos, \textit{lint}, formato y pruebas
+        unitarias; y (3)~base de datos local, pruebas pgTAP y E2E con
+        Playwright contra la \textit{build} de test. Para ahorrar minutos de
+        ejecución, el tercero solo se lanza en las \textit{pull requests}
+        hacia \texttt{main} y a mano.
+  \item \textbf{Monorepo:} Turborepo~\cite{turborepo} y pnpm, con un catálogo
+        único de versiones.
+  \item \textbf{Base de datos local:} Supabase CLI~\cite{supabase-docs} sobre
+        Docker.
+  \item \textbf{Pruebas:} Vitest (unitarias), pgTAP~\cite{pgtap} (base de
+        datos) y Playwright~\cite{playwright} (E2E).
+  \item \textbf{Asistente de programación:} Claude Code~\cite{claudecode},
+        con el \textit{harness} descrito en la
+        sección~\ref{sec:metodologia-ia}.
+  \item \textbf{Scripts propios de control} (\texttt{scripts/tfg/}):
+        comprobación de desmarcado, informe de comentarios en inglés y
+        extracción de las etiquetas de trazabilidad del código.
+  \item \textbf{Memoria:} \LaTeX{} sobre la plantilla de la ESI en Overleaf.
+        % PENDIENTE (P-04): confirmar al integrar la plantilla oficial.
+\end{itemize}
+
+% ---------------------------------------------------------------------
+\section{Costes}
+\label{sec:costes}
+
+% PENDIENTE (autor): todos los importes. No hay datos de costes en el
+% repositorio; esta sección solo propone la estructura.
+
+\todo{Completar la estimación de costes con datos reales.}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Estructura de costes del proyecto (pendiente de completar).}
+  \label{tab:costes}
+  \begin{tabularx}{\textwidth}{@{}Xrr@{}}
+    \toprule
+    \textbf{Concepto} & \textbf{Base de cálculo} & \textbf{Importe (€)} \\
+    \midrule
+    Personal: horas de desarrollo $\times$ coste/hora de un ingeniero junior & \textit{pendiente: horas y tarifa} & \textit{pendiente} \\
+    Equipo de desarrollo (amortización) & \textit{pendiente} & \textit{pendiente} \\
+    Servidor remoto de desarrollo (VPS) & \textit{pendiente: meses} & \textit{pendiente} \\
+    Licencia comercial de la base de código de partida % PENDIENTE (P-06): cómo se presenta
+      & \textit{pendiente} & \textit{pendiente} \\
+    Suscripción al asistente de programación con IA & \textit{pendiente: meses} & \textit{pendiente} \\
+    Servicios en la nube para el despliegue (F7) & \textit{pendiente} & \textit{pendiente} \\
+    Otros (dominio, etc.) & \textit{pendiente} & \textit{pendiente} \\
+    \midrule
+    \textbf{Total} & & \textit{pendiente} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Las herramientas de desarrollo empleadas (git, Node.js, pnpm, Turborepo,
+Supabase CLI, Docker, Vitest, pgTAP, Playwright) son de código abierto y no
+tienen coste de licencia. Stripe se usa en modo de pruebas.
+\todo{Confirmar el plan contratado de GitHub, del proyecto de Supabase en la
+nube y de la plataforma de despliegue, y si generan coste.}

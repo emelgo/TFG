@@ -1,0 +1,38 @@
+' Flujo de una petición a la API del CMS (capítulo 5, fig:flujo-cms).
+' Diagrama de secuencia alternativo a la versión TikZ de 05-diseno.tex.
+@startuml flujo-peticion-cms
+skinparam shadowing false
+autonumber
+
+actor "Personal\n(super-admin o CMS)" as user
+participant "Navegador" as nav
+participant "Ruta de servidor\n/api/cms/$" as route
+participant "Aplicación Hono\n(middleware)" as hono
+participant "Servicio Drizzle" as drz
+database "PostgreSQL\n(esquema cms)" as pg
+
+user -> nav : abre /admin/cms/...
+note right of nav
+  Guarda de ruta de la consola:
+  sesión aal2 y acceso de administración
+  (si no: verificación MFA o 404)
+end note
+nav -> route : GET /api/cms/v1/... (cookie de sesión)
+route -> hono : app.fetch(request)\n(código del CMS solo en el servidor)
+note right of hono
+  Cabeceras de seguridad y CSRF.
+  JWT válido (401), claim de acceso
+  al CMS (403), usuario no bloqueado.
+end note
+hono -> drz : servicio de la funcionalidad
+drz -> pg : set_config(request.jwt.claims, ...)\n+ rol authenticated (parámetros enlazados)
+drz -> pg : consulta
+note right of pg
+  cms.verify_admin_access() (cuenta activa, MFA)
+  y políticas RLS: decisión final
+end note
+pg --> drz : filas autorizadas (o error de permiso)
+drz --> hono : resultado
+hono --> route : Response (200 / 403 / 404)
+route --> nav : Response
+@enduml

@@ -22,7 +22,7 @@ _Última actualización: 2026-09-29 (F2.4b cerrada)._
 | RF-12 | `packages/features/notifications`, `packages/mailers` | — | Implementación | 🟨 | Heredado; sin prueba específica todavía |
 | RF-13 | `packages/i18n` | — | Implementación > i18n | 🟨 | Infraestructura lista y namespace `cms`; falta el locale `es` (F3) |
 | RNF-01 | `apps/web/src/config`, `turbo/generators`, `.env*` | Evaluación en F6 (P-01) | Validación > Reutilización | ⬜ | |
-| RNF-02 | `schemas/**`, `packages/function-middleware`, `packages/cms/auth`, `routes/admin/route.tsx` | pgTAP 1.550, `/rls-review` (etapas 1–4), `cms-isolation`, E2E `cms-api`, `admin` | Diseño > Seguridad | ✅ | 2 brechas heredadas y 7 endurecimientos corregidos (ADR-015); ver `BITACORA.md` |
+| RNF-02 | `schemas/**`, `packages/function-middleware`, `packages/cms/auth`, `routes/admin/route.tsx` | pgTAP 1.550, `/rls-review` (etapas 1–4), `cms-isolation`, E2E `cms-api`, `admin` | Diseño > Seguridad | ✅ | 2 brechas heredadas y 5 endurecimientos corregidos, más 4 funciones desincronizadas alineadas (ADR-015); ver `BITACORA.md` |
 | RNF-03 | políticas RLS de `public` y `cms` | pgTAP heredados de aislamiento + `cms-isolation.test.sql` | Diseño > Seguridad | ✅ | |
 | RNF-04 | estructura del monorepo (47 paquetes) | typecheck, `manypkg`, Turborepo (sin ciclos) | Implementación > Monorepo | ✅ | |
 | RNF-05 | todo el código | CI (controles del TFG, lint, formato), `check-branding` | Implementación | 🟨 | Comentarios en español: F4 |
