@@ -2,15 +2,20 @@
 #
 # - controles-tfg: desmarcado e informe de comentarios (normas del TFG).
 # - typescript: typecheck, lint y tests unitarios en cada push/PR.
-# - test: Supabase local + pgTAP + E2E (Playwright). Es costoso y necesita
-#   secretos, así que solo se ejecuta si la variable del repositorio
-#   ENABLE_E2E_JOB vale 'true' (Settings > Secrets and variables > Actions).
+# - test: Supabase local + pgTAP + E2E (Playwright). Es costoso (~15 min del
+#   cupo gratuito de Actions) y necesita secretos, así que solo se ejecuta:
+#     · en los pull requests hacia main, y
+#     · a mano, desde la pestaña Actions (botón "Run workflow"),
+#   y siempre que la variable del repositorio ENABLE_E2E_JOB valga 'true'
+#   (Settings > Secrets and variables > Actions). En los push a main solo
+#   corren los dos jobs rápidos.
 name: CI
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 jobs:
   controles-tfg:
     name: Controles del TFG
@@ -86,7 +91,7 @@ jobs:
     name: Supabase + E2E
     timeout-minutes: 20
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
-    if: ${{ vars.ENABLE_E2E_JOB == 'true' }}
+    if: ${{ vars.ENABLE_E2E_JOB == 'true' && github.event_name != 'push' }}
     env:
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       SUPABASE_DB_WEBHOOK_SECRET: ${{ secrets.SUPABASE_DB_WEBHOOK_SECRET }}

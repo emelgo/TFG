@@ -37,7 +37,7 @@
 - [x] E2E: 43 pasan, 1 omitido (billing desactivado) y 1 inestable (*flaky*: `admin.spec.ts` › «ban user flow», pasa al reintentar)
 - [x] Corregido un fallo del renombrado: la regex `noExternal` de `vite.config.ts` conservaba el scope original escapado (`check-branding` ya detecta esa forma)
 - [ ] CU-01 probado a mano por el autor (`pnpm dev` → http://localhost:3100)
-- [ ] Activar el job de E2E en GitHub (variable `ENABLE_E2E_JOB` y secretos de Supabase y Stripe)
+- [x] Job de E2E activado en GitHub (`ENABLE_E2E_JOB` y secretos de Supabase). Para ahorrar minutos, solo se ejecuta en PR a `main` y a mano (*Run workflow*). Los secretos de Stripe se añadirán en F5
 - [ ] Estabilizar el test inestable de admin (o documentarlo) antes de F6
 
 ## F2 · Integración del CMS
