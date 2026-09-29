@@ -377,7 +377,7 @@ BEGIN
             ELSIF SQLSTATE = '23502' THEN
                 RAISE EXCEPTION 'Not null constraint violation: Required field is missing in %.%',
                     p_schema, p_table
-                    USING ERRCODE = 'not_nullviolation';
+                    USING ERRCODE = 'not_null_violation';
             ELSE
                 RAISE EXCEPTION 'Insert failed for table %.%: % (SQLSTATE: %)',
                     p_schema, p_table, SQLERRM, SQLSTATE

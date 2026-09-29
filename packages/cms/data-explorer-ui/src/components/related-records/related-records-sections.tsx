@@ -134,6 +134,8 @@ export function RelatedRecordsSections(props: {
           return (
             <ErrorBoundary key={key} fallback={sectionError}>
               <M2MSection
+                schema={schema}
+                table={table}
                 relation={relation}
                 relationKey={key}
                 recordData={props.recordData}

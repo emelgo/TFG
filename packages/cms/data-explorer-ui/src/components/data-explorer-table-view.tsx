@@ -11,12 +11,19 @@
  * (`onSearchChange`). Así el componente se puede reutilizar y la lógica de
  * datos queda en un único sitio.
  *
+ * Las acciones de escritura dependen de los permisos del usuario sobre la
+ * tabla (`queries.tablePermissions`, que la ruta precarga): «Nuevo
+ * registro» con `insert`, selección y borrado múltiple con `delete` y
+ * edición en línea con `update`. Sin permiso no se muestran; con él, la API
+ * vuelve a comprobarlo en cada escritura.
+ *
  * [TFG] RF-09: explorador de datos del CMS (listado).
  */
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Grid2X2, SearchX } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { Grid2X2, PlusCircleIcon, SearchX, XIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'use-intl';
 
 import { getLookupRelations } from '@pymekit/cms-data-explorer-core/utils';
@@ -24,12 +31,24 @@ import type { RelationData } from '@pymekit/cms-table/components';
 import type { ColumnMetadata } from '@pymekit/cms-types';
 import type { CmsTableData } from '@pymekit/cms-ui-core/api';
 import { useCmsApi } from '@pymekit/cms-ui-core/api-context';
+import { Button } from '@pymekit/ui/button';
 import { cn } from '@pymekit/ui/utils';
 
 import { useColumnPreferences } from '../hooks/use-column-preferences';
 import { useTableTabManagement } from '../hooks/use-data-explorer-tabs';
 import { saveFilterContext } from '../utils/filter-context';
+import { DATA_EXPLORER_BASE_PATH } from '../utils/paths';
+import { toTableKeysConfig } from '../utils/record-keys';
+import {
+  type RecordSelection,
+  getPageSelectionState,
+  getRecordKeyConditions,
+  isRecordSelected,
+  setPageSelection,
+  toggleRecordSelection,
+} from '../utils/record-selection';
 import type { DataExplorerSearch } from '../utils/search-schema';
+import { BatchDeleteDialog } from './batch-delete-dialog';
 import { DataExplorerTable } from './data-explorer-table';
 import { DataExplorerTabs } from './data-explorer-tabs';
 import { FiltersContainer } from './filters/filters-container';
@@ -52,6 +71,44 @@ export function DataExplorerTableView(props: {
   const displayName = data.table.displayName || data.table.tableName;
 
   const savedViews = useQuery(queries.savedViews(schema, table));
+  const permissions = useQuery(queries.tablePermissions(schema, table));
+
+  const canInsert = permissions.data?.canInsert === true;
+  const canUpdate = permissions.data?.canUpdate === true;
+  const canDelete = permissions.data?.canDelete === true;
+
+  // Filas seleccionadas para borrar (de cualquier página). El componente se
+  // monta de nuevo al cambiar de tabla (`key`), así que no se mezclan.
+  const [selection, setSelection] = useState<RecordSelection>(() => new Map());
+
+  const keysConfig = useMemo(
+    () => toTableKeysConfig(data.table.uiConfig),
+    [data.table.uiConfig],
+  );
+
+  const rowSelection = useMemo(() => {
+    if (!canDelete) {
+      return undefined;
+    }
+
+    const records = data.data;
+
+    return {
+      canSelect: (record: Record<string, unknown>) =>
+        getRecordKeyConditions(record, keysConfig) !== null,
+      isSelected: (record: Record<string, unknown>) =>
+        isRecordSelected(selection, record, keysConfig),
+      toggle: (record: Record<string, unknown>) =>
+        setSelection((current) =>
+          toggleRecordSelection(current, record, keysConfig),
+        ),
+      pageState: getPageSelectionState(selection, records, keysConfig),
+      togglePage: (selected: boolean) =>
+        setSelection((current) =>
+          setPageSelection(current, records, keysConfig, selected),
+        ),
+    };
+  }, [canDelete, data.data, keysConfig, selection]);
 
   const relationsConfig = useMemo(
     () => getLookupRelations(data.table.relationsConfig),
@@ -68,6 +125,10 @@ export function DataExplorerTableView(props: {
   useEffect(() => {
     saveFilterContext(schema, table, search);
   }, [schema, table, search]);
+
+  const createHref = `${DATA_EXPLORER_BASE_PATH}/${encodeURIComponent(
+    schema,
+  )}/${encodeURIComponent(table)}/new`;
 
   const hasCriteria = Boolean(
     search.search || Object.keys(search.filters ?? {}).length > 0,
@@ -101,6 +162,43 @@ export function DataExplorerTableView(props: {
             })}
           </span>
         </span>
+
+        <div className="flex items-center gap-2">
+          {canDelete && selection.size > 0 ? (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7"
+                data-testid="clear-selection-button"
+                onClick={() => setSelection(new Map())}
+              >
+                <XIcon className="h-3.5 w-3.5" />
+                {t('table.clearSelection')}
+              </Button>
+
+              <BatchDeleteDialog
+                schema={schema}
+                table={table}
+                selection={selection}
+                displayFormat={data.table.displayFormat}
+                onDeleted={() => setSelection(new Map())}
+              />
+            </>
+          ) : null}
+
+          {canInsert ? (
+            <Button
+              nativeButton={false}
+              size="sm"
+              data-testid="create-record-link"
+              render={<Link to={createHref} />}
+            >
+              <PlusCircleIcon className="h-3.5 w-3.5" />
+              {t('table.createRecord')}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="bg-background relative mb-2 flex flex-1 flex-col overflow-hidden rounded-lg border">
@@ -131,6 +229,8 @@ export function DataExplorerTableView(props: {
           search={search}
           onSearchChange={props.onSearchChange}
           columnManagement={columnManagement}
+          selection={rowSelection}
+          canUpdate={canUpdate}
           noResultsMessage={
             <span
               className="flex flex-col items-center gap-2"

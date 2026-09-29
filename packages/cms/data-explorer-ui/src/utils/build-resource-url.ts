@@ -85,3 +85,13 @@ export function buildResourceUrl<
 
   return '';
 }
+
+/**
+ * URL de la página de edición a partir de la de la ficha: `/record/<id>` →
+ * `/record/<id>/edit` y `/record?a=1&b=2` → `/record/edit?a=1&b=2`.
+ */
+export function toRecordEditHref(recordHref: string) {
+  const [path = '', query] = recordHref.split('?');
+
+  return query === undefined ? `${path}/edit` : `${path}/edit?${query}`;
+}

@@ -32,6 +32,9 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-15 | 2026-09-29 | F2.4a | proceso | entorno | Corte de conexión con un agente trabajando | Baja |
 | B-16 | 2026-09-29 | F2.4a | calidad | propio | Dependencia circular entre paquetes del CMS | Baja |
 | B-17 | 2026-09-29 | F2.4b | calidad | heredado | La API del CMS respondía 500 a registros inexistentes | Baja |
+| B-18 | 2026-09-29 | F2.4c | calidad | heredado | Código de error inexistente (`not_nullviolation`) en `insert_record` | Baja |
+| B-19 | 2026-09-29 | F2.4c | seguridad | heredado | Edición y borrado de varias filas con una «clave» que no era clave | Alta |
+| B-20 | 2026-09-29 | F2.4c | seguridad | heredado | Mensajes internos de PostgreSQL devueltos al cliente | Media |
 
 ---
 
@@ -141,3 +144,22 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Solución:** el cliente Drizzle conserva el error original en `cause`. La ruta traduce los códigos SQLSTATE a respuestas HTTP correctas: `P0002` (sin fila), la clase `22` (dato no válido para el tipo) y `42703` (columna inexistente) dan 404; la falta de permiso o un esquema protegido dan 403.
 - **Evidencia:** E2E de `cms-data-explorer-record.spec.ts` (id inexistente → página 404).
 - **Lección:** envolver errores sin conservar la causa impide distinguir el «no existe» del «ha fallado», y eso empeora tanto la interfaz como la observabilidad.
+
+## B-18 · Código de error inexistente (`not_nullviolation`) en `insert_record`
+- **Qué pasó:** la función del CMS lanzaba la violación de NOT NULL con `ERRCODE = 'not_nullviolation'`, un nombre que PostgreSQL no reconoce (el correcto es `not_null_violation`). El resultado era un SQLSTATE 42704 en vez de 23502, y la API respondía 500 cuando faltaba un campo obligatorio.
+- **Cómo se detectó:** al mapear los errores de escritura a códigos HTTP en la F2.4c. Se reprodujo con `psql`.
+- **Solución:** corregir el nombre en el esquema declarativo y redefinir la función en la migración `20260929120900_cms_insert_not_null_errcode.sql`.
+- **Evidencia:** `cms-isolation.test.sql` (A8).
+- **Lección:** los nombres de condición de PL/pgSQL solo se validan al ejecutarse; un error tipográfico pasa desapercibido hasta que se da ese caso.
+
+## B-19 · Edición y borrado de varias filas con una «clave» que no era clave
+- **Qué pasó:** las rutas de edición y borrado del CMS aceptaban cualquier columna como condición para identificar «el registro». Con una URL manipulada (por ejemplo, `record/edit?type=info`) o llamando a la API, se podían modificar o borrar a la vez todas las filas que cumplieran la condición. La función SQL solo lo limitaba a 25 filas.
+- **Cómo se detectó:** en la revisión de seguridad del propio diff de la F2.4c (enfoque de `/bug-hunt-lite`).
+- **Solución:** `conditionsIdentifyOneRecord` (en `data-explorer-core`) exige la clave primaria o una restricción única completa, en la API (400) y en la interfaz.
+- **Evidencia:** E2E «key guard» de `cms-data-explorer-write.spec.ts`.
+- **Lección:** una operación pensada para «un registro» debe comprobar que la condición identifica **exactamente uno**; limitar el número de filas no es una protección.
+
+## B-20 · Mensajes internos de PostgreSQL devueltos al cliente
+- **Qué pasó:** el borrado en lote devolvía el texto `SQLERRM`, y otras rutas de escritura respondían 500 con mensajes parcialmente internos. Eso expone detalles del esquema, como nombres de restricciones y tablas.
+- **Solución:** `classifyCrudError` traduce el SQLSTATE a 400/403/404/409 con un código estable (`RECORD_*`, definido en `@pymekit/cms-shared/error-codes`). El texto de PostgreSQL nunca llega al cliente, solo a los logs.
+- **Lección:** los errores de la base de datos se clasifican en el servidor; al cliente solo le llegan códigos pensados para la interfaz.

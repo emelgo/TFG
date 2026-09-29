@@ -9,6 +9,25 @@ import {
 } from '@pymekit/cms-data-explorer-core';
 import { formatRecord } from '@pymekit/cms-formatters';
 
+import { CrudOperationError, classifyCrudError } from '../utils/crud-errors';
+
+/** `meta` de la respuesta de las funciones SQL de escritura. */
+type CrudResponseMeta = { sqlstate?: string };
+
+/**
+ * Convierte la respuesta fallida de una función SQL de escritura en un
+ * `CrudOperationError`, conservando su SQLSTATE para clasificarlo después.
+ */
+function toCrudOperationError(response: {
+  error: string;
+  meta?: CrudResponseMeta;
+}) {
+  return new CrudOperationError(
+    response.error ?? 'Unknown error',
+    response.meta?.sqlstate,
+  );
+}
+
 /**
  * Create a database editor service
  * @param context
@@ -102,6 +121,7 @@ class DataExplorerService {
           insert_record: {
             success: boolean;
             error: string;
+            meta?: CrudResponseMeta;
             data: Record<string, unknown>;
           };
         }>(
@@ -120,7 +140,7 @@ class DataExplorerService {
       }
 
       if (!result.insert_record.success) {
-        throw new Error(result.insert_record.error);
+        throw toCrudOperationError(result.insert_record);
       }
 
       return result.insert_record;
@@ -147,6 +167,8 @@ class DataExplorerService {
           update_record: {
             success: boolean;
             error: string;
+            data?: Record<string, unknown>;
+            meta?: CrudResponseMeta;
           };
         }>(
           sql`
@@ -165,7 +187,7 @@ class DataExplorerService {
       }
 
       if (!result.update_record.success) {
-        throw new Error(result.update_record.error);
+        throw toCrudOperationError(result.update_record);
       }
 
       return result.update_record;
@@ -192,6 +214,7 @@ class DataExplorerService {
           delete_record: {
             success: boolean;
             error: string;
+            meta?: CrudResponseMeta;
           };
         }>(
           sql`
@@ -209,7 +232,7 @@ class DataExplorerService {
       }
 
       if (!result.delete_record.success) {
-        throw new Error(result.delete_record.error);
+        throw toCrudOperationError(result.delete_record);
       }
 
       return result.delete_record;
@@ -236,6 +259,7 @@ class DataExplorerService {
           update_record_by_conditions: {
             success: boolean;
             error: string;
+            meta?: CrudResponseMeta;
             data: Record<string, unknown>;
           };
         }>(
@@ -255,7 +279,7 @@ class DataExplorerService {
       }
 
       if (!result.update_record_by_conditions.success) {
-        throw new Error(result.update_record_by_conditions.error);
+        throw toCrudOperationError(result.update_record_by_conditions);
       }
 
       return result.update_record_by_conditions;
@@ -281,6 +305,7 @@ class DataExplorerService {
           delete_record_by_conditions: {
             success: boolean;
             error: string;
+            meta?: CrudResponseMeta;
           };
         }>(
           sql`
@@ -298,7 +323,7 @@ class DataExplorerService {
       }
 
       if (!result.delete_record_by_conditions.success) {
-        throw new Error(result.delete_record_by_conditions.error);
+        throw toCrudOperationError(result.delete_record_by_conditions);
       }
 
       return result.delete_record_by_conditions;
@@ -318,52 +343,58 @@ class DataExplorerService {
     const client = this.context.get('drizzle');
 
     return client.runTransaction(async (tx) => {
+      // Cada registro se borra con su propia llamada a la función SQL, que
+      // atrapa sus errores dentro de un bloque `EXCEPTION` (un
+      // «subtransaction»): un fallo en uno (por ejemplo, porque otros
+      // registros apuntan a él) no deshace los ya borrados. Por eso el
+      // resultado es parcial y se informa de cuántos fallaron.
+      //
+      // Seguridad: por cada fallo solo se devuelve su código estable; el
+      // texto de PostgreSQL (nombres de columnas y restricciones) no sale del
+      // servidor.
       const results: Array<{
         success: boolean;
         condition: Record<string, unknown>;
-        response: unknown;
+        errorCode?: string;
       }> = [];
 
       for (const condition of items) {
-        try {
-          const response = await tx
-            .execute<{
-              delete_record_by_conditions: {
-                success: boolean;
-                error: string;
-              };
-            }>(
-              sql`
+        const response = await tx
+          .execute<{
+            delete_record_by_conditions: {
+              success: boolean;
+              error: string;
+              meta?: CrudResponseMeta;
+            };
+          }>(
+            sql`
             SELECT cms.delete_record_by_conditions(
               ${schemaName}::text,
               ${tableName}::text,
               ${JSON.stringify(condition)}::jsonb
             )
           `,
-            )
-            .then((data) => data[0]);
+          )
+          .then((data) => data[0]);
 
-          if (!response) {
-            results.push({ success: false, condition, response });
-            continue;
-          }
-
-          if (!response.delete_record_by_conditions.success) {
-            results.push({ success: false, condition, response });
-          } else {
-            results.push({ success: true, condition, response });
-          }
-        } catch (error) {
-          results.push({
-            success: false,
-            condition,
-            response: error instanceof Error ? error.message : 'Unknown error',
-          });
+        if (response?.delete_record_by_conditions.success) {
+          results.push({ success: true, condition });
+          continue;
         }
+
+        results.push({
+          success: false,
+          condition,
+          errorCode: classifyCrudError(
+            response
+              ? toCrudOperationError(response.delete_record_by_conditions)
+              : new Error('No result from delete_record_by_conditions'),
+          ).errorCode,
+        });
       }
 
       const successCount = results.filter((r) => r.success).length;
-      const failureCount = results.filter((r) => !r.success).length;
+      const failureCount = results.length - successCount;
 
       return {
         success: failureCount === 0,

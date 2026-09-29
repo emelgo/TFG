@@ -162,7 +162,9 @@ test.describe('Explorador de datos: super-admin con MFA', () => {
     const explorer = new DataExplorerPageObject(page);
 
     await explorer.goto('public', 'accounts');
-    await explorer.rows().first().locator('td').nth(2).click();
+    // Una celda de texto: la primera columna es la de selección (casillas)
+    // y las de relación llevan su propio enlace.
+    await explorer.rows().first().getByTestId('cell-name').click();
 
     await page.waitForURL('**/admin/cms/resources/public/accounts/record/**');
     await expect(page.getByTestId('cms-record-page')).toBeVisible();

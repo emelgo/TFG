@@ -14,12 +14,20 @@
  * Un 403 (tabla sin permiso) o un 404 (la clave no existe) de la API se
  * convierten en «no encontrado», igual que en el listado: la consola no
  * distingue entre lo que no existe y lo que el usuario no puede ver.
+ *
+ * Desde F2.4c también prepara las páginas de escritura (crear y editar): se
+ * abren solo si el usuario tiene el permiso (`insert` o `update`) y, si no,
+ * responden «no encontrado». No es la barrera de seguridad —la API vuelve a
+ * comprobarlo al guardar—, pero evita mostrar un formulario que fallaría.
  */
 import type { QueryClient } from '@tanstack/react-query';
 import { notFound } from '@tanstack/react-router';
 
 import { ApiError } from '@pymekit/cms-api/client';
-import { resolveSingleKeyColumn } from '@pymekit/cms-data-explorer-ui/utils';
+import {
+  conditionsIdentifyOneRecord,
+  resolveSingleKeyColumn,
+} from '@pymekit/cms-data-explorer-ui/utils';
 import { getCmsAccessFailure } from '@pymekit/cms-ui-core/errors';
 
 import { cmsQueries } from './cms-queries.ts';
@@ -83,4 +91,58 @@ export async function loadCmsRecordById(
   await loadCmsRecord(queryClient, { ...params, keys });
 
   return { keys };
+}
+
+/**
+ * Precarga la ficha para su página de edición y comprueba que el usuario
+ * puede actualizar la tabla (`permissions.canUpdate`, que la API devuelve con
+ * la ficha). Sin permiso, «no encontrado».
+ */
+export async function loadCmsRecordForEdit(
+  queryClient: QueryClient,
+  params: { schema: string; table: string; keys: Record<string, string> },
+) {
+  await loadCmsRecord(queryClient, params);
+
+  const record = queryClient.getQueryData(cmsQueries.record(params).queryKey);
+
+  // Además del permiso, las columnas de la URL deben ser la clave primaria o
+  // una restricción única: si no, guardar cambiaría todas las filas que
+  // coincidan (la API también lo rechaza).
+  if (
+    !record?.permissions.canUpdate ||
+    !conditionsIdentifyOneRecord(
+      Object.keys(params.keys),
+      record.metadata.table.uiConfig,
+    )
+  ) {
+    throw notFound();
+  }
+}
+
+/**
+ * Precarga el metadato de la tabla para la página «Nuevo registro» y
+ * comprueba el permiso `insert`. Sin permiso (o sin acceso a la tabla),
+ * «no encontrado».
+ */
+export async function loadCmsTableForCreate(
+  queryClient: QueryClient,
+  params: { schema: string; table: string },
+) {
+  try {
+    const [permissions] = await Promise.all([
+      queryClient.ensureQueryData(
+        cmsQueries.tablePermissions(params.schema, params.table),
+      ),
+      queryClient.ensureQueryData(
+        cmsQueries.tableMetadata(params.schema, params.table),
+      ),
+    ]);
+
+    if (!permissions.canInsert) {
+      throw notFound();
+    }
+  } catch (error) {
+    rethrowAsNotFound(error);
+  }
 }

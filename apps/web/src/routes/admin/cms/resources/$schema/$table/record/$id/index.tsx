@@ -24,7 +24,7 @@ import {
 import { loadCmsRecordById } from '#/lib/cms/cms-record.ts';
 
 export const Route = createFileRoute(
-  '/admin/cms/resources/$schema/$table/record/$id',
+  '/admin/cms/resources/$schema/$table/record/$id/',
 )({
   validateSearch: RecordSearchSchema,
   loader: async ({ context, params }) => {

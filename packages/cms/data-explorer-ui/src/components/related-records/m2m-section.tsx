@@ -12,8 +12,9 @@
  *     etiqueta (`display_format`) y enlazar a su ficha.
  *
  * Si hay más filas de las que se muestran, «Ver todas» abre la tabla
- * intermedia ya filtrada. Vincular y desvincular llegan con la edición de
- * registros (F2.4c).
+ * intermedia ya filtrada. Desde F2.4c, con permiso sobre la tabla intermedia
+ * se puede vincular otro registro (`insert`) y desvincular uno (`delete`);
+ * ver `m2m-link-dialog.tsx`.
  */
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -37,12 +38,20 @@ import {
   getRecordDisplayName,
   normalizeRecordId,
 } from '../../utils/record-relations';
+import {
+  M2MLinkButton,
+  M2MUnlinkButton,
+  useJunctionPermissions,
+} from './m2m-link-dialog';
 import { RelatedRecordsSectionHeader } from './related-records-section-header';
 
 /** Registros vinculados que se muestran sin paginar. */
 const INLINE_LIMIT = 5;
 
 export function M2MSection(props: {
+  /** Tabla del registro que se está viendo (origen de la relación). */
+  schema: string;
+  table: string;
   relation: M2MRelationConfig;
   relationKey: string;
   recordData: Record<string, unknown>;
@@ -53,6 +62,8 @@ export function M2MSection(props: {
   const { relation } = props;
 
   const junctionFilters = buildJunctionFilters(relation, props.recordData);
+  const sourceId = normalizeRecordId(props.recordData[relation.sourceColumn]);
+  const { canLink, canUnlink } = useJunctionPermissions(relation);
 
   const junction = useQuery({
     ...queries.tableData({
@@ -103,6 +114,7 @@ export function M2MSection(props: {
 
     return {
       id: String(id),
+      rawId: id,
       label: record
         ? getRecordDisplayName(displayFormat, record, id)
         : String(id),
@@ -140,6 +152,18 @@ export function M2MSection(props: {
         count={count}
         isLoading={junction.isPending}
         icon={<Link2 className="text-muted-foreground h-3.5 w-3.5" />}
+        action={
+          canLink && sourceId !== null ? (
+            <M2MLinkButton
+              schema={props.schema}
+              table={props.table}
+              relation={relation}
+              sourceId={sourceId}
+              linkedIds={targetIds.map(String)}
+              label={props.label}
+            />
+          ) : undefined
+        }
       />
 
       <CardContent>
@@ -185,18 +209,31 @@ export function M2MSection(props: {
                     ) : null}
                   </div>
 
-                  {record.href ? (
-                    <Button
-                      nativeButton={false}
-                      variant="ghost"
-                      size="sm"
-                      data-testid="related-linked-record-link"
-                      render={<Link to={record.href} />}
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      {t('record.related.open')}
-                    </Button>
-                  ) : null}
+                  <div className="flex items-center gap-1">
+                    {record.href ? (
+                      <Button
+                        nativeButton={false}
+                        variant="ghost"
+                        size="sm"
+                        data-testid="related-linked-record-link"
+                        render={<Link to={record.href} />}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        {t('record.related.open')}
+                      </Button>
+                    ) : null}
+
+                    {canUnlink && sourceId !== null ? (
+                      <M2MUnlinkButton
+                        schema={props.schema}
+                        table={props.table}
+                        relation={relation}
+                        sourceId={sourceId}
+                        targetId={record.rawId}
+                        targetLabel={record.label}
+                      />
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

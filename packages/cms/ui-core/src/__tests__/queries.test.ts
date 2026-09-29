@@ -35,3 +35,22 @@ describe('cmsQueryKeys.record', () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 });
+
+describe('cmsQueryKeys.tables', () => {
+  it('es el prefijo de todo lo que depende de una tabla (se invalida tras escribir)', () => {
+    const prefix = cmsQueryKeys.tables();
+
+    for (const key of [
+      cmsQueryKeys.table('public', 'accounts'),
+      cmsQueryKeys.tableData({ schema: 'public', table: 'accounts' }),
+      cmsQueryKeys.tablePermissions('public', 'accounts'),
+      cmsQueryKeys.record({
+        schema: 'public',
+        table: 'accounts',
+        keys: { id: '1' },
+      }),
+    ]) {
+      expect(key.slice(0, prefix.length)).toEqual([...prefix]);
+    }
+  });
+});

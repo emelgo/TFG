@@ -4,7 +4,10 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { buildResourceUrl } from '../utils/build-resource-url';
+import {
+  buildResourceUrl,
+  toRecordEditHref,
+} from '../utils/build-resource-url';
 
 describe('buildResourceUrl', () => {
   const createBasicTableMetadata = (overrides = {}) => ({
@@ -337,5 +340,19 @@ describe('buildResourceUrl', () => {
       const result = buildResourceUrl(params);
       expect(result).toBe('');
     });
+  });
+});
+
+describe('toRecordEditHref', () => {
+  it('añade `/edit` tras la clave de una columna', () => {
+    expect(toRecordEditHref('/admin/cms/resources/public/a/record/7')).toBe(
+      '/admin/cms/resources/public/a/record/7/edit',
+    );
+  });
+
+  it('con clave compuesta, `/edit` va antes de los parámetros', () => {
+    expect(
+      toRecordEditHref('/admin/cms/resources/public/m/record?u=1&a=2'),
+    ).toBe('/admin/cms/resources/public/m/record/edit?u=1&a=2');
   });
 });

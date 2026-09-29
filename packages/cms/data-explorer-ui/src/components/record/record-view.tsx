@@ -15,14 +15,17 @@
  * restaura los filtros con los que se dejó (`utils/filter-context.ts`), así
  * que se vuelve a la misma página y filtros desde cualquier ficha.
  *
- * Editar y borrar llegan en F2.4c: aquí no se muestran esos botones.
+ * Desde F2.4c la cabecera ofrece **Editar** y **Borrar** solo si los
+ * permisos que devuelve la API con la ficha (`permissions.canUpdate` y
+ * `canDelete`) lo permiten. Ocultarlos es comodidad, no seguridad: la API y
+ * la función SQL vuelven a comprobar el permiso en cada escritura.
  *
  * [TFG] RF-09: explorador de datos del CMS (ficha de un registro).
  */
 import { useMemo } from 'react';
 
 import { Link } from '@tanstack/react-router';
-import { ArrowLeftIcon, Grid2X2 } from 'lucide-react';
+import { ArrowLeftIcon, Grid2X2, SquarePenIcon } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 
 import { getLookupRelations } from '@pymekit/cms-data-explorer-core/utils';
@@ -38,6 +41,10 @@ import {
 import { Button } from '@pymekit/ui/button';
 
 import { useTableTabManagement } from '../../hooks/use-data-explorer-tabs';
+import {
+  buildResourceUrl,
+  toRecordEditHref,
+} from '../../utils/build-resource-url';
 import { DATA_EXPLORER_BASE_PATH } from '../../utils/paths';
 import { toTableKeysConfig } from '../../utils/record-keys';
 import { getCustomRecordLayout } from '../../utils/record-layout';
@@ -46,21 +53,28 @@ import {
   type JunctionMetadataMap,
   getRecordDisplayName,
 } from '../../utils/record-relations';
+import {
+  getRecordKeyConditions,
+  toRecordKeys,
+} from '../../utils/record-selection';
 import { DataExplorerTabs } from '../data-explorer-tabs';
 import { RelatedRecordsSections } from '../related-records/related-records-sections';
 import { CustomLayoutRenderer } from './custom-layout-renderer';
 import { DefaultLayoutRenderer } from './default-layout-renderer';
+import { DeleteRecordDialog } from './delete-record-dialog';
 
 export function RecordView(props: {
   schema: string;
   table: string;
+  /** Clave con la que se cargó la ficha (`{ columna: valor }`). */
+  keys: Record<string, string>;
   data: CmsRecordData;
   relatedPages: Record<string, number> | undefined;
   onRelatedPageChange: (relationKey: string, page: number) => void;
 }) {
   const t = useTranslations('cms.dataExplorer');
   const { schema, table } = props;
-  const { data: record, metadata } = props.data;
+  const { data: record, metadata, permissions } = props.data;
 
   const columns = metadata.columns as ColumnMetadata[];
   const foreignKeyRecords = props.data.foreignKeyRecords as ForeignKeyRecord[];
@@ -105,6 +119,28 @@ export function RecordView(props: {
     schema,
   )}/${encodeURIComponent(table)}`;
 
+  // La edición se abre con la misma forma de URL que la ficha: `/edit` tras
+  // el valor de la clave, o `record/edit?col=…` si la clave es compuesta.
+  const recordHref = buildResourceUrl({
+    schema,
+    table,
+    record,
+    tableMetadata: toTableKeysConfig(metadata.table.uiConfig),
+  });
+
+  const editHref = recordHref ? toRecordEditHref(recordHref) : '';
+
+  // El borrado localiza el registro por su clave primaria (o única), no por
+  // las columnas de la URL, que podrían no identificarlo de forma única.
+  const deleteKeys = useMemo(() => {
+    const conditions = getRecordKeyConditions(
+      record,
+      toTableKeysConfig(metadata.table.uiConfig),
+    );
+
+    return conditions ? toRecordKeys(conditions) : null;
+  }, [record, metadata.table.uiConfig]);
+
   return (
     <div
       className="flex flex-1 flex-col gap-2 pb-16"
@@ -141,16 +177,42 @@ export function RecordView(props: {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <Button
-          nativeButton={false}
-          variant="link"
-          size="sm"
-          data-testid="record-back-link"
-          render={<Link to={listHref} />}
-        >
-          <ArrowLeftIcon className="h-3.5 w-3.5" />
-          {t('record.backToList')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            nativeButton={false}
+            variant="link"
+            size="sm"
+            data-testid="record-back-link"
+            render={<Link to={listHref} />}
+          >
+            <ArrowLeftIcon className="h-3.5 w-3.5" />
+            {t('record.backToList')}
+          </Button>
+
+          {permissions.canUpdate && editHref ? (
+            <Button
+              nativeButton={false}
+              variant="outline"
+              size="sm"
+              data-testid="edit-record-button"
+              render={<Link to={editHref} />}
+            >
+              <SquarePenIcon className="h-3.5 w-3.5" />
+              {t('record.edit')}
+            </Button>
+          ) : null}
+
+          {permissions.canDelete && deleteKeys ? (
+            <DeleteRecordDialog
+              schema={schema}
+              table={table}
+              keys={deleteKeys}
+              cacheKeys={props.keys}
+              recordName={recordName || t('record.noName')}
+              listHref={listHref}
+            />
+          ) : null}
+        </div>
       </div>
 
       {customLayout ? (

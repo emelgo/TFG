@@ -85,6 +85,12 @@ export const Route = createFileRoute('/admin/cms/resources/$schema/$table/')({
       cmsQueries.savedViews(params.schema, params.table),
     );
 
+    // Permisos de escritura (crear, editar en línea, borrar): se precargan
+    // sin bloquear; mientras llegan, las acciones simplemente no se ven.
+    void context.queryClient.prefetchQuery(
+      cmsQueries.tablePermissions(params.schema, params.table),
+    );
+
     try {
       await context.queryClient.ensureQueryData(
         cmsQueries.tableData(

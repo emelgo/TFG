@@ -62,8 +62,11 @@ import { Route as AdminCmsSettingsIndexRouteImport } from './routes/admin/cms/se
 import { Route as AdminCmsStorageIndexRouteImport } from './routes/admin/cms/storage/index'
 import { Route as AdminCmsUsersIndexRouteImport } from './routes/admin/cms/users/index'
 import { Route as AdminCmsResourcesSchemaTableIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/index'
+import { Route as AdminCmsResourcesSchemaTableNewRouteImport } from './routes/admin/cms/resources/$schema/$table/new'
 import { Route as AdminCmsResourcesSchemaTableRecordIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/record/index'
-import { Route as AdminCmsResourcesSchemaTableRecordIdRouteImport } from './routes/admin/cms/resources/$schema/$table/record/$id'
+import { Route as AdminCmsResourcesSchemaTableRecordEditRouteImport } from './routes/admin/cms/resources/$schema/$table/record/edit'
+import { Route as AdminCmsResourcesSchemaTableRecordIdIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/record/$id/index'
+import { Route as AdminCmsResourcesSchemaTableRecordIdEditRouteImport } from './routes/admin/cms/resources/$schema/$table/record/$id/edit'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -339,16 +342,34 @@ const AdminCmsResourcesSchemaTableIndexRoute =
     path: '/resources/$schema/$table/',
     getParentRoute: () => AdminCmsRouteRoute,
   } as any)
+const AdminCmsResourcesSchemaTableNewRoute =
+  AdminCmsResourcesSchemaTableNewRouteImport.update({
+    id: '/resources/$schema/$table/new',
+    path: '/resources/$schema/$table/new',
+    getParentRoute: () => AdminCmsRouteRoute,
+  } as any)
 const AdminCmsResourcesSchemaTableRecordIndexRoute =
   AdminCmsResourcesSchemaTableRecordIndexRouteImport.update({
     id: '/resources/$schema/$table/record/',
     path: '/resources/$schema/$table/record/',
     getParentRoute: () => AdminCmsRouteRoute,
   } as any)
-const AdminCmsResourcesSchemaTableRecordIdRoute =
-  AdminCmsResourcesSchemaTableRecordIdRouteImport.update({
-    id: '/resources/$schema/$table/record/$id',
-    path: '/resources/$schema/$table/record/$id',
+const AdminCmsResourcesSchemaTableRecordEditRoute =
+  AdminCmsResourcesSchemaTableRecordEditRouteImport.update({
+    id: '/resources/$schema/$table/record/edit',
+    path: '/resources/$schema/$table/record/edit',
+    getParentRoute: () => AdminCmsRouteRoute,
+  } as any)
+const AdminCmsResourcesSchemaTableRecordIdIndexRoute =
+  AdminCmsResourcesSchemaTableRecordIdIndexRouteImport.update({
+    id: '/resources/$schema/$table/record/$id/',
+    path: '/resources/$schema/$table/record/$id/',
+    getParentRoute: () => AdminCmsRouteRoute,
+  } as any)
+const AdminCmsResourcesSchemaTableRecordIdEditRoute =
+  AdminCmsResourcesSchemaTableRecordIdEditRouteImport.update({
+    id: '/resources/$schema/$table/record/$id/edit',
+    path: '/resources/$schema/$table/record/$id/edit',
     getParentRoute: () => AdminCmsRouteRoute,
   } as any)
 
@@ -403,9 +424,12 @@ export interface FileRoutesByFullPath {
   '/admin/cms/settings/': typeof AdminCmsSettingsIndexRoute
   '/admin/cms/storage/': typeof AdminCmsStorageIndexRoute
   '/admin/cms/users/': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/resources/$schema/$table/': typeof AdminCmsResourcesSchemaTableIndexRoute
-  '/admin/cms/resources/$schema/$table/record/$id': typeof AdminCmsResourcesSchemaTableRecordIdRoute
+  '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
   '/admin/cms/resources/$schema/$table/record/': typeof AdminCmsResourcesSchemaTableRecordIndexRoute
+  '/admin/cms/resources/$schema/$table/record/$id/edit': typeof AdminCmsResourcesSchemaTableRecordIdEditRoute
+  '/admin/cms/resources/$schema/$table/record/$id/': typeof AdminCmsResourcesSchemaTableRecordIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
@@ -452,9 +476,12 @@ export interface FileRoutesByTo {
   '/admin/cms/settings': typeof AdminCmsSettingsIndexRoute
   '/admin/cms/storage': typeof AdminCmsStorageIndexRoute
   '/admin/cms/users': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/resources/$schema/$table': typeof AdminCmsResourcesSchemaTableIndexRoute
-  '/admin/cms/resources/$schema/$table/record/$id': typeof AdminCmsResourcesSchemaTableRecordIdRoute
+  '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
   '/admin/cms/resources/$schema/$table/record': typeof AdminCmsResourcesSchemaTableRecordIndexRoute
+  '/admin/cms/resources/$schema/$table/record/$id/edit': typeof AdminCmsResourcesSchemaTableRecordIdEditRoute
+  '/admin/cms/resources/$schema/$table/record/$id': typeof AdminCmsResourcesSchemaTableRecordIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -510,9 +537,12 @@ export interface FileRoutesById {
   '/admin/cms/settings/': typeof AdminCmsSettingsIndexRoute
   '/admin/cms/storage/': typeof AdminCmsStorageIndexRoute
   '/admin/cms/users/': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/resources/$schema/$table/': typeof AdminCmsResourcesSchemaTableIndexRoute
-  '/admin/cms/resources/$schema/$table/record/$id': typeof AdminCmsResourcesSchemaTableRecordIdRoute
+  '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
   '/admin/cms/resources/$schema/$table/record/': typeof AdminCmsResourcesSchemaTableRecordIndexRoute
+  '/admin/cms/resources/$schema/$table/record/$id/edit': typeof AdminCmsResourcesSchemaTableRecordIdEditRoute
+  '/admin/cms/resources/$schema/$table/record/$id/': typeof AdminCmsResourcesSchemaTableRecordIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -567,9 +597,12 @@ export interface FileRouteTypes {
     | '/admin/cms/settings/'
     | '/admin/cms/storage/'
     | '/admin/cms/users/'
+    | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/resources/$schema/$table/'
-    | '/admin/cms/resources/$schema/$table/record/$id'
+    | '/admin/cms/resources/$schema/$table/record/edit'
     | '/admin/cms/resources/$schema/$table/record/'
+    | '/admin/cms/resources/$schema/$table/record/$id/edit'
+    | '/admin/cms/resources/$schema/$table/record/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -616,9 +649,12 @@ export interface FileRouteTypes {
     | '/admin/cms/settings'
     | '/admin/cms/storage'
     | '/admin/cms/users'
+    | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/resources/$schema/$table'
-    | '/admin/cms/resources/$schema/$table/record/$id'
+    | '/admin/cms/resources/$schema/$table/record/edit'
     | '/admin/cms/resources/$schema/$table/record'
+    | '/admin/cms/resources/$schema/$table/record/$id/edit'
+    | '/admin/cms/resources/$schema/$table/record/$id'
   id:
     | '__root__'
     | '/_authenticated'
@@ -673,9 +709,12 @@ export interface FileRouteTypes {
     | '/admin/cms/settings/'
     | '/admin/cms/storage/'
     | '/admin/cms/users/'
+    | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/resources/$schema/$table/'
-    | '/admin/cms/resources/$schema/$table/record/$id'
+    | '/admin/cms/resources/$schema/$table/record/edit'
     | '/admin/cms/resources/$schema/$table/record/'
+    | '/admin/cms/resources/$schema/$table/record/$id/edit'
+    | '/admin/cms/resources/$schema/$table/record/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1069,6 +1108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCmsResourcesSchemaTableIndexRouteImport
       parentRoute: typeof AdminCmsRouteRoute
     }
+    '/admin/cms/resources/$schema/$table/new': {
+      id: '/admin/cms/resources/$schema/$table/new'
+      path: '/resources/$schema/$table/new'
+      fullPath: '/admin/cms/resources/$schema/$table/new'
+      preLoaderRoute: typeof AdminCmsResourcesSchemaTableNewRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
     '/admin/cms/resources/$schema/$table/record/': {
       id: '/admin/cms/resources/$schema/$table/record/'
       path: '/resources/$schema/$table/record'
@@ -1076,11 +1122,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCmsResourcesSchemaTableRecordIndexRouteImport
       parentRoute: typeof AdminCmsRouteRoute
     }
-    '/admin/cms/resources/$schema/$table/record/$id': {
-      id: '/admin/cms/resources/$schema/$table/record/$id'
+    '/admin/cms/resources/$schema/$table/record/edit': {
+      id: '/admin/cms/resources/$schema/$table/record/edit'
+      path: '/resources/$schema/$table/record/edit'
+      fullPath: '/admin/cms/resources/$schema/$table/record/edit'
+      preLoaderRoute: typeof AdminCmsResourcesSchemaTableRecordEditRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/resources/$schema/$table/record/$id/': {
+      id: '/admin/cms/resources/$schema/$table/record/$id/'
       path: '/resources/$schema/$table/record/$id'
-      fullPath: '/admin/cms/resources/$schema/$table/record/$id'
-      preLoaderRoute: typeof AdminCmsResourcesSchemaTableRecordIdRouteImport
+      fullPath: '/admin/cms/resources/$schema/$table/record/$id/'
+      preLoaderRoute: typeof AdminCmsResourcesSchemaTableRecordIdIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/resources/$schema/$table/record/$id/edit': {
+      id: '/admin/cms/resources/$schema/$table/record/$id/edit'
+      path: '/resources/$schema/$table/record/$id/edit'
+      fullPath: '/admin/cms/resources/$schema/$table/record/$id/edit'
+      preLoaderRoute: typeof AdminCmsResourcesSchemaTableRecordIdEditRouteImport
       parentRoute: typeof AdminCmsRouteRoute
     }
   }
@@ -1216,9 +1276,12 @@ interface AdminCmsRouteRouteChildren {
   AdminCmsSettingsIndexRoute: typeof AdminCmsSettingsIndexRoute
   AdminCmsStorageIndexRoute: typeof AdminCmsStorageIndexRoute
   AdminCmsUsersIndexRoute: typeof AdminCmsUsersIndexRoute
+  AdminCmsResourcesSchemaTableNewRoute: typeof AdminCmsResourcesSchemaTableNewRoute
   AdminCmsResourcesSchemaTableIndexRoute: typeof AdminCmsResourcesSchemaTableIndexRoute
-  AdminCmsResourcesSchemaTableRecordIdRoute: typeof AdminCmsResourcesSchemaTableRecordIdRoute
+  AdminCmsResourcesSchemaTableRecordEditRoute: typeof AdminCmsResourcesSchemaTableRecordEditRoute
   AdminCmsResourcesSchemaTableRecordIndexRoute: typeof AdminCmsResourcesSchemaTableRecordIndexRoute
+  AdminCmsResourcesSchemaTableRecordIdEditRoute: typeof AdminCmsResourcesSchemaTableRecordIdEditRoute
+  AdminCmsResourcesSchemaTableRecordIdIndexRoute: typeof AdminCmsResourcesSchemaTableRecordIdIndexRoute
 }
 
 const AdminCmsRouteRouteChildren: AdminCmsRouteRouteChildren = {
@@ -1229,12 +1292,17 @@ const AdminCmsRouteRouteChildren: AdminCmsRouteRouteChildren = {
   AdminCmsSettingsIndexRoute: AdminCmsSettingsIndexRoute,
   AdminCmsStorageIndexRoute: AdminCmsStorageIndexRoute,
   AdminCmsUsersIndexRoute: AdminCmsUsersIndexRoute,
+  AdminCmsResourcesSchemaTableNewRoute: AdminCmsResourcesSchemaTableNewRoute,
   AdminCmsResourcesSchemaTableIndexRoute:
     AdminCmsResourcesSchemaTableIndexRoute,
-  AdminCmsResourcesSchemaTableRecordIdRoute:
-    AdminCmsResourcesSchemaTableRecordIdRoute,
+  AdminCmsResourcesSchemaTableRecordEditRoute:
+    AdminCmsResourcesSchemaTableRecordEditRoute,
   AdminCmsResourcesSchemaTableRecordIndexRoute:
     AdminCmsResourcesSchemaTableRecordIndexRoute,
+  AdminCmsResourcesSchemaTableRecordIdEditRoute:
+    AdminCmsResourcesSchemaTableRecordIdEditRoute,
+  AdminCmsResourcesSchemaTableRecordIdIndexRoute:
+    AdminCmsResourcesSchemaTableRecordIdIndexRoute,
 }
 
 const AdminCmsRouteRouteWithChildren = AdminCmsRouteRoute._addFileChildren(

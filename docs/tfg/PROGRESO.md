@@ -47,7 +47,9 @@
 - [x] F2.4a · Listado del explorador de datos en `/admin/cms/resources/$schema/$table`: paginación, orden, filtros (fechas relativas, JSON, autocompletado de relaciones), búsqueda, columnas (visibilidad, fijado y orden), formato por tipo y vistas guardadas. Paquetes nuevos `@pymekit/cms-{filters,table,data-explorer-ui}`. Unit 1.313 ✔, E2E 69 ✔
 - [x] F2.4b · Ficha de registro (solo lectura) con claves simples y compuestas, diseño guardado o por defecto, registros relacionados (O2M y M2M) y enlaces de claves ajenas según permisos. La API devuelve 403/404 en lugar de 500. E2E 76 ✔
 - [ ] Mejoras menores (F2.4b): una clave compuesta de texto con aspecto numérico (`1e3`) se normaliza al leer la URL; los campos HTML/Markdown se muestran escapados y las rutas de Storage como texto
-- [ ] F2.4c · Crear, editar y borrar (TanStack Form), acciones en lote y edición en línea
+- [x] F2.4c · Crear, editar y borrar (TanStack Form + Zod desde los metadatos), borrado en lote, edición en línea, acciones O2M/M2M en la ficha; permisos por acción en la UI y la API; errores con códigos estables (`RECORD_*`) sin texto interno. Corregido el borrado/edición masivo por condiciones no clave (B-19). pgTAP 1.551, E2E 86 ✔
+- [x] F2.4 · Explorador de datos completo (RF-09)
+- [ ] Pendiente (F2.4c): E2E de vincular/desvincular M2M y de edición en línea (no hay tabla puente en el seed); editores de ficheros, texto enriquecido y direcciones; la inserción ignora en silencio columnas no editables y los fallos de auditoría se silencian (heredado, revisar en F2.6)
 - [ ] Mejora menor (F2.4): el filtro por autocompletado muestra el id si la fila relacionada no está en la página actual
 - [ ] F2.5 · Explorador de usuarios y de almacenamiento
 - [ ] F2.6 · Auditoría (RF-10)
@@ -116,13 +118,15 @@ Sirve para el capítulo de *Planificación* (temporización y costes: horas real
 | 2026-09-29 | 15:05–15:50 | F2.3 (base de la interfaz) | ≈ 0,75 | commits |
 | 2026-09-29 | 15:50–17:02 | Corrección MFA `/admin` + F2.4a (listado) | ≈ 1,25 | commits |
 | 2026-09-29 | 17:02–17:50 | F2.4b (ficha de registro) + bitácora y trazabilidad | ≈ 0,75 | commits |
-| **Total** | | | **≈ 6,75** | |
+| 2026-09-29 | 17:50–19:00 | F2.4c (escritura) + borradores de la memoria | ≈ 1,25 | estimación (sin commit intermedio) |
+| **Total** | | | **≈ 8,0** | |
 
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-29 | F2.4c | Escritura en el explorador de datos (crear, editar, borrar, lote, en línea, relaciones); fallo de edición/borrado masivo y `not_nullviolation` corregidos; primeros borradores de la memoria (caps. 2, 4 y 5) |
 | 2026-09-29 | F2.4b | Ficha de registro del CMS con relaciones y enlaces según permisos; E2E 76 ✔. Bitácora de incidencias y trazabilidad al día |
 | 2026-09-29 | F2.4a | Listado del explorador de datos del CMS (filtros, orden, búsqueda, columnas y vistas guardadas); E2E 69 ✔ |
 | 2026-09-29 | F2.3 | Corrección de seguridad (detectada por el autor): `/admin` se cargaba con sesión aal1; ahora exige aal2 (verificación MFA o 404). Test E2E de regresión añadido |

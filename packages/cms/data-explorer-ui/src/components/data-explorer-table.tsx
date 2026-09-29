@@ -5,6 +5,10 @@
  * la ordenación y la paginación se traducen a cambios de la URL (el `loader`
  * de la ruta vuelve a pedir la página al servidor), cada celda se pinta según
  * el metadato de su columna y un clic en una fila abre la ficha del registro.
+ *
+ * Con permisos de escritura (los decide el listado), añade la columna de
+ * selección para el borrado múltiple (`selection`) y la edición en línea de
+ * las celdas (`canUpdate`, ver `editable-cell-renderer.tsx`).
  */
 import { useCallback, useMemo } from 'react';
 
@@ -16,12 +20,17 @@ import {
   type ColumnManagementState,
   DataExplorerCellRenderer,
   type RelationData,
+  type RowSelectionState,
 } from '@pymekit/cms-table/components';
 import type { ColumnMetadata, RelationConfig } from '@pymekit/cms-types';
 
 import { buildResourceUrl } from '../utils/build-resource-url';
 import { toResourceHref } from '../utils/paths';
 import { type DataExplorerSearch, getNextSort } from '../utils/search-schema';
+import {
+  EditableCellRenderer,
+  InlineEditContext,
+} from './editable-cell-renderer';
 
 type RecordData = Record<string, unknown>;
 
@@ -44,6 +53,10 @@ export function DataExplorerTable(props: {
   columnManagement: ColumnManagementState;
   noResultsMessage?: React.ReactNode;
   className?: string;
+  /** Selección de filas para el borrado múltiple (solo con permiso `delete`). */
+  selection?: RowSelectionState<RecordData>;
+  /** Activa la edición en línea de las celdas (solo con permiso `update`). */
+  canUpdate?: boolean;
 }) {
   const navigate = useNavigate();
   const { search, onSearchChange, schema, table, relations } = props;
@@ -104,23 +117,33 @@ export function DataExplorerTable(props: {
     [navigate, schema, table, uiConfig],
   );
 
+  const inlineEdit = useMemo(
+    () => (props.canUpdate ? { schema, table, keysConfig: uiConfig } : null),
+    [props.canUpdate, schema, table, uiConfig],
+  );
+
   return (
-    <AdvancedDataTable<RecordData>
-      sticky
-      className={props.className}
-      columns={props.columns}
-      data={props.data}
-      pagination={props.pagination}
-      onPaginationChange={onPaginationChange}
-      columnManagement={props.columnManagement}
-      sortColumn={search.sortColumn}
-      sortDirection={search.sortDirection ?? 'asc'}
-      onSortChange={onSortChange}
-      buildRelationLink={buildRelationLink}
-      CellRenderer={DataExplorerCellRenderer}
-      relationsConfig={props.relationsConfig}
-      onRowClick={onRowClick}
-      noResultsMessage={props.noResultsMessage}
-    />
+    <InlineEditContext.Provider value={inlineEdit}>
+      <AdvancedDataTable<RecordData>
+        sticky
+        className={props.className}
+        columns={props.columns}
+        data={props.data}
+        pagination={props.pagination}
+        onPaginationChange={onPaginationChange}
+        columnManagement={props.columnManagement}
+        sortColumn={search.sortColumn}
+        sortDirection={search.sortDirection ?? 'asc'}
+        onSortChange={onSortChange}
+        buildRelationLink={buildRelationLink}
+        CellRenderer={
+          props.canUpdate ? EditableCellRenderer : DataExplorerCellRenderer
+        }
+        relationsConfig={props.relationsConfig}
+        selection={props.selection}
+        onRowClick={onRowClick}
+        noResultsMessage={props.noResultsMessage}
+      />
+    </InlineEditContext.Provider>
   );
 }

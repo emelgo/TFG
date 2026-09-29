@@ -63,8 +63,9 @@ test.describe('Ficha de un registro: super-admin con MFA', () => {
       TEAM_ACCOUNT_ID.slice(0, 8),
     );
 
-    // Sin edición ni borrado en esta fase (solo lectura).
-    await expect(page.getByTestId('edit-record-button')).toHaveCount(0);
+    // El super-admin (raíz del CMS) puede editar y borrar (F2.4c).
+    await expect(page.getByTestId('edit-record-button')).toBeVisible();
+    await expect(page.getByTestId('delete-record-button')).toBeVisible();
   });
 
   test('muestra los miembros del equipo y se puede seguir un registro relacionado', async ({

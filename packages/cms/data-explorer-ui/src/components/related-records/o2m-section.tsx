@@ -11,6 +11,9 @@
  * `page`; cambiarla es navegar. Si la API responde 403 (el permiso se ha
  * retirado después de cargar la ficha), la sección desaparece en lugar de
  * mostrar un error: el usuario no debe ver tablas que no puede leer.
+ *
+ * Desde F2.4c, «Añadir» crea un registro hijo ya enlazado con este si el
+ * usuario puede insertar en la tabla hija (`create-related-record-dialog.tsx`).
  */
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -29,7 +32,11 @@ import { Skeleton } from '@pymekit/ui/skeleton';
 import { cn } from '@pymekit/ui/utils';
 
 import { DATA_EXPLORER_BASE_PATH } from '../../utils/paths';
-import { buildOneToManyFilters } from '../../utils/record-relations';
+import {
+  buildOneToManyFilters,
+  normalizeRecordId,
+} from '../../utils/record-relations';
+import { CreateRelatedRecordButton } from './create-related-record-dialog';
 import { RelatedRecordsSectionHeader } from './related-records-section-header';
 import { RelatedRecordsTable } from './related-records-table';
 
@@ -48,6 +55,9 @@ export function O2MSection(props: {
   const { relation, page } = props;
 
   const filters = buildOneToManyFilters(relation, props.recordData);
+  const parentValue = normalizeRecordId(
+    props.recordData[relation.source_column],
+  );
   const pageSize =
     relation.inline_config?.max_visible_rows || DEFAULT_PAGE_SIZE;
 
@@ -96,18 +106,28 @@ export function O2MSection(props: {
         count={count}
         isLoading={query.isPending}
         action={
-          count > 0 ? (
-            <Button
-              nativeButton={false}
-              variant="ghost"
-              size="sm"
-              data-testid="related-records-open-table"
-              render={<Link to={tableHref} />}
-            >
-              {t('record.related.openTable')}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          ) : undefined
+          <div className="flex items-center gap-1">
+            {count > 0 ? (
+              <Button
+                nativeButton={false}
+                variant="ghost"
+                size="sm"
+                data-testid="related-records-open-table"
+                render={<Link to={tableHref} />}
+              >
+                {t('record.related.openTable')}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            ) : null}
+
+            {parentValue !== null ? (
+              <CreateRelatedRecordButton
+                relation={relation}
+                parentValue={parentValue}
+                label={props.label}
+              />
+            ) : null}
+          </div>
         }
       />
 

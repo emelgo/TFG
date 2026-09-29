@@ -4,7 +4,7 @@ Esta matriz relaciona cada requisito (`REQUISITOS.md`) con el código que lo imp
 
 **Leyenda:** ⬜ pendiente · 🟨 en curso o parcial · ✅ implementado y verificado.
 
-_Última actualización: 2026-09-29 (F2.4b cerrada)._
+_Última actualización: 2026-09-29 (F2.4 cerrada)._
 
 | Req. | Código principal | Pruebas (evidencia) | Memoria | Estado | Notas |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@ _Última actualización: 2026-09-29 (F2.4b cerrada)._
 | RF-06 | `packages/features/team-accounts`, `schemas/04–07` | pgTAP (roles, membresías, invitaciones), E2E `team-accounts`, `invitations` | Diseño > Modelo de datos | 🟨 | Funciona con los roles heredados; roles para pymes en F5 |
 | RF-07 | `packages/billing/*` | E2E `billing` (desactivado: faltan claves de Stripe) | Diseño > Pagos | 🟨 | Planes de pyme y pruebas con Stripe en modo test: F5 |
 | RF-08 | `packages/features/admin`, `apps/web/src/routes/admin` | E2E `admin`, `cms-ui` | Implementación > Administración | ✅ | Consola compartida con el CMS; plataforma solo para super-admin (ADR-016) |
-| RF-09 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms`, `schemas/20–53` | pgTAP `cms-*` (1.154 del CMS), unit (1.313), E2E `cms-api`, `cms-ui`, `cms-data-explorer` | Diseño > CMS | 🟨 | BD, API, base de UI, listado y ficha hechos (F2.1–F2.4b); CRUD, usuarios, almacenamiento y ajustes: F2.4c–F2.7 |
+| RF-09 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms`, `schemas/20–53` | pgTAP `cms-*` (1.154 del CMS), unit (1.313), E2E `cms-api`, `cms-ui`, `cms-data-explorer` | Diseño > CMS | 🟨 | Explorador de datos completo (F2.1–F2.4: listado, ficha y CRUD con permisos). Faltan usuarios, almacenamiento y ajustes: F2.5–F2.7 |
 | RF-10 | `schemas/47-cms-audit-logs.sql`, `packages/cms/audit-logs` | pgTAP `cms-audit-triggers` | Diseño > CMS | 🟨 | BD y API listas; interfaz en F2.6 |
 | RF-11 | `schemas/52-cms-dashboards.sql`, `packages/cms/dashboards` | pgTAP `cms-dashboards-*`, unit (262) | Implementación > CMS | 🟨 | BD y API listas; interfaz en F2.8 (recortable) |
 | RF-12 | `packages/features/notifications`, `packages/mailers` | — | Implementación | 🟨 | Heredado; sin prueba específica todavía |
@@ -34,12 +34,13 @@ _Última actualización: 2026-09-29 (F2.4b cerrada)._
 ## Etiquetas `[TFG]` en el código
 
 <!-- tfg-tags:inicio -->
-_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (58 etiquetas). No se edita a mano._
+_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (68 etiquetas). No se edita a mano._
 
 | Fichero:línea | Referencias | Qué ilustra |
 |---|---|---|
 | `apps/e2e/tests/cms/cms-api.spec.ts:14` | RF-09, RNF-02 | RF-09 · RNF-02: el acceso al CMS se verifica de extremo a extremo. |
 | `apps/e2e/tests/cms/cms-data-explorer-record.spec.ts:16` | RF-09, ADR-014 | RF-09 · ADR-014: ficha del explorador con permisos del RBAC del CMS. |
+| `apps/e2e/tests/cms/cms-data-explorer-write.spec.ts:23` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014: escrituras del CMS con permisos |
 | `apps/e2e/tests/cms/cms-data-explorer.spec.ts:16` | RF-09, ADR-014 | RF-09 · ADR-014: explorador de datos con permisos del RBAC del CMS. |
 | `apps/e2e/tests/cms/cms-ui.spec.ts:17` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014. |
 | `apps/web/src/components/admin/admin-navigation.ts:13` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014. |
@@ -48,7 +49,10 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (58 etiquetas). No s
 | `apps/web/src/lib/cms/cms-fetch.ts:28` | RF-09, ADR-011 | RF-09 · ADR-011: una sola aplicación sirve la interfaz y la API del |
 | `apps/web/src/routes/admin/cms/index.tsx:12` | RF-09 | RF-09: el explorador de datos solo ofrece lo que el RBAC del CMS |
 | `apps/web/src/routes/admin/cms/resources/$schema/$table/index.tsx:23` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: explorador de datos como ruta de la web. |
-| `apps/web/src/routes/admin/cms/resources/$schema/$table/record/$id.tsx:11` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: ficha del explorador como ruta de la web. |
+| `apps/web/src/routes/admin/cms/resources/$schema/$table/new.tsx:12` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: creación de registros como ruta de la web. |
+| `apps/web/src/routes/admin/cms/resources/$schema/$table/record/$id/edit.tsx:11` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: edición de registros como ruta de la web. |
+| `apps/web/src/routes/admin/cms/resources/$schema/$table/record/$id/index.tsx:11` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: ficha del explorador como ruta de la web. |
+| `apps/web/src/routes/admin/cms/resources/$schema/$table/record/edit.tsx:11` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: edición de registros como ruta de la web. |
 | `apps/web/src/routes/admin/cms/resources/$schema/$table/record/index.tsx:13` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: ficha del explorador como ruta de la web. |
 | `apps/web/src/routes/admin/cms/route.tsx:21` | RF-09, ADR-011, ADR-014 | RF-09 · ADR-011 · ADR-014: interfaz del CMS como rutas de la web, con |
 | `apps/web/src/routes/admin/route.tsx:17` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014: una sola consola para la plataforma y el CMS. |
@@ -84,11 +88,17 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (58 etiquetas). No s
 | `packages/cms/auth/src/api/routes/index.ts:26` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014: acceso al CMS integrado en la consola de |
 | `packages/cms/auth/src/api/services/authorization.service.ts:585` | RF-09, ADR-014 | RF-09 · ADR-014: la visibilidad de la interfaz se deriva del RBAC |
 | `packages/cms/dashboards/src/lib/filters/filter-item.types.ts:7` | ADR-011 | ADR-011 |
-| `packages/cms/data-explorer-ui/src/components/data-explorer-table-view.tsx:14` | RF-09 | RF-09: explorador de datos del CMS (listado). |
+| `packages/cms/data-explorer-core/src/utils/record-identity.ts:15` | RNF-02 | RNF-02: una edición o un borrado nunca afecta a más de un registro. |
+| `packages/cms/data-explorer-ui/src/components/data-explorer-table-view.tsx:20` | RF-09 | RF-09: explorador de datos del CMS (listado). |
 | `packages/cms/data-explorer-ui/src/components/filters/views-container.tsx:19` | RF-09 | RF-09: vistas guardadas del explorador de datos. |
-| `packages/cms/data-explorer-ui/src/components/record/record-view.tsx:20` | RF-09 | RF-09: explorador de datos del CMS (ficha de un registro). |
+| `packages/cms/data-explorer-ui/src/components/record/record-form-view.tsx:19` | RF-09 | RF-09: creación y edición de registros del CMS. |
+| `packages/cms/data-explorer-ui/src/components/record/record-form.tsx:18` | RF-09, ADR-013 | RF-09: formularios del CMS con TanStack Form y Zod (ADR-013). |
+| `packages/cms/data-explorer-ui/src/components/record/record-view.tsx:23` | RF-09 | RF-09: explorador de datos del CMS (ficha de un registro). |
 | `packages/cms/data-explorer-ui/src/components/related-records/related-records-sections.tsx:16` | RF-09 | RF-09: navegación entre registros relacionados con permisos del RBAC. |
+| `packages/cms/data-explorer-ui/src/utils/record-form.ts:23` | RF-09 | RF-09: edición de registros del CMS a partir de metadatos. |
 | `packages/cms/data-explorer-ui/src/utils/record-relations.ts:19` | RF-09 | RF-09: navegación entre registros relacionados con permisos del RBAC. |
+| `packages/cms/data-explorer/src/api/routes/index.ts:813` | RF-09, RNF-02 | RF-09 · RNF-02: la autorización se aplica en la API y otra vez en la |
+| `packages/cms/data-explorer/src/api/utils/crud-errors.ts:24` | RNF-02 | RNF-02 Seguridad: los errores de la base de datos no se filtran al |
 | `packages/cms/settings/src/api/routes/get-account-route.ts:19` | RF-09, ADR-014 | RF-09 · ADR-014. |
 | `packages/cms/supabase/src/clients/drizzle-client.ts:20` | RNF-02 | RNF-02 Seguridad: la autorización del CMS se aplica en la base de |
 | `packages/cms/supabase/src/clients/hono-client.ts:18` | RF-09, ADR-011 | RF-09 · ADR-011: API del CMS integrada en la web. |

@@ -1,13 +1,15 @@
 import { zValidator } from '@hono/zod-validator';
-import type { Hono } from 'hono';
+import type { Context, Hono } from 'hono';
 import { z } from 'zod';
 
 import { createAuthorizationService } from '@pymekit/cms-auth/services';
 import { isProtectedSchema } from '@pymekit/cms-data-explorer-core';
 import {
+  conditionsIdentifyOneRecord,
   getLookupRelations,
   getOneToManyRelations,
 } from '@pymekit/cms-data-explorer-core/utils';
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
 import { getPublicErrorMessage } from '@pymekit/cms-shared/utils';
 import { getLogger } from '@pymekit/shared/logger';
 
@@ -17,6 +19,7 @@ import {
   UpdateSavedViewSchema,
   createSavedViewsService,
 } from '../services/saved-views.service';
+import { classifyCrudError } from '../utils/crud-errors';
 import {
   registerM2MLinkRoute,
   registerM2MRoutes,
@@ -779,69 +782,224 @@ function registerDeleteSavedViewRoute(router: Hono) {
 }
 
 /**
- * @name registerUpdateRecordRoute
- * @description Register a route for editing a record
- * @param router
+ * Escrituras del explorador de datos (crear, editar y borrar registros).
+ *
+ * Cada ruta de escritura sigue los mismos pasos:
+ *
+ *  1. **Esquema protegido** (`auth`, `cms`, `storage`…): 403 sin llegar a la
+ *     base de datos.
+ *  2. **Permiso del RBAC** para la acción (`insert`, `update` o `delete`)
+ *     sobre la tabla: 403 si no lo tiene. Así el personal de solo lectura
+ *     recibe un 403 claro en lugar de un error genérico.
+ *  3. La función SQL (`cms.insert_record`, `cms.update_record*`,
+ *     `cms.delete_record*`) **vuelve a comprobarlo todo** (acceso vigente con
+ *     MFA, esquema, permiso), escribe solo las columnas marcadas como
+ *     editables en `cms.table_metadata` (fallo cerrado: nada de asignación
+ *     masiva de claves o columnas de auditoría) y deja la entrada en el
+ *     registro de auditoría.
+ *  4. Para editar o borrar por condiciones, estas deben contener la clave
+ *     primaria o una restricción `unique` completas
+ *     (`conditionsIdentifyOneRecord`): la función SQL acepta cualquier columna
+ *     y solo limita el daño a 25 filas, así que sin esta comprobación una
+ *     petición «de un registro» podría cambiar o borrar varios.
+ *  5. Si la función falla, `classifyCrudError` traduce su SQLSTATE a un
+ *     código estable y un estado HTTP (400, 403, 404, 409 o 500). El texto de
+ *     PostgreSQL solo va al *log*.
+ *
+ * La protección CSRF la aplica el *middleware* de Hono de la API
+ * (`@pymekit/cms-api/server`); las peticiones JSON del cliente RPC además
+ * obligarían a un *preflight* CORS que la API nunca concede a otro origen.
+ *
+ * [TFG] RF-09 · RNF-02: la autorización se aplica en la API y otra vez en la
+ * base de datos.
+ */
+
+/** Acciones de escritura del RBAC del CMS. */
+type WriteAction = 'insert' | 'update' | 'delete';
+
+/** Máximo de registros por petición de borrado múltiple. */
+const MAX_BATCH_DELETE_ITEMS = 500;
+
+/** Máximo de columnas en las condiciones que identifican un registro. */
+const MAX_KEY_CONDITIONS = 10;
+
+/** Condiciones que identifican un registro: `{ columna: valor }`. */
+const KeyConditionsSchema = z
+  .record(z.string().min(1).max(63), z.unknown())
+  .refine(
+    (conditions) => {
+      const size = Object.keys(conditions).length;
+
+      return size > 0 && size <= MAX_KEY_CONDITIONS;
+    },
+    { message: 'Invalid record key' },
+  );
+
+/**
+ * Comprueba el esquema y el permiso de escritura antes de tocar la base de
+ * datos. Devuelve la respuesta 403 si no se puede escribir, o `null`.
+ */
+async function denyWriteIfNotAllowed(
+  c: Context,
+  action: WriteAction,
+  schema: string,
+  table: string,
+) {
+  if (isProtectedSchema(schema)) {
+    return c.json(
+      {
+        success: false as const,
+        error: 'Access denied',
+        errorCode: CMS_API_ERROR_CODES.RECORD_PERMISSION_DENIED,
+      },
+      403,
+    );
+  }
+
+  const authorizationService = createAuthorizationService(c);
+  const allowed = await authorizationService.hasDataPermission(
+    action,
+    schema,
+    table,
+  );
+
+  if (!allowed) {
+    return c.json(
+      {
+        success: false as const,
+        error: 'Access denied',
+        errorCode: CMS_API_ERROR_CODES.RECORD_PERMISSION_DENIED,
+      },
+      403,
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Comprueba que cada juego de condiciones identifica un único registro de la
+ * tabla (clave primaria o restricción `unique` completas, según su
+ * metadato). Devuelve la respuesta de error, o `null` si todas lo hacen.
+ */
+async function denyIfNotSingleRecord(
+  c: Context,
+  schema: string,
+  table: string,
+  conditionsList: Array<Record<string, unknown>>,
+) {
+  let uiConfig: unknown;
+
+  try {
+    const metadata = await createDataExplorerService(c).getTableMetadata({
+      schemaName: schema,
+      tableName: table,
+    });
+
+    uiConfig = metadata.table.uiConfig;
+  } catch {
+    return c.json(
+      {
+        success: false as const,
+        error: 'The record was not found',
+        errorCode: CMS_API_ERROR_CODES.RECORD_NOT_FOUND,
+      },
+      404,
+    );
+  }
+
+  const allIdentified = conditionsList.every((conditions) =>
+    conditionsIdentifyOneRecord(Object.keys(conditions), uiConfig),
+  );
+
+  if (!allIdentified) {
+    return c.json(
+      {
+        success: false as const,
+        error:
+          'The record key must include the primary key or a unique constraint',
+        errorCode: CMS_API_ERROR_CODES.RECORD_INVALID_DATA,
+      },
+      400,
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Registra el error de escritura (con el texto interno) y responde con su
+ * clasificación segura.
+ */
+async function respondWithCrudError(
+  c: Context,
+  error: unknown,
+  context: Record<string, unknown>,
+  logMessage: string,
+) {
+  const logger = await getLogger();
+  const classification = classifyCrudError(error);
+
+  // Los 4xx son errores del usuario (datos, permisos): se registran como
+  // aviso; el resto, como error.
+  if (classification.status >= 500) {
+    logger.error({ ...context, error }, logMessage);
+  } else {
+    logger.warn(
+      { ...context, error, errorCode: classification.errorCode },
+      logMessage,
+    );
+  }
+
+  return c.json(
+    {
+      success: false as const,
+      error: classification.message,
+      errorCode: classification.errorCode,
+    },
+    classification.status,
+  );
+}
+
+/**
+ * Registra `PUT /v1/tables/:schema/:table/record/:id`: actualiza el registro
+ * cuya columna `id` vale `:id`. La interfaz usa la variante por condiciones
+ * (que admite cualquier clave); esta se mantiene para clientes de la API.
  */
 function registerUpdateRecordRoute(router: Hono) {
   return router.put(
     '/v1/tables/:schema/:table/record/:id',
     zValidator('param', ParamsSchema.extend({ id: z.string().min(1) })),
-    zValidator('json', z.record(z.string(), z.any())),
+    zValidator('json', z.record(z.string(), z.unknown())),
     async (c) => {
-      const logger = await getLogger();
-
-      const service = createDataExplorerService(c);
       const { id, schema, table } = c.req.valid('param');
       const data = c.req.valid('json');
 
-      logger.info(
-        {
-          id,
-          schema,
-          table,
-        },
-        'Updating record...',
-      );
+      // `update_record` localiza la fila con `id = :id`: solo es un registro
+      // si `id` es la clave de la tabla.
+      const denied =
+        (await denyWriteIfNotAllowed(c, 'update', schema, table)) ??
+        (await denyIfNotSingleRecord(c, schema, table, [{ id }]));
+
+      if (denied) {
+        return denied;
+      }
 
       try {
-        const record = await service.updateRecord({
+        const record = await createDataExplorerService(c).updateRecord({
           schemaName: schema,
           tableName: table,
           id,
           data,
         });
 
-        logger.info(
-          {
-            id,
-            schema,
-            table,
-          },
-          'Record updated',
-        );
-
-        return c.json({
-          success: true,
-          data: record,
-        });
+        return c.json({ success: true as const, data: record.data });
       } catch (error) {
-        logger.error(
-          {
-            id,
-            schema,
-            table,
-            error,
-          },
+        return respondWithCrudError(
+          c,
+          error,
+          { id, schema, table },
           'Error updating record',
-        );
-
-        return c.json(
-          {
-            success: false,
-            error: getPublicErrorMessage(error),
-          },
-          500,
         );
       }
     },
@@ -851,65 +1009,42 @@ function registerUpdateRecordRoute(router: Hono) {
 export type UpdateRecordRoute = ReturnType<typeof registerUpdateRecordRoute>;
 
 /**
- * @name registerInsertRecordRoute
- * @description Register a route for inserting a record
- * @param router
+ * Registra `POST /v1/tables/:schema/:table/record`: crea un registro con las
+ * columnas enviadas. La base de datos ignora las que no son editables y
+ * aplica los valores por defecto al resto. Devuelve la fila creada.
  */
 function registerInsertRecordRoute(router: Hono) {
   return router.post(
     '/v1/tables/:schema/:table/record',
     zValidator('param', ParamsSchema),
-    zValidator('json', z.record(z.string(), z.any())),
+    zValidator('json', z.record(z.string(), z.unknown())),
     async (c) => {
-      const logger = await getLogger();
       const { schema, table } = c.req.valid('param');
       const data = c.req.valid('json');
 
-      logger.info(
-        {
-          schema,
-          table,
-        },
-        'Inserting record...',
-      );
+      const denied = await denyWriteIfNotAllowed(c, 'insert', schema, table);
+
+      if (denied) {
+        return denied;
+      }
 
       try {
-        const service = createDataExplorerService(c);
-
-        const record = await service.insertRecord({
+        const record = await createDataExplorerService(c).insertRecord({
           schemaName: schema,
           tableName: table,
           data,
         });
 
-        logger.info(
-          {
-            schema,
-            table,
-          },
-          'Record inserted',
-        );
-
         return c.json({
-          success: true,
-          data: record,
+          success: true as const,
+          data: record.data as Record<string, unknown>,
         });
       } catch (error) {
-        logger.error(
-          {
-            schema,
-            table,
-            error,
-          },
+        return respondWithCrudError(
+          c,
+          error,
+          { schema, table },
           'Error inserting record',
-        );
-
-        return c.json(
-          {
-            success: false,
-            error: getPublicErrorMessage(error),
-          },
-          500,
         );
       }
     },
@@ -919,65 +1054,40 @@ function registerInsertRecordRoute(router: Hono) {
 export type InsertRecordRoute = ReturnType<typeof registerInsertRecordRoute>;
 
 /**
- * @name registerDeleteRecordRoute
- * @description Register a route for deleting a record
- * @param router
+ * Registra `DELETE /v1/tables/:schema/:table/record/:id`: borra el registro
+ * cuya columna `id` vale `:id` (la interfaz usa la variante por condiciones).
  */
 function registerDeleteRecordRoute(router: Hono) {
   return router.delete(
     '/v1/tables/:schema/:table/record/:id',
     zValidator('param', ParamsSchema.extend({ id: z.string().min(1) })),
     async (c) => {
-      const service = createDataExplorerService(c);
       const { id, schema, table } = c.req.valid('param');
-      const logger = await getLogger();
 
-      logger.info(
-        {
-          id,
-          schema,
-          table,
-        },
-        'Deleting record...',
-      );
+      // `delete_record` localiza la fila con `id = :id`: solo es un registro
+      // si `id` es la clave de la tabla.
+      const denied =
+        (await denyWriteIfNotAllowed(c, 'delete', schema, table)) ??
+        (await denyIfNotSingleRecord(c, schema, table, [{ id }]));
+
+      if (denied) {
+        return denied;
+      }
 
       try {
-        const result = await service.deleteRecordById({
+        await createDataExplorerService(c).deleteRecordById({
           schemaName: schema,
           tableName: table,
           id,
         });
 
-        logger.info(
-          {
-            id,
-            schema,
-            table,
-          },
-          'Record deleted',
-        );
-
-        return c.json({
-          success: true,
-          data: result,
-        });
+        return c.json({ success: true as const });
       } catch (error) {
-        logger.error(
-          {
-            id,
-            schema,
-            table,
-            error,
-          },
+        return respondWithCrudError(
+          c,
+          error,
+          { id, schema, table },
           'Error deleting record',
-        );
-
-        return c.json(
-          {
-            success: false,
-            error: getPublicErrorMessage(error),
-          },
-          500,
         );
       }
     },
@@ -987,9 +1097,10 @@ function registerDeleteRecordRoute(router: Hono) {
 export type DeleteRecordRoute = ReturnType<typeof registerDeleteRecordRoute>;
 
 /**
- * @name registerUpdateRecordByConditionsRoute
- * @description Register a route for updating a record by conditions
- * @param router
+ * Registra `PUT /v1/tables/:schema/:table/record/conditions`: actualiza el
+ * registro identificado por `conditions` (su clave, de una o varias
+ * columnas) con los valores de `data`. Es la que usa la interfaz, tanto en la
+ * edición completa como en la edición en línea del listado.
  */
 function registerUpdateRecordByConditionsRoute(router: Hono) {
   return router.put(
@@ -998,63 +1109,42 @@ function registerUpdateRecordByConditionsRoute(router: Hono) {
     zValidator(
       'json',
       z.object({
-        conditions: z.record(z.string(), z.any()),
-        data: z.record(z.string(), z.any()),
+        conditions: KeyConditionsSchema,
+        data: z.record(z.string(), z.unknown()),
       }),
     ),
     async (c) => {
-      const logger = await getLogger();
-
       const { schema, table } = c.req.valid('param');
       const { conditions, data } = c.req.valid('json');
 
-      const service = createDataExplorerService(c);
+      const denied =
+        (await denyWriteIfNotAllowed(c, 'update', schema, table)) ??
+        (await denyIfNotSingleRecord(c, schema, table, [conditions]));
 
-      logger.info(
-        {
-          schema,
-          table,
-          conditions,
-        },
-        'Updating record by conditions...',
-      );
+      if (denied) {
+        return denied;
+      }
 
       try {
-        const result = await service.updateRecordByConditions({
+        const result = await createDataExplorerService(
+          c,
+        ).updateRecordByConditions({
           schemaName: schema,
           tableName: table,
           conditions,
           data,
         });
 
-        logger.info(
-          {
-            schema,
-            table,
-          },
-          'Record updated by conditions',
-        );
-
         return c.json({
-          success: true,
-          data: result,
+          success: true as const,
+          data: result.data as Record<string, unknown> | null,
         });
       } catch (error) {
-        logger.error(
-          {
-            schema,
-            table,
-            error,
-          },
+        return respondWithCrudError(
+          c,
+          error,
+          { schema, table },
           'Error updating record by conditions',
-        );
-
-        return c.json(
-          {
-            success: false,
-            error: getPublicErrorMessage(error),
-          },
-          500,
         );
       }
     },
@@ -1066,68 +1156,40 @@ export type UpdateRecordByConditionsRoute = ReturnType<
 >;
 
 /**
- * @name registerDeleteRecordByConditionsRoute
- * @description Register a route for deleting a record by conditions
- * @param router
+ * Registra `DELETE /v1/tables/:schema/:table/record/conditions`: borra el
+ * registro identificado por `conditions`.
  */
 function registerDeleteRecordByConditionsRoute(router: Hono) {
   return router.delete(
     '/v1/tables/:schema/:table/record/conditions',
     zValidator('param', ParamsSchema),
-    zValidator('json', z.object({ conditions: z.record(z.string(), z.any()) })),
+    zValidator('json', z.object({ conditions: KeyConditionsSchema })),
     async (c) => {
-      const logger = await getLogger();
-
       const { schema, table } = c.req.valid('param');
       const { conditions } = c.req.valid('json');
 
-      const service = createDataExplorerService(c);
+      const denied =
+        (await denyWriteIfNotAllowed(c, 'delete', schema, table)) ??
+        (await denyIfNotSingleRecord(c, schema, table, [conditions]));
 
-      logger.info(
-        {
-          schema,
-          table,
-          conditions,
-        },
-        'Deleting record by conditions...',
-      );
+      if (denied) {
+        return denied;
+      }
 
       try {
-        // Delete the record by conditions
-        const result = await service.deleteRecordByConditions({
+        await createDataExplorerService(c).deleteRecordByConditions({
           schemaName: schema,
           tableName: table,
           conditions,
         });
 
-        logger.info(
-          {
-            schema,
-            table,
-          },
-          'Record deleted by conditions',
-        );
-
-        return c.json({
-          success: true,
-          data: result,
-        });
+        return c.json({ success: true as const });
       } catch (error) {
-        logger.error(
-          {
-            schema,
-            table,
-            error,
-          },
+        return respondWithCrudError(
+          c,
+          error,
+          { schema, table },
           'Error deleting record by conditions',
-        );
-
-        return c.json(
-          {
-            success: false,
-            error: getPublicErrorMessage(error),
-          },
-          500,
         );
       }
     },
@@ -1139,9 +1201,10 @@ export type DeleteRecordByConditionsRoute = ReturnType<
 >;
 
 /**
- * @name registerBatchDeleteRecordsRoute
- * @description Register a route for batch deleting records
- * @param router
+ * Registra `DELETE /v1/tables/:schema/:table/records`: borra varios registros
+ * (la selección del listado), cada uno identificado por sus condiciones.
+ * Responde 200 con el recuento de borrados y fallidos: un fallo en uno no
+ * impide borrar el resto.
  */
 function registerBatchDeleteRecordsRoute(router: Hono) {
   return router.delete(
@@ -1150,32 +1213,29 @@ function registerBatchDeleteRecordsRoute(router: Hono) {
     zValidator(
       'json',
       z.object({
-        items: z.array(z.record(z.string(), z.any())),
+        items: z.array(KeyConditionsSchema).min(1).max(MAX_BATCH_DELETE_ITEMS),
       }),
     ),
     async (c) => {
-      const logger = await getLogger();
-
       const { schema, table } = c.req.valid('param');
       const { items } = c.req.valid('json');
 
-      logger.info(
-        {
-          schema,
-          table,
-          items,
-        },
-        'Batch deleting records...',
-      );
+      const denied =
+        (await denyWriteIfNotAllowed(c, 'delete', schema, table)) ??
+        (await denyIfNotSingleRecord(c, schema, table, items));
 
-      const service = createDataExplorerService(c);
+      if (denied) {
+        return denied;
+      }
 
       try {
-        const result = await service.batchDeleteRecords({
+        const result = await createDataExplorerService(c).batchDeleteRecords({
           schemaName: schema,
           tableName: table,
           items,
         });
+
+        const logger = await getLogger();
 
         logger.info(
           {
@@ -1188,26 +1248,13 @@ function registerBatchDeleteRecordsRoute(router: Hono) {
           'Batch delete completed',
         );
 
-        return c.json({
-          success: true,
-          data: result,
-        });
+        return c.json({ success: true as const, data: result });
       } catch (error) {
-        logger.error(
-          {
-            schema,
-            table,
-            error,
-          },
+        return respondWithCrudError(
+          c,
+          error,
+          { schema, table },
           'Error batch deleting records',
-        );
-
-        return c.json(
-          {
-            success: false,
-            error: getPublicErrorMessage(error),
-          },
-          500,
         );
       }
     },

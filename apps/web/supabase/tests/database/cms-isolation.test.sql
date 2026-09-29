@@ -88,6 +88,15 @@ select throws_ilike(
     'A7: get_record_by_keys no puede leer pg_catalog.pg_authid'
 );
 
+-- Regresión B-18: un campo obligatorio vacío debe informar del SQLSTATE
+-- 23502 (not_null_violation). El código heredado usaba un nombre de
+-- condición inexistente y acababa en un error 500 en la API.
+select is(
+    cms.insert_record('public', 'accounts', '{"slug": "sin-nombre"}'::jsonb) -> 'meta' ->> 'sqlstate',
+    '23502',
+    'A8: insert_record informa de not_null_violation (23502) si falta un campo obligatorio'
+);
+
 -- -------------------------------------------------------
 -- B. MFA obligatorio en todas las puertas de entrada
 -- -------------------------------------------------------

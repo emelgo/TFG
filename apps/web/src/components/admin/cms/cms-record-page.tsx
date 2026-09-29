@@ -1,6 +1,7 @@
 /**
- * Pantalla y error de la ficha de un registro del CMS, compartidos por sus
- * dos rutas (`.../record/$id` y `.../record?col=valor`).
+ * Pantallas del registro del CMS (ficha, edición y creación) y su error,
+ * compartidos por las rutas de clave simple (`.../record/$id`) y compuesta
+ * (`.../record?col=valor`).
  *
  * `CmsRecordPage` lee de la caché la ficha que precargó el `loader`
  * (`useSuspenseQuery`) y monta `RecordView` de
@@ -12,7 +13,11 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { TriangleAlert } from 'lucide-react';
 
-import { RecordView } from '@pymekit/cms-data-explorer-ui/components';
+import {
+  RecordCreateView,
+  RecordEditView,
+  RecordView,
+} from '@pymekit/cms-data-explorer-ui/components';
 import {
   EmptyMedia,
   EmptyState,
@@ -41,9 +46,58 @@ export function CmsRecordPage(props: {
         key={`${schema}.${table}:${JSON.stringify(keys)}`}
         schema={schema}
         table={table}
+        keys={keys}
         data={data}
         relatedPages={props.relatedPages}
         onRelatedPageChange={props.onRelatedPageChange}
+      />
+    </PageBody>
+  );
+}
+
+/**
+ * Página de edición: lee de la caché la ficha que precargó el `loader`
+ * (`loadCmsRecordForEdit`, que ya comprobó el permiso `update`).
+ */
+export function CmsRecordEditPage(props: {
+  schema: string;
+  table: string;
+  keys: Record<string, string>;
+  /** URL de la ficha, a la que se vuelve al guardar o cancelar. */
+  recordHref: string;
+}) {
+  const { schema, table, keys } = props;
+  const { data } = useSuspenseQuery(cmsQueries.record({ schema, table, keys }));
+
+  return (
+    <PageBody className="py-2">
+      <RecordEditView
+        key={`${schema}.${table}:${JSON.stringify(keys)}`}
+        schema={schema}
+        table={table}
+        keys={keys}
+        data={data}
+        recordHref={props.recordHref}
+      />
+    </PageBody>
+  );
+}
+
+/**
+ * Página «Nuevo registro»: lee el metadato de la tabla que precargó el
+ * `loader` (`loadCmsTableForCreate`, que ya comprobó el permiso `insert`).
+ */
+export function CmsRecordCreatePage(props: { schema: string; table: string }) {
+  const { schema, table } = props;
+  const { data } = useSuspenseQuery(cmsQueries.tableMetadata(schema, table));
+
+  return (
+    <PageBody className="py-2">
+      <RecordCreateView
+        key={`${schema}.${table}`}
+        schema={schema}
+        table={table}
+        metadata={data}
       />
     </PageBody>
   );

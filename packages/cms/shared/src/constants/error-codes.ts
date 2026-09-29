@@ -22,6 +22,32 @@ export const CMS_API_ERROR_CODES = {
    * verificado el segundo factor (aal2) y el MFA es obligatorio (403).
    */
   MFA_OR_INACTIVE_ACCOUNT: 'CMS_MFA_OR_INACTIVE_ACCOUNT',
+
+  // Escrituras del explorador de datos (crear, editar y borrar registros).
+  // La API traduce el SQLSTATE de las funciones `cms.*_record*` a uno de
+  // estos códigos y a un mensaje genérico: nunca devuelve el texto de
+  // PostgreSQL, que revela nombres de tablas, columnas o restricciones.
+
+  /** Sin permiso para la acción sobre la tabla o esquema protegido (403). */
+  RECORD_PERMISSION_DENIED: 'RECORD_PERMISSION_DENIED',
+  /** La clave no identifica ningún registro (404). */
+  RECORD_NOT_FOUND: 'RECORD_NOT_FOUND',
+  /** Ya existe un registro con esos valores únicos (409). */
+  RECORD_DUPLICATE: 'RECORD_DUPLICATE',
+  /**
+   * Viola una clave foránea: apunta a un registro que no existe o se quiere
+   * borrar un registro al que otros apuntan (409).
+   */
+  RECORD_REFERENCE_VIOLATION: 'RECORD_REFERENCE_VIOLATION',
+  /** Datos no válidos: tipo, formato, obligatorio o restricción `check` (400). */
+  RECORD_INVALID_DATA: 'RECORD_INVALID_DATA',
+  /**
+   * Una regla de la propia tabla (un *trigger* que lanza una excepción)
+   * rechaza el cambio (400).
+   */
+  RECORD_RULE_VIOLATION: 'RECORD_RULE_VIOLATION',
+  /** Error inesperado al escribir (500). */
+  RECORD_WRITE_FAILED: 'RECORD_WRITE_FAILED',
 } as const;
 
 export type CmsApiErrorCode =

@@ -13,7 +13,9 @@
  *
  * Los formatos de número, moneda y fecha usan el idioma de la interfaz y la
  * zona horaria de las preferencias del CMS (`@pymekit/cms-formatters/hooks`).
- * La edición en línea de las celdas llega con la edición de registros.
+ * Es de solo lectura: la edición en línea la añade el explorador de datos
+ * (`EditableCellRenderer` de `@pymekit/cms-data-explorer-ui`), que envuelve
+ * este componente cuando el usuario tiene permiso `update`.
  */
 import { Link } from '@tanstack/react-router';
 import {

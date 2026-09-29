@@ -18,6 +18,13 @@ export const cmsQueryKeys = {
   all: ['cms'] as const,
   account: () => [...cmsQueryKeys.all, 'account'] as const,
   navigation: () => [...cmsQueryKeys.all, 'navigation'] as const,
+  /**
+   * Prefijo de todo lo que depende de alguna tabla (listados, fichas,
+   * metadatos y permisos). Tras una escritura se invalida entero: borrar un
+   * registro puede borrar en cascada filas de otras tablas que se ven en las
+   * secciones de registros relacionados.
+   */
+  tables: () => [...cmsQueryKeys.all, 'tables'] as const,
   /** Prefijo común de todo lo que depende de una tabla concreta. */
   table: (schema: string, table: string) =>
     [...cmsQueryKeys.all, 'tables', schema, table] as const,
@@ -50,6 +57,8 @@ export const cmsQueryKeys = {
         Object.entries(params.keys).sort(([a], [b]) => a.localeCompare(b)),
       ),
     ] as const,
+  tablePermissions: (schema: string, table: string) =>
+    [...cmsQueryKeys.table(schema, table), 'permissions'] as const,
   rolesForSharing: () => [...cmsQueryKeys.all, 'roles', 'sharing'] as const,
 };
 
@@ -104,7 +113,7 @@ export function createCmsQueries(api: CmsApi) {
     /**
      * Ficha de un registro con sus claves foráneas resueltas. Se considera
      * fresca 15 segundos: al volver a la ficha desde una fila relacionada se
-     * ve al instante, y tras editarla (F2.4c) se invalidará su prefijo.
+     * ve al instante, y tras editarla se invalida su prefijo.
      */
     record: (params: RecordParams) =>
       queryOptions({
@@ -112,6 +121,18 @@ export function createCmsQueries(api: CmsApi) {
         queryFn: () => api.getRecord(params),
         retry: shouldRetryCmsQuery,
         staleTime: 15 * 1000,
+      }),
+
+    /**
+     * Permisos del usuario sobre una tabla. Deciden qué acciones de escritura
+     * se muestran (crear, editar, borrar); la API las vuelve a comprobar.
+     */
+    tablePermissions: (schema: string, table: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.tablePermissions(schema, table),
+        queryFn: () => api.getTablePermissions({ schema, table }),
+        retry: shouldRetryCmsQuery,
+        staleTime: 60 * 1000,
       }),
 
     /** Vistas guardadas (personales y de equipo) de una tabla. */

@@ -20,12 +20,15 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@date-fns/tz": "catalog:",
     "@pymekit/cms-data-explorer-core": "workspace:*",
     "@pymekit/cms-filters": "workspace:*",
     "@pymekit/cms-formatters": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*",
     "@pymekit/cms-table": "workspace:*",
     "@pymekit/cms-types": "workspace:*",
-    "@pymekit/cms-ui-core": "workspace:*"
+    "@pymekit/cms-ui-core": "workspace:*",
+    "date-fns": "catalog:"
   },
   "devDependencies": {
     "@pymekit/tsconfig": "workspace:*",

@@ -20,12 +20,19 @@ import {
   handleHonoClientResponse,
 } from '@pymekit/cms-api/client';
 import type {
+  BatchDeleteRecordsRoute,
   CreateSavedViewRoute,
+  DeleteRecordByConditionsRoute,
   DeleteSavedViewRoute,
+  GetDataRecordPermissionsRoute,
   GetRecordRoute,
   GetSavedViewsRoute,
   GetTableMetadataRoute,
   GetTableRoute,
+  InsertRecordRoute,
+  M2MLinkRoute,
+  M2MUnlinkRoute,
+  UpdateRecordByConditionsRoute,
   UpdateSavedViewRoute,
 } from '@pymekit/cms-data-explorer/routes';
 import type { GetNavigationRoute } from '@pymekit/cms-navigation/routes';
@@ -188,8 +195,171 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
 
       return handleHonoClientResponse(await client.v1.roles.sharing.$get());
     },
+
+    /**
+     * Devuelve qué puede hacer el usuario con una tabla
+     * (`GET /v1/data/:schema/:table/permissions`): `canSelect`, `canInsert`,
+     * `canUpdate` y `canDelete`. La interfaz lo usa solo para mostrar u
+     * ocultar acciones; la API vuelve a comprobar cada escritura.
+     */
+    async getTablePermissions(params: { schema: string; table: string }) {
+      const client =
+        createHonoClient<GetDataRecordPermissionsRoute>(clientOptions);
+
+      const response = await client.v1.data[':schema'][
+        ':table'
+      ].permissions.$get({ param: params });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Crea un registro (`POST /v1/tables/:schema/:table/record`) y devuelve la
+     * fila creada, con los valores por defecto que puso la base de datos.
+     */
+    async insertRecord(params: {
+      schema: string;
+      table: string;
+      data: Record<string, unknown>;
+    }) {
+      const client = createHonoClient<InsertRecordRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][':table'].record.$post(
+        {
+          param: { schema: params.schema, table: params.table },
+          json: params.data,
+        },
+      );
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Actualiza el registro identificado por `keys` (su clave, de una o
+     * varias columnas) con los valores de `data`
+     * (`PUT /v1/tables/:schema/:table/record/conditions`).
+     */
+    async updateRecord(
+      params: RecordParams & { data: Record<string, unknown> },
+    ) {
+      const client =
+        createHonoClient<UpdateRecordByConditionsRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][
+        ':table'
+      ].record.conditions.$put({
+        param: { schema: params.schema, table: params.table },
+        json: { conditions: params.keys, data: params.data },
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Borra el registro identificado por `keys`
+     * (`DELETE /v1/tables/:schema/:table/record/conditions`).
+     */
+    async deleteRecord(params: RecordParams) {
+      const client =
+        createHonoClient<DeleteRecordByConditionsRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][
+        ':table'
+      ].record.conditions.$delete({
+        param: { schema: params.schema, table: params.table },
+        json: { conditions: params.keys },
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Borra varios registros, cada uno identificado por su clave
+     * (`DELETE /v1/tables/:schema/:table/records`). Devuelve cuántos se
+     * borraron y cuántos fallaron.
+     */
+    async batchDeleteRecords(params: {
+      schema: string;
+      table: string;
+      items: Array<Record<string, unknown>>;
+    }) {
+      const client = createHonoClient<BatchDeleteRecordsRoute>(clientOptions);
+
+      const response = await client.v1.tables[':schema'][
+        ':table'
+      ].records.$delete({
+        param: { schema: params.schema, table: params.table },
+        json: { items: params.items },
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Vincula dos registros de una relación muchos a muchos creando la fila
+     * de la tabla intermedia. Exige `insert` sobre la tabla intermedia.
+     */
+    async linkRecords(params: M2MLinkParams) {
+      const client = createHonoClient<M2MLinkRoute>(clientOptions);
+
+      const response = await client.v1['data-explorer'][':schema'][
+        ':table'
+      ].m2m.link.$post({
+        param: { schema: params.schema, table: params.table },
+        json: {
+          sourceId: params.sourceId,
+          targetId: params.targetId,
+          relation: params.relation,
+        },
+      });
+
+      return handleHonoClientResponse(response);
+    },
+
+    /**
+     * Desvincula dos registros borrando la fila de la tabla intermedia. Exige
+     * `delete` sobre la tabla intermedia.
+     */
+    async unlinkRecords(params: M2MLinkParams) {
+      const client = createHonoClient<M2MUnlinkRoute>(clientOptions);
+
+      const response = await client.v1['data-explorer'][':schema'][
+        ':table'
+      ].m2m.unlink.$post({
+        param: { schema: params.schema, table: params.table },
+        json: {
+          sourceId: params.sourceId,
+          targetId: params.targetId,
+          relation: params.relation,
+        },
+      });
+
+      return handleHonoClientResponse(response);
+    },
   };
 }
+
+/**
+ * Vínculo muchos a muchos entre el registro de origen (`schema.table`,
+ * `sourceId`) y uno de destino (`targetId`) a través de la tabla intermedia
+ * descrita en `relation`.
+ */
+export type M2MLinkParams = {
+  schema: string;
+  table: string;
+  sourceId: string | number;
+  targetId: string | number;
+  relation: {
+    sourceColumn: string;
+    targetSchema: string;
+    targetTable: string;
+    targetColumn: string;
+    junctionSchema: string;
+    junctionTable: string;
+    junctionSourceColumn: string;
+    junctionTargetColumn: string;
+  };
+};
 
 /**
  * Parámetros de una consulta del listado de una tabla. Los filtros van con el
@@ -288,6 +458,11 @@ export type CmsTableMetadata = Awaited<ReturnType<CmsApi['getTableMetadata']>>;
 
 /** Ficha de un registro (`GET /v1/tables/:schema/:table/record`). */
 export type CmsRecordData = Awaited<ReturnType<CmsApi['getRecord']>>;
+
+/** Permisos del usuario sobre una tabla (`canSelect`, `canInsert`…). */
+export type CmsTablePermissions = Awaited<
+  ReturnType<CmsApi['getTablePermissions']>
+>;
 
 /** Vistas guardadas de una tabla, separadas en personales y de equipo. */
 export type CmsSavedViews = Awaited<ReturnType<CmsApi['getSavedViews']>>;
