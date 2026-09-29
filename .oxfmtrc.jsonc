@@ -1,0 +1,54 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "printWidth": 80,
+  "semi": true,
+  "tabWidth": 2,
+  "useTabs": false,
+  "arrowParens": "always",
+  "sortImports": {
+    "customGroups": [
+      {
+        "groupName": "react",
+        "elementNamePattern": ["react", "react-dom"],
+      },
+      {
+        "groupName": "supabase",
+        "elementNamePattern": ["@supabase/**"],
+      },
+      {
+        "groupName": "pymekit",
+        "elementNamePattern": ["@pymekit/**"],
+      },
+      {
+        "groupName": "app",
+        "elementNamePattern": ["~/**", "#/**"],
+      },
+    ],
+    "groups": [
+      "react",
+      "supabase",
+      "external",
+      "pymekit",
+      "app",
+      ["parent", "sibling", "index"],
+      "style",
+    ],
+    "newlinesBetween": true,
+    "order": "asc",
+  },
+  "sortTailwindcss": {
+    "functions": ["tw", "clsx", "cn", "cva"],
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "database.types.ts",
+    "playwright-report",
+    "*.hbs",
+    "*.md",
+    "dist",
+    "build",
+    "*.html",
+    "routeTree.gen.ts",
+  ],
+}

@@ -22,7 +22,10 @@ if (input.stop_hook_active) process.exit(0);
 
 let changed;
 try {
-  changed = execSync('git status --porcelain -uall', { cwd: ROOT, encoding: 'utf8' })
+  changed = execSync('git status --porcelain -uall', {
+    cwd: ROOT,
+    encoding: 'utf8',
+  })
     .split('\n')
     .filter(Boolean)
     .map((l) => l.slice(3));
@@ -30,7 +33,9 @@ try {
   process.exit(0);
 }
 
-const codeChanged = changed.some((f) => !f.startsWith('docs/') && !f.startsWith('memoria/'));
+const codeChanged = changed.some(
+  (f) => !f.startsWith('docs/') && !f.startsWith('memoria/'),
+);
 const progressChanged = changed.includes('docs/tfg/PROGRESO.md');
 
 if (codeChanged && !progressChanged) {

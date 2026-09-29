@@ -1,0 +1,32 @@
+{
+  "name": "@pymekit/shared",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./logger": "./src/logger/index.ts",
+    "./utils": "./src/utils.ts",
+    "./events": "./src/events/index.tsx",
+    "./registry": "./src/registry/index.ts",
+    "./mode-utils": "./src/mode-utils.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "pino": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "@types/react": "catalog:",
+    "vitest": "catalog:"
+  }
+}

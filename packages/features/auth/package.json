@@ -1,0 +1,44 @@
+{
+  "name": "@pymekit/auth",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./sign-in": "./src/sign-in.ts",
+    "./sign-up": "./src/sign-up.ts",
+    "./password-reset": "./src/password-reset.ts",
+    "./auth-layout": "./src/components/auth-layout.tsx",
+    "./shared": "./src/shared.ts",
+    "./mfa": "./src/mfa.ts",
+    "./captcha/client": "./src/captcha/client/index.ts",
+    "./captcha/server": "./src/captcha/server/index.ts",
+    "./resend-email-link": "./src/components/resend-auth-link-form.tsx"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@marsidev/react-turnstile": "catalog:",
+    "@pymekit/shared": "workspace:*",
+    "@pymekit/supabase": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "@pymekit/ui": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
+    "@tanstack/react-form": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-store": "catalog:",
+    "@types/react": "catalog:",
+    "lucide-react": "catalog:",
+    "sonner": "catalog:",
+    "use-intl": "catalog:",
+    "zod": "catalog:"
+  }
+}

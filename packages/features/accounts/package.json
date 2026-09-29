@@ -1,0 +1,53 @@
+{
+  "name": "@pymekit/accounts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./personal-account-dropdown": "./src/components/personal-account-dropdown.tsx",
+    "./account-selector": "./src/components/account-selector.tsx",
+    "./personal-account-settings": "./src/components/personal-account-settings/index.ts",
+    "./components": "./src/components/index.ts",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./api": "./src/server/api.ts",
+    "./services/delete-personal-account.service": "./src/server/services/delete-personal-account.service.server.ts",
+    "./shared": "./src/shared/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pymekit/email-templates": "workspace:*",
+    "@pymekit/function-middleware": "workspace:*",
+    "@pymekit/i18n": "workspace:*",
+    "@pymekit/mailers": "workspace:*",
+    "@pymekit/monitoring": "workspace:*",
+    "@pymekit/otp": "workspace:*",
+    "@pymekit/shared": "workspace:*",
+    "@pymekit/supabase": "workspace:*",
+    "@pymekit/team-accounts": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "@pymekit/ui": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
+    "@tanstack/react-form": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-start": "catalog:",
+    "@tanstack/react-store": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "use-intl": "catalog:",
+    "zod": "catalog:"
+  }
+}

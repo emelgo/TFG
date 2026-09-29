@@ -25,9 +25,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Variables de entorno locales (NUNCA se suben secretos)
+# Variables de entorno locales (NUNCA se suben secretos).
+# Los .env, .env.development, .env.test y .env.production sí se versionan:
+# solo contienen valores públicos o de desarrollo local.
 .env*.local
-.env.production
 
 # Vercel / Turbo / TypeScript
 .vercel
@@ -60,3 +61,6 @@ memoria/**/*.synctex.gz
 memoria/**/*.fdb_latexmk
 memoria/**/*.fls
 memoria/**/_minted*
+
+# Informes de las skills de revisión
+.bug-hunt/

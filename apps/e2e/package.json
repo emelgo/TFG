@@ -1,0 +1,20 @@
+{
+  "name": "web-e2e",
+  "version": "1.0.0",
+  "author": "Enrique Mellado Gómez",
+  "main": "index.js",
+  "scripts": {
+    "report": "playwright show-report",
+    "test": "playwright test --max-failures=1",
+    "test:fast": "playwright test --max-failures=1 --workers=16",
+    "test:setup": "playwright test tests/auth.setup.ts",
+    "test:ui": "ENABLE_BILLING_TESTS=true playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "dotenv": "catalog:",
+    "node-html-parser": "catalog:",
+    "totp-generator": "catalog:"
+  }
+}

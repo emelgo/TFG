@@ -18,7 +18,7 @@ PymeKit reúne en un único monorepo los componentes que casi cualquier SaaS par
 
 ## Estado
 
-🚧 **Fase 0: harness y planificación.** El código de la aplicación se incorpora a partir de la Fase 1. Consulta:
+🚧 **Fase 1: base SaaS importada.** Queda pendiente la integración del CMS (Fase 2). Consulta:
 
 - [`docs/tfg/PLAN.md`](docs/tfg/PLAN.md): fases del proyecto.
 - [`docs/tfg/PROGRESO.md`](docs/tfg/PROGRESO.md): estado actual.
@@ -32,7 +32,26 @@ TanStack Start · React 19 · TypeScript · Supabase (Postgres, Auth, Storage) �
 
 ## Arranque rápido
 
-*Se completará en la Fase 1* (instalación, Supabase local y `pnpm dev`). El manual de instalación completo se entrega en la Fase 7.
+Requisitos: Node ≥ 20 (se recomienda 24), pnpm 11 y Docker (lo usa Supabase local).
+
+```bash
+pnpm install                 # dependencias del monorepo
+pnpm supabase:web:start      # Supabase local (Postgres, Auth, Storage) en Docker
+pnpm dev                     # app web en http://localhost:3100
+```
+
+Otros comandos útiles:
+
+```bash
+pnpm typecheck               # comprobación de tipos de todos los paquetes
+pnpm lint:fix && pnpm format:fix
+pnpm test:unit               # tests unitarios (Vitest)
+pnpm supabase:web:test       # tests de base de datos (pgTAP)
+pnpm supabase:web:reset      # recrea la BD desde las migraciones y el seed
+pnpm supabase:web:typegen    # regenera los tipos TypeScript de la BD
+```
+
+El manual de instalación completo se entrega en la Fase 7.
 
 ## Scripts del TFG
 

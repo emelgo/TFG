@@ -1,0 +1,24 @@
+{
+  "name": "@pymekit/analytics",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.server.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "@types/node": "catalog:"
+  }
+}

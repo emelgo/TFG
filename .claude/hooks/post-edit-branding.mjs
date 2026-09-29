@@ -19,10 +19,14 @@ const input = JSON.parse(readFileSync(0, 'utf8') || '{}');
 const filePath = input.tool_input?.file_path;
 if (!filePath) process.exit(0);
 
-const result = spawnSync(process.execPath, [join(ROOT, 'scripts/tfg/check-branding.mjs'), '--file', filePath], {
-  cwd: ROOT,
-  encoding: 'utf8',
-});
+const result = spawnSync(
+  process.execPath,
+  [join(ROOT, 'scripts/tfg/check-branding.mjs'), '--file', filePath],
+  {
+    cwd: ROOT,
+    encoding: 'utf8',
+  },
+);
 
 if (result.status === 1) {
   process.stderr.write(result.stderr);

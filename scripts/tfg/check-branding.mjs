@@ -22,6 +22,8 @@
  * Uso:
  *   node scripts/tfg/check-branding.mjs              # analiza todo el repositorio
  *   node scripts/tfg/check-branding.mjs --file <ruta> # analiza un único fichero (hook de Claude Code)
+ *   node scripts/tfg/check-branding.mjs --scope-only   # solo busca el scope de paquetes original
+ *                                                      # (bloqueante en la CI mientras dura la Fase 3)
  *
  * Termina con código 1 si encuentra alguna referencia no permitida.
  *
@@ -35,7 +37,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // Términos prohibidos. El scope `@kit/` delata un import sin renombrar.
-const FORBIDDEN = [/makerkit/i, /supamode/i, /@kit\//];
+// También detecta la forma escapada dentro de expresiones regulares (`@kit\/`).
+const SCOPE = /@kit\\?\//;
+const FORBIDDEN = process.argv.includes('--scope-only')
+  ? [SCOPE]
+  : [/makerkit/i, /supamode/i, SCOPE];
 
 // Ficheros donde cualquier mención está permitida.
 // `docs/tfg` es documentación interna del TFG (plan, decisiones, guías) y
@@ -81,7 +87,8 @@ function globToRegExp(glob) {
   return new RegExp(`^${re}$`);
 }
 
-const matchesAny = (path, globs) => globs.some((g) => globToRegExp(g).test(path));
+const matchesAny = (path, globs) =>
+  globs.some((g) => globToRegExp(g).test(path));
 
 function loadAllowlist() {
   const file = join(ROOT, 'scripts/tfg/branding-allowlist.json');
@@ -95,7 +102,10 @@ function loadAllowlist() {
 /** Lista los ficheros del repositorio respetando `.gitignore` si hay git. */
 function listFiles() {
   try {
-    return execSync('git ls-files -co --exclude-standard', { cwd: ROOT, encoding: 'utf8' })
+    return execSync('git ls-files -co --exclude-standard', {
+      cwd: ROOT,
+      encoding: 'utf8',
+    })
       .split('\n')
       .filter(Boolean);
   } catch {
@@ -131,7 +141,8 @@ function checkFile(path, allowlist) {
     const allowed = allowlist.some(
       (entry) => globToRegExp(entry.path).test(path) && entry.regex.test(line),
     );
-    if (!allowed) findings.push({ path, line: index + 1, text: original.trim() });
+    if (!allowed)
+      findings.push({ path, line: index + 1, text: original.trim() });
   });
 
   return findings;
@@ -160,13 +171,21 @@ function main() {
   const findings = files.flatMap((f) => checkFile(f, allowlist));
 
   if (findings.length === 0) {
-    if (fileArgIndex === -1) console.log(`✔ check-branding: ${files.length} ficheros revisados, sin referencias.`);
+    if (fileArgIndex === -1)
+      console.log(
+        `✔ check-branding: ${files.length} ficheros revisados, sin referencias.`,
+      );
     process.exit(0);
   }
 
-  console.error(`✖ check-branding: ${findings.length} referencia(s) no permitida(s) a los proyectos de referencia:`);
-  for (const f of findings) console.error(`  ${f.path}:${f.line}  ${f.text.slice(0, 140)}`);
-  console.error('\nSustitúyelas según docs/tfg/GUIA-DESMARCADO.md o, si está justificado, registra una excepción en scripts/tfg/branding-allowlist.json.');
+  console.error(
+    `✖ check-branding: ${findings.length} referencia(s) no permitida(s) a los proyectos de referencia:`,
+  );
+  for (const f of findings)
+    console.error(`  ${f.path}:${f.line}  ${f.text.slice(0, 140)}`);
+  console.error(
+    '\nSustitúyelas según docs/tfg/GUIA-DESMARCADO.md o, si está justificado, registra una excepción en scripts/tfg/branding-allowlist.json.',
+  );
   process.exit(1);
 }
 

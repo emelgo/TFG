@@ -150,7 +150,8 @@ La memoria se redacta **a lo largo de todo el proyecto** con `/seccion-memoria`.
 |---|---|---|
 | P-01 | La propuesta pide *«evaluación de la reutilización de la plataforma en un escenario de ejemplo»*, pero el alcance acordado es una plataforma genérica. **Propuesta inicial:** medir los pasos y el tiempo necesarios para arrancar un SaaS nuevo desde PymeKit. El autor lo abordará más adelante (a más tardar, antes de F6). | Aplazado |
 | P-02 | Nombre definitivo del esquema SQL del CMS (renombrarlo o mantenerlo) | Se decide en F2 |
-| P-03 | Qué hacer con el servidor MCP de desarrollo heredado | Se decide en F1 |
+| P-03 | Qué hacer con el servidor MCP de desarrollo heredado | ✅ Cerrado: descartado (ADR-008) |
 | P-04 | Integrar la plantilla LaTeX oficial desde Overleaf (ver `memoria/README.md`) | Pendiente: el autor pasará el `.zip` |
 | P-05 | Crear el repositorio remoto (GitHub privado) y configurar `origin` | ✅ Cerrado: `https://github.com/emelgo/TFG` |
+| P-07 | **Idea del autor:** integrar el CMS dentro de la consola de super-admin de la web (`/admin`) en lugar de como app separada. Opciones que hay que evaluar al empezar F2: (a) apps separadas con SSO y un enlace desde `/admin` (lo previsto en ADR-002); (b) montar la API Hono del CMS dentro de `apps/web` (p. ej. `/api/cms/*`) y portar sus pantallas como rutas de TanStack bajo `/admin/cms`; (c) híbrido: API integrada y SPA embebida. Afecta a ADR-002, al RBAC (super-admin frente a roles del CMS) y al despliegue (un servicio frente a tres) | Abierto (decidir al inicio de F2) |
 | P-06 | Cómo presenta la memoria la parte reutilizada sin nombrar los proyectos de referencia (ADR-007); confirmar con el tutor | Abierto |
