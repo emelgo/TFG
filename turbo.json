@@ -1,0 +1,107 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "globalDependencies": ["**/.env", "**/.env.*"],
+  "ui": "stream",
+  "globalEnv": [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_UI_MODE",
+    "STRIPE_ENABLE_TRIAL_WITHOUT_CC",
+    "VITE_STRIPE_PUBLISHABLE_KEY",
+    "VITE_PRODUCT_NAME",
+    "VITE_SITE_URL",
+    "VITE_MONITORING_PROVIDER",
+    "EMAIL_SENDER",
+    "EMAIL_PORT",
+    "EMAIL_HOST",
+    "EMAIL_TLS",
+    "EMAIL_USER",
+    "EMAIL_PASSWORD",
+    "LOGGER",
+    "SUPABASE_DB_WEBHOOK_SECRET",
+    "SUPABASE_SECRET_KEY",
+    "WEBHOOK_SENDER_PROVIDER",
+    "INSTRUMENTATION_SERVICE_NAME",
+    "ENABLE_STRICT_CSP",
+    "CAPTCHA_SECRET_TOKEN",
+    "VITE_CAPTCHA_WIDGET_SIZE",
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_PUBLIC_KEY",
+    "ENABLE_BILLING_TESTS",
+    "RESEND_API_KEY",
+    "MAILER_PROVIDER",
+    "CONTACT_EMAIL",
+    "VITE_ACCOUNT_MODE",
+    "VITE_ALLOW_USER_TO_CREATE_ORGANIZATION",
+    "VITE_APP_HOME_PATH",
+    "VITE_AUTH_MAGIC_LINK",
+    "VITE_AUTH_OAUTH_PROVIDERS",
+    "VITE_AUTH_PASSKEY",
+    "VITE_AUTH_PASSWORD",
+    "VITE_BILLING_PROVIDER",
+    "VITE_CAPTCHA_SITE_KEY",
+    "VITE_CAPTCHA_WIDGET_SIZE",
+    "VITE_DEFAULT_LOCALE",
+    "VITE_DEFAULT_THEME_MODE",
+    "VITE_DISPLAY_TERMS_AND_CONDITIONS_CHECKBOX",
+    "VITE_EMAIL_SUBJECT",
+    "VITE_ENABLE_CUSTOM_ROLES",
+    "VITE_ENABLE_PERSONAL_ACCOUNT_BILLING",
+    "VITE_ENABLE_THEME_TOGGLE",
+    "VITE_ENABLE_VERSION_UPDATER",
+    "VITE_INVITATION_EXPIRES_IN",
+    "VITE_MAX_ORGANIZATIONS_PER_USER",
+    "VITE_MAX_ROLES_PER_ORGANIZATION",
+    "VITE_MONITORING_PROVIDER",
+    "VITE_PASSWORD_MAX_LENGTH",
+    "VITE_PASSWORD_MIN_LENGTH",
+    "VITE_PASSWORD_REQUIRE_NUMBERS",
+    "VITE_PASSWORD_REQUIRE_SPECIAL_CHARS",
+    "VITE_PASSWORD_REQUIRE_UPPERCASE",
+    "VITE_PRODUCT_NAME",
+    "VITE_SIDEBAR_COLLAPSED",
+    "VITE_SIDEBAR_COLLAPSIBLE_STYLE",
+    "VITE_SITE_URL",
+    "VITE_STRIPE_PRO_MONTHLY_PLAN_ID",
+    "VITE_STRIPE_PUBLISHABLE_KEY",
+    "VITE_STRIPE_STARTER_MONTHLY_PLAN_ID",
+    "VITE_VERSION_UPDATER_REFETCH_INTERVAL_SECONDS"
+  ],
+  "tasks": {
+    "topo": {
+      "dependsOn": ["^topo"]
+    },
+    "build": {
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false,
+      "passThroughEnv": ["SSH_AUTH_SOCK", "GIT_SSH"]
+    },
+    "//#lint": {},
+    "//#lint:fix": {
+      "cache": false
+    },
+    "//#format": {},
+    "//#format:fix": {
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^topo"],
+      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+    },
+    "test": {
+      "dependsOn": ["^topo"]
+    },
+    "test:unit": {
+      "dependsOn": ["^topo"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "//#clean": {
+      "cache": false
+    }
+  }
+}

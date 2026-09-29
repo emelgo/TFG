@@ -1,0 +1,58 @@
+{
+  "name": "@pymekit/team-accounts",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./api": "./src/server/api.ts",
+    "./components": "./src/components/index.ts",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./policies": "./src/server/policies/index.ts",
+    "./orchestration": "./src/server/orchestration/index.ts",
+    "./services/account-members.service": "./src/server/services/account-members.service.server.ts",
+    "./services/account-invitations.service": "./src/server/services/account-invitations.service.server.ts",
+    "./services/create-team-account.service": "./src/server/services/create-team-account.service.server.ts",
+    "./services/leave-team-account.service": "./src/server/services/leave-team-account.service.server.ts",
+    "./invitation-signature": "./src/server/services/invitation-signature.server.ts",
+    "./shared": "./src/shared/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pymekit/billing-gateway": "workspace:*",
+    "@pymekit/email-templates": "workspace:*",
+    "@pymekit/function-middleware": "workspace:*",
+    "@pymekit/mailers": "workspace:*",
+    "@pymekit/monitoring": "workspace:*",
+    "@pymekit/otp": "workspace:*",
+    "@pymekit/policies": "workspace:*",
+    "@pymekit/shared": "workspace:*",
+    "@pymekit/supabase": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "@pymekit/ui": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
+    "@tanstack/react-form": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-start": "catalog:",
+    "@tanstack/react-store": "catalog:",
+    "@tanstack/react-table": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "class-variance-authority": "catalog:",
+    "date-fns": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "use-intl": "catalog:",
+    "zod": "catalog:"
+  }
+}

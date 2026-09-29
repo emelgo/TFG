@@ -1,0 +1,35 @@
+{
+  "name": "@pymekit/i18n",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/config.ts",
+    "./navigation": "./src/navigation.ts",
+    "./provider": "./src/provider.tsx",
+    "./messages": "./src/messages/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pymekit/shared": "workspace:*",
+    "@tanstack/react-router": "catalog:",
+    "use-intl": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  }
+}

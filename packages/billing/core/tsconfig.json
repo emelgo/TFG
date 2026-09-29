@@ -1,0 +1,9 @@
+{
+  "extends": "@pymekit/tsconfig/base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "verbatimModuleSyntax": true
+  },
+  "include": ["*.ts", "src"],
+  "exclude": ["node_modules"]
+}

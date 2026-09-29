@@ -1,0 +1,28 @@
+{
+  "name": "@pymekit/billing",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./components/*": "./src/components/*",
+    "./schema": "./src/schema/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pymekit/supabase": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "@pymekit/ui": "workspace:*",
+    "zod": "catalog:"
+  }
+}

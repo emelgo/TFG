@@ -65,3 +65,18 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Contexto:** PymeKit se construye sobre bases comerciales con licencia (ADR-001). El autor decide que el TFG presente PymeKit como producto propio, sin nombrarlas.
 - **Decisión:** ni el código, ni la UI, ni la memoria mencionan los proyectos de referencia. Solo la documentación interna (`docs/tfg/`) los nombra. `check-branding` también analiza `memoria/`.
 - **Consecuencias:** la redacción de la memoria (Estado del arte, Implementación) debe ser coherente con esta decisión. Cómo se presenta la parte reutilizada frente a la propia se confirma con el tutor (P-06).
+
+## ADR-008 · Descartar el servidor MCP y el generador de configuración heredados
+- **Fecha:** 2026-09-29 · **Fase:** F1 · **Estado:** Aceptada (cierra P-03)
+- **Contexto:** la base SaaS incluye `packages/mcp-server` (un servidor MCP para que los asistentes de IA consulten la documentación comercial de la base y el estado del proyecto) y un generador Turbo `setup` que registra la licencia y el repositorio *upstream*.
+- **Decisión:** no se incorporan a PymeKit. Tampoco el generador `keystatic` (ADR-004). Se conservan los generadores `package`, `docker` y `cloudflare`, útiles para la reutilización (RNF-01) y el despliegue (F7).
+- **Alternativas consideradas:** conservar el servidor MCP renombrado. Se descarta porque su valor depende de la documentación comercial, que no se incluye en el repositorio. El *harness* de `AGENTS.md` y `.claude/` cumple esa función para PymeKit.
+- **Consecuencias:** se eliminan `.mcp.json` y 16 ficheros con marca, y el flujo de desarrollo deja de depender de la licencia y de la red.
+- **Requisitos relacionados:** RNF-04, RNF-05.
+
+## ADR-009 · La app web escucha en el puerto 3100
+- **Fecha:** 2026-09-29 · **Fase:** F1 · **Estado:** Aceptada
+- **Contexto:** la base usa el puerto 3000, que en el equipo de desarrollo ya ocupa otro servicio. Además, en la referencia del CMS su API también usa el 3000 (conflicto previsto en F2).
+- **Decisión:** la web usa el **3100** en desarrollo (`vite.config.ts`, con `strictPort`), en producción local (`PORT` en `.env`/`.env.test`), en Supabase Auth (`site_url`, redirecciones, `rp_origins`), en el webhook del seed, en Playwright, en el reenvío de Stripe y en la CI. Dentro de los contenedores Docker se mantiene el 3000 interno.
+- **Consecuencias:** los puertos del CMS se asignarán en F2 sin chocar (se propone la franja 31xx).
+- **Requisitos relacionados:** RNF-07.

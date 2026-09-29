@@ -1,0 +1,24 @@
+{
+  "name": "@pymekit/policies",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pymekit/shared": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "zod": "catalog:"
+  }
+}

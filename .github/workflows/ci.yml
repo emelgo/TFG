@@ -1,0 +1,160 @@
+# Integración continua de PymeKit.
+#
+# - controles-tfg: desmarcado e informe de comentarios (normas del TFG).
+# - typescript: typecheck, lint y tests unitarios en cada push/PR.
+# - test: Supabase local + pgTAP + E2E (Playwright). Es costoso y necesita
+#   secretos, así que solo se ejecuta si la variable del repositorio
+#   ENABLE_E2E_JOB vale 'true' (Settings > Secrets and variables > Actions).
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  controles-tfg:
+    name: Controles del TFG
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      # Bloqueante: ningún import puede conservar el scope original de paquetes.
+      - name: Scope de paquetes
+        run: node scripts/tfg/check-branding.mjs --scope-only
+
+      # Informativo hasta cerrar la Fase 3; entonces se quitará continue-on-error.
+      - name: Desmarcado completo
+        continue-on-error: true
+        run: node scripts/tfg/check-branding.mjs
+
+      # Informativo hasta la Fase 4; entonces se añadirá --strict.
+      - name: Informe de comentarios en inglés
+        run: node scripts/tfg/report-comments.mjs
+
+  typescript:
+    name: TypeScript
+    timeout-minutes: 10
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    env:
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_DB_WEBHOOK_SECRET: ${{ secrets.SUPABASE_DB_WEBHOOK_SECRET }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      DO_NOT_TRACK: 1
+      TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Formato
+        run: pnpm run format
+
+      - name: Tests unitarios
+        run: pnpm run test:unit
+
+  test:
+    name: Supabase + E2E
+    timeout-minutes: 20
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    if: ${{ vars.ENABLE_E2E_JOB == 'true' }}
+    env:
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_DB_WEBHOOK_SECRET: ${{ secrets.SUPABASE_DB_WEBHOOK_SECRET }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      ENABLE_BILLING_TESTS: ${{ vars.ENABLE_BILLING_TESTS }}
+      DO_NOT_TRACK: 1
+      TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Store Playwright's Version
+        run: |
+          PLAYWRIGHT_VERSION=$(pnpm ls @playwright/test --filter web-e2e | grep @playwright | sed 's/.*@//')
+          echo "Playwright's Version: $PLAYWRIGHT_VERSION"
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
+
+      - name: Cache Playwright Browsers for Playwright's Version
+        id: cache-playwright-browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright Browsers
+        if: steps.cache-playwright-browsers.outputs.cache-hit != 'true'
+        run: pnpm exec ./apps/e2e/node_modules/.bin/playwright install --with-deps
+
+      - name: Supabase CLI
+        uses: supabase/setup-cli@v3
+
+      - name: Supabase Server
+        run: pnpm run supabase:web:start:ci
+
+      - name: Stripe CLI
+        run: |
+          docker run --add-host=host.docker.internal:host-gateway --rm -it --name=stripe -d stripe/stripe-cli:latest listen --all-snapshot --forward-to http://host.docker.internal:3100/api/billing/webhook --skip-verify --api-key "$STRIPE_SECRET_KEY" --log-level debug &
+
+      - name: Run Production Build (test env)
+        run: pnpm --filter web build:test
+
+      - name: Run Server
+        run: pnpm --filter web start:test &
+
+      - name: Run Playwright tests
+        run: |
+          echo "Running Playwright tests. Billing tests enabled: $ENABLE_BILLING_TESTS"
+          pnpm run test
+
+      - name: Run Supabase tests
+        run: pnpm --filter web supabase:test
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report
+          path: apps/e2e/playwright-report/
+          retention-days: 7

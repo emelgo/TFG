@@ -1,0 +1,15 @@
+{
+  "name": "@pymekit/{{ name }}",
+  "private": true,
+  "version": "0.1.0",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*"
+  }
+}

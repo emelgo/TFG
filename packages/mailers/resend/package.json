@@ -1,0 +1,24 @@
+{
+  "name": "@pymekit/resend",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    ".": "./src/index.server.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pymekit/mailers-shared": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "zod": "catalog:"
+  }
+}

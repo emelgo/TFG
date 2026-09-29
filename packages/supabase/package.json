@@ -1,0 +1,44 @@
+{
+  "name": "@pymekit/supabase",
+  "version": "0.1.0",
+  "private": true,
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./server-client": "./src/clients/server-client.server.ts",
+    "./server-admin-client": "./src/clients/server-admin-client.server.ts",
+    "./browser-client": "./src/clients/browser-client.ts",
+    "./bearer-client": "./src/clients/bearer-client.server.ts",
+    "./check-requires-mfa": "./src/check-requires-mfa.ts",
+    "./passkey-errors": "./src/passkey-errors.ts",
+    "./require-user": "./src/require-user.ts",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./database": "./src/database.types.ts",
+    "./auth": "./src/auth.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@pymekit/shared": "workspace:*",
+    "@tanstack/react-start": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  }
+}

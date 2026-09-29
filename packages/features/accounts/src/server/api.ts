@@ -1,0 +1,159 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+import type { Database } from '@pymekit/supabase/database';
+
+/**
+ * Class representing an API for interacting with user accounts.
+ * @constructor
+ * @param {SupabaseClient<Database>} client - The Supabase client instance.
+ */
+class AccountsApi {
+  constructor(private readonly client: SupabaseClient<Database>) {}
+
+  /**
+   * @name getAccount
+   * @description Get the account data for the given ID.
+   * @param id
+   */
+  async getAccount(id: string) {
+    const { data, error } = await this.client
+      .from('accounts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  /**
+   * @name getAccountWorkspace
+   * @description Get the account workspace data.
+   */
+  async getAccountWorkspace() {
+    const { data, error } = await this.client
+      .from('user_account_workspace')
+      .select(`*`)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  /**
+   * @name loadUserAccounts
+   * Load the user accounts.
+   */
+  async loadUserAccounts() {
+    const { data: accounts, error } = await this.client
+      .from('user_accounts')
+      .select(`name, slug, picture_url`);
+
+    if (error) {
+      throw error;
+    }
+
+    return accounts.map(({ name, slug, picture_url }) => {
+      return {
+        label: name,
+        value: slug,
+        image: picture_url,
+      };
+    });
+  }
+
+  /**
+   * @name getSubscription
+   * Get the subscription data for the given user.
+   * @param accountId
+   */
+  async getSubscription(accountId: string) {
+    const response = await this.client
+      .from('subscriptions')
+      .select('*, items: subscription_items !inner (*)')
+      .eq('account_id', accountId)
+      .maybeSingle();
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    return response.data;
+  }
+
+  /**
+   * Get the orders data for the given account.
+   * @param accountId
+   */
+  async getOrder(accountId: string) {
+    const response = await this.client
+      .from('orders')
+      .select('*, items: order_items !inner (*)')
+      .eq('account_id', accountId)
+      .maybeSingle();
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    return response.data;
+  }
+
+  /**
+   * @name getCustomerId
+   * Get the billing customer ID for the given user.
+   * If the user does not have a billing customer ID, it will return null.
+   * @param accountId
+   */
+  async getCustomerId(accountId: string) {
+    const response = await this.client
+      .from('billing_customers')
+      .select('customer_id')
+      .eq('account_id', accountId)
+      .maybeSingle();
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    return response.data?.customer_id;
+  }
+
+  /**
+   * @name ownerHasBillingHistory
+   * @description Returns whether the given user already has billing history
+   * (a billing customer record) on ANY account they own. Used to determine
+   * trial eligibility at an identity level rather than per-account, so a user
+   * cannot obtain a fresh trial by creating additional accounts.
+   *
+   * NOTE: this query is scoped explicitly by `primary_owner_user_id` and is
+   * intended to be run with an admin client so it can read across all of the
+   * user's owned accounts regardless of RLS.
+   * @param userId
+   */
+  async ownerHasBillingHistory(userId: string) {
+    const { count, error } = await this.client
+      .from('accounts')
+      .select('id, billing_customers !inner (id)', {
+        head: true,
+        count: 'exact',
+      })
+      .eq('primary_owner_user_id', userId);
+
+    if (error) {
+      throw error;
+    }
+
+    return (count ?? 0) > 0;
+  }
+}
+
+export function createAccountsApi(client: SupabaseClient<Database>) {
+  return new AccountsApi(client);
+}

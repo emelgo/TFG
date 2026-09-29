@@ -24,14 +24,43 @@ import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.sql']);
-const IGNORED_DIRS = new Set(['node_modules', '.git', '.turbo', 'dist', 'build', '.output', '.nitro', '.tanstack']);
+const EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.sql',
+]);
+const IGNORED_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.turbo',
+  'dist',
+  'build',
+  '.output',
+  '.nitro',
+  '.tanstack',
+]);
 // Ficheros generados: su contenido no lo escribimos nosotros.
-const IGNORED_FILES = [/routeTree\.gen\.ts$/, /database\.types\.ts$/, /\.d\.ts$/];
+const IGNORED_FILES = [
+  /routeTree\.gen\.ts$/,
+  /database\.types\.ts$/,
+  /\.d\.ts$/,
+];
 
 // Palabras vacías muy frecuentes y casi exclusivas de cada idioma.
-const EN = new Set('the this that is are be to of and for with we it if when should will this from not only use used can by which our you'.split(' '));
-const ES = new Set('el la los las que es son de del y para con se por una un cuando si solo no lo al como su sus este esta usamos debe puede'.split(' '));
+const EN = new Set(
+  'the this that is are be to of and for with we it if when should will this from not only use used can by which our you'.split(
+    ' ',
+  ),
+);
+const ES = new Set(
+  'el la los las que es son de del y para con se por una un cuando si solo no lo al como su sus este esta usamos debe puede'.split(
+    ' ',
+  ),
+);
 
 /** Extrae los comentarios de un fichero con su número de línea. */
 function extractComments(source, isSql) {
@@ -53,13 +82,16 @@ function extractComments(source, isSql) {
     const start = line.indexOf('/*');
     if (start !== -1) {
       const end = line.indexOf('*/', start + 2);
-      if (end !== -1) comments.push({ line: i + 1, text: line.slice(start + 2, end) });
+      if (end !== -1)
+        comments.push({ line: i + 1, text: line.slice(start + 2, end) });
       else block = { line: i + 1, text: line.slice(start + 2) };
       return;
     }
 
     // `//` precedido de `:` suele ser una URL (https://), no un comentario.
-    const lineComment = isSql ? line.match(/(?:^|\s)--\s?(.*)$/) : line.match(/(?:^|[^:])\/\/\s?(.*)$/);
+    const lineComment = isSql
+      ? line.match(/(?:^|\s)--\s?(.*)$/)
+      : line.match(/(?:^|[^:])\/\/\s?(.*)$/);
     if (lineComment) comments.push({ line: i + 1, text: lineComment[1] });
   });
 
@@ -82,7 +114,11 @@ function collectFiles(target, out) {
   if (!existsSync(target)) return;
   const stats = statSync(target);
   if (stats.isFile()) {
-    if (EXTENSIONS.has(extname(target)) && !IGNORED_FILES.some((re) => re.test(target))) out.push(target);
+    if (
+      EXTENSIONS.has(extname(target)) &&
+      !IGNORED_FILES.some((re) => re.test(target))
+    )
+      out.push(target);
     return;
   }
   for (const name of readdirSync(target)) {
@@ -95,13 +131,17 @@ function main() {
   const verbose = args.includes('--verbose');
   const strict = args.includes('--strict');
   const targets = args.filter((a) => !a.startsWith('--'));
-  const roots = (targets.length ? targets : ['apps', 'packages', 'tooling']).map((t) => resolve(ROOT, t));
+  const roots = (
+    targets.length ? targets : ['apps', 'packages', 'tooling']
+  ).map((t) => resolve(ROOT, t));
 
   const files = [];
   roots.forEach((r) => collectFiles(r, files));
 
   if (files.length === 0) {
-    console.log('report-comments: no hay ficheros de código que analizar todavía.');
+    console.log(
+      'report-comments: no hay ficheros de código que analizar todavía.',
+    );
     return;
   }
 
@@ -111,24 +151,45 @@ function main() {
 
   for (const file of files) {
     const rel = relative(ROOT, file);
-    const group = rel.split('/').slice(0, rel.startsWith('packages/features') || rel.startsWith('packages/cms') || rel.startsWith('packages/billing') ? 3 : 2).join('/');
-    const suspicious = extractComments(readFileSync(file, 'utf8'), file.endsWith('.sql')).filter((c) => isProbablyEnglish(c.text));
+    const group = rel
+      .split('/')
+      .slice(
+        0,
+        rel.startsWith('packages/features') ||
+          rel.startsWith('packages/cms') ||
+          rel.startsWith('packages/billing')
+          ? 3
+          : 2,
+      )
+      .join('/');
+    const suspicious = extractComments(
+      readFileSync(file, 'utf8'),
+      file.endsWith('.sql'),
+    ).filter((c) => isProbablyEnglish(c.text));
 
     const entry = byGroup.get(group) ?? { files: 0, english: 0, details: [] };
     entry.files++;
     entry.english += suspicious.length;
-    suspicious.forEach((c) => entry.details.push(`${rel}:${c.line}  ${c.text.trim().slice(0, 100)}`));
+    suspicious.forEach((c) =>
+      entry.details.push(`${rel}:${c.line}  ${c.text.trim().slice(0, 100)}`),
+    );
     byGroup.set(group, entry);
     totalEnglish += suspicious.length;
   }
 
   console.log('Comentarios probablemente en inglés, por módulo:\n');
-  for (const [group, { files: count, english, details }] of [...byGroup].sort()) {
+  for (const [group, { files: count, english, details }] of [
+    ...byGroup,
+  ].sort()) {
     const mark = english === 0 ? '✔' : '•';
-    console.log(`${mark} ${group.padEnd(45)} ${String(english).padStart(5)} en ${count} ficheros`);
+    console.log(
+      `${mark} ${group.padEnd(45)} ${String(english).padStart(5)} en ${count} ficheros`,
+    );
     if (verbose) details.forEach((d) => console.log(`    ${d}`));
   }
-  console.log(`\nTotal: ${totalEnglish} comentario(s) sospechoso(s) en ${files.length} ficheros.`);
+  console.log(
+    `\nTotal: ${totalEnglish} comentario(s) sospechoso(s) en ${files.length} ficheros.`,
+  );
 
   if (strict && totalEnglish > 0) process.exit(1);
 }
