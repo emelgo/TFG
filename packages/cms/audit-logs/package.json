@@ -1,0 +1,32 @@
+{
+  "name": "@pymekit/cms-audit-logs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./routes": "./src/api/routes/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "catalog:",
+    "@pymekit/cms-shared": "workspace:*",
+    "@pymekit/cms-supabase": "workspace:*",
+    "@pymekit/shared": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*"
+  }
+}

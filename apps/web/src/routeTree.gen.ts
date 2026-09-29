@@ -45,6 +45,7 @@ import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_auth
 import { Route as AdminAccountsIndexRouteImport } from './routes/admin/accounts/index'
 import { Route as AdminAccountsIdRouteImport } from './routes/admin/accounts/$id'
 import { Route as ApiBillingWebhookRouteImport } from './routes/api/billing/webhook'
+import { Route as ApiCmsSplatRouteImport } from './routes/api/cms/$'
 import { Route as ApiDbWebhookRouteImport } from './routes/api/db/webhook'
 import { Route as AuthCallbackIndexRouteImport } from './routes/auth/callback/index'
 import { Route as AuthCallbackErrorRouteImport } from './routes/auth/callback/error'
@@ -237,6 +238,11 @@ const ApiBillingWebhookRoute = ApiBillingWebhookRouteImport.update({
   path: '/api/billing/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCmsSplatRoute = ApiCmsSplatRouteImport.update({
+  id: '/api/cms/$',
+  path: '/api/cms/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiDbWebhookRoute = ApiDbWebhookRouteImport.update({
   id: '/api/db/webhook',
   path: '/api/db/webhook',
@@ -303,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin/accounts/$id': typeof AdminAccountsIdRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
+  '/api/cms/$': typeof ApiCmsSplatRoute
   '/api/db/webhook': typeof ApiDbWebhookRoute
   '/auth/callback/error': typeof AuthCallbackErrorRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -341,6 +348,7 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin/accounts/$id': typeof AdminAccountsIdRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
+  '/api/cms/$': typeof ApiCmsSplatRoute
   '/api/db/webhook': typeof ApiDbWebhookRoute
   '/auth/callback/error': typeof AuthCallbackErrorRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin/accounts/$id': typeof AdminAccountsIdRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
+  '/api/cms/$': typeof ApiCmsSplatRoute
   '/api/db/webhook': typeof ApiDbWebhookRoute
   '/auth/callback/error': typeof AuthCallbackErrorRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -430,6 +439,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/admin/accounts/$id'
     | '/api/billing/webhook'
+    | '/api/cms/$'
     | '/api/db/webhook'
     | '/auth/callback/error'
     | '/dashboard/'
@@ -468,6 +478,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/admin/accounts/$id'
     | '/api/billing/webhook'
+    | '/api/cms/$'
     | '/api/db/webhook'
     | '/auth/callback/error'
     | '/dashboard'
@@ -512,6 +523,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/profile'
     | '/admin/accounts/$id'
     | '/api/billing/webhook'
+    | '/api/cms/$'
     | '/api/db/webhook'
     | '/auth/callback/error'
     | '/_authenticated/dashboard/'
@@ -537,6 +549,7 @@ export interface RootRouteChildren {
   JoinAcceptRoute: typeof JoinAcceptRoute
   JoinIndexRoute: typeof JoinIndexRoute
   ApiBillingWebhookRoute: typeof ApiBillingWebhookRoute
+  ApiCmsSplatRoute: typeof ApiCmsSplatRoute
   ApiDbWebhookRoute: typeof ApiDbWebhookRoute
 }
 
@@ -794,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBillingWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cms/$': {
+      id: '/api/cms/$'
+      path: '/api/cms/$'
+      fullPath: '/api/cms/$'
+      preLoaderRoute: typeof ApiCmsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/db/webhook': {
       id: '/api/db/webhook'
       path: '/api/db/webhook'
@@ -1002,6 +1022,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinAcceptRoute: JoinAcceptRoute,
   JoinIndexRoute: JoinIndexRoute,
   ApiBillingWebhookRoute: ApiBillingWebhookRoute,
+  ApiCmsSplatRoute: ApiCmsSplatRoute,
   ApiDbWebhookRoute: ApiDbWebhookRoute,
 }
 export const routeTree = rootRouteImport

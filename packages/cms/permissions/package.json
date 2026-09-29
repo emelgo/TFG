@@ -1,0 +1,32 @@
+{
+  "name": "@pymekit/cms-permissions",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./services": "./src/services/index.ts",
+    "./routes": "./src/routes/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pymekit/cms-auth": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*",
+    "@pymekit/cms-supabase": "workspace:*",
+    "@pymekit/shared": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*"
+  }
+}

@@ -35,12 +35,14 @@
 - [x] CU-01 probado a mano por el autor: registro y login funcionan (vía túnel SSH)
 - [x] Job de E2E activado en GitHub (`ENABLE_E2E_JOB` y secretos de Supabase). Para ahorrar minutos, solo se ejecuta en PR a `main` y a mano (*Run workflow*). Los secretos de Stripe se añadirán en F5
 - [ ] Estabilizar el test inestable de admin (o documentarlo) antes de F6
+- [ ] El setup de auth de los E2E falla contra `pnpm dev` (envía el formulario antes de la hidratación); de momento los E2E se lanzan contra la build de test
 
 ## F2 · Integración del CMS (en `/admin/cms`, ADR-011)
 - [x] Análisis del código del CMS y decisión de P-07 (ADR-011 a ADR-014)
 - [x] F2.1 · BD: esquema `cms` (34 esquemas, 9 migraciones), pegamento super-admin → Root (ADR-014) y MFA obligatorio por defecto
 - [x] F2.1 · `/rls-review` completa (etapas 1–4): 2 brechas heredadas confirmadas y corregidas (escalada por UPDATE sin WITH CHECK; lectura de `pg_catalog.pg_authid`), más 6 endurecimientos (ADR-015). La refutación independiente confirmó el resto. pgTAP: 57 ficheros, 1.550 tests en verde
-- [ ] F2.2 · API: paquetes de servidor, Drizzle, auth y montaje en `/api/cms`
+- [x] F2.2 · API: 19 paquetes `@pymekit/cms-*` (solo servidor), Hono montado en `/api/cms/$`, auth con la sesión de PymeKit + `cms.verify_admin_access()` (403 sin MFA o con la cuenta inactiva). 1.130 tests unitarios y 11 E2E de la API en verde
+- [ ] F2.3 · Guard de `/admin/cms`: hoy `/admin` solo admite super-admins; el personal del CMS con `cms_access` (ADR-014) necesita entrar a `/admin/cms` sin ver el resto de la consola
 - [ ] F2.3 · Base de UI: layout, navegación, cliente RPC, componentes e i18n
 - [ ] F2.4 · Explorador de datos (RF-09)
 - [ ] F2.5 · Explorador de usuarios y de almacenamiento
@@ -67,7 +69,7 @@
 | `packages/features/*` | ⬜ | ⬜ |
 | `packages/billing/*` | ⬜ | ⬜ |
 | `apps/web/src` | ⬜ | ⬜ |
-| `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms` | ⬜ | ⬜ |
+| `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms` (incluye quitar 27 `console.*` heredados y arreglar los tipos de los tests heredados, hoy excluidos del typecheck) | ⬜ | ⬜ |
 | Resto de `packages/*` | ⬜ | ⬜ |
 | `apps/e2e`, `tooling` | ⬜ | ⬜ |
 
@@ -102,6 +104,7 @@
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-29 | F2.2 | API del CMS montada en `/api/cms` dentro de la web: 19 paquetes de servidor, auth con la sesión de PymeKit y comprobación en BD; E2E 51 ✔ (1 flaky conocido) |
 | 2026-09-29 | F2.1 | BD del CMS integrada y endurecida: 2 brechas heredadas (escalada RBAC, lectura de pg_authid) y el MFA que fallaba en abierto, corregidos (ADR-015); 1.550 pgTAP en verde |
 | 2026-09-29 | F2 | P-07 decidido: integración total del CMS en `/admin/cms` (ADR-011), esquema `cms` (ADR-012), librerías unificadas (ADR-013) y super-admin como raíz del CMS (ADR-014) |
 | 2026-09-29 | F2 | Detectado Supabase local expuesto a Internet (Docker se salta UFW): parado, regla DOCKER-USER persistente y volúmenes recreados (ADR-010). Inicio del análisis de P-07 |

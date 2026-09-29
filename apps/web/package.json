@@ -36,6 +36,7 @@
     "@pymekit/auth": "workspace:*",
     "@pymekit/billing": "workspace:*",
     "@pymekit/billing-gateway": "workspace:*",
+    "@pymekit/cms-api": "workspace:*",
     "@pymekit/database-webhooks": "workspace:*",
     "@pymekit/function-middleware": "workspace:*",
     "@pymekit/i18n": "workspace:*",
