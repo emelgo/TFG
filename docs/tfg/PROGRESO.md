@@ -42,8 +42,8 @@
 - [x] F2.1 · BD: esquema `cms` (34 esquemas, 9 migraciones), pegamento super-admin → Root (ADR-014) y MFA obligatorio por defecto
 - [x] F2.1 · `/rls-review` completa (etapas 1–4): 2 brechas heredadas confirmadas y corregidas (escalada por UPDATE sin WITH CHECK; lectura de `pg_catalog.pg_authid`), más 6 endurecimientos (ADR-015). La refutación independiente confirmó el resto. pgTAP: 57 ficheros, 1.550 tests en verde
 - [x] F2.2 · API: 19 paquetes `@pymekit/cms-*` (solo servidor), Hono montado en `/api/cms/$`, auth con la sesión de PymeKit + `cms.verify_admin_access()` (403 sin MFA o con la cuenta inactiva). 1.130 tests unitarios y 11 E2E de la API en verde
-- [ ] F2.3 · Guard de `/admin/cms`: hoy `/admin` solo admite super-admins; el personal del CMS con `cms_access` (ADR-014) necesita entrar a `/admin/cms` sin ver el resto de la consola
-- [ ] F2.3 · Base de UI: layout, navegación, cliente RPC, componentes e i18n
+- [x] F2.3 · Base de UI: `/admin` admite super-admins y personal del CMS (`has_cms_access`); las páginas de plataforma siguen siendo solo de super-admin (ADR-016). Layout `/admin/cms` con comprobación de acceso y aviso de MFA, barra lateral «Plataforma»/«CMS» según permisos, paquete cliente `@pymekit/cms-ui-core`, fetch isomorfo (SSR sin salto de red), namespace i18n `cms` (en) y usuario de demo `cms-staff@pymekit.test` (rol Soporte). E2E: 60 ✔ (8 nuevos del CMS)
+- [ ] Pendientes de F2.3 para F2.4–F2.8: filtrado por pestaña en Ajustes y Paneles; visibilidad de Almacenamiento aproximada (cualquier permiso de lectura); `/v1/permissions` registrado dos veces (paquetes permissions y settings)
 - [ ] F2.4 · Explorador de datos (RF-09)
 - [ ] F2.5 · Explorador de usuarios y de almacenamiento
 - [ ] F2.6 · Auditoría (RF-10)
@@ -104,6 +104,7 @@
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-29 | F2.3 | Base de la interfaz del CMS en `/admin/cms`: acceso de super-admin y personal, barra lateral por permisos y aviso de MFA; E2E 60 ✔ |
 | 2026-09-29 | F2.2 | API del CMS montada en `/api/cms` dentro de la web: 19 paquetes de servidor, auth con la sesión de PymeKit y comprobación en BD; E2E 51 ✔ (1 flaky conocido) |
 | 2026-09-29 | F2.1 | BD del CMS integrada y endurecida: 2 brechas heredadas (escalada RBAC, lectura de pg_authid) y el MFA que fallaba en abierto, corregidos (ADR-015); 1.550 pgTAP en verde |
 | 2026-09-29 | F2 | P-07 decidido: integración total del CMS en `/admin/cms` (ADR-011), esquema `cms` (ADR-012), librerías unificadas (ADR-013) y super-admin como raíz del CMS (ADR-014) |

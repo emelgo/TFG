@@ -145,3 +145,14 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
   - el personal puede insertar entradas de auditoría a su nombre;
   - el INSERT en `saved_view_roles` no comprueba la propiedad de la vista.
 - **Requisitos relacionados:** RF-09, RF-10, RNF-02, RNF-03.
+
+## ADR-016 · Acceso a la consola: super-admin y personal del CMS
+- **Fecha:** 2026-09-29 · **Fase:** F2.3 · **Estado:** Aceptada
+- **Decisión:**
+  - `/admin` deja entrar a quien sea super-admin **o** tenga el claim `cms_access`.
+  - Las páginas de la plataforma (`/admin`, `/admin/accounts/**`) exigen super-admin; el personal del CMS que intente abrirlas se redirige a `/admin/cms`. Las *server functions* de admin siguen protegidas por `adminFunctionMiddleware`.
+  - La barra lateral muestra cada sección del CMS solo si la API lo permite (`GET /v1/account` devuelve `access`). Aun así, cada ruta y cada endpoint vuelven a comprobar el permiso.
+  - Un super-admin sin MFA (aal1) ya no recibe un 404 en `/admin`: se le envía a `/admin/cms`, que muestra el aviso de verificación en dos pasos.
+- **Motivo:** ADR-014 prevé personal del CMS con acceso limitado que no debe ver la gestión de la plataforma.
+- **Consecuencias:** la interfaz del CMS carga los datos con un `fetch` isomorfo. En SSR llama a la app Hono en el mismo proceso, reenviando solo la cabecera `cookie`.
+- **Requisitos relacionados:** RF-08, RF-09, RNF-02.
