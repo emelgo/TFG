@@ -20,21 +20,53 @@ test.describe('Admin Auth flow without MFA', () => {
 test.describe('Admin Auth flow with Super Admin but without MFA', () => {
   AuthPageObject.setupSession(AUTH_STATES.TEST_USER);
 
-  // Desde la integración del CMS (ADR-014), un super-admin sin segundo
-  // factor tiene el claim `cms_access`, así que entra en la consola, pero no
-  // como super-admin (exige aal2): las páginas de la plataforma lo llevan al
-  // CMS, que muestra el aviso de verificación en dos pasos en lugar de datos.
-  test('sends admin users without MFA to the CMS MFA notice', async ({
-    page,
-  }) => {
+  // Este usuario es super-admin pero no tiene ningún factor MFA configurado,
+  // así que no puede elevar su sesión a aal2. La consola exige siempre segundo
+  // factor (ADR-016), de modo que no se anuncia: 404, igual que para un
+  // usuario normal. Debe activar antes el MFA en los ajustes de su cuenta.
+  test('returns a 404 to admins without any MFA factor', async ({ page }) => {
     await page.goto('/admin');
 
-    await page.waitForURL('**/admin/cms');
-
-    await expect(page.getByTestId('cms-mfa-required')).toBeVisible();
+    await expect(page.locator('[data-testid="root-not-found"]')).toBeVisible();
     await expect(page.getByTestId('admin-sidebar-platform-group')).toHaveCount(
       0,
     );
+  });
+});
+
+test.describe('Admin Auth flow with MFA configured but not verified', () => {
+  // Regresión de un fallo detectado por el autor: el super-admin con MFA
+  // configurado inicia sesión, NO completa el segundo factor y escribe /admin
+  // en la barra de direcciones. Antes se cargaba la consola; ahora se le
+  // exige verificar el MFA y, al hacerlo, vuelve a /admin.
+  test('redirects to MFA verification and back to the console', async ({
+    page,
+  }) => {
+    const auth = new AuthPageObject(page);
+
+    await page.goto('/auth/sign-in');
+
+    await auth.signIn({
+      email: 'super-admin@makerkit.dev',
+      password: 'testingpassword',
+    });
+
+    await page.waitForURL('**/auth/verify**');
+
+    // Se salta la verificación y va directo a la consola.
+    await page.goto('/admin');
+
+    await page.waitForURL('**/auth/verify**');
+    await expect(page.getByTestId('admin-sidebar-platform-group')).toHaveCount(
+      0,
+    );
+
+    await auth.submitMFAVerification(AuthPageObject.MFA_KEY);
+
+    await page.waitForURL('**/admin');
+    await expect(
+      page.getByTestId('admin-sidebar-platform-group'),
+    ).toBeVisible();
   });
 });
 

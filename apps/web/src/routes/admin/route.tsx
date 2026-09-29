@@ -30,11 +30,12 @@ import { AdminMobileNavigation } from '#/components/admin/admin-mobile-navigatio
 import { AdminSidebar } from '#/components/admin/admin-sidebar.tsx';
 import { AppLogo } from '#/components/app-logo.tsx';
 import pathsConfig from '#/config/paths.config.ts';
+import { fetchRequiresMfa } from '#/lib/auth/mfa.functions.ts';
 import { cmsQueries } from '#/lib/cms/cms-queries.ts';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/admin')({
-  beforeLoad: ({ context, location }) => {
+  beforeLoad: async ({ context, location }) => {
     if (!context.user) {
       throw redirect({
         href: `${pathsConfig.auth.signIn}?next=${encodeURIComponent(location.href)}`,
@@ -42,6 +43,27 @@ export const Route = createFileRoute('/admin')({
     }
 
     if (!context.user.is_superadmin && !context.user.has_cms_access) {
+      throw notFound();
+    }
+
+    // [TFG] RNF-02 · ADR-014/016: la consola exige SIEMPRE segundo factor.
+    // El claim `cms_access` no depende del nivel de la sesión (lo tiene
+    // también un super-admin que solo ha escrito la contraseña), así que sin
+    // esta comprobación una sesión aal1 llegaba a cargar la consola. Los datos
+    // seguían protegidos (la API y la BD exigen MFA), pero la consola no debe
+    // mostrarse sin verificar la identidad.
+    if (context.user.aal !== 'aal2') {
+      // Tiene un factor MFA configurado pero no lo ha usado en esta sesión:
+      // se le pide y, al verificarlo, vuelve a la página que intentaba abrir.
+      if (await fetchRequiresMfa()) {
+        throw redirect({
+          href: `${pathsConfig.auth.verifyMfa}?next=${encodeURIComponent(location.href)}`,
+        });
+      }
+
+      // Sin ningún factor configurado no hay forma de elevar la sesión: la
+      // consola no se anuncia (404), igual que para cualquier otro usuario.
+      // Debe activar primero el MFA en los ajustes de su cuenta.
       throw notFound();
     }
   },

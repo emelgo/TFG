@@ -152,7 +152,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
   - `/admin` deja entrar a quien sea super-admin **o** tenga el claim `cms_access`.
   - Las páginas de la plataforma (`/admin`, `/admin/accounts/**`) exigen super-admin; el personal del CMS que intente abrirlas se redirige a `/admin/cms`. Las *server functions* de admin siguen protegidas por `adminFunctionMiddleware`.
   - La barra lateral muestra cada sección del CMS solo si la API lo permite (`GET /v1/account` devuelve `access`). Aun así, cada ruta y cada endpoint vuelven a comprobar el permiso.
-  - Un super-admin sin MFA (aal1) ya no recibe un 404 en `/admin`: se le envía a `/admin/cms`, que muestra el aviso de verificación en dos pasos.
+  - **La consola exige siempre sesión aal2** (corrección posterior, a raíz de una prueba manual del autor). La versión inicial dejaba entrar a una sesión aal1 con el claim `cms_access`, que también tiene un super-admin que solo ha escrito la contraseña. Los datos no quedaban expuestos (la API y la BD exigen MFA), pero la consola se cargaba. Ahora, si hay un factor MFA configurado, se redirige a `/auth/verify?next=…`; si no hay ninguno, la respuesta es 404.
 - **Motivo:** ADR-014 prevé personal del CMS con acceso limitado que no debe ver la gestión de la plataforma.
 - **Consecuencias:** la interfaz del CMS carga los datos con un `fetch` isomorfo. En SSR llama a la app Hono en el mismo proceso, reenviando solo la cabecera `cookie`.
 - **Requisitos relacionados:** RF-08, RF-09, RNF-02.

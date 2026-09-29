@@ -104,6 +104,7 @@
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-29 | F2.3 | Corrección de seguridad (detectada por el autor): `/admin` se cargaba con sesión aal1; ahora exige aal2 (verificación MFA o 404). Test E2E de regresión añadido |
 | 2026-09-29 | F2.3 | Base de la interfaz del CMS en `/admin/cms`: acceso de super-admin y personal, barra lateral por permisos y aviso de MFA; E2E 60 ✔ |
 | 2026-09-29 | F2.2 | API del CMS montada en `/api/cms` dentro de la web: 19 paquetes de servidor, auth con la sesión de PymeKit y comprobación en BD; E2E 51 ✔ (1 flaky conocido) |
 | 2026-09-29 | F2.1 | BD del CMS integrada y endurecida: 2 brechas heredadas (escalada RBAC, lectura de pg_authid) y el MFA que fallaba en abierto, corregidos (ADR-015); 1.550 pgTAP en verde |
