@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(supabase:*)",
+      "Bash(node scripts/tfg/:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Read(//home/admin/TFG/makerkit/**)",
+      "Read(//home/admin/TFG/supamode/**)"
+    ],
+    "deny": [
+      "Edit(//home/admin/TFG/makerkit/**)",
+      "Write(//home/admin/TFG/makerkit/**)",
+      "Edit(//home/admin/TFG/supamode/**)",
+      "Write(//home/admin/TFG/supamode/**)",
+      "Read(./**/.env.local)",
+      "Read(./**/.env.production)",
+      "Read(./**/*.pem)"
+    ],
+    "additionalDirectories": ["../makerkit", "../supamode"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.mjs\"" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-branding.mjs\"" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-progress.mjs\"" }
+        ]
+      }
+    ]
+  }
+}

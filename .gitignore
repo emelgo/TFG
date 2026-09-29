@@ -1,0 +1,62 @@
+# Dependencias
+node_modules
+.pnp
+.pnp.js
+
+# Pruebas
+coverage
+test-results
+playwright-report
+
+# Builds
+build
+dist
+.output
+.nitro
+.tanstack
+
+# Varios
+.DS_Store
+*.pem
+
+# Logs de depuración
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Variables de entorno locales (NUNCA se suben secretos)
+.env*.local
+.env.production
+
+# Vercel / Turbo / TypeScript
+.vercel
+.turbo
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+.zed
+
+# Caché de Node
+node-compile-cache/
+
+# Ajustes locales de Claude Code (los compartidos van en .claude/settings.json)
+.claude/settings.local.json
+
+# Artefactos de compilación LaTeX de la memoria
+memoria/**/*.aux
+memoria/**/*.log
+memoria/**/*.out
+memoria/**/*.toc
+memoria/**/*.lof
+memoria/**/*.lot
+memoria/**/*.bbl
+memoria/**/*.blg
+memoria/**/*.bcf
+memoria/**/*.run.xml
+memoria/**/*.synctex.gz
+memoria/**/*.fdb_latexmk
+memoria/**/*.fls
+memoria/**/_minted*
