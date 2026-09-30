@@ -124,11 +124,11 @@ Se distinguen dos medidas:
 | 2026-09-29 | 17:02–17:50 | F2.4b (ficha de registro) + bitácora y trazabilidad | ≈ 0,75 | commits |
 | 2026-09-29 | 17:50–19:00 | F2.4c (escritura) + borradores de la memoria | ≈ 1,25 | estimación (sin commit intermedio) |
 | **Total 2026-09-29** | | | **≈ 8,0 de reloj** | commits |
-| **Horas del autor 2026-09-29** | | | **5,0** | declarado por el autor el 2026-09-30 |
+| **Horas del autor 2026-09-29** | | | **8,0** | confirmado por el autor el 2026-09-30 |
 
 | Fecha | Horas del autor | Tiempo de reloj (≈) | Fases trabajadas | Fuente |
 |---|---|---|---|---|
-| 2026-09-29 | 5,0 | ≈ 8,0 | F0, F1, F2.1–F2.4c, bitácora y borradores de la memoria | autor / commits |
+| 2026-09-29 | 8,0 | ≈ 8,0 | F0, F1, F2.1–F2.4c, bitácora y borradores de la memoria | autor (confirma la estimación) |
 | 2026-09-30 | _pendiente_ | _en curso_ | F2.5 | |
 
 ## Registro de sesiones
