@@ -2,10 +2,10 @@ BEGIN;
 
 select no_plan();
 
-select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
-select pymekit.set_identifier('owner', 'owner@makerkit.dev');
-select pymekit.set_identifier('member', 'member@makerkit.dev');
-select pymekit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.set_identifier('owner', 'owner@pymekit.test');
+select pymekit.set_identifier('member', 'member@pymekit.test');
+select pymekit.set_identifier('custom', 'custom@pymekit.test');
 
 -- another user not in the team
 select tests.create_supabase_user('test', 'test@supabase.com');
@@ -15,7 +15,7 @@ select pymekit.authenticate_as('owner');
 
 select throws_ok(
    $$ delete from public.accounts_memberships
-    where account_id = pymekit.get_account_id_by_slug('makerkit')
+    where account_id = pymekit.get_account_id_by_slug('pymekit')
     and user_id = '31a03e74-1639-45b6-bfa7-77447f1a4762' $$,
    'The primary account owner cannot be actioned'
 );
@@ -23,7 +23,7 @@ select throws_ok(
 -- an owner can remove accounts with lower roles
 select lives_ok(
    $$ delete from public.accounts_memberships
-      where account_id = pymekit.get_account_id_by_slug('makerkit')
+      where account_id = pymekit.get_account_id_by_slug('pymekit')
       and user_id = '6b83d656-e4ab-48e3-a062-c0c54a427368' $$,
     'Owner should be able to remove a member'
 );
@@ -34,7 +34,7 @@ select pymekit.authenticate_as('member');
 -- delete a membership record where the user is a higher role than the current user
 select throws_ok(
    $$ delete from public.accounts_memberships
-    where account_id = pymekit.get_account_id_by_slug('makerkit')
+    where account_id = pymekit.get_account_id_by_slug('pymekit')
     and user_id = '5c064f1b-78ee-4e1c-ac3b-e99aa97c99bf' $$,
     'You do not have permission to action a member from this account'
 );
@@ -44,7 +44,7 @@ select pymekit.authenticate_as('primary_owner');
 
 select throws_ok(
     $$ delete from public.accounts_memberships
-       where account_id = pymekit.get_account_id_by_slug('makerkit')
+       where account_id = pymekit.get_account_id_by_slug('pymekit')
        and user_id = '31a03e74-1639-45b6-bfa7-77447f1a4762' $$,
     'The primary account owner cannot be removed from the account membership list'
 );
@@ -52,7 +52,7 @@ select throws_ok(
 -- a primary_owner can remove another member
 select lives_ok(
    $$ delete from public.accounts_memberships
-    where account_id = pymekit.get_account_id_by_slug('makerkit')
+    where account_id = pymekit.get_account_id_by_slug('pymekit')
     and user_id = 'b73eb03e-fb7a-424d-84ff-18e2791ce0b4'; $$,
     'Primary owner should be able to remove another member'
 );
@@ -83,7 +83,7 @@ select pymekit.authenticate_as('test');
 -- a user not in the account cannot remove themselves
 select throws_ok(
    $$ delete from public.accounts_memberships
-   where account_id = pymekit.get_account_id_by_slug('makerkit')
+   where account_id = pymekit.get_account_id_by_slug('pymekit')
    and user_id = auth.uid(); $$,
     'You do not have permission to action a member from this account'
 );

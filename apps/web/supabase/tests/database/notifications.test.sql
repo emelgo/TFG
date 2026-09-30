@@ -34,24 +34,24 @@ select row_eq(
 );
 
 -- user can read their team notifications
-select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
-select pymekit.set_identifier('owner', 'owner@makerkit.dev');
-select pymekit.set_identifier('member', 'member@makerkit.dev');
-select pymekit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.set_identifier('owner', 'owner@pymekit.test');
+select pymekit.set_identifier('member', 'member@pymekit.test');
+select pymekit.set_identifier('custom', 'custom@pymekit.test');
 
 set local role service_role;
 
 -- service role can insert into notifications
 select lives_ok(
-    $$ insert into public.notifications(account_id, body) values (pymekit.get_account_id_by_slug('makerkit'), 'test'); $$,
+    $$ insert into public.notifications(account_id, body) values (pymekit.get_account_id_by_slug('pymekit'), 'test'); $$,
     'service role can insert into notifications'
 );
 
 select pymekit.authenticate_as('member');
 
 select row_eq(
-    $$ select account_id, body from public.notifications where account_id = pymekit.get_account_id_by_slug('makerkit'); $$,
-    row (pymekit.get_account_id_by_slug('makerkit'), 'test'::varchar),
+    $$ select account_id, body from public.notifications where account_id = pymekit.get_account_id_by_slug('pymekit'); $$,
+    row (pymekit.get_account_id_by_slug('pymekit'), 'test'::varchar),
     'user can read their team notifications'
 );
 
@@ -67,7 +67,7 @@ select is_empty(
 
 -- foreigner cannot read other teams notifications
 select is_empty(
-    $$ select account_id, body from public.notifications where account_id = pymekit.get_account_id_by_slug('makerkit'); $$,
+    $$ select account_id, body from public.notifications where account_id = pymekit.get_account_id_by_slug('pymekit'); $$,
     'foreigner cannot read other teams notifications'
 );
 

@@ -8,9 +8,9 @@ select tests.create_supabase_user('revoking_mfa_admin');
 select tests.create_supabase_user('concurrent_session_user');
 
 -- Set up test users
-select pymekit.set_identifier('transitioning_admin', 'transitioning@makerkit.dev');
-select pymekit.set_identifier('revoking_mfa_admin', 'revoking@makerkit.dev');
-select pymekit.set_identifier('concurrent_session_user', 'concurrent@makerkit.dev');
+select pymekit.set_identifier('transitioning_admin', 'transitioning@pymekit.test');
+select pymekit.set_identifier('revoking_mfa_admin', 'revoking@pymekit.test');
+select pymekit.set_identifier('concurrent_session_user', 'concurrent@pymekit.test');
 
 -- Test 1: Role Transition Scenarios
 select pymekit.authenticate_as('transitioning_admin');

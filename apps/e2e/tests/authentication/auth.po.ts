@@ -102,7 +102,7 @@ export class AuthPageObject {
   createRandomEmail() {
     const value = Math.random() * 10000000000000;
 
-    return `${value.toFixed(0)}@makerkit.dev`;
+    return `${value.toFixed(0)}@pymekit.test`;
   }
 
   async signUpFlow(path: string) {
@@ -131,7 +131,7 @@ export class AuthPageObject {
 
   async loginAsSuperAdmin(params: { next?: string }) {
     await this.loginAsUser({
-      email: 'super-admin@makerkit.dev',
+      email: 'super-admin@pymekit.test',
       next: '/auth/verify',
     });
 

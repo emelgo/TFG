@@ -2,16 +2,16 @@ BEGIN;
 
 select no_plan();
 
-select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
-select pymekit.set_identifier('owner', 'owner@makerkit.dev');
-select pymekit.set_identifier('member', 'member@makerkit.dev');
-select pymekit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.set_identifier('owner', 'owner@pymekit.test');
+select pymekit.set_identifier('member', 'member@pymekit.test');
+select pymekit.set_identifier('custom', 'custom@pymekit.test');
 
 INSERT INTO public.billing_customers(account_id, provider, customer_id)
-VALUES (pymekit.get_account_id_by_slug('makerkit'), 'stripe', 'cus_test');
+VALUES (pymekit.get_account_id_by_slug('pymekit'), 'stripe', 'cus_test');
 
 -- Call the upsert_order function
-SELECT public.upsert_order(pymekit.get_account_id_by_slug('makerkit'), 'cus_test', 'order_test', 'pending', 'stripe', 100, 'usd', '[
+SELECT public.upsert_order(pymekit.get_account_id_by_slug('pymekit'), 'cus_test', 'order_test', 'pending', 'stripe', 100, 'usd', '[
     {"id":"order_item_1", "product_id": "prod_test", "variant_id": "var_test", "price_amount": 100, "quantity": 1},
     {"id":"order_item_2", "product_id": "prod_test", "variant_id": "var_test_2", "price_amount": 100, "quantity": 1},
     {"id":"order_item_3", "product_id": "prod_test", "variant_id": "var_test_3", "price_amount": 100, "quantity": 1},
@@ -33,7 +33,7 @@ SELECT row_eq(
 );
 
 SELECT throws_ok(
-    $$ SELECT public.upsert_order(pymekit.get_account_id_by_slug('makerkit'), 'cus_test', 'order_missing_quantity', 'pending', 'stripe', 100, 'usd', '[
+    $$ SELECT public.upsert_order(pymekit.get_account_id_by_slug('pymekit'), 'cus_test', 'order_missing_quantity', 'pending', 'stripe', 100, 'usd', '[
         {"id":"order_missing_quantity_item", "product_id": "prod_missing_quantity", "variant_id": "var_missing_quantity", "price_amount": 100}
     ]') $$,
     '23502',
@@ -42,7 +42,7 @@ SELECT throws_ok(
 );
 
 -- Call the upsert_order function again to update the order
-SELECT public.upsert_order(pymekit.get_account_id_by_slug('makerkit'), 'cus_test', 'order_test', 'succeeded', 'stripe', 100, 'usd', '[
+SELECT public.upsert_order(pymekit.get_account_id_by_slug('pymekit'), 'cus_test', 'order_test', 'succeeded', 'stripe', 100, 'usd', '[
     {"id":"order_item_1", "product_id": "prod_test", "variant_id": "var_test", "price_amount": 100, "quantity": 1},
     {"id":"order_item_2", "product_id": "prod_test_2", "variant_id": "var_test_4", "price_amount": 200, "quantity": 10}
 ]');

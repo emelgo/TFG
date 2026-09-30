@@ -11,12 +11,12 @@ const EMAIL_SENDER = z
   .min(1)
   .parse(process.env.EMAIL_SENDER);
 
-// Falls back to 'Makerkit' so an unset value never crashes the OTP send path
+// Falls back to 'PymeKit' so an unset value never crashes the OTP send path
 // at module load.
 const PRODUCT_NAME = z
   .string()
   .min(1)
-  .default('Makerkit')
+  .default('PymeKit')
   .parse(import.meta.env.VITE_PRODUCT_NAME);
 
 /**

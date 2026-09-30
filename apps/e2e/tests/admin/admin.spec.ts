@@ -47,7 +47,7 @@ test.describe('Admin Auth flow with MFA configured but not verified', () => {
     await page.goto('/auth/sign-in');
 
     await auth.signIn({
-      email: 'super-admin@makerkit.dev',
+      email: 'super-admin@pymekit.test',
       password: 'testingpassword',
     });
 

@@ -5,8 +5,8 @@ This package is responsible for managing the UI components and styles across the
 This package define two sets of components:
 
 - `Shadcn UI`: A set of UI components that can be used across the app using shadcn UI
-- `Makerkit-specific`: Components specific to MakerKit
+- `pymekit`: componentes propios de PymeKit (`src/pymekit/`)
 
 ## Installing a Shadcn UI component
 
- Please refer to the [documentation](https://makerkit.dev/docs/tanstack-supabase/components/shadcn).
+ Consulta `packages/ui/AGENTS.md` para su uso en PymeKit.

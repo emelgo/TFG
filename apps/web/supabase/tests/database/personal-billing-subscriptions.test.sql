@@ -2,10 +2,10 @@ BEGIN;
 
 select no_plan();
 
-select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
-select pymekit.set_identifier('owner', 'owner@makerkit.dev');
-select pymekit.set_identifier('member', 'member@makerkit.dev');
-select pymekit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.set_identifier('owner', 'owner@pymekit.test');
+select pymekit.set_identifier('member', 'member@pymekit.test');
+select pymekit.set_identifier('custom', 'custom@pymekit.test');
 
 -- Create a test account and billing customer
 INSERT INTO public.billing_customers(account_id, provider, customer_id)

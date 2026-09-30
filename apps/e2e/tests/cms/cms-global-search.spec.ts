@@ -25,10 +25,10 @@ import { AuthPageObject } from '../authentication/auth.po';
 import { AUTH_STATES } from '../utils/auth-state';
 import { GlobalSearchPageObject } from './audit-logs.po';
 
-/** Cuenta de equipo del *seed* («Makerkit»). */
+/** Cuenta de equipo del *seed* («PymeKit»). */
 const TEAM_ACCOUNT = {
   id: '5deaa894-2094-4da3-b4fd-1fada0809d1c',
-  name: 'Makerkit',
+  name: 'PymeKit',
 } as const;
 
 /** Tablas que puede leer el personal de soporte del *seed*. */
@@ -202,8 +202,8 @@ test.describe('Búsqueda global: personal de soporte', () => {
     for (const query of [
       'query=a',
       `query=${'x'.repeat(101)}`,
-      'query=makerkit&limit=1000',
-      'query=makerkit&offset=-1',
+      'query=pymekit&limit=1000',
+      'query=pymekit&offset=-1',
     ]) {
       const response = await page.request.get(
         `/api/cms/v1/resources/search?${query}`,

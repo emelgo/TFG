@@ -366,7 +366,7 @@ select is_empty(
 
 -- Root: el super-admin del seed (rol Root asignado por 53-cms-super-admin),
 -- con segundo factor (sesión aal2), como en el CMS real
-select pymekit.set_identifier('blog_root', 'super-admin@makerkit.dev');
+select pymekit.set_identifier('blog_root', 'super-admin@pymekit.test');
 select pymekit.set_identifier('blog_staff', 'cms-staff@pymekit.test');
 
 select tests.authenticate_as('blog_root');

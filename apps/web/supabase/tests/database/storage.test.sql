@@ -2,10 +2,10 @@ BEGIN;
 
 select no_plan();
 
-select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
-select pymekit.set_identifier('owner', 'owner@makerkit.dev');
-select pymekit.set_identifier('member', 'member@makerkit.dev');
-select pymekit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.set_identifier('owner', 'owner@pymekit.test');
+select pymekit.set_identifier('member', 'member@pymekit.test');
+select pymekit.set_identifier('custom', 'custom@pymekit.test');
 
 select pymekit.authenticate_as('member');
 
@@ -126,22 +126,22 @@ set local role postgres;
 -- exercise the RLS delete policies the way the Storage API does.
 set local storage.allow_delete_query = 'true';
 
--- the team image for the seeded 'makerkit' team, named after the account id
+-- the team image for the seeded 'pymekit' team, named after the account id
 insert into storage.objects ("bucket_id", "metadata", "name", "version") values
-    ('account_image', '{"key": "value"}', concat(pymekit.get_account_id_by_slug('makerkit'), '.png'), 1);
+    ('account_image', '{"key": "value"}', concat(pymekit.get_account_id_by_slug('pymekit'), '.png'), 1);
 
 -- 'custom' holds custom-role on the team, which has NO permissions
 select pymekit.authenticate_as('custom');
 
 select isnt_empty(
-    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('pymekit'), '.png') $$,
     'A team member can read the team image'
 );
 
 -- a member without settings.manage cannot replace the team image
 select throws_ok(
     $$ insert into storage.objects ("bucket_id", "metadata", "name", "version") values
-        ('account_image', '{"forged": true}', concat(pymekit.get_account_id_by_slug('makerkit'), '.forged.png'), 1) $$,
+        ('account_image', '{"forged": true}', concat(pymekit.get_account_id_by_slug('pymekit'), '.forged.png'), 1) $$,
     'new row violates row-level security policy for table "objects"',
     'A member without settings.manage cannot upload into the team image namespace'
 );
@@ -150,25 +150,25 @@ select throws_ok(
 -- permission), so the object is untouched
 select lives_ok(
     $$ update storage.objects set metadata = '{"tampered": true}'
-       where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
+       where name = concat(pymekit.get_account_id_by_slug('pymekit'), '.png') $$,
     'An overwrite attempt without settings.manage should not crash'
 );
 
 select results_eq(
-    $$ select metadata from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select metadata from storage.objects where name = concat(pymekit.get_account_id_by_slug('pymekit'), '.png') $$,
     $$ values ('{"key": "value"}'::jsonb) $$,
     'The team image metadata is untouched after an overwrite attempt without settings.manage'
 );
 
 select lives_ok(
-    $$ delete from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ delete from storage.objects where name = concat(pymekit.get_account_id_by_slug('pymekit'), '.png') $$,
     'A delete attempt without settings.manage should not crash'
 );
 
 set local role postgres;
 
 select isnt_empty(
-    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('pymekit'), '.png') $$,
     'The team image should still exist after a delete attempt by a member without settings.manage'
 );
 
@@ -176,14 +176,14 @@ select isnt_empty(
 select pymekit.authenticate_as('owner');
 
 select lives_ok(
-    $$ delete from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ delete from storage.objects where name = concat(pymekit.get_account_id_by_slug('pymekit'), '.png') $$,
     'A delete attempt with settings.manage should not crash'
 );
 
 set local role postgres;
 
 select is_empty(
-    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('pymekit'), '.png') $$,
     'The team image should be deleted by a member with settings.manage'
 );
 

@@ -26,7 +26,7 @@ export async function createStripeCheckout(
   stripe: Stripe,
   params: z.output<typeof CreateBillingCheckoutSchema>,
 ) {
-  // in MakerKit, a subscription belongs to an organization,
+  // in PymeKit, a subscription belongs to an organization,
   // rather than to a user
   // if you wish to change it, use the current user ID instead
   const clientReferenceId = params.accountId;

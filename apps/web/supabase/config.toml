@@ -85,7 +85,7 @@ url = ""
 email_sent = 1000
 
 [auth.email.template.invite]
-subject = "You are invited to Makerkit"
+subject = "You are invited to PymeKit"
 content_path = "./supabase/templates/invite-user.html"
 
 [auth.email.template.confirmation]
@@ -101,14 +101,14 @@ subject = "Confirm your email change"
 content_path = "./supabase/templates/change-email-address.html"
 
 [auth.email.template.magic_link]
-subject = "Sign in to Makerkit"
+subject = "Sign in to PymeKit"
 content_path = "./supabase/templates/magic-link.html"
 
 [auth.passkey]
 enabled = true
 [auth.webauthn]
 
-rp_display_name = "Makerkit"
+rp_display_name = "PymeKit"
 rp_id = "localhost"
 rp_origins = ["http://localhost:3100"]
 

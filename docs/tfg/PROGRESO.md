@@ -68,13 +68,13 @@
 
 ## F3 · Desmarcado e i18n
 - [x] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS (adelantado a F2, B-40)
-- [ ] `check-branding` a cero
+- [x] `check-branding` a cero (contenido y rutas), bloqueante en la CI (adelantado a F2 a petición del autor)
 - [ ] Locale `es` por defecto (web, emails, CMS)
-- [ ] Plantillas y `config.toml` de Supabase
+- [ ] Plantillas y `config.toml` de Supabase: marca hecha; falta traducir al español
 - [ ] Marca visual (logo, favicon, landing)
 - [x] Helpers pgTAP `pymekit.*` (adelantado a F2)
 - [x] Carpeta `packages/ui/src/makerkit/` → `src/pymekit/` (y sus exports) y `styles/makerkit.css` → `pymekit.css` (adelantado a F2 a petición del autor, B-40)
-- [ ] Contenido pendiente: equipo de prueba con slug `makerkit` y emails `@makerkit.dev` del seed y los tests, emails de la demo del dashboard, enlace de documentación en `lazy-render.tsx`
+- [x] Contenido: emails de prueba → `@pymekit.test`, equipo de prueba → «PymeKit» (`pymekit`), comentarios SQL, `.env`, manifest, landing, `config.toml`, plantillas de email, READMEs y *tooling* (eliminado `version.mjs`, que se comparaba con el repositorio original)
 - [ ] Plantillas de email solo tienen locale `en`: añadir `es`; revisar `EMAIL_TEMPLATE_RENDERERS` (no tiene consumidores)
 
 ## F4 · Comentarios en español
@@ -146,6 +146,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-30 | F3 (adelantada) | Limpieza completa de la marca a petición del autor: `check-branding` a cero y bloqueante en la CI; pgTAP 1.730 y E2E 126 en verde |
 | 2026-09-30 | F2 | El autor detecta rutas con la marca (`packages/ui/src/makerkit/`): renombradas `src/pymekit/`, `pymekit.css` y los helpers pgTAP `pymekit.*`; `check-branding` revisa ya las rutas y lo hace de forma bloqueante (B-40) |
 | 2026-09-30 | F2.6b | Blog gestionado desde el CMS y visible en la web, demo de pyme, textos legibles en relaciones y tablas en la barra lateral; superficie de `anon` auditada (AISLADO) |
 | 2026-09-30 | F2.6 | Endurecimiento tras `/rls-review`: redacción de la auditoría en BD, tiempo máximo de la búsqueda, sin `SQLERRM` en avisos y MFA exigido a quien lo tiene configurado (B-31 a B-35) |

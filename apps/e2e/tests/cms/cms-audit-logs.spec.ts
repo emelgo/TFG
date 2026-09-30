@@ -33,7 +33,7 @@ import { RecordPageObject } from './record.po';
 /** Usuarios y cuentas del *seed*. */
 const SEED = {
   superAdminUserId: 'c5b930c9-0a76-412e-a836-4bc4849a3270',
-  superAdminEmail: 'super-admin@makerkit.dev',
+  superAdminEmail: 'super-admin@pymekit.test',
   cmsStaffAccountId: '6a0f3e2d-1c4b-4a59-8e7d-3b2c1a0f9e8d',
   teamAccountId: '5deaa894-2094-4da3-b4fd-1fada0809d1c',
 } as const;

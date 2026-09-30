@@ -73,7 +73,7 @@ select is_empty(
 
 -- 5. Prove the denial behaviourally as a real authenticated user, not just from
 --    the catalog -- this is the shape of the original report.
-select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
 select pymekit.authenticate_as('primary_owner');
 
 select throws_ok(

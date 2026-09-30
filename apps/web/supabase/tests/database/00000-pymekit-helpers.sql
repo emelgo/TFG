@@ -407,7 +407,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
--- Makerkit specific helpers
+-- Helpers específicos de PymeKit
 
 create schema if not exists pymekit;
 

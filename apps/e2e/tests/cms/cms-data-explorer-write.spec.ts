@@ -141,7 +141,7 @@ test.describe('Escrituras del explorador: super-admin con MFA', () => {
       form.field('type').getByTestId('record-field-select'),
     ).toContainText('info');
 
-    await form.pickRelation('account_id', 'Makerkit', TEAM_ACCOUNT_ID);
+    await form.pickRelation('account_id', 'PymeKit', TEAM_ACCOUNT_ID);
     await form.fill('body', body);
     await form.submit().click();
 

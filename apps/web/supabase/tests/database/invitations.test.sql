@@ -4,7 +4,7 @@ select no_plan();
 
 -- ----------------------------------------------------------------------------
 -- Setup: create our OWN users + team account so this test does not depend on
--- the seeded makerkit users (which e2e runs can mutate/rename, e.g. owner@ ->
+-- the seeded PymeKit users (which e2e runs can mutate/rename, e.g. owner@ ->
 -- owner1@). 'inv_owner' owns the account, 'inv_member' is a plain member,
 -- 'inv_manager' is a member holding a custom role with invites.manage, and
 -- 'inv_foreigner' is not a member of the account.

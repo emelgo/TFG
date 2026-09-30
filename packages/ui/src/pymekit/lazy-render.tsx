@@ -5,7 +5,6 @@ import { createRef, useLayoutEffect, useMemo, useState } from 'react';
 /**
  * @description Render a component lazily based on the IntersectionObserver
  * appConfig provided.
- * Full documentation at: https://makerkit.dev/docs/components-utilities#lazyrender
  * @param children
  * @param threshold
  * @param rootMargin

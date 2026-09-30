@@ -10,11 +10,11 @@ select tests.create_supabase_user('malicious_user');
 select tests.create_supabase_user('partial_mfa_user');
 
 -- Set up test users
-select pymekit.set_identifier('super_admin', 'super@makerkit.dev');
-select pymekit.set_identifier('regular_user', 'regular@makerkit.dev');
-select pymekit.set_identifier('mfa_user', 'mfa@makerkit.dev');
-select pymekit.set_identifier('malicious_user', 'malicious@makerkit.dev');
-select pymekit.set_identifier('partial_mfa_user', 'partial@makerkit.dev');
+select pymekit.set_identifier('super_admin', 'super@pymekit.test');
+select pymekit.set_identifier('regular_user', 'regular@pymekit.test');
+select pymekit.set_identifier('mfa_user', 'mfa@pymekit.test');
+select pymekit.set_identifier('malicious_user', 'malicious@pymekit.test');
+select pymekit.set_identifier('partial_mfa_user', 'partial@pymekit.test');
 
 -- Test is_aal2 function
 set local role postgres;

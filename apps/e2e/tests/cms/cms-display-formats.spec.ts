@@ -73,10 +73,10 @@ test.describe('Visualización legible: super-admin con MFA', () => {
 
     const members = page.getByTestId('cell-user_id');
 
-    await expect(members.filter({ hasText: 'owner@makerkit.dev' })).toHaveCount(
+    await expect(members.filter({ hasText: 'owner@pymekit.test' })).toHaveCount(
       1,
     );
-    await expect(members.filter({ hasText: 'test@makerkit.dev' })).toHaveCount(
+    await expect(members.filter({ hasText: 'test@pymekit.test' })).toHaveCount(
       1,
     );
 
@@ -87,7 +87,7 @@ test.describe('Visualización legible: super-admin con MFA', () => {
 
     // La cuenta de equipo se muestra por su nombre y slug
     await expect(page.getByTestId('cell-account_id').first()).toContainText(
-      'Makerkit (makerkit)',
+      'PymeKit (pymekit)',
     );
   });
 
@@ -102,7 +102,7 @@ test.describe('Visualización legible: super-admin con MFA', () => {
 
     await expect(record.recordPage()).toBeVisible();
     await expect(record.fieldRelationLink('user_id')).toContainText(
-      'owner@makerkit.dev',
+      'owner@pymekit.test',
     );
 
     await record.fieldRelationLink('user_id').click();
@@ -123,7 +123,7 @@ test.describe('Visualización legible: super-admin con MFA', () => {
     await expect(explorer.rows()).toHaveCount(1);
     await expect(page.getByTestId('cell-category_id')).toHaveText(/Seguridad/);
     await expect(page.getByTestId('cell-author_id')).toContainText(
-      'super-admin (super-admin@makerkit.dev)',
+      'super-admin (super-admin@pymekit.test)',
     );
   });
 

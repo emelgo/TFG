@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------
  * Section: App Configuration
- * We create the configuration for the Supabase MakerKit to enable or disable features
+ * We create the configuration for the PymeKit to enable or disable features
  * -------------------------------------------------------
  */
 
@@ -16,7 +16,7 @@ create table if not exists
 -- The application expects a single global configuration row.
 create unique index if not exists config_singleton on public.config ((true));
 
-comment on table public.config is 'Configuration for the Supabase MakerKit.';
+comment on table public.config is 'Configuration for the PymeKit.';
 
 comment on column public.config.enable_team_accounts is 'Enable team accounts';
 
