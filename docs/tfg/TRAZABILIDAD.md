@@ -34,7 +34,7 @@ _Última actualización: 2026-09-30 (F2.6b cerrada)._
 ## Etiquetas `[TFG]` en el código
 
 <!-- tfg-tags:inicio -->
-_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (176 etiquetas). No se edita a mano._
+_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No se edita a mano._
 
 | Fichero:línea | Referencias | Qué ilustra |
 |---|---|---|
@@ -107,8 +107,10 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (176 etiquetas). No 
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:388` | RF-10, RNF-02 | RF-10 · RNF-02 · Auditoría que falla en cerrado (F2.7a, pendiente |
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:606` | RF-10, RNF-02 | RF-10 · RNF-02 · Auditoría que falla en cerrado (F2.7a, pendiente |
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:925` | RF-10, RNF-02 | RF-10 · RNF-02 · Auditoría que falla en cerrado (F2.7a, pendiente |
-| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1587` | RNF-02 | RNF-02 · Corrección de PymeKit: esta función salta RLS |
-| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1670` | RNF-02 | RNF-02: `grant` explícitos que sustituyen al EXECUTE implícito de |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:972` | RNF-02 | RNF-02 · Corrección de PymeKit (BITACORA B-45): pasa a SECURITY |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1593` | RNF-02 | RNF-02 · Corrección de PymeKit: esta función salta RLS |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1676` | RNF-02 | RNF-02: `grant` explícitos que sustituyen al EXECUTE implícito de |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1687` | RNF-02 | RNF-02 · B-45: en la F2.1 se concedió aquí `_delete_record_impl` a |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:17` | RF-10, RNF-02, ADR-018 | RF-10 · RNF-02 · Instantánea del autor (F2.7a, ADR-018 propuesto). |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:65` | RNF-02 | RNF-02 · Integridad del registro de auditoría (PymeKit, F2.6): el |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:76` | RNF-02 | RNF-02 · Redacción en la base de datos (bitácora B-31). El SELECT se |
@@ -139,6 +141,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (176 etiquetas). No 
 | `apps/web/supabase/tests/database/blog.test.sql:22` | RF-01, RF-09, RNF-02, ADR-017 | RF-01 · RF-09 · RNF-02 · ADR-017. |
 | `apps/web/supabase/tests/database/cms-audit-isolation.test.sql:25` | RNF-02, ADR-015 | RNF-02 · ADR-015. |
 | `apps/web/supabase/tests/database/cms-audit-logs-integrity.test.sql:22` | RNF-02, ADR-015 | RNF-02 · ADR-015. |
+| `apps/web/supabase/tests/database/cms-crud-internal.test.sql:10` | RNF-02 | RNF-02. |
 | `apps/web/supabase/tests/database/cms-dashboards-security.test.sql:253` | RNF-02 | RNF-02 · Endurecimiento de PymeKit: sin acceso de administración |
 | `apps/web/supabase/tests/database/cms-hardening-f26.test.sql:19` | RNF-02, ADR-015 | RNF-02 · ADR-015 · bitácora B-31 a B-34. |
 | `apps/web/supabase/tests/database/cms-isolation.test.sql:19` | RF-09, RNF-02, RNF-03, ADR-014, ADR-015 | RF-09, RNF-02, RNF-03 · ADR-014 y ADR-015. |

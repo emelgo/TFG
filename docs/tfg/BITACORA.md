@@ -59,6 +59,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-42 | 2026-09-30 | F2.7a | seguridad | heredado | Un miembro podía cambiar sus propios roles | Alta |
 | B-43 | 2026-09-30 | F2.7a | seguridad | heredado | Rutas de Ajustes con errores internos, 500 y comprobaciones insuficientes | Media |
 | B-44 | 2026-09-30 | F2.7a | seguridad | heredado | Cualquiera con permiso de ajustes podía desactivar el MFA obligatorio | Media |
+| B-45 | 2026-09-30 | F2.7a | seguridad | propio (F2.1) | Inyección SQL latente: la función interna de borrado era ejecutable por `authenticated` | Alta (latente) |
 
 ---
 
@@ -326,3 +327,11 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** desactivar `requires_mfa` solo exigía el permiso `system_setting:update`, así que un miembro delegado podía rebajar la seguridad de todo el CMS.
 - **Solución:** un *trigger* solo permite ponerlo a `false` a una cuenta Root con sesión aal2, y los cambios de configuración quedan auditados con gravedad `warning`.
 - **Lección:** las opciones que rebajan la seguridad necesitan un nivel de autorización superior al de las que la suben.
+
+## B-45 · Inyección SQL latente: la función interna de borrado era ejecutable por `authenticated`
+- **Qué pasó:** `cms._delete_record_impl` concatena en la sentencia las cláusulas WHERE que recibe, sin validarlas, y se ejecuta como `security definer` con RLS desactivado. Solo debía llamarse desde funciones que construyen esas cláusulas de forma segura, pero `authenticated` tenía permiso para ejecutarla directamente. Un miembro del personal con permiso de borrado en **una** tabla podía inyectar una subconsulta y leer **cualquier** dato de la BD a través del mensaje de error. La prueba sacó el email del autor de una entrada de auditoría y también era posible leer `auth.users`. No era alcanzable desde la API (el esquema `cms` no se expone por PostgREST y la API solo usa los envoltorios), pero sí con acceso SQL directo.
+- **Origen:** **propio**. En la F2.1, PymeKit revocó el `EXECUTE` por defecto y `delete_record` (`security invoker`) dejó de funcionar. Se «arregló» concediendo a `authenticated` el permiso sobre la función interna, en lugar de convertir el envoltorio en `security definer` como ya lo era `update_record`. La `/rls-review` de la F2.1 no lo detectó.
+- **Cómo se detectó:** en la `/rls-review` de la F2.7a, al comprobar si la nueva columna `actor_email` podía leerse por alguna vía.
+- **Solución:** `delete_record` pasa a `security definer`; se revoca el `EXECUTE` de `_delete_record_impl` a `public`, `anon` y `authenticated`. Migración `20260930160000_cms_delete_impl_revoke.sql`.
+- **Evidencia:** `cms-crud-internal.test.sql` (incluso Root recibe 42501 al llamar a la función interna; el borrado por la función pública sigue funcionando); E2E del CMS en verde.
+- **Lección:** cuando un cambio de privilegios rompe algo, la corrección rápida (dar el permiso que falta) puede abrir un agujero mayor que el problema. Hay que preguntarse **por qué** faltaba el permiso. Y las revisiones se complementan: la de la F2.1 lo pasó por alto y la de la F2.7a, que buscaba otra cosa, lo encontró.

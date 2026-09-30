@@ -969,7 +969,13 @@ $$ LANGUAGE plpgsql;
 
 -- SECTION: DELETE RECORD BY ID
 -- In this section, we define the delete record by id function. This function is used to delete a record from a table by its id.
-create or replace function cms.delete_record (p_schema text, p_table text, p_id text) RETURNS jsonb
+-- [TFG] RNF-02 · Corrección de PymeKit (BITACORA B-45): pasa a SECURITY
+-- DEFINER, igual que `update_record`, para que `authenticated` no necesite
+-- ejecutar directamente `_delete_record_impl`, que acepta cláusulas WHERE en
+-- crudo. La función interna comprueba igualmente acceso y permisos.
+create or replace function cms.delete_record (p_schema text, p_table text, p_id text) RETURNS jsonb SECURITY DEFINER
+set
+  row_security = off
 set
   search_path = '' as $$
 BEGIN
@@ -1669,17 +1675,22 @@ END;
 $$ LANGUAGE plpgsql;
 -- [TFG] RNF-02: `grant` explícitos que sustituyen al EXECUTE implícito de
 -- PUBLIC, que PymeKit elimina por defecto (00-privileges.sql).
---  - `_delete_record_impl`: `delete_record` es SECURITY INVOKER y la llama con
---    el rol del usuario; sin este permiso el borrado fallaría siempre. La
---    propia función comprueba `verify_admin_access()` y `has_data_permission`.
 --  - `query_table`: punto de entrada del explorador de datos. Es SECURITY
 --    DEFINER, pero valida los identificadores y exige `has_data_permission`.
 --  - `build_where_clause`: construye el WHERE a partir de filtros JSON y
 --    valida cada columna contra el catálogo; no ejecuta la consulta.
--- `_update_record_impl`, `build_sort_clause`, `validate_column_name` y
--- `build_crud_response` solo se llaman desde funciones SECURITY DEFINER (que
--- se ejecutan como su propietario), así que no se conceden a nadie.
-grant execute on function cms._delete_record_impl (text, text, text[]) to authenticated;
+-- `_update_record_impl`, `_delete_record_impl`, `build_sort_clause`,
+-- `validate_column_name` y `build_crud_response` solo se llaman desde
+-- funciones SECURITY DEFINER (que se ejecutan como su propietario), así que
+-- no se conceden a nadie.
+--
+-- [TFG] RNF-02 · B-45: en la F2.1 se concedió aquí `_delete_record_impl` a
+-- `authenticated` para que funcionara `delete_record` (entonces SECURITY
+-- INVOKER). Como la función interna concatena `p_where_clauses` sin validar
+-- y se ejecuta con RLS desactivado, cualquiera con permiso de borrado en una
+-- tabla podía leer cualquier dato de la BD a través del texto de error. Se
+-- revoca de forma explícita (por si una BD ya tenía el permiso).
+revoke execute on function cms._delete_record_impl (text, text, text[]) from public, anon, authenticated;
 
 grant execute on function cms.query_table (text, text, jsonb, jsonb, jsonb) to authenticated;
 
