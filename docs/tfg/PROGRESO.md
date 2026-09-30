@@ -107,7 +107,11 @@
 
 ## Dedicación
 
-Sirve para el capítulo de *Planificación* (temporización y costes: horas reales frente a estimadas). Las horas marcadas con «≈» son **estimaciones** hechas a partir de la hora de los commits, desde el primer mensaje de la sesión hasta el último commit de cada tramo, redondeadas al cuarto de hora. **El autor debe revisarlas** y registrar las siguientes sesiones con su dedicación real.
+Sirve para el capítulo de *Planificación* (temporización y costes: horas reales frente a estimadas).
+
+Se distinguen dos medidas:
+- **Horas del autor**: dedicación real declarada por el autor. Es la que cuenta para la planificación y los costes.
+- **Tiempo de reloj (≈)**: se estima con la hora de los commits (desde el primer mensaje de la sesión hasta el último commit de cada tramo). Incluye periodos en los que los agentes trabajan solos mientras el autor no está dedicado a la tarea, así que es una cota superior. La diferencia entre ambas medidas sirve de dato para analizar el efecto de trabajar asistido por agentes (capítulo de Planificación y Conclusiones).
 
 | Fecha | Tramo | Fases | Horas | Fuente |
 |---|---|---|---|---|
@@ -119,7 +123,13 @@ Sirve para el capítulo de *Planificación* (temporización y costes: horas real
 | 2026-09-29 | 15:50–17:02 | Corrección MFA `/admin` + F2.4a (listado) | ≈ 1,25 | commits |
 | 2026-09-29 | 17:02–17:50 | F2.4b (ficha de registro) + bitácora y trazabilidad | ≈ 0,75 | commits |
 | 2026-09-29 | 17:50–19:00 | F2.4c (escritura) + borradores de la memoria | ≈ 1,25 | estimación (sin commit intermedio) |
-| **Total** | | | **≈ 8,0** | |
+| **Total 2026-09-29** | | | **≈ 8,0 de reloj** | commits |
+| **Horas del autor 2026-09-29** | | | **5,0** | declarado por el autor el 2026-09-30 |
+
+| Fecha | Horas del autor | Tiempo de reloj (≈) | Fases trabajadas | Fuente |
+|---|---|---|---|---|
+| 2026-09-29 | 5,0 | ≈ 8,0 | F0, F1, F2.1–F2.4c, bitácora y borradores de la memoria | autor / commits |
+| 2026-09-30 | _pendiente_ | _en curso_ | F2.5 | |
 
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
