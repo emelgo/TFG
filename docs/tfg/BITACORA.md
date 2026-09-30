@@ -60,6 +60,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-43 | 2026-09-30 | F2.7a | seguridad | heredado | Rutas de Ajustes con errores internos, 500 y comprobaciones insuficientes | Media |
 | B-44 | 2026-09-30 | F2.7a | seguridad | heredado | Cualquiera con permiso de ajustes podía desactivar el MFA obligatorio | Media |
 | B-45 | 2026-09-30 | F2.7a | seguridad | propio (F2.1) | Inyección SQL latente: la función interna de borrado era ejecutable por `authenticated` | Alta (latente) |
+| B-46 | 2026-09-30 | F3 (adelantada) | calidad | heredado | Marca visual en imágenes que ningún control automático puede leer | Media |
 
 ---
 
@@ -335,3 +336,12 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Solución:** `delete_record` pasa a `security definer`; se revoca el `EXECUTE` de `_delete_record_impl` a `public`, `anon` y `authenticated`. Migración `20260930160000_cms_delete_impl_revoke.sql`.
 - **Evidencia:** `cms-crud-internal.test.sql` (incluso Root recibe 42501 al llamar a la función interna; el borrado por la función pública sigue funcionando); E2E del CMS en verde.
 - **Lección:** cuando un cambio de privilegios rompe algo, la corrección rápida (dar el permiso que falta) puede abrir un agujero mayor que el problema. Hay que preguntarse **por qué** faltaba el permiso. Y las revisiones se complementan: la de la F2.1 lo pasó por alto y la de la F2.7a, que buscaba otra cosa, lo encontró.
+
+## B-46 · Marca visual en imágenes que ningún control automático puede leer
+- **Qué pasó:** con `check-branding` ya a cero, un agente vio el logo del producto original en la interfaz. El componente del logo dibujaba las letras como trazos SVG, sin texto, y los favicons y las capturas de la landing (`dashboard.webp`, `sign-in.webp` y otras tres sin usar) eran imágenes del producto original con su nombre visible.
+- **Solución:**
+  - un logo propio (símbolo de una «P» sobre un bloque y el nombre como texto, que además es más accesible y se adapta al tema);
+  - favicons generados a partir del mismo símbolo;
+  - capturas de la landing tomadas de la **propia aplicación** con un script de Playwright (`apps/e2e/scripts/capture-marketing-screenshots.mjs`), que se volverá a ejecutar tras la traducción al español;
+  - se eliminan las cinco imágenes heredadas.
+- **Lección:** un control automático sobre texto no ve la marca que está en píxeles o en trazos vectoriales. La revisión visual (y un script reproducible para regenerar imágenes) completa lo que el `grep` no puede cubrir.

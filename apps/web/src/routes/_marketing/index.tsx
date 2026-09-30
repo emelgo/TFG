@@ -60,7 +60,7 @@ function Home() {
               }
               width={3558}
               height={2222}
-              src={`/images/dashboard.webp`}
+              src={`/images/dashboard.png`}
               alt={`App Image`}
             />
           }
@@ -137,7 +137,7 @@ function Home() {
         >
           <img
             className="rounded-md"
-            src={'/images/sign-in.webp'}
+            src={'/images/sign-in.png'}
             alt="Sign in"
             width={1000}
             height={1000}

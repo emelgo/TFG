@@ -74,7 +74,8 @@
 - [x] `check-branding` a cero (contenido y rutas), bloqueante en la CI (adelantado a F2 a petición del autor)
 - [ ] Locale `es` por defecto (web, emails, CMS)
 - [ ] Plantillas y `config.toml` de Supabase: marca hecha; falta traducir al español
-- [ ] Marca visual (logo, favicon, landing)
+- [x] Marca visual: logo propio (símbolo + nombre en texto), favicons generados a partir del símbolo y capturas de la landing tomadas de la propia app (`apps/e2e/scripts/capture-marketing-screenshots.mjs`, a regenerar tras la traducción) (B-46)
+- [ ] La gráfica de demostración del panel muestra «Invalid Date» en su *tooltip* (heredado)
 - [x] Helpers pgTAP `pymekit.*` (adelantado a F2)
 - [x] Carpeta `packages/ui/src/makerkit/` → `src/pymekit/` (y sus exports) y `styles/makerkit.css` → `pymekit.css` (adelantado a F2 a petición del autor, B-40)
 - [x] Contenido: emails de prueba → `@pymekit.test`, equipo de prueba → «PymeKit» (`pymekit`), comentarios SQL, `.env`, manifest, landing, `config.toml`, plantillas de email, READMEs y *tooling* (eliminado `version.mjs`, que se comparaba con el repositorio original)
