@@ -53,8 +53,11 @@
 - [ ] Mejora menor (F2.4): el filtro por autocompletado muestra el id si la fila relacionada no está en la página actual
 - [x] F2.5 · Explorador de usuarios (listado, ficha, crear/invitar, bloquear, restablecer, borrar, lote, acceso al CMS) y de almacenamiento (buckets, carpetas, subida, renombrado, borrado, vista previa). Paquetes `@pymekit/cms-{users,storage}-explorer-ui`. 9 fallos heredados corregidos por el agente y 2 más en la revisión posterior (B-21 a B-26). E2E 102 (14 nuevos)
 - [ ] Pendiente (F2.5): renombrar carpetas; E2E de invitar, enlace de acceso y retirada de MFA
-- [ ] F2.6 · Auditoría (RF-10)
-- [ ] F2.7 · Ajustes y RBAC del CMS
+- [ ] F2.6 · Auditoría (RF-10) y búsqueda global (no estaba en el plan inicial: detectada al comparar sección por sección con el CMS original)
+- [ ] F2.6b · Contenido y demo (ADR-017): blog en la BD gestionado desde el CMS y rutas `/blog`; esquema `demo` de pyme; formatos legibles (texto en lugar de id); tablas bajo «Recursos» en la barra lateral
+- [ ] F2.7a · Ajustes: General, Autenticación y Miembros
+- [ ] F2.7b · Ajustes: RBAC (roles, grupos y permisos)
+- [ ] F2.7c · Ajustes: Recursos y diseñador de fichas
 - [ ] F2.8 · Paneles (RF-11, recortable)
 - [ ] F2.9 · Cierre: E2E, skills (`react-form-builder`, `service-builder`, `playwright-e2e`) y `AGENTS.md` actualizados
 

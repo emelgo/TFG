@@ -72,8 +72,11 @@ Se avanza por incrementos. Cada uno cierra con typecheck, lint, tests y revisió
 | F2.3 · Base de UI | Layout `/admin/cms`, navegación dentro de la consola admin, cliente RPC + TanStack Query, componentes que falten en `@pymekit/ui` y namespace i18n `cms` | Navegación vacía funcionando para el super-admin |
 | F2.4 · Explorador de datos | Listado, filtros, detalle y CRUD de tablas (RF-09) | E2E de CRUD |
 | F2.5 · Usuarios y almacenamiento | Explorador de usuarios y de *storage* | E2E básicos |
-| F2.6 · Auditoría | Registro de auditoría (RF-10) | Las acciones del CMS quedan auditadas |
-| F2.7 · Ajustes y RBAC | Gestión de roles, grupos, permisos y miembros del CMS | E2E: un usuario con rol limitado solo ve lo permitido |
+| F2.6 · Auditoría y búsqueda | Registro de auditoría: listado, detalle y auditoría por miembro (RF-10). Búsqueda global en todas las tablas legibles (paleta de comandos) | Las acciones del CMS quedan auditadas y se pueden consultar; la búsqueda respeta los permisos |
+| F2.6b · Contenido y demo (ADR-017) | Blog en la BD gestionado desde el CMS, con rutas públicas `/blog`; esquema `demo` de pyme con datos de ejemplo (solo desarrollo); formatos de visualización legibles (nombre, email o título en lugar de id); tablas bajo «Recursos» en la barra lateral | La web muestra un post creado desde el CMS; las relaciones se ven con texto; `/rls-review` del blog |
+| F2.7a · Ajustes generales | General (preferencias, idioma, zona horaria), Autenticación (MFA obligatorio) y Miembros (personal del CMS y sus roles) | E2E de cada pantalla |
+| F2.7b · RBAC | Roles, grupos de permisos y permisos | E2E: un usuario con rol limitado solo ve lo permitido; sin escalada |
+| F2.7c · Recursos y diseño de fichas | Configuración de tablas y columnas (visibilidad, formato, relaciones) y diseñador de fichas | E2E: un cambio de configuración se refleja en el explorador |
 | F2.8 · Paneles | Dashboards configurables (RF-11, deseable). **Primer candidato a recortar** | E2E básico |
 | F2.9 · Cierre | E2E completos del CMS, limpieza, actualización de skills y `AGENTS.md`, borrador de la memoria (integración) | CI en verde |
 
@@ -156,7 +159,7 @@ La memoria se redacta **a lo largo de todo el proyecto** con `/seccion-memoria`.
 
 | ID | Tema | Estado |
 |---|---|---|
-| P-01 | La propuesta pide *«evaluación de la reutilización de la plataforma en un escenario de ejemplo»*, pero el alcance acordado es una plataforma genérica. **Propuesta inicial:** medir los pasos y el tiempo necesarios para arrancar un SaaS nuevo desde PymeKit. El autor lo abordará más adelante (a más tardar, antes de F6). | Aplazado |
+| P-01 | (Avance: el esquema `demo` de pyme de ADR-017 será la base del escenario.) La propuesta pide *«evaluación de la reutilización de la plataforma en un escenario de ejemplo»*, pero el alcance acordado es una plataforma genérica. **Propuesta inicial:** medir los pasos y el tiempo necesarios para arrancar un SaaS nuevo desde PymeKit. El autor lo abordará más adelante (a más tardar, antes de F6). | Aplazado |
 | P-02 | Nombre definitivo del esquema SQL del CMS (renombrarlo o mantenerlo) | ✅ Cerrado: `cms` (ADR-012) |
 | P-03 | Qué hacer con el servidor MCP de desarrollo heredado | ✅ Cerrado: descartado (ADR-008) |
 | P-04 | Integrar la plantilla LaTeX oficial desde Overleaf (ver `memoria/README.md`) | Pendiente: el autor pasará el `.zip` |

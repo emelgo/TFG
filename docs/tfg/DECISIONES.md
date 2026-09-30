@@ -41,7 +41,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Requisitos relacionados:** RF-13, RNF-05.
 
 ## ADR-004 · Alcance funcional: módulos que se conservan y se retiran
-- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada
+- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada; el blog vuelve, en la BD y gestionado desde el CMS (ADR-017)
 - **Decisión:**
   - **Se conservan:** cuentas personales y de equipo (multi-tenant), roles y permisos, Stripe, el panel de super-admin y el CMS de datos.
   - **Se retiran:** el CMS de contenidos (Keystatic/WordPress), el blog, la documentación y el changelog de marketing. Se mantienen una landing mínima y la página de precios.
@@ -156,3 +156,15 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Motivo:** ADR-014 prevé personal del CMS con acceso limitado que no debe ver la gestión de la plataforma.
 - **Consecuencias:** la interfaz del CMS carga los datos con un `fetch` isomorfo. En SSR llama a la app Hono en el mismo proceso, reenviando solo la cabecera `cookie`.
 - **Requisitos relacionados:** RF-08, RF-09, RNF-02.
+
+## ADR-017 · Blog en la base de datos gestionado desde el CMS, y esquema de demostración para pymes
+- **Fecha:** 2026-09-30 · **Fase:** F2 · **Estado:** Aceptada (sustituye en parte a ADR-004)
+- **Contexto:** ADR-004 retiró el blog heredado porque dependía de un CMS de contenidos basado en ficheros (Keystatic). Al revisar el CMS de datos, el autor señala que el blog es justo el caso de uso de **gestión de contenidos** que pide la propuesta: publicar desde el CMS contenido que muestra la web pública. Además, los listados del CMS muestran uuid en las claves ajenas, en lugar de un texto legible (nombre, email, título).
+- **Decisión:**
+  1. **Blog en la BD:** las tablas de contenido (entradas, categorías y etiquetas) van en `public`, con RLS. La lectura anónima se limita a lo publicado y la escritura solo es posible desde el CMS o por administradores. La web recupera las rutas públicas `/blog` y `/blog/$slug` (con el Markdown saneado) y el *sitemap*. Es funcionalidad real de la plataforma, así que va en esquema y migración.
+  2. **Esquema de demostración para pymes:** tablas de ejemplo (clientes, productos, pedidos, facturas, empleados) con datos de prueba, **solo en desarrollo** (seed), en un esquema propio (`demo`). Sirven para enseñar y probar el CMS, y como escenario de reutilización de la propuesta (P-01).
+  3. **Visualización legible:** formatos por defecto para las tablas de PymeKit y de la demo, de modo que las relaciones se muestren con el nombre, el email o el título, no con el id.
+  4. **Barra lateral:** las tablas legibles aparecen bajo «Recursos», como en el CMS original.
+- **Alternativas consideradas:** mantener el blog fuera (el CMS solo gestionaría datos internos y se debilitaría el objetivo de gestión de contenidos); recuperar Keystatic (dos CMS distintos, en contra de ADR-004 y ADR-011); portar la demo de blog del CMS original tal cual (en inglés, sin RLS pensada para la web pública y mezclada con `public`).
+- **Consecuencias:** hay un paso nuevo, F2.6b, tras la auditoría. Hay que actualizar ADR-004, RF-01 y RF-09 y revisar las políticas del blog con `/rls-review`.
+- **Requisitos relacionados:** RF-01, RF-09, RNF-02, RNF-01 (P-01).
