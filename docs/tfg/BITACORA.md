@@ -61,6 +61,8 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-44 | 2026-09-30 | F2.7a | seguridad | heredado | Cualquiera con permiso de ajustes podía desactivar el MFA obligatorio | Media |
 | B-45 | 2026-09-30 | F2.7a | seguridad | propio (F2.1) | Inyección SQL latente: la función interna de borrado era ejecutable por `authenticated` | Alta (latente) |
 | B-46 | 2026-09-30 | F3 (adelantada) | calidad | heredado | Marca visual en imágenes que ningún control automático puede leer | Media |
+| B-47 | 2026-09-30 | F2.7b | seguridad | heredado | Escape de denegaciones explícitas mediante delegación a una cuenta títere | Alta |
+| B-48 | 2026-09-30 | F2.7b | proceso | propio | Consumo de tokens excesivo por la verificación con agentes | — |
 
 ---
 
@@ -345,3 +347,16 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
   - capturas de la landing tomadas de la **propia aplicación** con un script de Playwright (`apps/e2e/scripts/capture-marketing-screenshots.mjs`), que se volverá a ejecutar tras la traducción al español;
   - se eliminan las cinco imágenes heredadas.
 - **Lección:** un control automático sobre texto no ve la marca que está en píxeles o en trazos vectoriales. La revisión visual (y un script reproducible para regenerar imágenes) completa lo que el `grep` no puede cubrir.
+
+## B-47 · Escape de denegaciones explícitas mediante delegación a una cuenta títere
+- **Qué pasó:** un administrador delegado con un permiso comodín (por ejemplo, lectura de datos `*.*`) y una **denegación** explícita sobre una tabla podía darle acceso al CMS a otra cuenta suya, crear un rol de rango bajo con el permiso comodín, asignárselo y leer desde esa cuenta la tabla denegada. `can_grant_permission` solo buscaba denegaciones que fueran literalmente comodín, no las que se solapaban con el permiso concedido. Pasaba lo mismo con los permisos de sistema y con el *trigger* que impide ampliar un permiso. Además, el personal de soporte podía ver las asignaciones de roles de todas las cuentas.
+- **Cómo se detectó:** en `/rls-review` de la F2.7b, que ya probaba con administradores delegados de distintos rangos. Un refutador independiente lo reprodujo.
+- **Solución:** una sola regla, `cms.capability_is_grantable`: para conceder hay que tener el permiso **y** no tener ninguna denegación vigente que se solape con él (datos: acción, esquema, tabla y columna; sistema: recurso y acción; almacenamiento: bucket y prefijos de ruta, y ante la duda se considera que se solapan). La usan `can_grant_permission`, el *trigger* de ampliación y la API. La visibilidad de las asignaciones de roles y las funciones de rango quedan limitadas a la propia cuenta, salvo con `account:select`. Migración `20260930170100_cms_rbac_deny_overlap.sql`.
+- **Evidencia:** `cms-rbac-isolation.test.sql` (105 comprobaciones, incluida la cadena completa hasta `query_table` con la cuenta títere).
+- **Pendiente:** una denegación de almacenamiento sobre una subruta sigue sin bloquear el acceso por un permiso más amplio (heredado).
+- **Lección:** en un modelo con denegaciones, «¿tengo este permiso?» y «¿puedo delegarlo?» son preguntas distintas. La segunda debe tener en cuenta todas las denegaciones que **se solapan**, no solo las idénticas.
+
+## B-48 · Consumo de tokens excesivo por la verificación con agentes
+- **Qué pasó:** para cada paso se lanzaba un agente implementador (400.000–650.000 tokens), otro de revisión de seguridad y a veces un refutador, y en cada paso se ejecutaba la suite E2E completa. El autor lo consideró excesivo y pidió parar.
+- **Solución:** pausa del desarrollo y paso a un «modo ahorro»: un solo agente por paso, E2E completos solo al cerrar cada fase, `/rls-review` solo en cambios importantes de permisos y sin refutador, y cambios pequeños hechos directamente.
+- **Lección:** la verificación exhaustiva encontró brechas reales (B-45, B-47), pero su coste debe ajustarse al proyecto. El nivel de revisión se decide por riesgo, no por defecto. Es un dato útil para la memoria: coste frente a beneficio de desarrollar asistido por agentes.

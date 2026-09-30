@@ -151,6 +151,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-30 | F2.7b | RBAC del CMS; brecha heredada de escape de denegaciones corregida (B-47). Se pausa el trabajo a petición del autor por el consumo de tokens: se seguirá en modo ahorro (B-48) |
 | 2026-09-30 | F2.7a | Corregida inyección SQL latente en el borrado del CMS, introducida en la F2.1 al portar (B-45) |
 | 2026-09-30 | F2.7a | Ajustes del CMS (General, Autenticación, Miembros), autor de auditoría conservado (ADR-018), auditoría obligatoria y reglas de rango; `/rls-review` AISLADO; pgTAP 1.862, E2E 141 |
 | 2026-09-30 | F3 (adelantada) | Limpieza completa de la marca a petición del autor: `check-branding` a cero y bloqueante en la CI; pgTAP 1.730 y E2E 126 en verde |
