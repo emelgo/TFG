@@ -70,8 +70,21 @@ INSERT INTO cms.role_permissions (role_id, permission_id) VALUES
 -- Sync table metadata
 SELECT cms.sync_managed_tables('public', 'test_users');
 
--- Authenticate as test user
+-- [TFG] RNF-02 · F2.7b (pendiente de ADR-015): `build_where_clause` ya no
+-- es ejecutable por `authenticated` (solo la llama `query_table`, que se
+-- ejecuta como su propietario). Se comprueba y el resto del fichero valida
+-- la lógica del constructor con el rol propietario, como la usa
+-- `query_table`.
 SELECT cms_tests.authenticate_as('test_user');
+
+SELECT throws_ok(
+    $$ SELECT cms.build_where_clause('public', 'test_users', '[]'::jsonb) $$,
+    '42501',
+    NULL,
+    'authenticated no puede ejecutar build_where_clause directamente'
+);
+
+SET LOCAL ROLE postgres;
 
 -- Test 1: Simple equality filter
 SELECT is(

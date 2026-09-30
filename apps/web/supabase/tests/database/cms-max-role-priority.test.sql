@@ -53,6 +53,20 @@ INSERT INTO cms.roles (id, name, rank, description) VALUES
                                                                  (cms_tests.test_uuid(209), 'High rank Test', 95, 'High rank test role'),
                                                                  (cms_tests.test_uuid(210), 'Mid rank Test', 50, 'Mid rank test role');
 
+-- [TFG] B-47: con una sesión de usuario, `get_user_max_role_rank` solo
+-- responde sobre otras cuentas a quien tiene `account:select`. Estas
+-- pruebas consultan el rango de muchas cuentas, así que el rol del
+-- super-admin de prueba (que se le asigna en el test 4) y el de Manager lo
+-- reciben (la
+-- restricción se prueba en
+-- cms-rbac-isolation.test.sql, P2).
+INSERT INTO cms.permissions (id, name, permission_type, system_resource, action) VALUES
+    (cms_tests.test_uuid(305), 'account_select', 'system', 'account', 'select');
+
+INSERT INTO cms.role_permissions (role_id, permission_id) VALUES
+    (cms_tests.test_uuid(201), cms_tests.test_uuid(305)),
+    (cms_tests.test_uuid(203), cms_tests.test_uuid(305));
+
 -- Authenticate as super admin for testing
 SELECT cms_tests.authenticate_as('super_admin');
 
@@ -326,7 +340,9 @@ UPDATE cms.accounts
 SET is_active = false
 WHERE id = cms_tests.test_uuid(102);
 
-SELECT cms_tests.authenticate_as('super_admin');
+-- [TFG] B-47: el rol del super-admin de prueba se borró en el test 15, así
+-- que ya no tiene `account:select`. Se comprueba como `postgres`, el mismo
+-- contexto de confianza en el que la usan las funciones internas.
 SELECT is(
                cms.get_user_max_role_rank(cms_tests.test_uuid(102)),
                60,

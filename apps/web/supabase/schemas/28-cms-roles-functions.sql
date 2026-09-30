@@ -78,6 +78,15 @@ BEGIN
         RETURN FALSE;
     END IF;
 
+    -- [TFG] RNF-02 · ADR-015 (F2.7b): la cuenta que actúa es SIEMPRE la de
+    -- la sesión. La función es `security definer` y recibía al actor como
+    -- parámetro, así que cualquiera podía preguntar «¿podría Root asignar
+    -- este rol a esta cuenta?». Las políticas ya la llaman con
+    -- `get_current_user_account_id()`.
+    IF p_account_id IS DISTINCT FROM cms.get_current_user_account_id() THEN
+        RETURN FALSE;
+    END IF;
+
     -- First check: Does user have admin permission to modify roles at all?
     IF NOT cms.has_admin_permission('role'::cms.system_resource, p_action) THEN
         RETURN FALSE;
@@ -95,8 +104,10 @@ BEGIN
     -- Las cuentas raíz (super-admins de la plataforma, ADR-014) las gestiona
     -- el pegamento de `53-cms-super-admin.sql`, nunca el CMS. Hoy ya lo impide
     -- el rango (Root tiene 100, el máximo y único), pero la regla se escribe
-    -- de forma explícita para no depender de esa coincidencia.
-    IF cms.is_root_managed_account(p_target_account_id) THEN
+    -- de forma explícita para no depender de esa coincidencia. Versión
+    -- interna (B-47): la pública no responde sobre otras cuentas a quien no
+    -- tiene `account:select`, y esta guardia debe aplicarse siempre.
+    IF cms.account_is_root_managed(p_target_account_id) THEN
         RETURN FALSE;
     END IF;
 
@@ -155,13 +166,34 @@ create index idx_account_roles_account_id on cms.account_roles (account_id);
 
 create index idx_account_roles_role_id on cms.account_roles (role_id);
 
--- Add a helper function to check if an account has a specific role
+/*
+ * cms.account_has_role
+ *
+ * Indica si una cuenta tiene un rol vigente. La usan las políticas de las
+ * vistas guardadas compartidas por rol (`43-cms-saved-views-rls.sql`).
+ *
+ * [TFG] RNF-02 · ADR-015 (pendiente cerrado en F2.7b): es `security
+ * definer` y aceptaba cualquier cuenta, así que cualquier usuario
+ * autenticado podía averiguar el rol de otra cuenta probando ids. Ahora
+ * exige acceso al CMS y solo responde sobre la cuenta de la sesión, salvo a
+ * quien ya puede consultar las cuentas (`account:select`), que ve esos roles
+ * en Ajustes > Miembros de todas formas.
+ */
 create or replace function cms.account_has_role (p_account_id UUID, p_role_id UUID) RETURNS BOOLEAN SECURITY DEFINER
 set
   row_security = off
 set
   search_path = '' as $$
 BEGIN
+    IF p_account_id IS NULL OR p_role_id IS NULL OR NOT cms.verify_admin_access() THEN
+        RETURN FALSE;
+    END IF;
+
+    IF p_account_id IS DISTINCT FROM cms.get_current_user_account_id()
+        AND NOT cms.has_admin_permission('account'::cms.system_resource, 'select'::cms.system_action) THEN
+        RETURN FALSE;
+    END IF;
+
     RETURN EXISTS (SELECT 1
                    FROM cms.account_roles
                    WHERE account_id = p_account_id

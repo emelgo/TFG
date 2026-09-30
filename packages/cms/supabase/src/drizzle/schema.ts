@@ -310,7 +310,7 @@ export const permissionsInCms = cms.table(
     }),
     check(
       'valid_permission_type',
-      sql`((permission_type = 'system'::cms.permission_type) AND (system_resource IS NOT NULL) AND (scope IS NULL) AND (schema_name IS NULL) AND (table_name IS NULL) AND (column_name IS NULL)) OR ((permission_type = 'data'::cms.permission_type) AND (scope IS NOT NULL) AND (((scope = 'table'::cms.permission_scope) AND (schema_name IS NOT NULL) AND (table_name IS NOT NULL) AND (column_name IS NULL)) OR ((scope = 'column'::cms.permission_scope) AND (schema_name IS NOT NULL) AND (table_name IS NOT NULL) AND (column_name IS NOT NULL)))) OR ((scope = 'storage'::cms.permission_scope) AND ((metadata ->> 'bucket_name'::text) IS NOT NULL) AND ((metadata ->> 'path_pattern'::text) IS NOT NULL))`,
+      sql`((permission_type = 'system'::cms.permission_type) AND (system_resource IS NOT NULL) AND (scope IS NULL) AND (schema_name IS NULL) AND (table_name IS NULL) AND (column_name IS NULL)) OR ((permission_type = 'data'::cms.permission_type) AND (scope IS NOT NULL) AND (((scope = 'table'::cms.permission_scope) AND (schema_name IS NOT NULL) AND (table_name IS NOT NULL) AND (column_name IS NULL)) OR ((scope = 'column'::cms.permission_scope) AND (schema_name IS NOT NULL) AND (table_name IS NOT NULL) AND (column_name IS NOT NULL)))) OR ((permission_type = 'data'::cms.permission_type) AND (scope IS NOT NULL) AND (scope = 'storage'::cms.permission_scope) AND (schema_name IS NULL) AND (table_name IS NULL) AND (column_name IS NULL) AND COALESCE(((jsonb_typeof((metadata -> 'bucket_name'::text)) = 'string'::text) AND (length((metadata ->> 'bucket_name'::text)) > 0)), false) AND COALESCE(((jsonb_typeof((metadata -> 'path_pattern'::text)) = 'string'::text) AND (length((metadata ->> 'path_pattern'::text)) > 0)), false))`,
     ),
     check(
       'permissions_schema_name_check',
@@ -869,7 +869,7 @@ export const accountRolesInCms = cms.table(
       as: 'permissive',
       for: 'select',
       to: ['authenticated'],
-      using: sql`cms.verify_admin_access()`,
+      using: sql`(((account_id = cms.get_current_user_account_id()) AND cms.verify_admin_access()) OR cms.has_admin_permission('account'::cms.system_resource, 'select'::cms.system_action))`,
     }),
     pgPolicy('insert_account_roles', {
       as: 'permissive',
@@ -1017,7 +1017,7 @@ export const accountPermissionsInCms = cms.table(
       as: 'permissive',
       for: 'select',
       to: ['authenticated'],
-      using: sql`((account_id = cms.get_current_user_account_id()) OR (cms.has_admin_permission('permission'::cms.system_resource, 'select'::cms.system_action) AND (cms.get_user_max_role_rank(cms.get_current_user_account_id()) > cms.get_user_max_role_rank(account_id))))`,
+      using: sql`((account_id = cms.get_current_user_account_id()) OR (cms.has_admin_permission('permission'::cms.system_resource, 'select'::cms.system_action) AND cms.current_account_outranks(account_id)))`,
     }),
     pgPolicy('insert_account_permissions', {
       as: 'permissive',

@@ -35,7 +35,7 @@ test.describe('Ajustes > General: super-admin con MFA', () => {
   // de este fichero no se ejecutan en paralelo entre sí.
   test.describe.configure({ mode: 'serial' });
 
-  test('/admin/cms/settings redirige a General y muestra las tres pestañas', async ({
+  test('/admin/cms/settings redirige a General y muestra las cuatro pestañas', async ({
     page,
   }) => {
     const settings = new SettingsPageObject(page);
@@ -43,7 +43,12 @@ test.describe('Ajustes > General: super-admin con MFA', () => {
     await page.goto('/admin/cms/settings');
     await page.waitForURL('**/admin/cms/settings/general');
 
-    await settings.expectTabs(['general', 'authentication', 'members']);
+    await settings.expectTabs([
+      'general',
+      'authentication',
+      'members',
+      'permissions',
+    ]);
   });
 
   test('cambiar la zona horaria cambia las fechas del explorador', async ({

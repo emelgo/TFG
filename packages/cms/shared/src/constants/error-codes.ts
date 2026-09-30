@@ -159,6 +159,60 @@ export const CMS_API_ERROR_CODES = {
   MEMBER_INVALID_DATA: 'MEMBER_INVALID_DATA',
   /** Error inesperado al gestionar el miembro (500). */
   MEMBER_ACTION_FAILED: 'MEMBER_ACTION_FAILED',
+
+  // Ajustes > Permisos (F2.7b): roles, grupos de permisos y permisos. Las
+  // reglas las aplica la base de datos (RLS, `can_action_role`,
+  // `can_grant_permission`, `can_modify_permission*`, la guardia de los
+  // objetos de sistema); la API las comprueba antes para responder con el
+  // motivo exacto y nunca devuelve el texto de PostgreSQL.
+
+  /** Falta el permiso de sistema `role`/`permission` necesario (403). */
+  PERMISSION_ACCESS_DENIED: 'PERMISSION_ACCESS_DENIED',
+  /** Petición no válida (400). */
+  PERMISSION_INVALID_DATA: 'PERMISSION_INVALID_DATA',
+  /** El permiso no existe o no es visible (404). */
+  PERMISSION_NOT_FOUND: 'PERMISSION_NOT_FOUND',
+  /** Ya existe un permiso con ese nombre (409). */
+  PERMISSION_NAME_TAKEN: 'PERMISSION_NAME_TAKEN',
+  /**
+   * La capacidad que concede el permiso (o el grupo) no la tiene quien
+   * actúa: no puede crearla, asignarla ni transformar otra en ella (403).
+   */
+  PERMISSION_NOT_GRANTABLE: 'PERMISSION_NOT_GRANTABLE',
+  /** Lo usa un rol de rango igual o superior al propio (403). */
+  PERMISSION_RANK_DENIED: 'PERMISSION_RANK_DENIED',
+  /** Sigue asignado a roles, grupos o cuentas: no se puede borrar (409). */
+  PERMISSION_IN_USE: 'PERMISSION_IN_USE',
+  /** Permiso de sistema del super-admin: inmutable desde el CMS (403). */
+  PERMISSION_SYSTEM_PROTECTED: 'PERMISSION_SYSTEM_PROTECTED',
+  /** Error inesperado en la gestión de permisos (500). */
+  PERMISSION_ACTION_FAILED: 'PERMISSION_ACTION_FAILED',
+  /** El rol no existe (404). */
+  ROLE_NOT_FOUND: 'ROLE_NOT_FOUND',
+  /** Ya existe un rol con ese nombre (409). */
+  ROLE_NAME_TAKEN: 'ROLE_NAME_TAKEN',
+  /** Ya existe un rol con ese rango (el rango es único) (409). */
+  ROLE_RANK_TAKEN: 'ROLE_RANK_TAKEN',
+  /**
+   * El rango pedido, o el del rol sobre el que se actúa, no es
+   * estrictamente inferior al propio (403).
+   */
+  ROLE_RANK_DENIED: 'ROLE_RANK_DENIED',
+  /** El rol tiene miembros: hay que reasignarlos antes de borrarlo (409). */
+  ROLE_HAS_MEMBERS: 'ROLE_HAS_MEMBERS',
+  /** Rol de sistema (Root): inmutable desde el CMS (403). */
+  ROLE_SYSTEM_PROTECTED: 'ROLE_SYSTEM_PROTECTED',
+  /** El grupo no existe o no es visible (404). */
+  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND',
+  /** Ya existe un grupo con ese nombre (409). */
+  GROUP_NAME_TAKEN: 'GROUP_NAME_TAKEN',
+  /**
+   * Lo usa un rol de rango superior (o igual, para borrarlo), lo tiene el
+   * propio rol de quien actúa o, sin roles que lo usen, no lo creó él (403).
+   */
+  GROUP_RANK_DENIED: 'GROUP_RANK_DENIED',
+  /** Grupo de sistema (Super Admin): inmutable desde el CMS (403). */
+  GROUP_SYSTEM_PROTECTED: 'GROUP_SYSTEM_PROTECTED',
 } as const;
 
 export type CmsApiErrorCode =

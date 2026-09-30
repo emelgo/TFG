@@ -236,9 +236,17 @@ $$ LANGUAGE plpgsql;
 -- In this section, we define the can read audit log function. This function is used to check if the user can read the audit log.
 -- Alineada con la versión que dejan las migraciones (el esquema declarativo
 -- heredado estaba desfasado respecto a ellas). Ver ADR-015.
+-- [TFG] RNF-02 · B-47: SECURITY DEFINER con RLS desactivado. Compara el
+-- rango de quien lee con el del autor del registro, y desde B-47 la política
+-- `view_account_roles` ya no deja ver el rol de otras cuentas sin
+-- `account:select`: como función del usuario, dejaba de ver el rango del
+-- autor y solo el rango más alto podía leer registros ajenos. Solo devuelve
+-- un sí/no sobre la cuenta de la sesión (la que lee).
 CREATE OR REPLACE FUNCTION cms.can_read_audit_log(p_target_account_id uuid)
  RETURNS boolean
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET row_security TO 'off'
  SET search_path TO ''
 AS $function$
 declare

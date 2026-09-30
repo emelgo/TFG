@@ -7,7 +7,12 @@
  * responde 403 con su código si alguien la llama igualmente.
  */
 import { Link } from '@tanstack/react-router';
-import { SettingsIcon, ShieldIcon, UsersIcon } from 'lucide-react';
+import {
+  KeyRoundIcon,
+  SettingsIcon,
+  ShieldIcon,
+  UsersIcon,
+} from 'lucide-react';
 import { useTranslations } from 'use-intl';
 
 import {
@@ -21,6 +26,7 @@ const TAB_ICONS = {
   general: SettingsIcon,
   authentication: ShieldIcon,
   members: UsersIcon,
+  permissions: KeyRoundIcon,
 } satisfies Record<CmsSettingsTab, unknown>;
 
 export function SettingsNav(props: {

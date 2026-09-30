@@ -40,6 +40,7 @@ import type { GetRolesForSharingRoute } from '@pymekit/cms-permissions/routes';
 import type { GetAccountRoute } from '@pymekit/cms-settings/routes';
 
 import { createAuditLogsApi } from './audit-logs-api';
+import { createPermissionsApi } from './permissions-api';
 import { createSettingsApi } from './settings-api';
 import { createStorageApi } from './storage-api';
 import { createUsersApi } from './users-api';
@@ -65,6 +66,8 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
     ...createAuditLogsApi(clientOptions),
     // Ajustes: preferencias, MFA y miembros (F2.7a).
     ...createSettingsApi(clientOptions),
+    // Ajustes > Permisos: roles, grupos y permisos (F2.7b).
+    ...createPermissionsApi(clientOptions),
 
     /**
      * Devuelve la cuenta del CMS del usuario y las secciones que puede usar.
@@ -539,3 +542,29 @@ export type CmsMemberListItem = CmsMembersList['members'][number];
 
 /** Ficha de un miembro (`GET /v1/members/:id`). */
 export type CmsMemberDetails = Awaited<ReturnType<CmsApi['getMember']>>;
+
+/** Resumen de Ajustes > Permisos (F2.7b). */
+export type CmsRbacOverview = Awaited<ReturnType<CmsApi['getRbacOverview']>>;
+
+/** Un permiso tal como lo muestra la interfaz. */
+export type CmsRbacPermission = CmsRbacOverview['permissions'][number];
+
+/** Un rol del listado. */
+export type CmsRbacRoleListItem = CmsRbacOverview['roles'][number];
+
+/** Un grupo del listado. */
+export type CmsRbacGroupListItem = CmsRbacOverview['groups'][number];
+
+/** Tablas gestionadas para el formulario de permisos. */
+export type CmsRbacCatalog = Awaited<ReturnType<CmsApi['getRbacCatalog']>>;
+
+/** Ficha de un rol. */
+export type CmsRbacRoleDetails = Awaited<ReturnType<CmsApi['getRbacRole']>>;
+
+/** Ficha de un grupo de permisos. */
+export type CmsRbacGroupDetails = Awaited<ReturnType<CmsApi['getRbacGroup']>>;
+
+/** Ficha de un permiso. */
+export type CmsRbacPermissionDetails = Awaited<
+  ReturnType<CmsApi['getRbacPermission']>
+>;

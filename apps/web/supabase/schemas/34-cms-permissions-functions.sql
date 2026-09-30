@@ -56,9 +56,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-grant
-execute on function cms.has_permission to authenticated,
-service_role;
+-- [TFG] RNF-02 · ADR-015 (pendiente cerrado en F2.7b): `has_permission`
+-- responde sí/no para CUALQUIER cuenta y permiso. Con el `grant` heredado,
+-- cualquier miembro del personal podía preguntar qué permisos tiene otra
+-- cuenta (por ejemplo, la de Root). Solo la usan otras funciones
+-- `security definer` (que se ejecutan como su propietario), así que no se
+-- concede a `authenticated`. La API ya no la llama: para saber si el usuario
+-- ve la sección de almacenamiento usa `cms.current_account_has_storage_access`.
+revoke execute on function cms.has_permission (uuid, uuid) from public, anon, authenticated;
+
+grant execute on function cms.has_permission (uuid, uuid) to service_role;
 
 -- SECTION: SYSTEM PERMISSIONS
 -- This function is used to check if a user has system permission for a specific system resource. System resources are resources that belong to CMS itself, not the end application being managed. For example: table, role, permission, etc. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
@@ -109,7 +116,223 @@ grant
 execute on FUNCTION cms.has_admin_permission to authenticated,
 service_role;
 
--- Check storage access using path patterns in DATA permissions
+/*
+ * -------------------------------------------------------
+ * Sección: solapamiento entre capacidades (denegaciones y delegación)
+ *
+ * [TFG] RNF-02 · ADR-015 · bitácora B-47. Una denegación explícita
+ * (`account_permissions.is_grant = false`) recorta lo que una cuenta puede
+ * HACER, pero antes no recortaba lo que podía DELEGAR. Las comprobaciones de
+ * «¿tengo esta capacidad?» (`has_data_permission`, `has_admin_permission`)
+ * solo miran las denegaciones que CUBREN el objetivo: al preguntar por el
+ * comodín `'*'.'*'` solo encontraban una denegación que fuera también
+ * `'*'.'*'`. Así, un administrador delegado con lectura `'*'.'*'` y una
+ * denegación sobre `public.nominas` podía colgar el permiso comodín de un rol
+ * inferior, asignárselo a un segundo inicio de sesión suyo (una cuenta
+ * «títere») y leer la tabla denegada a través de ella.
+ *
+ * La regla correcta para CONCEDER es más estricta que para USAR: solo se
+ * delega una capacidad si se tiene y si ninguna denegación vigente de quien
+ * la concede SE SOLAPA con ella, es decir, si no existe ningún recurso que
+ * quede dentro de la denegación y a la vez dentro de lo que se concede.
+ *
+ * Las funciones de esta sección son pequeñas y puras (salvo la última) para
+ * poder leerlas y probarlas por separado. Ante la duda (valores ausentes,
+ * formas desconocidas) responden «se solapan»: para una denegación, eso
+ * significa fallar en cerrado.
+ * -------------------------------------------------------
+ */
+
+/*
+ * cms.capability_values_overlap
+ *
+ * Dos valores de una capacidad (acción, esquema, tabla, columna o *bucket*)
+ * se solapan si son iguales o si cualquiera de los dos es el comodín `'*'`.
+ * Un valor ausente (NULL) cuenta como «todo»: en la columna significa que el
+ * permiso es de tabla completa, y en los demás casos solo aparece en filas
+ * antiguas o mal formadas, donde conviene fallar en cerrado.
+ */
+create or replace function cms.capability_values_overlap (p_a text, p_b text) returns boolean language sql immutable
+set
+  search_path = '' as $$
+    select p_a is null
+        or p_b is null
+        or p_a = '*'
+        or p_b = '*'
+        or p_a = p_b;
+$$;
+
+revoke execute on function cms.capability_values_overlap (text, text) from public, anon, authenticated;
+
+/*
+ * cms.storage_path_literal_prefix
+ *
+ * Parte literal inicial de un patrón de ruta de almacenamiento: todo lo que
+ * hay antes del primer comodín `*` o de la primera variable `{{...}}` (que
+ * se sustituye por un id al comprobar el acceso, así que aquí se trata como
+ * un comodín más). Para un patrón sin comodines ni variables es el patrón
+ * entero.
+ */
+create or replace function cms.storage_path_literal_prefix (p_pattern text) returns text language sql immutable
+set
+  search_path = '' as $$
+    select left(
+        p_pattern,
+        least(
+            coalesce(nullif(strpos(p_pattern, '*'), 0), length(p_pattern) + 1),
+            coalesce(nullif(strpos(p_pattern, '{{'), 0), length(p_pattern) + 1)
+        ) - 1);
+$$;
+
+revoke execute on function cms.storage_path_literal_prefix (text) from public, anon, authenticated;
+
+/*
+ * cms.storage_path_patterns_overlap
+ *
+ * Decide si dos patrones de ruta PUEDEN coincidir con una misma ruta. La
+ * intersección exacta de dos patrones con comodines es costosa y fácil de
+ * equivocar, así que se aplica una regla conservadora: solo se declaran
+ * disjuntos cuando se puede demostrar con sus prefijos literales.
+ *
+ *  - Si falta alguno de los dos patrones: se solapan (fallo en cerrado).
+ *  - Si los dos son literales (sin `*` ni `{{`): se solapan solo si son
+ *    iguales, porque cada uno describe una única ruta.
+ *  - En otro caso: se solapan si el prefijo literal de uno empieza por el
+ *    del otro. Ejemplo: los patrones de prefijos `team/` y `team/nominas/`
+ *    (seguidos de `*`) se solapan; los de `team/` y `public/` no (ninguna
+ *    ruta puede empezar a la vez por los dos). `*` tiene prefijo vacío y se
+ *    solapa con todo. (Los ejemplos no escriben la barra pegada al `*`
+ *    porque dentro de un comentario de bloque SQL esa pareja abre otro
+ *    comentario anidado.)
+ */
+create or replace function cms.storage_path_patterns_overlap (p_a text, p_b text) returns boolean language plpgsql immutable
+set
+  search_path = '' as $$
+DECLARE
+    v_prefix_a TEXT;
+    v_prefix_b TEXT;
+BEGIN
+    IF p_a IS NULL OR p_b IS NULL OR p_a = '' OR p_b = '' THEN
+        RETURN TRUE;
+    END IF;
+
+    v_prefix_a := cms.storage_path_literal_prefix(p_a);
+    v_prefix_b := cms.storage_path_literal_prefix(p_b);
+
+    -- Dos rutas literales: coinciden con la misma ruta solo si son iguales.
+    IF v_prefix_a = p_a AND v_prefix_b = p_b THEN
+        RETURN p_a = p_b;
+    END IF;
+
+    RETURN starts_with(v_prefix_a, v_prefix_b) OR starts_with(v_prefix_b, v_prefix_a);
+END;
+$$;
+
+revoke execute on function cms.storage_path_patterns_overlap (text, text) from public, anon, authenticated;
+
+/*
+ * cms.permissions_overlap
+ *
+ * Decide si dos permisos comparten algún recurso y acción, es decir, si hay
+ * algo que ambos cubren a la vez. Se usa con una denegación (`p_a`) y con la
+ * capacidad que se quiere conceder (`p_b`), aunque la relación es simétrica.
+ *
+ *  - Tipos distintos (sistema frente a datos): nunca se solapan.
+ *  - Sistema: mismo recurso (el tipo `system_resource` no tiene comodín) y
+ *    acciones que se solapan (`account:*` se solapa con `account:delete`).
+ *  - Datos de tabla o columna: se solapan la acción, el esquema, la tabla y
+ *    la columna (una columna NULL es la tabla completa, así que una
+ *    denegación de columna se solapa con un permiso de tabla).
+ *  - Almacenamiento: se solapan la acción, el *bucket* y el patrón de ruta
+ *    (`storage_path_patterns_overlap`).
+ *  - Almacenamiento frente a tabla: no se solapan (recursos distintos).
+ *  - Cualquier otra forma (ámbito ausente en filas mal formadas): se solapan,
+ *    fallo en cerrado.
+ */
+create or replace function cms.permissions_overlap (p_a cms.permissions, p_b cms.permissions) returns boolean language plpgsql immutable
+set
+  search_path = '' as $$
+BEGIN
+    IF p_a.permission_type IS DISTINCT FROM p_b.permission_type THEN
+        RETURN FALSE;
+    END IF;
+
+    -- La acción se compara siempre (sistema, tabla y almacenamiento).
+    IF NOT cms.capability_values_overlap(p_a.action::TEXT, p_b.action::TEXT) THEN
+        RETURN FALSE;
+    END IF;
+
+    IF p_a.permission_type = 'system' THEN
+        RETURN p_a.system_resource IS NULL
+            OR p_b.system_resource IS NULL
+            OR p_a.system_resource = p_b.system_resource;
+    END IF;
+
+    IF p_a.scope IN ('table', 'column') AND p_b.scope IN ('table', 'column') THEN
+        RETURN cms.capability_values_overlap(p_a.schema_name, p_b.schema_name)
+            AND cms.capability_values_overlap(p_a.table_name, p_b.table_name)
+            AND cms.capability_values_overlap(p_a.column_name, p_b.column_name);
+    END IF;
+
+    IF p_a.scope = 'storage' AND p_b.scope = 'storage' THEN
+        RETURN cms.capability_values_overlap(p_a.metadata ->> 'bucket_name', p_b.metadata ->> 'bucket_name')
+            AND cms.storage_path_patterns_overlap(p_a.metadata ->> 'path_pattern',
+                                                  p_b.metadata ->> 'path_pattern');
+    END IF;
+
+    IF p_a.scope IS NOT NULL AND p_b.scope IS NOT NULL THEN
+        -- Almacenamiento frente a tabla o columna: recursos distintos.
+        RETURN FALSE;
+    END IF;
+
+    RETURN TRUE;
+END;
+$$;
+
+revoke execute on function cms.permissions_overlap (cms.permissions, cms.permissions) from public, anon, authenticated;
+
+/*
+ * cms.account_has_overlapping_deny
+ *
+ * Indica si la cuenta tiene alguna denegación explícita vigente que se
+ * solape con la capacidad `p_target`. Es `security definer` con RLS
+ * desactivado porque debe ver todas las denegaciones de la cuenta; no se
+ * concede a nadie: solo la llaman `capability_is_grantable` y
+ * `storage_capability_is_grantable`, siempre con la cuenta de la sesión.
+ */
+create or replace function cms.account_has_overlapping_deny (p_account_id uuid, p_target cms.permissions) returns boolean language sql stable security definer
+set
+  row_security = off
+set
+  search_path = '' as $$
+    select exists (select 1
+                   from cms.account_permissions ap
+                            join cms.permissions d on d.id = ap.permission_id
+                   where ap.account_id = p_account_id
+                     and ap.is_grant = false
+                     and (ap.valid_until is null or ap.valid_until > now())
+                     and cms.permissions_overlap(d, p_target));
+$$;
+
+revoke execute on function cms.account_has_overlapping_deny (uuid, cms.permissions) from public, anon, authenticated;
+
+/*
+ * cms.has_storage_permission
+ *
+ * Decide si la cuenta actual puede hacer `p_action` sobre el objeto
+ * `p_object_path` del *bucket* `p_bucket_name`. Los permisos de
+ * almacenamiento son permisos de datos con ámbito `storage`: su capacidad
+ * vive en `metadata->>'bucket_name'` y `metadata->>'path_pattern'` (con `*`
+ * como comodín y las variables `{{user_id}}` y `{{account_id}}`).
+ *
+ * [TFG] RNF-02 · ADR-015 (pendiente cerrado en F2.7b): falla en CERRADO.
+ * El código heredado trataba un *bucket* o un patrón ausente como «sin
+ * restricción», es decir, como un comodín. Ahora un valor ausente o vacío
+ * no concede nada, y el comodín hay que escribirlo de forma explícita
+ * (`'*'`), como ya hacía el permiso de almacenamiento de Root. Además, los
+ * caracteres `%` y `_` del patrón se escapan antes de convertir `*` en `%`,
+ * para que solo `*` actúe como comodín en el `LIKE`.
+ */
 create or replace function cms.has_storage_permission (
   p_bucket_name TEXT,
   p_action cms.system_action,
@@ -127,7 +350,6 @@ DECLARE
     v_path_pattern     TEXT;
     v_resolved_pattern TEXT;
 BEGIN
-    -- Basic validation
     IF NOT cms.verify_admin_access() THEN
         RETURN FALSE;
     END IF;
@@ -145,10 +367,9 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    -- Get user ID for path variable substitution
+    -- Las variables de la ruta se sustituyen por el usuario de la sesión.
     v_user_id := (SELECT auth.uid()::TEXT);
 
-    -- Check storage permissions (DATA permissions with storage scope)
     FOR v_permission IN
         SELECT p.metadata
         FROM cms.permissions p
@@ -157,38 +378,37 @@ BEGIN
           AND (p.action = p_action OR p.action = '*')
           AND cms.has_permission(v_account_id, p.id)
         LOOP
-            -- Extract bucket and path constraints from metadata
             v_allowed_bucket := v_permission.metadata ->> 'bucket_name';
             v_path_pattern := v_permission.metadata ->> 'path_pattern';
 
-            -- Check bucket constraint
-            IF v_allowed_bucket IS NOT NULL
-                AND v_allowed_bucket != '*'
-                AND v_allowed_bucket != p_bucket_name THEN
+            -- Fallo en cerrado: sin bucket o sin patrón, el permiso no
+            -- concede nada (el comodín es siempre un '*' explícito).
+            IF v_allowed_bucket IS NULL OR v_allowed_bucket = ''
+                OR v_path_pattern IS NULL OR v_path_pattern = '' THEN
                 CONTINUE;
             END IF;
 
-            -- Check path pattern constraint
-            IF v_path_pattern IS NOT NULL THEN
-                -- Substitute variables in pattern
-                v_resolved_pattern := v_path_pattern;
-                v_resolved_pattern := replace(v_resolved_pattern, '{{user_id}}', v_user_id);
-                v_resolved_pattern := replace(v_resolved_pattern, '{{account_id}}', v_account_id::TEXT);
-
-                -- Convert wildcards to SQL LIKE patterns
-                v_resolved_pattern := replace(v_resolved_pattern, '*', '%');
-
-                -- Check if path matches pattern
-                IF NOT (p_object_path LIKE v_resolved_pattern) THEN
-                    CONTINUE;
-                END IF;
+            IF v_allowed_bucket <> '*' AND v_allowed_bucket <> p_bucket_name THEN
+                CONTINUE;
             END IF;
 
-            -- All constraints passed - user has access
+            v_resolved_pattern := v_path_pattern;
+            v_resolved_pattern := replace(v_resolved_pattern, '{{user_id}}', v_user_id);
+            v_resolved_pattern := replace(v_resolved_pattern, '{{account_id}}', v_account_id::TEXT);
+
+            -- Solo `*` es comodín: los `\`, `%` y `_` literales se escapan.
+            v_resolved_pattern := replace(v_resolved_pattern, '\', '\\');
+            v_resolved_pattern := replace(v_resolved_pattern, '%', '\%');
+            v_resolved_pattern := replace(v_resolved_pattern, '_', '\_');
+            v_resolved_pattern := replace(v_resolved_pattern, '*', '%');
+
+            IF NOT (p_object_path LIKE v_resolved_pattern ESCAPE '\') THEN
+                CONTINUE;
+            END IF;
+
             RETURN TRUE;
         END LOOP;
 
-    -- No matching permission found
     RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql;
@@ -196,10 +416,29 @@ $$ LANGUAGE plpgsql;
 grant
 execute on FUNCTION cms.has_storage_permission to authenticated;
 
--- SECTION: STORAGE CAPABILITY IS GRANTABLE
--- Storage capability lives entirely in metadata->>'bucket_name' / 'path_pattern'. This is
--- the storage equivalent of the has_admin_permission / has_data_permission checks that
--- can_grant_permission uses for the other scopes.
+/*
+ * cms.storage_capability_is_grantable
+ *
+ * Comprueba si la cuenta actual puede conceder (o dar forma a) un permiso
+ * de almacenamiento con esa acción, *bucket* y patrón: debe tener ya uno que
+ * lo cubra. Es el equivalente, para el ámbito `storage`, de
+ * `has_admin_permission` y `has_data_permission` en `can_grant_permission`.
+ * La inclusión de patrones no es decidible aquí, así que se exige
+ * coincidencia exacta o un comodín `'*'` explícito.
+ *
+ * [TFG] RNF-02 · ADR-015 (F2.7b): falla en cerrado. Antes un *bucket* o un
+ * patrón ausente en el permiso que se posee contaba como comodín
+ * (`coalesce(..., '*')`) y un objetivo ausente coincidía con otro ausente
+ * (`is not distinct from`). Ahora los dos lados deben tener valores
+ * explícitos.
+ *
+ * [TFG] B-47: además, ninguna denegación de almacenamiento de quien concede
+ * puede solaparse con la capacidad (mismo *bucket* o `'*'`, y patrones que
+ * puedan coincidir con una misma ruta). Sin esto, quien tiene el *bucket*
+ * `docs` con patrón `*` y una denegación sobre las rutas que empiezan por
+ * `nominas/` podría delegar el comodín a una cuenta títere y leer lo
+ * denegado por ella.
+ */
 create or replace function cms.storage_capability_is_grantable (
   p_action cms.system_action,
   p_bucket_name TEXT,
@@ -211,25 +450,39 @@ set
   search_path = '' as $$
 DECLARE
     v_account_id UUID;
+    v_target     cms.permissions;
 BEGIN
     v_account_id := cms.get_current_user_account_id();
 
-    IF v_account_id IS NULL THEN
+    IF v_account_id IS NULL OR NOT cms.verify_admin_access() THEN
         RETURN FALSE;
     END IF;
 
-    -- The caller must already hold a storage permission covering the target
-    -- bucket/path/action. Anything short of a full wildcard must match exactly:
-    -- pattern containment is not decidable here, so we stay conservative.
+    IF p_action IS NULL
+        OR p_bucket_name IS NULL OR p_bucket_name = ''
+        OR p_path_pattern IS NULL OR p_path_pattern = '' THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Una denegación que se solape con la capacidad impide delegarla.
+    v_target.permission_type := 'data';
+    v_target.scope := 'storage';
+    v_target.action := p_action;
+    v_target.metadata := jsonb_build_object('bucket_name', p_bucket_name, 'path_pattern', p_path_pattern);
+
+    IF cms.account_has_overlapping_deny(v_account_id, v_target) THEN
+        RETURN FALSE;
+    END IF;
+
     RETURN EXISTS (SELECT 1
                    FROM cms.permissions p
                    WHERE p.permission_type = 'data'
                      AND p.scope = 'storage'
                      AND (p.action = p_action OR p.action = '*')
-                     AND (COALESCE(p.metadata ->> 'bucket_name', '*') = '*'
-                       OR p.metadata ->> 'bucket_name' IS NOT DISTINCT FROM p_bucket_name)
-                     AND (COALESCE(p.metadata ->> 'path_pattern', '*') = '*'
-                       OR p.metadata ->> 'path_pattern' IS NOT DISTINCT FROM p_path_pattern)
+                     AND (p.metadata ->> 'bucket_name' = '*'
+                       OR p.metadata ->> 'bucket_name' = p_bucket_name)
+                     AND (p.metadata ->> 'path_pattern' = '*'
+                       OR p.metadata ->> 'path_pattern' = p_path_pattern)
                      AND cms.has_permission(v_account_id, p.id));
 END;
 $$ LANGUAGE plpgsql;
@@ -299,17 +552,122 @@ grant
 execute on FUNCTION cms.has_data_permission to authenticated,
 service_role;
 
--- SECTION: CAN GRANT PERMISSION
--- Determines whether the current user may bind a given permission to a role,
--- account, or permission group. Without this, the role/account/group binding
--- policies only checked the RANK of the container (role/account/group) and never
--- the privilege level of the permission being attached, so a low-rank admin with
--- 'permission:insert' could mint an over-broad permission (e.g. account/* or a
--- '*'/'*' data permission) and attach it to an in-rank role to escalate.
--- Rule: a user may grant a permission only if they either (a) already
--- effectively hold that exact permission (re-delegation), or (b) themselves
--- possess the capability it confers. A user can therefore never grant a broader
--- capability than they already have. Uses SECURITY DEFINER to avoid RLS recursion.
+/*
+ * cms.capability_is_grantable
+ *
+ * Decide si la cuenta de la sesión puede conceder (o dar forma a) la
+ * capacidad descrita por los campos de un permiso, esté guardado o no. Es la
+ * regla única de delegación que usan `can_grant_permission` (asignaciones),
+ * el *trigger* `enforce_permission_reshape_grantable` (edición en el sitio)
+ * y la API al validar un permiso antes de guardarlo.
+ *
+ * Dos condiciones, las dos obligatorias:
+ *
+ *  1. TENERLA: `has_admin_permission` (sistema), `has_data_permission`
+ *     (tabla o columna) o `storage_capability_is_grantable` (almacenamiento).
+ *  2. [TFG] B-47: que NINGUNA denegación explícita vigente de la cuenta se
+ *     solape con ella (`account_has_overlapping_deny`). Tener `'*'.'*'` no
+ *     basta si se tiene denegada una tabla concreta: el comodín incluiría
+ *     esa tabla y la denegación se esquivaría delegándolo.
+ *
+ * Cualquier otra forma de permiso (no la admite `valid_permission_type`)
+ * falla en cerrado.
+ */
+create or replace function cms.capability_is_grantable (
+  p_permission_type cms.permission_type,
+  p_system_resource cms.system_resource,
+  p_action cms.system_action,
+  p_scope cms.permission_scope,
+  p_schema_name TEXT,
+  p_table_name TEXT,
+  p_column_name TEXT,
+  p_metadata JSONB
+) RETURNS BOOLEAN security definer
+set
+  row_security = off
+set
+  search_path = '' as $$
+DECLARE
+    v_account_id UUID;
+    v_target     cms.permissions;
+    v_holds      BOOLEAN;
+BEGIN
+    IF NOT cms.verify_admin_access() THEN
+        RETURN FALSE;
+    END IF;
+
+    v_account_id := cms.get_current_user_account_id();
+
+    IF v_account_id IS NULL OR p_permission_type IS NULL OR p_action IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    -- 1. ¿La cuenta tiene la capacidad?
+    IF p_permission_type = 'system' AND p_system_resource IS NOT NULL THEN
+        v_holds := cms.has_admin_permission(p_system_resource, p_action);
+    ELSIF p_permission_type = 'data' AND p_scope IN ('table', 'column') THEN
+        v_holds := cms.has_data_permission(p_action, p_schema_name, p_table_name);
+    ELSIF p_permission_type = 'data' AND p_scope = 'storage' THEN
+        v_holds := cms.storage_capability_is_grantable(
+            p_action,
+            p_metadata ->> 'bucket_name',
+            p_metadata ->> 'path_pattern');
+    ELSE
+        v_holds := FALSE;
+    END IF;
+
+    IF NOT coalesce(v_holds, FALSE) THEN
+        RETURN FALSE;
+    END IF;
+
+    -- 2. ¿Alguna denegación suya se solapa con lo que quiere conceder?
+    v_target.permission_type := p_permission_type;
+    v_target.system_resource := p_system_resource;
+    v_target.action := p_action;
+    v_target.scope := p_scope;
+    v_target.schema_name := p_schema_name;
+    v_target.table_name := p_table_name;
+    v_target.column_name := p_column_name;
+    v_target.metadata := p_metadata;
+
+    RETURN NOT cms.account_has_overlapping_deny(v_account_id, v_target);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Solo responde sobre la cuenta de la sesión. La API la usa para validar un
+-- permiso nuevo o editado antes de guardarlo (mismo criterio que la BD).
+grant
+execute on FUNCTION cms.capability_is_grantable to authenticated,
+service_role;
+
+/*
+ * cms.can_grant_permission
+ *
+ * Decide si la cuenta actual puede colgar un permiso de un rol, de una
+ * cuenta o de un grupo de permisos. Sin esta comprobación, las políticas de
+ * las tablas de asignación solo miraban el RANGO del contenedor y nunca lo
+ * que concede el permiso: un administrador de rango bajo con
+ * `permission:insert` podía crear un permiso demasiado amplio (por ejemplo,
+ * `account` con acción `*` o datos `*`/`*`) y colgarlo de un rol de su rango para
+ * escalar privilegios.
+ *
+ * Regla: solo se concede una capacidad que uno mismo ya tiene. Se evalúa
+ * con las comprobaciones de recurso y acción (`has_admin_permission`,
+ * `has_data_permission`, `storage_capability_is_grantable`) y no buscando
+ * el id del permiso, para que una denegación explícita también impida
+ * delegarlo a otra cuenta.
+ *
+ * [TFG] RNF-02 · ADR-015 · F2.7b: los permisos de almacenamiento se
+ * comprueban por su capacidad (*bucket*, patrón y acción). Antes se exigía
+ * poseer ESE permiso concreto, así que ni Root podía conceder un permiso de
+ * almacenamiento recién creado aunque tuviera el comodín `*`.
+ *
+ * [TFG] B-47: la decisión la toma `capability_is_grantable`, que además
+ * exige que ninguna denegación explícita de quien concede se SOLAPE con el
+ * permiso (antes solo contaban las denegaciones que lo cubrían entero). Una
+ * forma de permiso desconocida ya no se acepta por tener ese id concreto:
+ * falla en cerrado.
+ */
 create or replace function cms.can_grant_permission (p_permission_id UUID) RETURNS BOOLEAN security definer
 set
   row_security = off
@@ -317,7 +675,6 @@ set
   search_path = '' as $$
 DECLARE
     v_permission cms.permissions;
-    v_account_id UUID;
 BEGIN
     IF NOT cms.verify_admin_access() THEN
         RETURN FALSE;
@@ -329,30 +686,21 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    v_account_id := cms.get_current_user_account_id();
-
-    IF v_account_id IS NULL THEN
-        RETURN FALSE;
-    END IF;
-
-    -- A user may grant a permission only if they themselves possess the capability
-    -- it confers. We use the resource/action capability checks (NOT a per-id
-    -- has_permission lookup) so that explicit-deny precedence is honored: a user
-    -- who is denied a capability cannot re-delegate it to a sockpuppet to bypass
-    -- the deny. A user can therefore never grant a broader capability than they
-    -- currently effectively hold.
-    IF v_permission.permission_type = 'system' THEN
-        RETURN cms.has_admin_permission(v_permission.system_resource, v_permission.action);
-    ELSIF v_permission.permission_type = 'data' AND v_permission.scope IN ('table', 'column') THEN
-        RETURN cms.has_data_permission(v_permission.action, v_permission.schema_name, v_permission.table_name);
-    END IF;
-
-    -- Storage / other scopes have no resource/action capability check, so fall
-    -- back to exact-holder re-delegation (the user must already hold this permission).
-    RETURN cms.has_permission(v_account_id, p_permission_id);
+    RETURN cms.capability_is_grantable(
+        v_permission.permission_type,
+        v_permission.system_resource,
+        v_permission.action,
+        v_permission.scope,
+        v_permission.schema_name,
+        v_permission.table_name,
+        v_permission.column_name,
+        v_permission.metadata);
 END;
 $$ LANGUAGE plpgsql;
 
+-- Se usa en las políticas RLS de las tablas de asignación (se evalúan con
+-- el rol del usuario) y la API la usa para ofrecer solo lo que se puede
+-- conceder. Solo responde sobre la cuenta de la sesión.
 grant
 execute on FUNCTION cms.can_grant_permission to authenticated,
 service_role;
@@ -360,6 +708,17 @@ service_role;
 
 -- SECTION: GET USER MAX ROLE rank
 -- In this section, we define the get user max role rank function. This function is used to get the maximum role rank for a specific account.
+--
+-- [TFG] RNF-02 · B-47: con una sesión de la API (`authenticated`) solo
+-- responde sobre la cuenta de la sesión, salvo que quien pregunta pueda
+-- consultar las cuentas (`account:select`, como Ajustes > Miembros). Antes
+-- cualquier miembro del personal podía preguntar el rango de otra cuenta
+-- (por ejemplo, la de Root). La función es SECURITY INVOKER: dentro de una
+-- función `security definer` (`can_action_account`,
+-- `can_modify_account_role`, `current_account_outranks`...) `current_user`
+-- es el propietario y la función responde sobre cualquier cuenta, que es lo
+-- que necesitan esas comprobaciones internas. Las políticas RLS que
+-- comparan rangos con otra cuenta usan `current_account_outranks`.
 create or replace function cms.get_user_max_role_rank (p_account_id UUID) RETURNS INTEGER
 set
   search_path = '' as $$
@@ -368,6 +727,13 @@ DECLARE
 BEGIN
     -- Input validation
     IF p_account_id IS NULL THEN
+        RETURN null;
+    END IF;
+
+    -- Sesión de la API: nada sobre otras cuentas sin `account:select`.
+    IF current_user IN ('authenticated', 'anon')
+        AND p_account_id IS DISTINCT FROM cms.get_current_user_account_id()
+        AND NOT cms.has_admin_permission('account'::cms.system_resource, 'select'::cms.system_action) THEN
         RETURN null;
     END IF;
 
@@ -384,8 +750,81 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: CAN VIEW PERMISSION GROUP
--- In this section, we define the can view permission group function. This function is used to check if a user can view a specific permission group.
+/*
+ * cms.current_account_outranks
+ *
+ * Indica si la cuenta de la sesión tiene un rango ESTRICTAMENTE superior al
+ * de `p_account_id`. La usan las políticas de `cms.account_permissions`, que
+ * antes comparaban `get_user_max_role_rank` de las dos cuentas: con esa
+ * función ya limitada a la propia cuenta (B-47), la comparación necesita
+ * ver el rango ajeno sin exponerlo. Solo devuelve un sí/no relativo al rango
+ * propio (lo mismo que ya revelaban las políticas), nunca el rango.
+ * Una cuenta sin rol no es superada por nadie (fallo en cerrado, igual que
+ * la comparación heredada con NULL).
+ */
+create or replace function cms.current_account_outranks (p_account_id UUID) RETURNS BOOLEAN security definer
+set
+  row_security = off
+set
+  search_path = '' as $$
+BEGIN
+    IF p_account_id IS NULL OR NOT cms.verify_admin_access() THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Dentro de esta función `current_user` es el propietario, así que
+    -- `get_user_max_role_rank` responde también por la otra cuenta.
+    RETURN coalesce(
+        cms.get_user_max_role_rank(cms.get_current_user_account_id())
+            > cms.get_user_max_role_rank(p_account_id),
+        FALSE);
+END;
+$$ LANGUAGE plpgsql;
+
+grant
+execute on FUNCTION cms.current_account_outranks to authenticated,
+service_role;
+
+/*
+ * cms.count_role_members
+ *
+ * Número de cuentas que tienen un rol. Desde B-47 la política
+ * `view_account_roles` solo deja ver las asignaciones propias a quien no
+ * tiene `account:select`, así que contar filas de `account_roles` con la
+ * sesión del usuario daría 0 o 1. La pantalla de roles solo necesita el
+ * número (quién lo tiene se muestra solo con `account:select`), que no
+ * identifica a nadie.
+ */
+create or replace function cms.count_role_members (p_role_id UUID) RETURNS INTEGER security definer
+set
+  row_security = off
+set
+  search_path = '' as $$
+BEGIN
+    IF p_role_id IS NULL OR NOT cms.verify_admin_access() THEN
+        RETURN 0;
+    END IF;
+
+    RETURN (SELECT count(*)::INTEGER FROM cms.account_roles ar WHERE ar.role_id = p_role_id);
+END;
+$$ LANGUAGE plpgsql;
+
+grant
+execute on FUNCTION cms.count_role_members to authenticated,
+service_role;
+
+/*
+ * cms.can_view_permission_group
+ *
+ * Decide si la cuenta puede ver un grupo de permisos: lo tiene por su rol,
+ * lo creó o lo usa un rol de rango igual o inferior al suyo. La usa la
+ * política SELECT de `cms.permission_groups` y de sus asignaciones.
+ *
+ * [TFG] RNF-02 · ADR-015 (F2.7b): la función es `security definer` y
+ * recibe la cuenta como parámetro, así que cualquiera podía preguntar qué
+ * grupos ve OTRA cuenta (una respuesta sí/no sobre su rol). Ahora solo
+ * responde sobre la cuenta de la sesión; las políticas ya la llaman así.
+ */
 create or replace function cms.can_view_permission_group (p_account_id UUID, p_group_id UUID) RETURNS BOOLEAN security definer
 set
   row_security = off
@@ -394,8 +833,11 @@ set
 DECLARE
     v_user_max_rank INTEGER;
 BEGIN
-    -- Check if user has admin access
     IF NOT cms.verify_admin_access() THEN
+        RETURN FALSE;
+    END IF;
+
+    IF p_account_id IS NULL OR p_account_id IS DISTINCT FROM cms.get_current_user_account_id() THEN
         RETURN FALSE;
     END IF;
 
@@ -478,8 +920,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-grant
-execute on FUNCTION cms.lock_resources_ordered to authenticated;
+-- [TFG] RNF-02 · F2.7b: bloquea filas `FOR UPDATE` sin comprobar nada, así
+-- que un miembro del personal podía bloquear roles o cuentas ajenos durante
+-- su transacción. Solo la llama `can_modify_account_role` (`security
+-- definer`, se ejecuta como su propietario), así que no se concede a
+-- `authenticated`.
+revoke execute on function cms.lock_resources_ordered (uuid[], uuid[], uuid[], uuid[]) from public, anon, authenticated;
 
 -- SECTION: CAN ACTION ACCOUNT
 -- In this section, we define the can action account function. This function is used to check if a user can action a specific account. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
@@ -516,8 +962,10 @@ BEGIN
 
     -- [TFG] RNF-02 · ADR-014 · F2.7a: las cuentas raíz (super-admins de la
     -- plataforma) no se gestionan desde el CMS. Lo garantiza también el rango
-    -- (Root = 100, único), pero se comprueba de forma explícita.
-    IF cms.is_root_managed_account(p_target_account_id) THEN
+    -- (Root = 100, único), pero se comprueba de forma explícita. Se usa la
+    -- versión interna (B-47): la pública solo responde sobre otras cuentas a
+    -- quien tiene `account:select`, y esta guardia debe aplicarse siempre.
+    IF cms.account_is_root_managed(p_target_account_id) THEN
         RETURN FALSE;
     END IF;
 
@@ -689,27 +1137,36 @@ $$ LANGUAGE plpgsql;
 grant
 execute on FUNCTION cms.can_delete_permission to authenticated;
 
--- SECTION: ENFORCE PERMISSION RESHAPE RE-DELEGATION GUARD
--- bug-hunt 10x01: a permission row's capability-defining columns must not be reshaped
--- into a capability the caller does not themselves hold. can_grant_permission guards the
--- GRANT paths (junction-table INSERTs) but cannot see an in-place UPDATE of the permission
--- row, and can_modify_permission only enforces the rank gate, never the capability shape.
--- Without this, a low-rank admin could create a narrow permission they hold, attach it to a
--- sub-rank role (passing can_grant_permission while narrow), then reshape that row into a
--- broad capability (e.g. data '*'/'*') and consume it via the unchanged role link.
---
--- This runs as a BEFORE UPDATE trigger (not a WITH CHECK) so it can compare OLD vs NEW and
--- only re-validate when a capability column actually changes -- a name/description edit,
--- already gated by can_modify_permission's rank check, is left alone.
--- The capability check reads NEW.* directly, mirroring can_grant_permission's own logic.
+/*
+ * cms.enforce_permission_reshape_grantable (trigger BEFORE UPDATE de
+ * `cms.permissions`)
+ *
+ * Impide «dar forma» a un permiso ya asignado hasta convertirlo en una
+ * capacidad que quien lo edita no tiene. `can_grant_permission` protege las
+ * ASIGNACIONES (los INSERT en las tablas de asignación), pero no ve un
+ * UPDATE en el sitio de la fila del permiso, y `can_modify_permission` solo
+ * aplica la regla de rango. Sin este *trigger*, un administrador de rango
+ * bajo podía crear un permiso estrecho que sí tiene, colgarlo de un rol
+ * inferior y después ensancharlo (por ejemplo, a datos `*`/`*`) para que ese
+ * rol lo disfrutara a través del enlace ya existente.
+ *
+ * Es un *trigger* y no un `WITH CHECK` porque necesita comparar la fila
+ * vieja con la nueva: solo se vuelve a validar cuando cambia una columna que
+ * define la capacidad. Editar el nombre o la descripción (ya limitado por el
+ * rango en `can_modify_permission`) no se bloquea.
+ *
+ * [TFG] RNF-02 · ADR-015: la API (F2.7b) lo traduce a
+ * `PERMISSION_NOT_GRANTABLE`. Desde B-47 aplica `capability_is_grantable`,
+ * así que una denegación que se solape con la forma nueva también lo impide.
+ */
 create or replace function cms.enforce_permission_reshape_grantable () RETURNS trigger security definer
 set
   row_security = off
 set
   search_path = '' as $$
 BEGIN
-    -- Only re-validate when a capability-defining column changes. The metadata column is
-    -- one of them: for scope='storage' it IS the capability.
+    -- Solo se vuelve a validar si cambia alguna columna que define la
+    -- capacidad. `metadata` cuenta: en el ámbito `storage` ES la capacidad.
     IF NEW.permission_type IS NOT DISTINCT FROM OLD.permission_type
        AND NEW.system_resource IS NOT DISTINCT FROM OLD.system_resource
        AND NEW.action IS NOT DISTINCT FROM OLD.action
@@ -721,51 +1178,42 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- System / service-role context (no CMS account in the JWT) already bypasses RLS
-    -- and is fully trusted (seeds, server-side admin client); do not constrain it. The
-    -- attacker-reachable path (updatePermission on the RLS-scoped client) always has an account.
+    -- Sin cuenta del CMS en el JWT (migraciones, *seed*, cliente de
+    -- servicio) no hay a quién limitar: ese contexto ya ignora RLS y es de
+    -- confianza. La vía que usa el personal (API con su sesión) siempre
+    -- tiene cuenta.
     IF cms.get_current_user_account_id() IS NULL THEN
         RETURN NEW;
     END IF;
 
-    -- The caller may only reshape into a capability they themselves effectively hold,
-    -- mirroring cms.can_grant_permission evaluated against the NEW values.
-    IF NEW.permission_type = 'system' THEN
-        IF NOT cms.has_admin_permission(NEW.system_resource, NEW.action) THEN
-            RAISE EXCEPTION 'insufficient_privilege: cannot reshape a permission into a capability you do not hold'
-                USING ERRCODE = '42501';
-        END IF;
-    ELSIF NEW.permission_type = 'data' AND NEW.scope IN ('table', 'column') THEN
-        IF NOT cms.has_data_permission(NEW.action, NEW.schema_name, NEW.table_name) THEN
-            RAISE EXCEPTION 'insufficient_privilege: cannot reshape a permission into a capability you do not hold'
-                USING ERRCODE = '42501';
-        END IF;
-    ELSIF NEW.scope = 'storage' THEN
-        -- Holding the row says nothing about the resulting capability, so check the
-        -- target bucket/path/action instead.
-        IF NOT cms.storage_capability_is_grantable(
-                   NEW.action,
-                   NEW.metadata ->> 'bucket_name',
-                   NEW.metadata ->> 'path_pattern') THEN
+    -- Misma regla que `can_grant_permission` (`capability_is_grantable`),
+    -- evaluada sobre los valores NUEVOS de la fila: tener la capacidad y que
+    -- ninguna denegación propia se solape con ella (B-47).
+    IF NOT cms.capability_is_grantable(
+               NEW.permission_type,
+               NEW.system_resource,
+               NEW.action,
+               NEW.scope,
+               NEW.schema_name,
+               NEW.table_name,
+               NEW.column_name,
+               NEW.metadata) THEN
+        IF NEW.scope = 'storage' THEN
             RAISE EXCEPTION 'insufficient_privilege: cannot reshape a permission into a storage capability you do not hold'
                 USING ERRCODE = '42501';
         END IF;
-    ELSE
-        -- Other scopes have no resource/action capability check: require the caller to
-        -- already hold this exact permission (matches can_grant_permission's fallback).
-        IF NOT cms.has_permission(cms.get_current_user_account_id(), NEW.id) THEN
-            RAISE EXCEPTION 'insufficient_privilege: cannot reshape a permission you do not hold'
-                USING ERRCODE = '42501';
-        END IF;
+
+        RAISE EXCEPTION 'insufficient_privilege: cannot reshape a permission into a capability you do not hold'
+            USING ERRCODE = '42501';
     END IF;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-grant
-execute on FUNCTION cms.enforce_permission_reshape_grantable to authenticated,
-service_role;
+-- Es una función de *trigger*: nadie necesita llamarla directamente (los
+-- *triggers* no comprueban el EXECUTE de quien modifica la tabla).
+revoke execute on function cms.enforce_permission_reshape_grantable () from public, anon, authenticated;
 
 -- SECTION: CAN GRANT PERMISSION GROUP
 -- role_permission_groups is the fourth capability-attachment edge. The other three carry
@@ -921,14 +1369,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: CAN VIEW ROLE PERMISSION GROUP
--- In this section, we define the can view role permission group function. This function is used to check if a user can view a specific role permission group.
+/*
+ * cms.can_view_role_permission_group
+ *
+ * Decide si la cuenta puede ver qué grupos tiene un rol: el suyo o uno de
+ * rango igual o inferior. La usa la política SELECT de
+ * `cms.role_permission_groups`.
+ *
+ * [TFG] RNF-02 · F2.7b: solo responde sobre la cuenta de la sesión (antes
+ * aceptaba cualquier cuenta como parámetro).
+ */
 create or replace function cms.can_view_role_permission_group (p_account_id UUID, p_role_id UUID) RETURNS BOOLEAN
 set
   search_path = '' as $$
 DECLARE
     v_user_max_rank INTEGER;
 BEGIN
+    IF p_account_id IS NULL OR p_account_id IS DISTINCT FROM cms.get_current_user_account_id() THEN
+        RETURN FALSE;
+    END IF;
+
     -- Get the user's maximum role rank
     v_user_max_rank := cms.get_user_max_role_rank(p_account_id);
 
@@ -946,8 +1406,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: CAN MODIFY ROLE PERMISSION GROUP
--- In this section, we define the can modify role permission group function. This function is used to check if a user can modify a specific role permission group.
+/*
+ * cms.can_modify_role_permission_group
+ *
+ * Decide si la cuenta puede asignar o quitar grupos de permisos a un rol:
+ * necesita el permiso `role` para esa acción y un rango ESTRICTAMENTE
+ * superior al del rol (así nadie toca los grupos de su propio rol). Lo que
+ * se asigna lo limita aparte `can_grant_permission_group`.
+ *
+ * [TFG] RNF-02 · F2.7b: solo responde sobre la cuenta de la sesión (antes
+ * aceptaba cualquier cuenta como parámetro y permitía preguntar «¿podría
+ * Root hacer esto?»).
+ */
 create or replace function cms.can_modify_role_permission_group (
   p_account_id UUID,
   p_role_id UUID,
@@ -958,6 +1428,10 @@ set
 DECLARE
     v_user_max_rank INTEGER;
 BEGIN
+    IF p_account_id IS NULL OR p_account_id IS DISTINCT FROM cms.get_current_user_account_id() THEN
+        RETURN FALSE;
+    END IF;
+
     -- First check: Does user have admin permission to modify roles at all?
     IF NOT cms.has_admin_permission('role'::cms.system_resource, p_action) THEN
         RETURN FALSE;

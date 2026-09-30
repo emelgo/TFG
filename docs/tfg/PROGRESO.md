@@ -64,7 +64,8 @@
 - [x] F2.7a · `/rls-review`: AISLADO; +68 pruebas (`cms-members-isolation.test.sql`), pgTAP 64 ficheros / 1.862
 - [x] F2.7a · Debilidad hallada en la revisión (B-45): `cms._delete_record_impl` era ejecutable por `authenticated` → `delete_record` pasa a SECURITY DEFINER y se revoca la función interna; pgTAP 65 ficheros / 1.868, E2E del CMS 88 ✔
 - [ ] Pendiente (F2.7a): `update/delete_record_by_conditions` pueden tocar hasta 25 filas con una sola entrada de auditoría (no alcanzable por la API, B-19); un miembro puede editar su nombre visible en `metadata`; `assigned_by` solo en asignaciones nuevas; el E2E del MFA lo desactiva globalmente unos segundos durante la suite
-- [ ] F2.7b · Ajustes: RBAC (roles, grupos y permisos)
+- [x] F2.7b · Ajustes: RBAC (roles, grupos y permisos) con rutas de servidor reescritas; objetos raíz inmutables; pendientes de ADR-015 cerrados (oráculos sí/no, vistas compartidas, almacenamiento en cerrado). `/rls-review`: brecha heredada de escape de denegaciones por delegación, corregida (B-47). pgTAP 67 ficheros / 2.049, E2E CMS+admin 100 ✔
+- [ ] Pendiente (F2.7b): una denegación de almacenamiento sobre una subruta no bloquea el acceso por un permiso más amplio (heredado); C4/C5/C6/C8 aceptados (pares del mismo rango pueden alterar grupos compartidos sin superar sus propias capacidades)
 - [ ] F2.7c · Ajustes: Recursos y diseñador de fichas
 - [ ] F2.8 · Paneles (RF-11, recortable)
 - [ ] F2.9 · Cierre: E2E, skills (`react-form-builder`, `service-builder`, `playwright-e2e`) y `AGENTS.md` actualizados

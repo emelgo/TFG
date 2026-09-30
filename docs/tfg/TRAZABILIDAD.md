@@ -34,10 +34,11 @@ _Última actualización: 2026-09-30 (F2.6b cerrada)._
 ## Etiquetas `[TFG]` en el código
 
 <!-- tfg-tags:inicio -->
-_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No se edita a mano._
+_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No se edita a mano._
 
 | Fichero:línea | Referencias | Qué ilustra |
 |---|---|---|
+| `apps/e2e/scripts/capture-marketing-screenshots.mjs:17` | RF-01 | RF-01: identidad visual propia de la landing (desmarcado, B-40). |
 | `apps/e2e/tests/blog/blog.spec.ts:16` | RF-01, RF-09, RNF-02, ADR-017 | RF-01 · RF-09 · RNF-02 · ADR-017. |
 | `apps/e2e/tests/cms/cms-api.spec.ts:14` | RF-09, RNF-02 | RF-09 · RNF-02: el acceso al CMS se verifica de extremo a extremo. |
 | `apps/e2e/tests/cms/cms-audit-logs.spec.ts:22` | RF-10, RNF-02, ADR-014 | RF-10 · RNF-02 · ADR-014. |
@@ -49,6 +50,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `apps/e2e/tests/cms/cms-settings-auth.spec.ts:13` | RNF-02, ADR-014, ADR-016 | RNF-02 · ADR-014 · ADR-016. |
 | `apps/e2e/tests/cms/cms-settings-general.spec.ts:12` | RF-09, ADR-013 | RF-09 · ADR-013. |
 | `apps/e2e/tests/cms/cms-settings-members.spec.ts:22` | RF-09, RF-10, RNF-02, ADR-014 | RF-09 · RF-10 · RNF-02 · ADR-014. |
+| `apps/e2e/tests/cms/cms-settings-permissions.spec.ts:24` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. |
 | `apps/e2e/tests/cms/cms-storage-explorer.spec.ts:24` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `apps/e2e/tests/cms/cms-ui.spec.ts:17` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014. |
 | `apps/e2e/tests/cms/cms-users-explorer.spec.ts:24` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
@@ -77,6 +79,10 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `apps/web/src/routes/admin/cms/settings/general.tsx:15` | RF-09, ADR-013 | RF-09 · ADR-013. |
 | `apps/web/src/routes/admin/cms/settings/members/$id.tsx:9` | RF-09, RF-10, ADR-014 | RF-09 · RF-10 · ADR-014. |
 | `apps/web/src/routes/admin/cms/settings/members/index.tsx:10` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013. |
+| `apps/web/src/routes/admin/cms/settings/permissions/$id.tsx:11` | RF-09, ADR-014, ADR-015 | RF-09 · ADR-014 · ADR-015. |
+| `apps/web/src/routes/admin/cms/settings/permissions/groups/$id.tsx:10` | RF-09, ADR-014, ADR-015 | RF-09 · ADR-014 · ADR-015. |
+| `apps/web/src/routes/admin/cms/settings/permissions/index.tsx:11` | RF-09, ADR-013, ADR-014 | RF-09 · ADR-013 · ADR-014. |
+| `apps/web/src/routes/admin/cms/settings/permissions/roles/$id.tsx:10` | RF-09, ADR-014, ADR-015 | RF-09 · ADR-014 · ADR-015. |
 | `apps/web/src/routes/admin/cms/settings/route.tsx:11` | RF-09, ADR-014, ADR-016 | RF-09 · ADR-014 · ADR-016: interfaz filtrada por el RBAC del CMS |
 | `apps/web/src/routes/admin/cms/storage/$bucket.tsx:12` | RF-09, RNF-02, ADR-011, ADR-013 | RF-09 · RNF-02 · ADR-011 · ADR-013. |
 | `apps/web/src/routes/admin/cms/storage/index.tsx:8` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013. |
@@ -96,12 +102,32 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `apps/web/supabase/schemas/23-cms-auth.sql:130` | ADR-014 | ADR-014 · En PymeKit el MFA es obligatorio salvo que se desactive |
 | `apps/web/supabase/schemas/24-cms-utils.sql:126` | RNF-02 | RNF-02 · Corrección de PymeKit (hallada en la refutación de |
 | `apps/web/supabase/schemas/24-cms-utils.sql:477` | RNF-02 | RNF-02: PymeKit revoca por defecto el EXECUTE de PUBLIC sobre todas las |
-| `apps/web/supabase/schemas/28-cms-roles-functions.sql:86` | RNF-02 | RNF-02 · F2.7a (pendiente D, reglas de rango). Nadie cambia sus |
-| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:517` | RNF-02, ADR-014 | RNF-02 · ADR-014 · F2.7a: las cuentas raíz (super-admins de la |
-| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:23` | RNF-02 | RNF-02 · Corrección de PymeKit: la condición heredada |
-| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:64` | RNF-02 | RNF-02 · Corrección de PymeKit (brecha heredada detectada en /rls-review). |
-| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:155` | RNF-02 | RNF-02 · Mismo arreglo que en update_role_permissions: el WITH CHECK |
-| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:210` | RNF-02 | RNF-02 · Mismo arreglo: la fila nueva debe seguir cumpliendo que el |
+| `apps/web/supabase/schemas/28-cms-roles-functions.sql:81` | RNF-02, ADR-015 | RNF-02 · ADR-015 (F2.7b): la cuenta que actúa es SIEMPRE la de |
+| `apps/web/supabase/schemas/28-cms-roles-functions.sql:95` | RNF-02 | RNF-02 · F2.7a (pendiente D, reglas de rango). Nadie cambia sus |
+| `apps/web/supabase/schemas/28-cms-roles-functions.sql:175` | RNF-02, ADR-015 | RNF-02 · ADR-015 (pendiente cerrado en F2.7b): es `security |
+| `apps/web/supabase/schemas/30-cms-permissions.sql:51` | RNF-02, ADR-015 | RNF-02 · ADR-015 (F2.7b): un permiso de almacenamiento es |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:59` | RNF-02, ADR-015 | RNF-02 · ADR-015 (pendiente cerrado en F2.7b): `has_permission` |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:123` | RNF-02, ADR-015 | RNF-02 · ADR-015 · bitácora B-47. Una denegación explícita |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:328` | RNF-02, ADR-015 | RNF-02 · ADR-015 (pendiente cerrado en F2.7b): falla en CERRADO. |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:429` | RNF-02, ADR-015 | RNF-02 · ADR-015 (F2.7b): falla en cerrado. Antes un *bucket* o un |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:435` | — | B-47: además, ninguna denegación de almacenamiento de quien concede |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:568` | — | B-47: que NINGUNA denegación explícita vigente de la cuenta se |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:660` | RNF-02, ADR-015 | RNF-02 · ADR-015 · F2.7b: los permisos de almacenamiento se |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:665` | — | B-47: la decisión la toma `capability_is_grantable`, que además |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:712` | RNF-02 | RNF-02 · B-47: con una sesión de la API (`authenticated`) solo |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:823` | RNF-02, ADR-015 | RNF-02 · ADR-015 (F2.7b): la función es `security definer` y |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:923` | RNF-02 | RNF-02 · F2.7b: bloquea filas `FOR UPDATE` sin comprobar nada, así |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:963` | RNF-02, ADR-014 | RNF-02 · ADR-014 · F2.7a: las cuentas raíz (super-admins de la |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:1158` | RNF-02, ADR-015 | RNF-02 · ADR-015: la API (F2.7b) lo traduce a |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:1379` | RNF-02 | RNF-02 · F2.7b: solo responde sobre la cuenta de la sesión (antes |
+| `apps/web/supabase/schemas/34-cms-permissions-functions.sql:1417` | RNF-02 | RNF-02 · F2.7b: solo responde sobre la cuenta de la sesión (antes |
+| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:6` | RNF-02 | RNF-02 · B-47: las cuatro políticas de esta tabla comparan el rango |
+| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:27` | RNF-02 | RNF-02 · Corrección de PymeKit: la condición heredada |
+| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:68` | RNF-02 | RNF-02 · Corrección de PymeKit (brecha heredada detectada en /rls-review). |
+| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:159` | RNF-02 | RNF-02 · Mismo arreglo que en update_role_permissions: el WITH CHECK |
+| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:214` | RNF-02 | RNF-02 · Mismo arreglo: la fila nueva debe seguir cumpliendo que el |
+| `apps/web/supabase/schemas/40-cms-permissions-rls.sql:272` | RNF-02 | RNF-02 · B-47: antes bastaba con tener acceso al CMS |
+| `apps/web/supabase/schemas/43-cms-saved-views-rls.sql:65` | RNF-02, ADR-015 | RNF-02 · ADR-015 (pendiente cerrado en F2.7b): la política heredada |
 | `apps/web/supabase/schemas/45-cms-sync-managed-tables.sql:83` | RF-09 | RF-09 · Corrección de PymeKit (F2.6b): la versión heredada |
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:30` | RNF-02 | RNF-02 · Corrección de PymeKit: igual que insert/update/delete, |
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:388` | RF-10, RNF-02 | RF-10 · RNF-02 · Auditoría que falla en cerrado (F2.7a, pendiente |
@@ -110,15 +136,17 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:972` | RNF-02 | RNF-02 · Corrección de PymeKit (BITACORA B-45): pasa a SECURITY |
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:1593` | RNF-02 | RNF-02 · Corrección de PymeKit: esta función salta RLS |
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:1676` | RNF-02 | RNF-02: `grant` explícitos que sustituyen al EXECUTE implícito de |
-| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1687` | RNF-02 | RNF-02 · B-45: en la F2.1 se concedió aquí `_delete_record_impl` a |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1685` | RNF-02 | RNF-02 · B-45: en la F2.1 se concedió aquí `_delete_record_impl` a |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1695` | RNF-02, ADR-015 | RNF-02 · ADR-015 (pendiente cerrado en F2.7b): `build_where_clause` |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:17` | RF-10, RNF-02, ADR-018 | RF-10 · RNF-02 · Instantánea del autor (F2.7a, ADR-018 propuesto). |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:65` | RNF-02 | RNF-02 · Integridad del registro de auditoría (PymeKit, F2.6): el |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:76` | RNF-02 | RNF-02 · Redacción en la base de datos (bitácora B-31). El SELECT se |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:122` | RF-10, RNF-02, ADR-018 | RF-10 · RNF-02 · F2.7a (ADR-018 propuesto). |
-| `apps/web/supabase/schemas/47-cms-audit-logs.sql:316` | RNF-02 | RNF-02 · PymeKit, F2.6. |
-| `apps/web/supabase/schemas/47-cms-audit-logs.sql:355` | RNF-02 | RNF-02 · Redacción de los datos de fila en la base de datos |
-| `apps/web/supabase/schemas/47-cms-audit-logs.sql:427` | RNF-02 | RNF-02 · F2.7a. Devuelve el correo guardado en la instantánea del |
-| `apps/web/supabase/schemas/47-cms-audit-logs.sql:521` | RNF-02 | RNF-02: `create_audit_log` escribe cualquier operación, tabla y datos |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:239` | RNF-02 | RNF-02 · B-47: SECURITY DEFINER con RLS desactivado. Compara el |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:324` | RNF-02 | RNF-02 · PymeKit, F2.6. |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:363` | RNF-02 | RNF-02 · Redacción de los datos de fila en la base de datos |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:435` | RNF-02 | RNF-02 · F2.7a. Devuelve el correo guardado en la instantánea del |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:529` | RNF-02 | RNF-02: `create_audit_log` escribe cualquier operación, tabla y datos |
 | `apps/web/supabase/schemas/48-cms-global-search.sql:20` | RNF-02 | RNF-02 · Endurecimiento de PymeKit (F2.6) sobre la función heredada: |
 | `apps/web/supabase/schemas/48-cms-global-search.sql:30` | RNF-02 | RNF-02 · Segundo endurecimiento (F2.6, revisión `/rls-review`): |
 | `apps/web/supabase/schemas/50-cms-triggers.sql:94` | RNF-02 | RNF-02 · F2.7a: los cambios de configuración global (por |
@@ -131,8 +159,11 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `apps/web/supabase/schemas/53-cms-super-admin.sql:36` | RNF-02 | RNF-02 · Solo puede existir un rol y un grupo marcados como raíz. |
 | `apps/web/supabase/schemas/53-cms-super-admin.sql:322` | RNF-02 | RNF-02: ninguna de estas funciones debe poder invocarse desde la API. |
 | `apps/web/supabase/schemas/53-cms-super-admin.sql:351` | RNF-02, ADR-014 | RNF-02 · ADR-014: MFA obligatorio para entrar al CMS. |
-| `apps/web/supabase/schemas/54-cms-members-hardening.sql:17` | RF-09, RNF-02, ADR-014, ADR-016 | RF-09 · RNF-02 · ADR-014 · ADR-016. |
-| `apps/web/supabase/schemas/54-cms-members-hardening.sql:67` | RNF-02, ADR-014 | RNF-02 · ADR-014 · F2.7a. `requires_mfa` decide si todo el personal |
+| `apps/web/supabase/schemas/54-cms-members-hardening.sql:18` | RF-09, RNF-02, ADR-014, ADR-016 | RF-09 · RNF-02 · ADR-014 · ADR-016. |
+| `apps/web/supabase/schemas/54-cms-members-hardening.sql:36` | RNF-02 | RNF-02 · B-47. |
+| `apps/web/supabase/schemas/54-cms-members-hardening.sql:66` | RNF-02 | RNF-02 · B-47: solo responde con acceso vigente al CMS y sobre la |
+| `apps/web/supabase/schemas/54-cms-members-hardening.sql:96` | RNF-02, ADR-014 | RNF-02 · ADR-014 · F2.7a. `requires_mfa` decide si todo el personal |
+| `apps/web/supabase/schemas/55-cms-rbac-hardening.sql:26` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. Pruebas en |
 | `apps/web/supabase/seed.sql:304` | RF-09, RF-10 | RF-09, RF-10. |
 | `apps/web/supabase/seed.sql:334` | RF-09, ADR-014 | RF-09 · ADR-014: RBAC del CMS para el personal que no es super-admin. |
 | `apps/web/supabase/seed.sql:409` | RF-01, ADR-017 | RF-01 · ADR-017: contenido gestionado desde el CMS. |
@@ -141,16 +172,23 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `apps/web/supabase/tests/database/blog.test.sql:22` | RF-01, RF-09, RNF-02, ADR-017 | RF-01 · RF-09 · RNF-02 · ADR-017. |
 | `apps/web/supabase/tests/database/cms-audit-isolation.test.sql:25` | RNF-02, ADR-015 | RNF-02 · ADR-015. |
 | `apps/web/supabase/tests/database/cms-audit-logs-integrity.test.sql:22` | RNF-02, ADR-015 | RNF-02 · ADR-015. |
+| `apps/web/supabase/tests/database/cms-build-where-clause.test.sql:73` | RNF-02, ADR-015 | RNF-02 · F2.7b (pendiente de ADR-015): `build_where_clause` ya no |
+| `apps/web/supabase/tests/database/cms-can-modify-account-role.test.sql:74` | — | B-47: desde que `view_account_roles` solo muestra las asignaciones |
 | `apps/web/supabase/tests/database/cms-crud-internal.test.sql:10` | RNF-02 | RNF-02. |
 | `apps/web/supabase/tests/database/cms-dashboards-security.test.sql:253` | RNF-02 | RNF-02 · Endurecimiento de PymeKit: sin acceso de administración |
 | `apps/web/supabase/tests/database/cms-hardening-f26.test.sql:19` | RNF-02, ADR-015 | RNF-02 · ADR-015 · bitácora B-31 a B-34. |
 | `apps/web/supabase/tests/database/cms-isolation.test.sql:19` | RF-09, RNF-02, RNF-03, ADR-014, ADR-015 | RF-09, RNF-02, RNF-03 · ADR-014 y ADR-015. |
+| `apps/web/supabase/tests/database/cms-max-role-priority.test.sql:56` | — | B-47: con una sesión de usuario, `get_user_max_role_rank` solo |
+| `apps/web/supabase/tests/database/cms-max-role-priority.test.sql:343` | — | B-47: el rol del super-admin de prueba se borró en el test 15, así |
 | `apps/web/supabase/tests/database/cms-members-hardening.test.sql:17` | RF-09, RF-10, RNF-02, ADR-014, ADR-015 | RF-09 · RF-10 · RNF-02 · ADR-014 · ADR-015. |
 | `apps/web/supabase/tests/database/cms-members-isolation.test.sql:26` | RF-09, RF-10, RNF-02, ADR-014, ADR-015 | RF-09 · RF-10 · RNF-02 · ADR-014 · ADR-015. |
+| `apps/web/supabase/tests/database/cms-rbac-f27b.test.sql:23` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. |
+| `apps/web/supabase/tests/database/cms-rbac-isolation.test.sql:34` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. |
+| `apps/web/supabase/tests/database/cms-roles.test.sql:70` | — | B-47: desde que `view_account_roles` solo muestra las asignaciones |
 | `apps/web/supabase/tests/database/cms-super-admin-root.test.sql:9` | RF-08, RF-09, RNF-02, ADR-014 | RF-08, RF-09, RNF-02 y ADR-014. |
 | `packages/cms/api/src/client.ts:13` | RF-09, ADR-011 | RF-09 · ADR-011: la interfaz y la API del CMS se comunican por RPC |
 | `packages/cms/api/src/server.ts:20` | RF-09, ADR-011 | RF-09 · ADR-011: CMS integrado en la web como una API Hono montada en |
-| `packages/cms/api/src/server.ts:151` | RNF-02, ADR-014 | RNF-02 · ADR-014/015: además del claim, se pide a la base de |
+| `packages/cms/api/src/server.ts:148` | RNF-02, ADR-014 | RNF-02 · ADR-014/015: además del claim, se pide a la base de |
 | `packages/cms/audit-logs-ui/src/components/audit-logs-view.tsx:12` | RF-10 | RF-10: consulta del registro de auditoría del CMS. |
 | `packages/cms/audit-logs/src/api/routes/get-audit-logs-route.ts:19` | RF-10, RNF-02 | RF-10 · RNF-02. |
 | `packages/cms/audit-logs/src/api/services/audit-logs.service.ts:33` | RF-10, RNF-02 | RF-10 · RNF-02: trazabilidad de las acciones del CMS con lectura |
@@ -160,8 +198,8 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `packages/cms/auth/src/api/routes/index.ts:26` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014: acceso al CMS integrado en la consola de |
 | `packages/cms/auth/src/api/routes/index.ts:153` | RNF-02 | RNF-02 · Falla en cerrado (BITACORA B-23): si no se puede comprobar el |
 | `packages/cms/auth/src/api/services/__tests__/build-parameterized-statement.test.ts:9` | RNF-02 | RNF-02. |
-| `packages/cms/auth/src/api/services/authorization.service.ts:480` | RF-09, ADR-014 | RF-09 · ADR-014: la visibilidad de la interfaz se deriva del RBAC |
-| `packages/cms/auth/src/api/services/authorization.service.ts:725` | RNF-02 | RNF-02 · Corrección de seguridad de PymeKit (BITACORA B-24). |
+| `packages/cms/auth/src/api/services/authorization.service.ts:399` | RF-09, ADR-014 | RF-09 · ADR-014: la visibilidad de la interfaz se deriva del RBAC |
+| `packages/cms/auth/src/api/services/authorization.service.ts:557` | RNF-02 | RNF-02 · Corrección de seguridad de PymeKit (BITACORA B-24). |
 | `packages/cms/dashboards/src/lib/filters/filter-item.types.ts:7` | ADR-011 | ADR-011 |
 | `packages/cms/data-explorer-core/src/services/table-view-service.ts:447` | RNF-02 | RNF-02 · Corrección de PymeKit (F2.6b): las consultas de las |
 | `packages/cms/data-explorer-core/src/utils/display-format-parser.ts:25` | — | Corrección de PymeKit |
@@ -177,10 +215,18 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `packages/cms/data-explorer-ui/src/utils/record-relations.ts:19` | RF-09 | RF-09: navegación entre registros relacionados con permisos del RBAC. |
 | `packages/cms/data-explorer/src/api/routes/index.ts:813` | RF-09, RNF-02 | RF-09 · RNF-02: la autorización se aplica en la API y otra vez en la |
 | `packages/cms/data-explorer/src/api/utils/crud-errors.ts:24` | RNF-02 | RNF-02 Seguridad: los errores de la base de datos no se filtran al |
+| `packages/cms/permissions/src/lib/rbac-errors.ts:18` | RNF-02 | RNF-02 Seguridad: los errores internos no llegan al cliente |
+| `packages/cms/permissions/src/lib/rbac-schemas.ts:13` | RNF-02, ADR-015 | RNF-02 · ADR-015. Tests en `__tests__/rbac-schemas.test.ts`. |
+| `packages/cms/permissions/src/routes/index.ts:13` | RF-09, RNF-02 | RF-09 · RNF-02. |
+| `packages/cms/permissions/src/routes/rbac-routes.ts:32` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. |
+| `packages/cms/permissions/src/services/rbac.service.ts:34` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. |
+| `packages/cms/permissions/src/services/roles.service.ts:15` | RF-09, ADR-014 | RF-09 · ADR-014. |
 | `packages/cms/query-builder/src/clauses/where-builder.ts:277` | — | Corrección de PymeKit (F2.6b): el patrón heredado solo pedía |
 | `packages/cms/resources/src/api/routes/index.ts:5` | RF-09 | RF-09. |
 | `packages/cms/resources/src/api/services/global-search.service.ts:18` | RF-09, RNF-02 | RF-09 · RNF-02 (bitácora B-32). |
 | `packages/cms/resources/src/api/utils/global-search.ts:15` | RNF-02, RF-09 | RNF-02 · RF-09. |
+| `packages/cms/settings-ui/src/components/permissions/permissions-settings-view.tsx:12` | RF-09, ADR-013, ADR-014 | RF-09 · ADR-013 · ADR-014: pantalla portada y reescrita con la pila |
+| `packages/cms/settings-ui/src/utils/rbac-forms.ts:12` | RF-09, RNF-02, ADR-013, ADR-015 | RF-09 · RNF-02 · ADR-013 · ADR-015. Tests en |
 | `packages/cms/settings/src/api/routes/get-account-route.ts:23` | RF-09, ADR-014 | RF-09 · ADR-014. |
 | `packages/cms/settings/src/api/routes/get-members-route.ts:20` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `packages/cms/settings/src/api/routes/mfa-configuration.ts:20` | RNF-02, ADR-014, ADR-016 | RNF-02 · ADR-014 · ADR-016. |
@@ -191,6 +237,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `packages/cms/settings/src/api/services/members.service.ts:29` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `packages/cms/settings/src/api/utils/settings-errors.ts:11` | RNF-02 | RNF-02 Seguridad: los errores internos no llegan al cliente |
 | `packages/cms/shared/src/utils/preferences.ts:12` | RF-09 | RF-09 · F2.7a. |
+| `packages/cms/shared/src/utils/rbac.ts:13` | RF-09, RNF-02, ADR-015 | RF-09 · RNF-02 · ADR-015. |
 | `packages/cms/shared/src/utils/storage-paths.ts:17` | RNF-02 | RNF-02 Seguridad: validación de rutas antes de usar el cliente de |
 | `packages/cms/storage-explorer/src/api/routes/file-operations-route.ts:16` | RF-09, RNF-02 | RF-09 · RNF-02. |
 | `packages/cms/storage-explorer/src/api/routes/get-bucket-contents-route.ts:11` | RF-09, RNF-02 | RF-09 · RNF-02. |
@@ -203,8 +250,9 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (179 etiquetas). No 
 | `packages/cms/supabase/src/clients/hono-client.ts:18` | RF-09, ADR-011 | RF-09 · ADR-011: API del CMS integrada en la web. |
 | `packages/cms/ui-core/src/api.ts:16` | RF-09, ADR-011 | RF-09 · ADR-011: interfaz y API del CMS comunicadas por RPC tipado. |
 | `packages/cms/ui-core/src/audit-logs-api.ts:14` | RF-09, RF-10, ADR-011 | RF-09 · RF-10 · ADR-011. |
+| `packages/cms/ui-core/src/permissions-api.ts:15` | RF-09, ADR-011, ADR-015 | RF-09 · ADR-011 · ADR-015. |
 | `packages/cms/ui-core/src/sections.ts:25` | RF-09, ADR-014 | RF-09 · ADR-014: la interfaz refleja el RBAC propio del CMS. |
-| `packages/cms/ui-core/src/sections.ts:110` | RF-09, ADR-014, ADR-016 | RF-09 · ADR-014 · ADR-016. |
+| `packages/cms/ui-core/src/sections.ts:115` | RF-09, ADR-014, ADR-016 | RF-09 · ADR-014 · ADR-016. |
 | `packages/cms/ui-core/src/settings-api.ts:14` | RF-09, ADR-011 | RF-09 · ADR-011. |
 | `packages/cms/ui-core/src/storage-api.ts:10` | RF-09, ADR-011 | RF-09 · ADR-011. |
 | `packages/cms/ui-core/src/users-api.ts:12` | RF-09, ADR-011 | RF-09 · ADR-011. |

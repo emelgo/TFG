@@ -1,13 +1,20 @@
 /**
- * *Page Object* de Ajustes del CMS (`/admin/cms/settings/**`, F2.7a).
+ * *Page Object* de Ajustes del CMS (`/admin/cms/settings/**`, F2.7a y
+ * F2.7b).
  *
  * Encapsula los selectores `data-testid` de las pestañas, del formulario
- * General, de la obligación de MFA y de las pantallas de miembros, para que
- * las especificaciones solo describan el comportamiento esperado.
+ * General, de la obligación de MFA y de las pantallas de miembros y de
+ * permisos, para que las especificaciones solo describan el comportamiento
+ * esperado.
  */
 import { type Page, expect } from '@playwright/test';
 
-export const SETTINGS_TABS = ['general', 'authentication', 'members'] as const;
+export const SETTINGS_TABS = [
+  'general',
+  'authentication',
+  'members',
+  'permissions',
+] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
@@ -84,5 +91,29 @@ export class SettingsPageObject {
 
   notFound() {
     return this.page.getByTestId('root-not-found');
+  }
+
+  /** Ajustes > Permisos en la pestaña indicada (F2.7b). */
+  async gotoPermissions(tab: 'roles' | 'groups' | 'permissions' = 'roles') {
+    await this.page.goto(`/admin/cms/settings/permissions?tab=${tab}`);
+    await this.waitForHydration('rbac-view');
+  }
+
+  /**
+   * Marca en el diálogo de asignar la opción con ese id y guarda, esperando
+   * a que la API responda 200.
+   */
+  async assign(id: string, endpoint: RegExp) {
+    await expect(this.page.getByTestId('assign-dialog')).toBeVisible();
+    await this.page.getByTestId(`assign-option-${id}`).click();
+
+    const saved = this.page.waitForResponse(
+      (response) =>
+        endpoint.test(response.url()) && response.request().method() === 'PUT',
+    );
+
+    await this.page.getByTestId('assign-submit').click();
+    expect((await saved).status()).toBe(200);
+    await expect(this.page.getByTestId('assign-dialog')).toBeHidden();
   }
 }

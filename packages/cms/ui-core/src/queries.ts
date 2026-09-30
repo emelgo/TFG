@@ -128,6 +128,19 @@ export const cmsQueryKeys = {
       { page: params.page ?? 1, search: params.search ?? '' },
     ] as const,
   member: (id: string) => [...cmsQueryKeys.members(), 'detail', id] as const,
+  /**
+   * Prefijo de todo Ajustes > Permisos (F2.7b). Tras cualquier cambio se
+   * invalida entero: una asignación cambia a la vez el resumen, la ficha
+   * del rol, la del grupo y la del permiso (y lo que puede hacer el
+   * usuario con cada uno).
+   */
+  rbac: () => [...cmsQueryKeys.all, 'rbac'] as const,
+  rbacOverview: () => [...cmsQueryKeys.rbac(), 'overview'] as const,
+  rbacCatalog: () => [...cmsQueryKeys.rbac(), 'catalog'] as const,
+  rbacRole: (id: string) => [...cmsQueryKeys.rbac(), 'role', id] as const,
+  rbacGroup: (id: string) => [...cmsQueryKeys.rbac(), 'group', id] as const,
+  rbacPermission: (id: string) =>
+    [...cmsQueryKeys.rbac(), 'permission', id] as const,
   /** Resultados de la búsqueda global para un texto ya normalizado. */
   globalSearch: (query: string) =>
     [...cmsQueryKeys.all, 'global-search', query] as const,
@@ -315,6 +328,51 @@ export function createCmsQueries(api: CmsApi) {
       queryOptions({
         queryKey: cmsQueryKeys.member(id),
         queryFn: () => api.getMember(id),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Resumen de Ajustes > Permisos (roles, grupos y permisos). */
+    rbacOverview: () =>
+      queryOptions({
+        queryKey: cmsQueryKeys.rbacOverview(),
+        queryFn: () => api.getRbacOverview(),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Tablas gestionadas para los selectores del formulario de permisos. */
+    rbacCatalog: () =>
+      queryOptions({
+        queryKey: cmsQueryKeys.rbacCatalog(),
+        queryFn: () => api.getRbacCatalog(),
+        retry: shouldRetryCmsQuery,
+        staleTime: 60 * 1000,
+      }),
+
+    /** Ficha de un rol del CMS. */
+    rbacRole: (id: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.rbacRole(id),
+        queryFn: () => api.getRbacRole(id),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Ficha de un grupo de permisos. */
+    rbacGroup: (id: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.rbacGroup(id),
+        queryFn: () => api.getRbacGroup(id),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Ficha de un permiso. */
+    rbacPermission: (id: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.rbacPermission(id),
+        queryFn: () => api.getRbacPermission(id),
         retry: shouldRetryCmsQuery,
         staleTime: 15 * 1000,
       }),

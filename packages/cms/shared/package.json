@@ -14,7 +14,8 @@
     "./utils": "./src/utils/get-error-message.ts",
     "./error-codes": "./src/constants/error-codes.ts",
     "./storage-paths": "./src/utils/storage-paths.ts",
-    "./preferences": "./src/utils/preferences.ts"
+    "./preferences": "./src/utils/preferences.ts",
+    "./rbac": "./src/utils/rbac.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",

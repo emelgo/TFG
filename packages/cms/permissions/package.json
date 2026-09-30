@@ -16,17 +16,21 @@
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
   },
   "dependencies": {
+    "@hono/zod-validator": "catalog:",
     "@pymekit/cms-auth": "workspace:*",
     "@pymekit/cms-shared": "workspace:*",
     "@pymekit/cms-supabase": "workspace:*",
     "@pymekit/shared": "workspace:*",
     "drizzle-orm": "catalog:",
-    "hono": "catalog:"
+    "hono": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@pymekit/tsconfig": "workspace:*"
+    "@pymekit/tsconfig": "workspace:*",
+    "vitest": "catalog:"
   }
 }

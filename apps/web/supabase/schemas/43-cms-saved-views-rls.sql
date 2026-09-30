@@ -60,16 +60,31 @@ select
   );
 
 -- INSERT(cms.saved_view_roles)
--- Can the current user insert a shared view if their role rank is higher than the view's role rank
+-- Compartir una vista con un rol: solo el creador de la vista y solo con
+-- roles de rango inferior al suyo.
+-- [TFG] RNF-02 · ADR-015 (pendiente cerrado en F2.7b): la política heredada
+-- solo comprobaba el rango del rol, no de quién era la vista. Cualquier
+-- miembro del personal podía compartir la vista personal de OTRO (y hacer
+-- visibles sus filtros y columnas a todo un rol) si conocía su id. Las
+-- columnas van cualificadas con el nombre de la tabla (lección de B-09).
 create policy insert_shared_saved_views on cms.saved_view_roles for INSERT to authenticated
 with
   check (
-    cms.get_user_max_role_rank (cms.get_current_user_account_id ()) > (
+    exists (
       select
-        rank
+        1
       from
-        cms.roles
+        cms.saved_views sv
       where
-        id = role_id
+        sv.id = saved_view_roles.view_id
+        and sv.created_by = cms.get_current_user_account_id ()
+    )
+    and cms.get_user_max_role_rank (cms.get_current_user_account_id ()) > (
+      select
+        r.rank
+      from
+        cms.roles r
+      where
+        r.id = saved_view_roles.role_id
     )
   );

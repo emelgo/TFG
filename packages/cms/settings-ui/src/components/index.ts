@@ -6,3 +6,7 @@ export { MembersTableView } from './members-table-view';
 export { MemberDetailsView } from './member-details-view';
 export { ManageMemberRoleDialog } from './manage-member-role-dialog';
 export { MemberStatusBadge } from './member-badges';
+export { PermissionsSettingsView } from './permissions/permissions-settings-view';
+export { RoleDetailsView } from './permissions/role-details-view';
+export { GroupDetailsView } from './permissions/group-details-view';
+export { PermissionDetailsView } from './permissions/permission-details-view';

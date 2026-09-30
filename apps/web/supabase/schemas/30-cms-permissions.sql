@@ -48,10 +48,30 @@ create table if not exists cms.permissions (
         )
       )
     )
+    -- [TFG] RNF-02 · ADR-015 (F2.7b): un permiso de almacenamiento es
+    -- siempre de datos, sin esquema, tabla ni columna, y con un *bucket* y
+    -- un patrón de ruta EXPLÍCITOS (texto no vacío; el comodín es '*').
+    -- Antes un valor ausente se interpretaba como comodín en las funciones
+    -- de comprobación. `scope is not null` y los `coalesce` evitan que un
+    -- NULL haga pasar la restricción (en un CHECK, NULL cuenta como
+    -- verdadero).
     or (
-      scope = 'storage'
-      and metadata ->> 'bucket_name' is not null
-      and metadata ->> 'path_pattern' is not null
+      permission_type = 'data'
+      and scope is not null
+      and scope = 'storage'
+      and schema_name is null
+      and table_name is null
+      and column_name is null
+      and coalesce(
+        jsonb_typeof(metadata -> 'bucket_name') = 'string'
+        and length(metadata ->> 'bucket_name') > 0,
+        false
+      )
+      and coalesce(
+        jsonb_typeof(metadata -> 'path_pattern') = 'string'
+        and length(metadata ->> 'path_pattern') > 0,
+        false
+      )
     )
   ),
   -- Ensure name is unique

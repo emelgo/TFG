@@ -363,94 +363,6 @@ export class AuthorizationService {
     return result[0]?.rank || 0;
   }
 
-  // =============================
-  // ROLE PERMISSION MANAGEMENT
-  // =============================
-
-  /**
-   * Check if user can manage role permissions
-   * @param roleId - The role ID
-   * @param action - The action to check
-   * @returns True if the user can manage the role permissions, false otherwise
-   */
-  async canManageRolePermissions(roleId: string, action: 'insert' | 'delete') {
-    return this.canActionRole(roleId, action);
-  }
-
-  /**
-   * Check if user can manage role permission groups
-   * @param roleId - The role ID
-   * @param action - The action to check
-   * @returns True if the user can manage the role permission groups, false otherwise
-   */
-  async canManageRolePermissionGroups(
-    roleId: string,
-    action: 'insert' | 'update' | 'delete',
-  ) {
-    const accountId = await this.getCurrentAccountId();
-
-    if (!accountId) {
-      throw new Error('No account ID found');
-    }
-
-    const client = this.context.get('drizzle');
-
-    const result = await client.runTransaction(async (tx) => {
-      return tx.execute<{ can_modify: boolean }>(
-        sql`SELECT cms.can_modify_role_permission_group(
-                     ${accountId},
-                     ${roleId},
-                     ${action}::cms.system_action
-                   ) as can_modify`,
-      );
-    });
-
-    return result[0]?.can_modify || false;
-  }
-
-  // =============================
-  // CONVENIENCE METHODS
-  // =============================
-
-  /**
-   * Check if user can create roles
-   * @returns True if the user can create roles, false otherwise
-   */
-  async canCreateRole() {
-    return this.hasAdminPermission('role', 'insert');
-  }
-
-  /**
-   * Check if user can create permissions
-   * @returns True if the user can create permissions, false otherwise
-   */
-  async canCreatePermission() {
-    return this.hasAdminPermission('permission', 'insert');
-  }
-
-  /**
-   * Get comprehensive access rights for UI components
-   * @returns Object with common permission flags
-   */
-  async getAccessRights() {
-    const [canCreateRole, canCreatePermission, hasAdminAccess, userRank] =
-      await Promise.all([
-        this.canCreateRole(),
-        this.canCreatePermission(),
-        this.checkAdminAccess(),
-        this.getUserMaxRoleRank().catch(() => 0),
-      ]);
-
-    return {
-      canCreateRole,
-      canCreatePermission,
-      canCreatePermissionGroup: canCreatePermission,
-      hasAdminAccess,
-      userRank,
-      roleRank: userRank, // Backwards compatibility alias
-    };
-  }
-
   /**
    * Devuelve qué secciones de la interfaz del CMS puede usar el usuario.
    *
@@ -473,6 +385,13 @@ export class AuthorizationService {
    *  - `systemSettings` (pestaña Ajustes > Autenticación, F2.7a): permiso
    *    `system_setting` de lectura o de escritura; cambiar la opción exige
    *    además `update` (y, para desactivar el MFA, ser cuenta raíz con aal2).
+   *  - `permissions` (pestaña Ajustes > Permisos, F2.7b): `role:select` o
+   *    `permission:select`, lo mismo que exige `GET /v1/permissions`.
+   *
+   * `storage` se calcula con `cms.current_account_has_storage_access()`
+   * (F2.7b): antes esta consulta llamaba a `cms.has_permission` con la
+   * cuenta como parámetro, una función que ya no se concede a
+   * `authenticated` porque respondía sobre cualquier cuenta (ADR-015).
    *
    * Ocultar una entrada es solo una ayuda de interfaz: si alguien navega a
    * la ruta, la API vuelve a comprobar el permiso concreto.
@@ -490,6 +409,7 @@ export class AuthorizationService {
         storage: boolean | null;
         members: boolean | null;
         system_settings: boolean | null;
+        permissions: boolean | null;
       }>(
         sql`SELECT
               cms.has_admin_permission('auth_user'::cms.system_resource, 'select'::cms.system_action) as users,
@@ -499,14 +419,11 @@ export class AuthorizationService {
                 or cms.has_admin_permission('system_setting'::cms.system_resource, 'update'::cms.system_action)
               ) as system_settings,
               cms.has_admin_permission('log'::cms.system_resource, 'select'::cms.system_action) as audit_logs,
-              exists (
-                select 1
-                from cms.permissions p
-                where p.permission_type = 'data'
-                  and p.scope = 'storage'
-                  and p.action in ('select', '*')
-                  and cms.has_permission(cms.get_current_user_account_id(), p.id)
-              ) as storage`,
+              (
+                cms.has_admin_permission('role'::cms.system_resource, 'select'::cms.system_action)
+                or cms.has_admin_permission('permission'::cms.system_resource, 'select'::cms.system_action)
+              ) as permissions,
+              cms.current_account_has_storage_access() as storage`,
       );
     });
 
@@ -518,92 +435,7 @@ export class AuthorizationService {
       storage: row?.storage === true,
       members: row?.members === true,
       systemSettings: row?.system_settings === true,
-    };
-  }
-
-  /**
-   * Get role access rights (backwards compatibility)
-   * @param roleId - The role ID
-   * @returns The role access rights
-   */
-  async getRoleAccessRights(roleId: string) {
-    const [
-      canUpdate,
-      canDelete,
-      canManagePermissions,
-      canManagePermissionGroups,
-      maxRank,
-    ] = await Promise.all([
-      this.canActionRole(roleId, 'update'),
-      this.canDeleteRole(roleId),
-      this.canManageRolePermissions(roleId, 'insert'),
-      this.canManageRolePermissionGroups(roleId, 'insert'),
-      this.getUserMaxRoleRank(),
-    ]);
-
-    return {
-      canUpdate,
-      canDelete,
-      canManagePermissions,
-      canManagePermissionGroups,
-      maxRank,
-    };
-  }
-
-  /**
-   * Get permission group access rights (backwards compatibility)
-   * @param groupId - The group ID
-   * @returns The permission group access rights
-   */
-  async getPermissionGroupAccessRights(groupId: string) {
-    const [canUpdate, canDelete] = await Promise.all([
-      this.canModifyPermissionGroup(groupId, 'update'),
-      this.canModifyPermissionGroup(groupId, 'delete'),
-    ]);
-
-    return {
-      canUpdate,
-      canDelete,
-      canManagePermissions: canUpdate,
-    };
-  }
-
-  /**
-   * Get permission access rights (backwards compatibility)
-   * @param permissionId - The permission ID
-   * @returns The permission access rights
-   */
-  async getPermissionAccessRights(permissionId: string) {
-    const [canUpdate, canDelete, canCreate] = await Promise.all([
-      this.canActionPermission(permissionId, 'update'),
-      this.canActionPermission(permissionId, 'delete'),
-      this.hasAdminPermission('permission', 'insert'),
-    ]);
-
-    return {
-      canUpdate,
-      canDelete,
-      canCreate,
-    };
-  }
-
-  /**
-   * Get entity-specific access rights for a permission in a single transaction
-   * @param permissionId - The specific permission ID to check permissions for
-   * @returns Access rights for the specific permission
-   */
-  async getPermissionEntityAccessRights(permissionId: string): Promise<{
-    canUpdate: boolean;
-    canDelete: boolean;
-  }> {
-    const [canUpdate, canDelete] = await Promise.all([
-      this.canActionPermission(permissionId, 'update'),
-      this.canActionPermission(permissionId, 'delete'),
-    ]);
-
-    return {
-      canUpdate,
-      canDelete,
+      permissions: row?.permissions === true,
     };
   }
 

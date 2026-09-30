@@ -1677,8 +1677,6 @@ $$ LANGUAGE plpgsql;
 -- PUBLIC, que PymeKit elimina por defecto (00-privileges.sql).
 --  - `query_table`: punto de entrada del explorador de datos. Es SECURITY
 --    DEFINER, pero valida los identificadores y exige `has_data_permission`.
---  - `build_where_clause`: construye el WHERE a partir de filtros JSON y
---    valida cada columna contra el catálogo; no ejecuta la consulta.
 -- `_update_record_impl`, `_delete_record_impl`, `build_sort_clause`,
 -- `validate_column_name` y `build_crud_response` solo se llaman desde
 -- funciones SECURITY DEFINER (que se ejecutan como su propietario), así que
@@ -1694,4 +1692,11 @@ revoke execute on function cms._delete_record_impl (text, text, text[]) from pub
 
 grant execute on function cms.query_table (text, text, jsonb, jsonb, jsonb) to authenticated;
 
-grant execute on function cms.build_where_clause (text, text, jsonb) to authenticated;
+-- [TFG] RNF-02 · ADR-015 (pendiente cerrado en F2.7b): `build_where_clause`
+-- (`security definer`, RLS desactivado) valida cada columna de los filtros
+-- contra el catálogo de CUALQUIER tabla sin comprobar permisos, así que sus
+-- errores («la columna no existe», tipos) permitían sondear la estructura de
+-- tablas que el usuario no puede leer (incluidas las de `auth`). Solo la usa
+-- `query_table`, que ya hace esas comprobaciones y se ejecuta como su
+-- propietario: se revoca a `authenticated`.
+revoke execute on function cms.build_where_clause (text, text, jsonb) from public, anon, authenticated;

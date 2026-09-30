@@ -278,7 +278,8 @@ begin
         return jsonb_build_object('success', false, 'error', 'SELF_ACTION');
     end if;
 
-    if cms.is_root_managed_account(p_account_id) then
+    -- Versión interna (B-47): la guardia no depende de `account:select`.
+    if cms.account_is_root_managed(p_account_id) then
         return jsonb_build_object('success', false, 'error', 'PROTECTED');
     end if;
 

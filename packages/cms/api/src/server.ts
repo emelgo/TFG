@@ -45,13 +45,10 @@ import {
   registerGetMemberDetailsRouter,
   registerGetMembersRouter,
   registerMfaConfigurationRouter,
-  registerPermissionGroupEndpoints,
-  registerPermissionsRouter,
   registerSaveLayoutRouter,
   registerSyncManagedTablesRouter,
   registerTablesMetadataManagementRouter,
   registerUpdateMemberRolesRouter,
-  registerUpdatePermissionsRouter,
   registerUpdatePreferencesRouter,
   registerUpdateRelationsConfigRoute,
   registerUpdateTableColumnsConfigRouter,
@@ -214,7 +211,8 @@ export function createCmsApiApp() {
  * en el paquete de la funcionalidad (export `./routes`) y se llama aquí.
  */
 function registerFeatureRoutes(router: Hono) {
-  // Roles y permisos del RBAC del CMS
+  // Roles y permisos del RBAC del CMS: listas de roles y, desde F2.7b, la
+  // única implementación de Ajustes > Permisos (`/v1/permissions/**`).
   registerPermissionsRoutes(router);
 
   // Explorador de datos y paneles
@@ -241,10 +239,7 @@ function registerFeatureRoutes(router: Hono) {
   registerDeactivateMemberRouter(router);
   registerActivateMemberRouter(router);
 
-  // Ajustes: permisos, grupos de permisos y MFA
-  registerPermissionsRouter(router);
-  registerUpdatePermissionsRouter(router);
-  registerPermissionGroupEndpoints(router);
+  // Ajustes: obligación de MFA
   registerMfaConfigurationRouter(router);
 
   // Ajustes: cuenta y preferencias del usuario del CMS

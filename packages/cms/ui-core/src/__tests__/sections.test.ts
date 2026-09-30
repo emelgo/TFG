@@ -27,6 +27,7 @@ describe('getCmsSectionVisibility', () => {
         auditLogs: true,
         members: false,
         systemSettings: false,
+        permissions: false,
       },
       visibleResourcesCount: 2,
     });
@@ -49,6 +50,7 @@ describe('getCmsSectionVisibility', () => {
         auditLogs: true,
         members: true,
         systemSettings: true,
+        permissions: true,
       },
       visibleResourcesCount: 0,
     });
@@ -65,6 +67,7 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
     auditLogs: true,
     members: false,
     systemSettings: false,
+    permissions: false,
   };
 
   it('sin acceso al CMS no muestra ninguna pestaña', () => {
@@ -72,6 +75,7 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
       general: false,
       authentication: false,
       members: false,
+      permissions: false,
     });
   });
 
@@ -80,6 +84,7 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
       general: true,
       authentication: false,
       members: false,
+      permissions: false,
     });
   });
 
@@ -90,6 +95,10 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
     expect(
       getCmsSettingsTabVisibility({ ...base, systemSettings: true })
         .authentication,
+    ).toBe(true);
+    // F2.7b: Permisos con `role:select` o `permission:select`.
+    expect(
+      getCmsSettingsTabVisibility({ ...base, permissions: true }).permissions,
     ).toBe(true);
   });
 });

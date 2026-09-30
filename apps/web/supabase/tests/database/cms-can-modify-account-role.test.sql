@@ -50,7 +50,8 @@ INSERT INTO cms.permissions (id, name, permission_type, system_resource, action)
     (cms_tests.test_uuid(301), 'role_insert', 'system', 'role', 'insert'),
     (cms_tests.test_uuid(302), 'role_update', 'system', 'role', 'update'),
     (cms_tests.test_uuid(303), 'role_delete', 'system', 'role', 'delete'),
-    (cms_tests.test_uuid(304), 'role_select', 'system', 'role', 'select');
+    (cms_tests.test_uuid(304), 'role_select', 'system', 'role', 'select'),
+    (cms_tests.test_uuid(305), 'account_select', 'system', 'account', 'select');
 
 -- Assign initial roles
 INSERT INTO cms.account_roles (account_id, role_id) VALUES
@@ -69,6 +70,14 @@ INSERT INTO cms.role_permissions (role_id, permission_id) VALUES
     -- Manager gets update/select permissions
     (cms_tests.test_uuid(203), cms_tests.test_uuid(302)),
     (cms_tests.test_uuid(203), cms_tests.test_uuid(304));
+
+-- [TFG] B-47: desde que `view_account_roles` solo muestra las asignaciones
+-- ajenas a quien tiene `account:select`, gestionar (y comprobar) los roles
+-- de otras cuentas exige también poder consultarlas, como en Ajustes >
+-- Miembros. Por eso los roles que actúan sobre otras cuentas lo reciben.
+INSERT INTO cms.role_permissions (role_id, permission_id) VALUES
+    (cms_tests.test_uuid(201), cms_tests.test_uuid(305)),
+    (cms_tests.test_uuid(203), cms_tests.test_uuid(305));
 
 set role anon;
 

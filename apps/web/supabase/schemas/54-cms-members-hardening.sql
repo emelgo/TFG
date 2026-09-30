@@ -5,9 +5,10 @@
  * Reúne las piezas nuevas que necesitan las pantallas de ajustes del CMS y
  * que no pertenecen a un fichero heredado concreto:
  *
- *  1. `cms.is_root_managed_account`: identifica las cuentas raíz, las de los
+ *  1. `cms.account_is_root_managed` (interna) y su versión pública
+ *     `cms.is_root_managed_account`: identifican las cuentas raíz, las de los
  *     super-admins de la plataforma que crea el pegamento de ADR-014
- *     (`53-cms-super-admin.sql`). Las usan `can_action_account`,
+ *     (`53-cms-super-admin.sql`). La interna la usan `can_action_account`,
  *     `can_modify_account_role` y `set_account_active` para que esas cuentas
  *     nunca se desactiven ni cambien de rol desde el CMS.
  *  2. `cms.guard_mfa_requirement_change`: *trigger* sobre
@@ -19,7 +20,7 @@
  */
 
 /*
- * cms.is_root_managed_account
+ * cms.account_is_root_managed (interna)
  *
  * Devuelve `true` si la cuenta del CMS pertenece a un super-admin de la
  * plataforma (`app_metadata.role = 'super-admin'`) o tiene el rol de sistema
@@ -28,21 +29,21 @@
  * así que el CMS no debe poder desactivar la cuenta ni cambiarle el rol.
  *
  * SECURITY DEFINER porque consulta `auth.users`, que los roles de la API no
- * pueden leer. Solo devuelve sí/no sobre una cuenta; que una cuenta tiene el
- * rol Root ya es visible para cualquier miembro del personal (políticas
- * `view_roles` y `view_account_roles`), así que no revela nada nuevo.
+ * pueden leer. Responde sobre CUALQUIER cuenta y sin comprobar nada, así que
+ * no se concede a `authenticated`: solo la llaman las guardias internas
+ * (`can_action_account`, `can_modify_account_role`, `set_account_active`),
+ * que son `security definer` y deben aplicarse siempre, tenga o no quien
+ * actúa permiso para consultar cuentas. [TFG] RNF-02 · B-47.
  */
-create or replace function cms.is_root_managed_account (p_account_id uuid) returns boolean
+create or replace function cms.account_is_root_managed (p_account_id uuid) returns boolean
 language sql
 stable
 security definer
 set
+  row_security = off
+set
   search_path = '' as $$
-    -- Sin acceso vigente al CMS no responde (evita usarla como oráculo de
-    -- «¿es super-admin?»). Devolver `false` nunca abre nada: quien la usa
-    -- como guardia (`guard_mfa_requirement_change`) exige `true`, y las
-    -- demás (`can_action_account`…) ya deniegan sin acceso vigente.
-    select cms.verify_admin_access() and (exists (select 1
+    select exists (select 1
                    from cms.accounts a
                             join auth.users u on u.id = a.auth_user_id
                    where a.id = p_account_id
@@ -51,7 +52,35 @@ set
                    from cms.account_roles ar
                             join cms.roles r on r.id = ar.role_id
                    where ar.account_id = p_account_id
-                     and r.metadata @> '{"system_role": "root"}'::jsonb));
+                     and r.metadata @> '{"system_role": "root"}'::jsonb);
+$$;
+
+revoke execute on function cms.account_is_root_managed (uuid) from public, anon, authenticated;
+
+/*
+ * cms.is_root_managed_account
+ *
+ * Versión pública de `account_is_root_managed`, para la API (marca de
+ * «protegida» en Ajustes > Miembros y comprobaciones previas).
+ *
+ * [TFG] RNF-02 · B-47: solo responde con acceso vigente al CMS y sobre la
+ * cuenta de la sesión, salvo que quien pregunta pueda consultar las cuentas
+ * (`account:select`). Antes cualquier miembro del personal podía preguntar
+ * por cualquier cuenta si era raíz (un oráculo de «¿es super-admin?»).
+ * Devolver `false` nunca abre nada: quien la usa como guardia
+ * (`guard_mfa_requirement_change`, sobre la propia cuenta) exige `true`, y
+ * las guardias sobre otras cuentas usan la versión interna.
+ */
+create or replace function cms.is_root_managed_account (p_account_id uuid) returns boolean
+language sql
+stable
+security definer
+set
+  search_path = '' as $$
+    select cms.verify_admin_access()
+        and (p_account_id = cms.get_current_user_account_id()
+            or cms.has_admin_permission('account'::cms.system_resource, 'select'::cms.system_action))
+        and cms.account_is_root_managed(p_account_id);
 $$;
 
 comment on function cms.is_root_managed_account (uuid) is

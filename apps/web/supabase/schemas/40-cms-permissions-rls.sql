@@ -3,6 +3,10 @@
 -- In this section, we define the account permissions policies. The account permissions policies are used to control the access to the account permissions table.
 -- SELECT(cms.account_permissions)
 -- Can the current user view an account permission?
+-- [TFG] RNF-02 · B-47: las cuatro políticas de esta tabla comparan el rango
+-- propio con el de la cuenta afectada mediante `current_account_outranks`
+-- (antes, `get_user_max_role_rank` de las dos cuentas; esa función ya no
+-- responde por otras cuentas sin `account:select`).
 create policy view_account_permissions on cms.account_permissions for
 select
   to authenticated using (
@@ -14,7 +18,7 @@ select
         'permission'::cms.system_resource,
         'select'::cms.system_action
       )
-      and cms.get_user_max_role_rank (cms.get_current_user_account_id ()) > cms.get_user_max_role_rank (account_id)
+      and cms.current_account_outranks (account_id)
     )
   );
 
@@ -145,7 +149,7 @@ with
       'permission'::cms.system_resource,
       'insert'::cms.system_action
     )
-    and cms.get_user_max_role_rank (cms.get_current_user_account_id ()) > cms.get_user_max_role_rank (account_id)
+    and cms.current_account_outranks (account_id)
     -- The user may only grant a permission whose capability they themselves hold.
     and cms.can_grant_permission (permission_id)
   );
@@ -162,7 +166,7 @@ for update
       'permission'::cms.system_resource,
       'update'::cms.system_action
     )
-    and cms.get_user_max_role_rank (cms.get_current_user_account_id ()) > cms.get_user_max_role_rank (account_id)
+    and cms.current_account_outranks (account_id)
   )
 with
   check (
@@ -170,7 +174,7 @@ with
       'permission'::cms.system_resource,
       'update'::cms.system_action
     )
-    and cms.get_user_max_role_rank (cms.get_current_user_account_id ()) > cms.get_user_max_role_rank (account_id)
+    and cms.current_account_outranks (account_id)
     and cms.can_grant_permission (permission_id)
   );
 
@@ -181,7 +185,7 @@ create policy delete_account_permissions on cms.account_permissions for DELETE t
     'permission'::cms.system_resource,
     'delete'::cms.system_action
   )
-  and cms.get_user_max_role_rank (cms.get_current_user_account_id ()) > cms.get_user_max_role_rank (account_id)
+  and cms.current_account_outranks (account_id)
 );
 
 -- SECTION: PERMISSION GROUP PERMISSIONS POLICIES
@@ -265,11 +269,24 @@ with
 
 -- SELECT(cms.account_roles)
 -- Can the current user view an account role?
+-- [TFG] RNF-02 · B-47: antes bastaba con tener acceso al CMS
+-- (`verify_admin_access`), así que cualquier miembro del personal (Soporte,
+-- por ejemplo) leía todas las asignaciones de roles, incluida la de Root.
+-- Ahora cada uno ve la suya y solo quien puede consultar las cuentas
+-- (`account:select`, como Ajustes > Miembros) ve las de los demás. El número
+-- de miembros de un rol se obtiene con `cms.count_role_members`.
 create policy view_account_roles on cms.account_roles for
 select
-  to authenticated using
-  -- Any authenticated user with admin access can view the role assigned to a user
-  (cms.verify_admin_access ());
+  to authenticated using (
+    (
+      account_id = cms.get_current_user_account_id ()
+      and cms.verify_admin_access ()
+    )
+    or cms.has_admin_permission (
+      'account'::cms.system_resource,
+      'select'::cms.system_action
+    )
+  );
 
 -- INSERT(cms.account_roles)
 -- Can the current user insert an account role?
