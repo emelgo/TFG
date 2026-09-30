@@ -157,7 +157,6 @@ No añadas `unique` sobre `id` junto a `primary key (id)`. Es redundante y migra
 ## Pruebas pgTAP
 
 Las pruebas están en `tests/database/*.test.sql`. El primer fichero (prefijo `00000-`) define el esquema de helpers `pymekit.*`, con funciones como `pymekit.authenticate_as(...)`, `pymekit.get_account_id_by_slug(...)` o `pymekit.set_identifier(...)` para simular usuarios y cuentas.
-(Renombrado en F3; hasta entonces el esquema de helpers conserva su nombre original.)
 
 ## Comandos
 

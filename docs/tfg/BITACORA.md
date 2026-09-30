@@ -54,6 +54,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-37 | 2026-09-30 | F2.6b | calidad | heredado | Formatos de visualización y filtros de texto con forma de fecha | Baja |
 | B-38 | 2026-09-30 | F2.6b | seguridad | heredado | El listado cargaba `auth.users` completo (con hashes) en memoria | Media |
 | B-39 | 2026-09-30 | F2.6b | seguridad | entorno | Privilegios por defecto de `supabase_admin` y el acceso anónimo a `public` | Media (latente) |
+| B-40 | 2026-09-30 | F2 | calidad | propio | El control de marca no revisaba los nombres de ficheros y carpetas | Media |
 
 ---
 
@@ -292,3 +293,9 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** para el blog público, `anon` recibió `usage` sobre `public` (ADR-017). La revisión `/rls-review` confirmó que la superficie de `anon` es mínima (0 funciones ejecutables y solo el blog legible). Además encontró un riesgo **latente**: los privilegios por defecto de `supabase_admin` conceden a `anon` todos los permisos sobre lo que ese rol crea en `public`. En una prueba revertida, instalar `pg_trgm` en `public` dejaba sus 20 funciones ejecutables por `anon`.
 - **Solución:** la regla «las extensiones nunca van en `public`» pasa a las directrices de la BD. `anon-surface.test.sql` falla si aparece en `public` un objeto cuyo propietario no sea `postgres`, o si `anon` gana cualquier permiso fuera del conjunto permitido.
 - **Lección:** abrir un esquema a un rol cambia el significado de **todos** los privilegios por defecto que ya existían. Hay que auditar la superficie completa, no solo los objetos nuevos.
+
+## B-40 · El control de marca no revisaba los nombres de ficheros y carpetas
+- **Qué pasó:** el autor vio la ruta `packages/ui/src/makerkit/markdown/`, que había creado un agente dentro de la carpeta heredada `packages/ui/src/makerkit/`. `check-branding` solo analizaba el **contenido** de los ficheros, así que ni esa carpeta (56 componentes), ni `styles/makerkit.css`, ni `00000-makerkit-helpers.sql` aparecían nunca. Su renombrado estaba previsto para la F3, pero mientras tanto los agentes seguían creando ficheros nuevos en rutas con la marca.
+- **Cómo se detectó:** **revisión del autor**.
+- **Solución:** renombrar ya a `src/pymekit/`, `pymekit.css` y `00000-pymekit-helpers.sql` (esquema de helpers `pymekit.*` en los 62 ficheros de pgTAP). `check-branding` comprueba ahora también las rutas, y lo hace de forma bloqueante incluso en el modo `--scope-only` que usa la CI.
+- **Lección:** un control automático solo cubre lo que se le ha dicho que mire. Cuando un criterio es «que no se vea la marca», hay que pensar en **todos** los lugares donde se ve: contenido, nombres de ficheros, rutas de import, identificadores de la BD, URLs y textos de la interfaz. Además, dejar una deuda «para más adelante» hace que se reproduzca: los agentes siguen el patrón que encuentran.

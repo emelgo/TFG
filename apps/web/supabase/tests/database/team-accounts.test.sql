@@ -22,13 +22,13 @@ select
 -- Reset to postgres and then authenticate as test1 for proper RLS context
 set local role postgres;
 select
-    makerkit.authenticate_as('test1');
+    pymekit.authenticate_as('test1');
 
 select
     row_eq($$
         select
 	    primary_owner_user_id, is_personal_account, slug, name
-		from makerkit.get_account_by_slug('test') $$,
+		from pymekit.get_account_by_slug('test') $$,
 		row (tests.get_supabase_uid('test1'), false,
 		'test'::text, 'Test'::varchar),
 		'Users can create a team account');
@@ -45,13 +45,13 @@ select
 
 -- Switch back to authenticated user for testing
 select
-    makerkit.authenticate_as('slugtest1');
+    pymekit.authenticate_as('slugtest1');
 
 select
     row_eq($$
         select
             primary_owner_user_id, is_personal_account, slug, name
-        from makerkit.get_account_by_slug('custom-slug-123') $$,
+        from pymekit.get_account_by_slug('custom-slug-123') $$,
         row (tests.get_supabase_uid('slugtest1'), false,
         'custom-slug-123'::text, 'Custom Team Name'::varchar),
         'Users can create a team account with custom slug');
@@ -69,7 +69,7 @@ select
 
 -- Switch back to test1 for testing the original 'test' account
 select
-    makerkit.authenticate_as('test1');
+    pymekit.authenticate_as('test1');
 
 -- Should be the primary owner of the team account by default
 select
@@ -125,7 +125,7 @@ select row_eq(
 
 -- Others should not be able to see the team account
 select
-    makerkit.authenticate_as('test2');
+    pymekit.authenticate_as('test2');
 
 select is(
     public.is_account_owner((select
@@ -151,7 +151,7 @@ select
     is (public.has_role_on_account((
             select
                 id
-            from makerkit.get_account_by_slug('test'))),
+            from pymekit.get_account_by_slug('test'))),
         false,
         'Foreign users should not have any role for the team account');
 
@@ -220,21 +220,21 @@ set local role postgres;
 
 insert into public.accounts_memberships (account_id, user_id, account_role)
 values (
-    (select id from makerkit.get_account_by_slug('updateteam')),
+    (select id from pymekit.get_account_by_slug('updateteam')),
     tests.get_supabase_uid('updatetest2'),
     'member'
 );
 
 -- Verify updatetest2 is now a member
 select
-    makerkit.authenticate_as('updatetest1');
+    pymekit.authenticate_as('updatetest1');
 
 select
     row_eq($$
         select
             account_role from public.accounts_memberships
             where
-                account_id = (select id from makerkit.get_account_by_slug('updateteam'))
+                account_id = (select id from pymekit.get_account_by_slug('updateteam'))
                 and user_id = tests.get_supabase_uid('updatetest2')
         $$, 
         row ('member'::varchar),
@@ -245,7 +245,7 @@ select
 select
     row_eq($$
         select name, primary_owner_user_id from public.accounts
-        where id = (select id from makerkit.get_account_by_slug('updateteam'))
+        where id = (select id from pymekit.get_account_by_slug('updateteam'))
         $$,
         row ('UpdateTeam'::varchar, tests.get_supabase_uid('updatetest1')),
         'Original values before attempted updates'
@@ -253,14 +253,14 @@ select
 
 -- Add team account to updatetest2's visibility (so they can try to perform operations)
 select
-    makerkit.authenticate_as('updatetest2');
+    pymekit.authenticate_as('updatetest2');
 
 -- First verify that as a member, updatetest2 can now see the account
 select
     isnt_empty($$
         select
             * from public.accounts
-            where id = (select id from makerkit.get_account_by_slug('updateteam'))
+            where id = (select id from pymekit.get_account_by_slug('updateteam'))
         $$,
         'Team member should be able to see the team account'
     );
@@ -270,7 +270,7 @@ select
     lives_ok($$
         update public.accounts 
         set name = 'Updated Team Name' 
-        where id = (select id from makerkit.get_account_by_slug('updateteam'))
+        where id = (select id from pymekit.get_account_by_slug('updateteam'))
     $$,
     'Non-owner member update attempt should not crash'
     );
@@ -281,7 +281,7 @@ select
     throws_ok($$
         update public.accounts
         set primary_owner_user_id = tests.get_supabase_uid('updatetest2')
-        where id = (select id from makerkit.get_account_by_slug('updateteam'))
+        where id = (select id from pymekit.get_account_by_slug('updateteam'))
     $$,
     'permission denied for table accounts',
     'Non-owner member cannot update the primary owner column'
@@ -292,7 +292,7 @@ select
 select
     row_eq($$
         select name, primary_owner_user_id from public.accounts
-        where id = (select id from makerkit.get_account_by_slug('updateteam'))
+        where id = (select id from pymekit.get_account_by_slug('updateteam'))
         $$,
         row ('UpdateTeam'::varchar, tests.get_supabase_uid('updatetest1')),
         'Values should remain unchanged after member update attempt (member perspective)'
@@ -300,12 +300,12 @@ select
 
 -- Now verify as updatetest1 (the owner)
 select
-    makerkit.authenticate_as('updatetest1');
+    pymekit.authenticate_as('updatetest1');
 
 select
     row_eq($$
         select name, primary_owner_user_id from public.accounts
-        where id = (select id from makerkit.get_account_by_slug('updateteam'))
+        where id = (select id from pymekit.get_account_by_slug('updateteam'))
         $$,
         row ('UpdateTeam'::varchar, tests.get_supabase_uid('updatetest1')),
         'Values should remain unchanged after member update attempt (owner perspective)'
@@ -329,21 +329,21 @@ set local role postgres;
 
 insert into public.accounts_memberships (account_id, user_id, account_role)
 values (
-    (select id from makerkit.get_account_by_slug('roleteam')),
+    (select id from pymekit.get_account_by_slug('roleteam')),
     tests.get_supabase_uid('roletest2'),
     'member'
 );
 
 -- Test role escalation prevention: a member cannot promote themselves to owner
 select
-    makerkit.authenticate_as('roletest2');
+    pymekit.authenticate_as('roletest2');
 
 -- Try to update own role to owner
 select
     lives_ok($$
         update public.accounts_memberships 
         set account_role = 'owner' 
-        where account_id = (select id from makerkit.get_account_by_slug('roleteam'))
+        where account_id = (select id from pymekit.get_account_by_slug('roleteam'))
         and user_id = tests.get_supabase_uid('roletest2')
     $$,
     'Role promotion attempt should not crash'
@@ -353,7 +353,7 @@ select
 select
     row_eq($$
         select account_role from public.accounts_memberships
-        where account_id = (select id from makerkit.get_account_by_slug('roleteam'))
+        where account_id = (select id from pymekit.get_account_by_slug('roleteam'))
         and user_id = tests.get_supabase_uid('roletest2')
     $$,
     row ('member'::varchar),
@@ -364,7 +364,7 @@ select
 select
     throws_ok($$
         delete from public.accounts_memberships
-        where account_id = (select id from makerkit.get_account_by_slug('roleteam'))
+        where account_id = (select id from pymekit.get_account_by_slug('roleteam'))
         and user_id = tests.get_supabase_uid('roletest1')
     $$,
     'The primary account owner cannot be actioned',
@@ -373,12 +373,12 @@ select
 
 -- Verify the primary owner's membership still exists
 select
-    makerkit.authenticate_as('roletest1');
+    pymekit.authenticate_as('roletest1');
 
 select
     isnt_empty($$
         select * from public.accounts_memberships
-        where account_id = (select id from makerkit.get_account_by_slug('roleteam'))
+        where account_id = (select id from pymekit.get_account_by_slug('roleteam'))
         and user_id = tests.get_supabase_uid('roletest1')
     $$,
     'Primary owner membership should still exist after removal attempt by member'
@@ -402,36 +402,36 @@ set local role postgres;
 
 insert into public.accounts_memberships (account_id, user_id, account_role)
 values (
-    (select id from makerkit.get_account_by_slug('deleteteam')),
+    (select id from pymekit.get_account_by_slug('deleteteam')),
     tests.get_supabase_uid('deletetest2'),
     'member'
 );
 
 -- Test Delete Team Account
 select
-    makerkit.authenticate_as('deletetest2');
+    pymekit.authenticate_as('deletetest2');
 
 -- deletion don't throw an error
 select lives_ok(
-    $$ delete from public.accounts where id = (select id from makerkit.get_account_by_slug('deleteteam')) $$,
+    $$ delete from public.accounts where id = (select id from pymekit.get_account_by_slug('deleteteam')) $$,
     'Non-owner member deletion attempt should not crash'
 );
 
-select makerkit.authenticate_as('deletetest1');
+select pymekit.authenticate_as('deletetest1');
 
 select isnt_empty(
-    $$ select * from public.accounts where id = (select id from makerkit.get_account_by_slug('deleteteam')) $$,
+    $$ select * from public.accounts where id = (select id from pymekit.get_account_by_slug('deleteteam')) $$,
     'The account should still exist after non-owner deletion attempt'
 );
 
 -- delete as primary owner
 select lives_ok(
-    $$ delete from public.accounts where id = (select id from makerkit.get_account_by_slug('deleteteam')) $$,
+    $$ delete from public.accounts where id = (select id from pymekit.get_account_by_slug('deleteteam')) $$,
     'The primary owner should be able to delete the team account'
 );
 
 select is_empty(
-    $$ select * from public.accounts where id = (select id from makerkit.get_account_by_slug('deleteteam')) $$,
+    $$ select * from public.accounts where id = (select id from pymekit.get_account_by_slug('deleteteam')) $$,
     'The account should be deleted after owner deletion'
 );
 
@@ -489,7 +489,7 @@ END $$;
 
 -- Test 1: Verify permissions-based security - admin can manage invitations
 -- Make sure we're using the right permissions
-select makerkit.authenticate_as('permtest2');
+select pymekit.authenticate_as('permtest2');
 
 -- NOTE: invoking a function the caller lacks EXECUTE on crashes Postgres
 -- (segfault in supautils/pgaudit hook on permission-denied) on the bundled
@@ -510,7 +510,7 @@ select isnt_empty(
 );
 
 -- Test 2: Verify regular member cannot manage invitations
-select makerkit.authenticate_as('permtest3');
+select pymekit.authenticate_as('permtest3');
 
 -- see note above: assert the privilege rather than invoking the function.
 select ok(
@@ -554,7 +554,7 @@ BEGIN
 END $$;
 
 -- Test: Admin cannot modify owner's membership
-select makerkit.authenticate_as('hiertest2');
+select pymekit.authenticate_as('hiertest2');
 
 select throws_ok(
     $$ DELETE FROM public.accounts_memberships
@@ -574,7 +574,7 @@ select lives_ok(
 );
 
 -- Test: Member cannot modify another member
-select makerkit.authenticate_as('hiertest3');
+select pymekit.authenticate_as('hiertest3');
 
 -- Try to update another member's role
 select lives_ok(
@@ -618,7 +618,7 @@ BEGIN
 END $$;
 
 -- Test: Member can see the account
-select makerkit.authenticate_as('vistest2');
+select pymekit.authenticate_as('vistest2');
 
 select isnt_empty(
     $$ SELECT * FROM public.accounts WHERE slug = 'visteam' $$,
@@ -626,7 +626,7 @@ select isnt_empty(
 );
 
 -- Test: Non-member cannot see the account
-select makerkit.authenticate_as('vistest3');
+select pymekit.authenticate_as('vistest3');
 
 select is_empty(
     $$ SELECT * FROM public.accounts WHERE slug = 'visteam' $$,
@@ -642,7 +642,7 @@ set local role service_role;
 select public.create_team_account('FuncTeam', tests.get_supabase_uid('functest1'));
 
 -- Test: get_account_members function properly restricts data
-select makerkit.authenticate_as('functest2');
+select pymekit.authenticate_as('functest2');
 
 select is_empty(
     $$ SELECT * FROM public.get_account_members('functeam') $$,
@@ -650,7 +650,7 @@ select is_empty(
 );
 
 -- Add functest2 as a member
-select makerkit.authenticate_as('functest1');
+select pymekit.authenticate_as('functest1');
 set local role postgres;
 
 DO $$
@@ -665,7 +665,7 @@ BEGIN
 END $$;
 
 -- Test: Now member can access team data
-select makerkit.authenticate_as('functest2');
+select pymekit.authenticate_as('functest2');
 
 select isnt_empty(
     $$ SELECT * FROM public.get_account_members('functeam') $$,
@@ -683,7 +683,7 @@ set local role service_role;
 select public.create_team_account('TeamChange', tests.get_supabase_uid('ownerupdate1'));
 
 -- Update the team name as the owner
-select makerkit.authenticate_as('ownerupdate1');
+select pymekit.authenticate_as('ownerupdate1');
 select lives_ok(
     $$ UPDATE public.accounts 
        SET name = 'Updated Owner Team' 
@@ -700,7 +700,7 @@ select is(
 );
 
 -- Test non-owner member cannot update
-select makerkit.authenticate_as('ownerupdate2');
+select pymekit.authenticate_as('ownerupdate2');
 
 -- Try to update the team name
 select lives_ok(
@@ -711,7 +711,7 @@ select lives_ok(
 );
 
 -- Switch back to owner to verify non-owner update had no effect
-select makerkit.authenticate_as('ownerupdate1');
+select pymekit.authenticate_as('ownerupdate1');
 
 -- Verify the name was not changed
 select is(
@@ -744,7 +744,7 @@ set local role postgres;
 -- Add member to first team
 insert into public.accounts_memberships (account_id, user_id, account_role)
 values (
-    (select id from makerkit.get_account_by_slug('teama')),
+    (select id from pymekit.get_account_by_slug('teama')),
     tests.get_supabase_uid('crosstest2'),
     'member'
 );
@@ -755,7 +755,7 @@ select
         select
             account_role from public.accounts_memberships
             where
-                account_id = (select id from makerkit.get_account_by_slug('teama'))
+                account_id = (select id from pymekit.get_account_by_slug('teama'))
                 and user_id = tests.get_supabase_uid('crosstest2')
         $$, 
         row ('member'::varchar),
@@ -764,14 +764,14 @@ select
 
 -- Verify crosstest2 cannot update TeamA even as a member
 select
-    makerkit.authenticate_as('crosstest2');
+    pymekit.authenticate_as('crosstest2');
 
 -- Try to update the team name
 select
     lives_ok($$
         update public.accounts 
         set name = 'Updated TeamA Name' 
-        where id = (select id from makerkit.get_account_by_slug('teama'))
+        where id = (select id from pymekit.get_account_by_slug('teama'))
     $$,
     'Member update attempt on TeamA should not crash'
     );
@@ -780,7 +780,7 @@ select
 select
     row_eq($$
         select name from public.accounts
-        where id = (select id from makerkit.get_account_by_slug('teama'))
+        where id = (select id from pymekit.get_account_by_slug('teama'))
         $$,
         row ('TeamA'::varchar),
         'TeamA name should remain unchanged after member update attempt'
@@ -788,12 +788,12 @@ select
 
 -- Verify crosstest1 (owner of TeamA) cannot see or modify TeamB
 select
-    makerkit.authenticate_as('crosstest1');
+    pymekit.authenticate_as('crosstest1');
 
 select
     is_empty($$
         select * from public.accounts
-        where id = (select id from makerkit.get_account_by_slug('teamb'))
+        where id = (select id from pymekit.get_account_by_slug('teamb'))
     $$,
     'Owner of TeamA should not be able to see TeamB'
     );
@@ -803,19 +803,19 @@ select
     lives_ok($$
         update public.accounts 
         set name = 'Hacked TeamB Name' 
-        where id = (select id from makerkit.get_account_by_slug('teamb'))
+        where id = (select id from pymekit.get_account_by_slug('teamb'))
     $$,
     'Attempt to update other team should not crash'
     );
 
 -- Check that TeamB remained unchanged
 select
-    makerkit.authenticate_as('crosstest2');
+    pymekit.authenticate_as('crosstest2');
 
 select
     row_eq($$
         select name from public.accounts
-        where id = (select id from makerkit.get_account_by_slug('teamb'))
+        where id = (select id from pymekit.get_account_by_slug('teamb'))
         $$,
         row ('TeamB'::varchar),
         'TeamB name should remain unchanged after attempted update by non-member'
@@ -837,7 +837,7 @@ select
 
 -- Test as authenticated role (still should fail - only service_role is allowed)
 select
-    makerkit.authenticate_as('securitytest1');
+    pymekit.authenticate_as('securitytest1');
 
 -- see note above: assert the privilege rather than invoking the function.
 select ok(

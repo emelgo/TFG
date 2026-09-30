@@ -409,19 +409,19 @@ $$ LANGUAGE plpgsql;
 
 -- Makerkit specific helpers
 
-create schema if not exists makerkit;
+create schema if not exists pymekit;
 
--- anon, authenticated, and service_role should have access to makerkit schema
-grant USAGE on schema makerkit to anon, authenticated, service_role;
+-- anon, authenticated, and service_role should have access to pymekit schema
+grant USAGE on schema pymekit to anon, authenticated, service_role;
 
--- Don't allow public to execute any functions in the makerkit schema
-alter default PRIVILEGES in schema makerkit revoke execute on FUNCTIONS from public;
+-- Don't allow public to execute any functions in the pymekit schema
+alter default PRIVILEGES in schema pymekit revoke execute on FUNCTIONS from public;
 
 -- Grant execute to anon, authenticated, and service_role for testing purposes
-alter default PRIVILEGES in schema makerkit grant execute on FUNCTIONS to anon,
+alter default PRIVILEGES in schema pymekit grant execute on FUNCTIONS to anon,
     authenticated, service_role;
 
-create or replace function makerkit.get_id_by_identifier(   
+create or replace function pymekit.get_id_by_identifier(   
   identifier text
 )
   returns uuid
@@ -434,7 +434,7 @@ end;
 
 $$ language PLPGSQL;
 
-create or replace function makerkit.set_identifier(
+create or replace function pymekit.set_identifier(
     identifier text,
     user_email text
 )
@@ -454,7 +454,7 @@ end;
 
 $$ language PLPGSQL;
 
-create or replace function makerkit.get_account_by_slug(
+create or replace function pymekit.get_account_by_slug(
     account_slug text
 )
     returns setof accounts
@@ -470,18 +470,18 @@ end;
 
 $$ language PLPGSQL;
 
-create or replace function makerkit.authenticate_as(
+create or replace function pymekit.authenticate_as(
     identifier text
 ) returns void
 as
 $$
 begin
     perform tests.authenticate_as(identifier);
-    perform makerkit.set_session_aal('aal1');
+    perform pymekit.set_session_aal('aal1');
 end;
 $$ language plpgsql;
 
-create or replace function makerkit.get_account_id_by_slug(
+create or replace function pymekit.get_account_id_by_slug(
     account_slug text
 )
     returns uuid
@@ -500,7 +500,7 @@ end;
 $$ language PLPGSQL;
 
 
-create or replace function makerkit.set_mfa_factor(
+create or replace function pymekit.set_mfa_factor(
     identifier text = gen_random_uuid()
 )
     returns void
@@ -513,7 +513,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
-create or replace function makerkit.set_session_aal(session_aal auth.aal_level)
+create or replace function pymekit.set_session_aal(session_aal auth.aal_level)
     returns void
 as
 $$
@@ -528,7 +528,7 @@ begin
 end;
 $$ language plpgsql;
 
-create or replace function makerkit.set_super_admin() returns void
+create or replace function pymekit.set_super_admin() returns void
 as
 $$
 begin
@@ -553,7 +553,7 @@ select is_empty($$
   select
     *
   from
-    makerkit.get_account_by_slug('test') $$,
+    pymekit.get_account_by_slug('test') $$,
                 'get_account_by_slug should return an empty set when the account does not exist'
        );
 

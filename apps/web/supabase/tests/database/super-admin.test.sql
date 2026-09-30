@@ -10,25 +10,25 @@ select tests.create_supabase_user('malicious_user');
 select tests.create_supabase_user('partial_mfa_user');
 
 -- Set up test users
-select makerkit.set_identifier('super_admin', 'super@makerkit.dev');
-select makerkit.set_identifier('regular_user', 'regular@makerkit.dev');
-select makerkit.set_identifier('mfa_user', 'mfa@makerkit.dev');
-select makerkit.set_identifier('malicious_user', 'malicious@makerkit.dev');
-select makerkit.set_identifier('partial_mfa_user', 'partial@makerkit.dev');
+select pymekit.set_identifier('super_admin', 'super@makerkit.dev');
+select pymekit.set_identifier('regular_user', 'regular@makerkit.dev');
+select pymekit.set_identifier('mfa_user', 'mfa@makerkit.dev');
+select pymekit.set_identifier('malicious_user', 'malicious@makerkit.dev');
+select pymekit.set_identifier('partial_mfa_user', 'partial@makerkit.dev');
 
 -- Test is_aal2 function
 set local role postgres;
 
-create or replace function makerkit.setup_super_admin() returns void as $$
+create or replace function pymekit.setup_super_admin() returns void as $$
 begin
-    perform makerkit.authenticate_as('super_admin');
-    perform makerkit.set_mfa_factor();
-    perform makerkit.set_session_aal('aal2');
-    perform makerkit.set_super_admin();
+    perform pymekit.authenticate_as('super_admin');
+    perform pymekit.set_mfa_factor();
+    perform pymekit.set_session_aal('aal2');
+    perform pymekit.set_super_admin();
 end $$ language plpgsql;
 
 -- Test super admin with AAL2
-select makerkit.setup_super_admin();
+select pymekit.setup_super_admin();
 
 select is(
     (select public.is_aal2()),
@@ -43,7 +43,7 @@ select is(
 );
 
 -- Test regular user (no AAL2)
-select makerkit.authenticate_as('regular_user');
+select pymekit.authenticate_as('regular_user');
 
 select is(
     (select public.is_aal2()),
@@ -66,9 +66,9 @@ select is(
     'Postgres user should not be identified as super admin'
 );
 
-select makerkit.authenticate_as('mfa_user');
-select makerkit.set_mfa_factor();
-select makerkit.set_session_aal('aal2');
+select pymekit.authenticate_as('mfa_user');
+select pymekit.set_mfa_factor();
+select pymekit.set_session_aal('aal2');
 
 select is(
     (select public.is_mfa_compliant()),
@@ -77,10 +77,10 @@ select is(
 );
 
 -- Test super admin access to protected tables
-select makerkit.setup_super_admin();
+select pymekit.setup_super_admin();
 
 -- Test malicious user attempts
-select makerkit.authenticate_as('malicious_user');
+select pymekit.authenticate_as('malicious_user');
 
 -- Attempt to fake super admin role (should fail)
 select is(
@@ -106,15 +106,15 @@ select is_empty(
 );
 
 -- Test partial MFA setup (not verified)
-select makerkit.authenticate_as('partial_mfa_user');
-select makerkit.set_session_aal('aal2');
+select pymekit.authenticate_as('partial_mfa_user');
+select pymekit.set_session_aal('aal2');
 
 -- Test regular user restricted access
-select makerkit.authenticate_as('regular_user');
+select pymekit.authenticate_as('regular_user');
 
 -- Test MFA restrictions
-select makerkit.authenticate_as('regular_user');
-select makerkit.set_mfa_factor();
+select pymekit.authenticate_as('regular_user');
+select pymekit.set_mfa_factor();
 
 -- Should be restricted without MFA
 select is_empty(
@@ -123,8 +123,8 @@ select is_empty(
 );
 
 -- A super admin without MFA should not be able to have super admin rights
-select makerkit.authenticate_as('super_admin');
-select makerkit.set_super_admin();
+select pymekit.authenticate_as('super_admin');
+select pymekit.set_super_admin();
 
 select is(
                (select public.is_super_admin()),
@@ -133,10 +133,10 @@ select is(
        );
 
 -- Test edge cases for MFA and AAL2
-select makerkit.authenticate_as('mfa_user');
-select makerkit.set_mfa_factor();
+select pymekit.authenticate_as('mfa_user');
+select pymekit.set_mfa_factor();
 -- Set AAL1 despite having MFA to test edge case
-select makerkit.set_session_aal('aal1');
+select pymekit.set_session_aal('aal1');
 
 select is(
     (select public.is_mfa_compliant()),
@@ -155,7 +155,7 @@ select is_empty(
 );
 
 -- A Super Admin should be able to access all tables when MFA is enabled
-select makerkit.setup_super_admin();
+select pymekit.setup_super_admin();
 
 select is(
     (select public.is_super_admin()),
@@ -189,7 +189,7 @@ begin
 end $$;
 
 -- re-authenticate as super admin
-select makerkit.setup_super_admin();
+select pymekit.setup_super_admin();
 
 -- test a super admin cannot update accounts directly
 do $$

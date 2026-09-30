@@ -2,10 +2,10 @@ BEGIN;
 
 select no_plan();
 
-select makerkit.set_identifier('primary_owner', 'test@makerkit.dev');
-select makerkit.set_identifier('owner', 'owner@makerkit.dev');
-select makerkit.set_identifier('member', 'member@makerkit.dev');
-select makerkit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
+select pymekit.set_identifier('owner', 'owner@makerkit.dev');
+select pymekit.set_identifier('member', 'member@makerkit.dev');
+select pymekit.set_identifier('custom', 'custom@makerkit.dev');
 
 -- Create a test account and billing customer
 INSERT INTO public.billing_customers(account_id, provider, customer_id)
@@ -143,7 +143,7 @@ select is(
   'The subscription should be active'
 );
 
-select makerkit.authenticate_as('primary_owner');
+select pymekit.authenticate_as('primary_owner');
 
 -- account can read their own subscription
 select isnt_empty(
@@ -177,7 +177,7 @@ select is(
 
 -- foreigners
 select tests.create_supabase_user('foreigner');
-select makerkit.authenticate_as('foreigner');
+select pymekit.authenticate_as('foreigner');
 
 -- account cannot read other's subscription
 select is_empty(

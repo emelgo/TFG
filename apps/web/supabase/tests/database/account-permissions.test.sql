@@ -14,12 +14,12 @@ set local role service_role;
 select public.create_team_account('Test', tests.get_supabase_uid('test1'));
 
 -- Switch back to authenticated user for testing
-select makerkit.authenticate_as('test1');
+select pymekit.authenticate_as('test1');
 
 -- the owner account has permissions to manage members
 select row_eq(
   $$ select public.has_permission(
-  auth.uid(), makerkit.get_account_id_by_slug('test'), 'members.manage'::app_permissions) $$,
+  auth.uid(), pymekit.get_account_id_by_slug('test'), 'members.manage'::app_permissions) $$,
     row(true::boolean),
     'The owner of the team account should have the members.manage permission'
 );
@@ -27,18 +27,18 @@ select row_eq(
 -- the owner account has permissions to manage billing
 select row_eq(
   $$ select public.has_permission(
-  auth.uid(), makerkit.get_account_id_by_slug('test'), 'billing.manage'::app_permissions) $$,
+  auth.uid(), pymekit.get_account_id_by_slug('test'), 'billing.manage'::app_permissions) $$,
     row(true::boolean),
     'The owner of the team account should have the billing.manage permission'
 );
 
 -- Foreigner should not have permissions to manage members
 
-select makerkit.authenticate_as('test2');
+select pymekit.authenticate_as('test2');
 
 select row_eq(
   $$ select public.has_permission(
-  auth.uid(), makerkit.get_account_id_by_slug('test'), 'members.manage'::app_permissions) $$,
+  auth.uid(), pymekit.get_account_id_by_slug('test'), 'members.manage'::app_permissions) $$,
     row(false::boolean),
     'Foreigners should not have the members.manage permission'
 );
@@ -74,7 +74,7 @@ select throws_ok(
 -- update user role to custom role
 update public.accounts_memberships
     set account_role = 'custom-role'
-    where account_id = makerkit.get_account_id_by_slug('test')
+    where account_id = pymekit.get_account_id_by_slug('test')
         and user_id = tests.get_supabase_uid('test1');
 
 set local role postgres;
@@ -82,12 +82,12 @@ set local role postgres;
 -- insert permissions for the custom role
 insert into public.role_permissions (role, permission) values ('custom-role', 'members.manage');
 
-select makerkit.authenticate_as('test1');
+select pymekit.authenticate_as('test1');
 
 -- the custom role does not have permissions to manage billing
 select row_eq(
   $$ select public.has_permission(
-  auth.uid(), makerkit.get_account_id_by_slug('test'), 'billing.manage'::app_permissions) $$,
+  auth.uid(), pymekit.get_account_id_by_slug('test'), 'billing.manage'::app_permissions) $$,
     row(false::boolean),
     'The custom role should not have the billing.manage permission'
 );
@@ -95,7 +95,7 @@ select row_eq(
 -- the custom role can manage members
 select row_eq(
   $$ select public.has_permission(
-  auth.uid(), makerkit.get_account_id_by_slug('test'), 'members.manage'::app_permissions) $$,
+  auth.uid(), pymekit.get_account_id_by_slug('test'), 'members.manage'::app_permissions) $$,
     row(true::boolean),
     'The custom role should have the members.manage permission'
 );

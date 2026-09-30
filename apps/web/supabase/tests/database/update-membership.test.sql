@@ -24,7 +24,7 @@ values (
 );
 
 -- Authenticate as member
-select makerkit.authenticate_as('update_test_member');
+select pymekit.authenticate_as('update_test_member');
 
 -- Member tries to update their own role to 'owner' - should fail silently
 update public.accounts_memberships

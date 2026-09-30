@@ -179,7 +179,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (144 etiquetas). No 
 | `packages/cms/users-explorer/src/api/utils/user-protection.ts:35` | RNF-02 | RNF-02 Seguridad: autorización en el código antes del cliente de |
 | `packages/cms/users-explorer/src/api/utils/users-errors.ts:12` | RNF-02 | RNF-02 Seguridad: los errores internos no llegan al cliente. |
 | `packages/supabase/src/types.ts:23` | ADR-014, RF-09 | ADR-014 · RF-09. |
-| `packages/ui/src/makerkit/markdown/markdown-policy.ts:24` | RNF-02, ADR-017 | RNF-02 · ADR-017: el Markdown del blog se renderiza de forma segura. |
-| `packages/ui/src/makerkit/markdown/safe-markdown.tsx:18` | RNF-02, ADR-017 | RNF-02 · ADR-017: el contenido del CMS se muestra en la web sin |
+| `packages/ui/src/pymekit/markdown/markdown-policy.ts:24` | RNF-02, ADR-017 | RNF-02 · ADR-017: el Markdown del blog se renderiza de forma segura. |
+| `packages/ui/src/pymekit/markdown/safe-markdown.tsx:18` | RNF-02, ADR-017 | RNF-02 · ADR-017: el contenido del CMS se muestra en la web sin |
 | `scripts/tfg/check-branding.mjs:30` | RNF-05 | RNF-05 Mantenibilidad: control automático que se ejecuta en la CI. |
 <!-- tfg-tags:fin -->

@@ -23,13 +23,13 @@ set local role postgres;
 
 insert into public.accounts_memberships (account_id, user_id, account_role)
 values
-    (makerkit.get_account_id_by_slug('active-test'), tests.get_supabase_uid('aa_member'), 'member');
+    (pymekit.get_account_id_by_slug('active-test'), tests.get_supabase_uid('aa_member'), 'member');
 
 -- ----------------------------------------------------------------------------
 -- Default resolution: no stored row resolves to the personal account
 -- ----------------------------------------------------------------------------
 
-select makerkit.authenticate_as('aa_owner');
+select pymekit.authenticate_as('aa_owner');
 
 select is(
   (select public.active_account_id()),
@@ -52,11 +52,11 @@ select is_empty(
 -- Switching to a team the user belongs to
 -- ----------------------------------------------------------------------------
 
-select public.set_active_account(makerkit.get_account_id_by_slug('active-test'));
+select public.set_active_account(pymekit.get_account_id_by_slug('active-test'));
 
 select is(
   (select public.active_account_id()),
-  makerkit.get_account_id_by_slug('active-test'),
+  pymekit.get_account_id_by_slug('active-test'),
   'set_active_account points active_account_id at the team'
 );
 
@@ -83,7 +83,7 @@ select is_empty(
 -- Membership guard: cannot activate an account you do not belong to
 -- ----------------------------------------------------------------------------
 
-select makerkit.authenticate_as('aa_foreigner');
+select pymekit.authenticate_as('aa_foreigner');
 
 -- Target another user's personal account id (resolved without RLS) so the
 -- membership guard is what rejects the switch.
@@ -104,10 +104,10 @@ select is(
 -- RLS: a user only sees their own active-account row
 -- ----------------------------------------------------------------------------
 
-select makerkit.authenticate_as('aa_member');
-select public.set_active_account(makerkit.get_account_id_by_slug('active-test'));
+select pymekit.authenticate_as('aa_member');
+select public.set_active_account(pymekit.get_account_id_by_slug('active-test'));
 
-select makerkit.authenticate_as('aa_owner');
+select pymekit.authenticate_as('aa_owner');
 
 select is_empty(
   $$ select * from public.user_active_account where user_id = tests.get_supabase_uid('aa_member') $$,
@@ -119,7 +119,7 @@ select is_empty(
 -- authenticated at all (column-scoped UPDATE grant)
 -- ----------------------------------------------------------------------------
 
-select makerkit.authenticate_as('aa_member');
+select pymekit.authenticate_as('aa_member');
 
 select throws_ok(
   $$ update public.user_active_account set user_id = tests.get_supabase_uid('aa_owner') $$,
@@ -132,11 +132,11 @@ select throws_ok(
 -- the with-check clause enforces the same rule
 -- ----------------------------------------------------------------------------
 
-select makerkit.authenticate_as('aa_foreigner');
+select pymekit.authenticate_as('aa_foreigner');
 
 select throws_ok(
   $$ insert into public.user_active_account (user_id, account_id)
-     values (auth.uid(), makerkit.get_account_id_by_slug('active-test')) $$,
+     values (auth.uid(), pymekit.get_account_id_by_slug('active-test')) $$,
   'new row violates row-level security policy for table "user_active_account"',
   'a non-member cannot point their active account at a foreign team via direct insert'
 );
@@ -155,10 +155,10 @@ select throws_ok(
 set local role postgres;
 
 delete from public.accounts_memberships
-where account_id = makerkit.get_account_id_by_slug('active-test')
+where account_id = pymekit.get_account_id_by_slug('active-test')
   and user_id = tests.get_supabase_uid('aa_member');
 
-select makerkit.authenticate_as('aa_member');
+select pymekit.authenticate_as('aa_member');
 
 select is(
   (select public.active_account_id()),

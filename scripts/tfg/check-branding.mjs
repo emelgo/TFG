@@ -39,6 +39,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 // Términos prohibidos. El scope `@kit/` delata un import sin renombrar.
 // También detecta la forma escapada dentro de expresiones regulares (`@kit\/`).
 const SCOPE = /@kit\\?\//;
+// Las rutas se comprueban siempre con todos los patrones, también en modo
+// `--scope-only`: desde la F2 no queda ninguna ruta con la marca y la CI debe
+// impedir que vuelva a aparecer.
+const PATH_FORBIDDEN = [/makerkit/i, /supamode/i, SCOPE];
 const FORBIDDEN = process.argv.includes('--scope-only')
   ? [SCOPE]
   : [/makerkit/i, /supamode/i, SCOPE];
@@ -130,6 +134,13 @@ function checkFile(path, allowlist) {
   const full = join(ROOT, path);
   if (!existsSync(full) || statSync(full).isDirectory()) return [];
 
+  // La ruta también cuenta: una carpeta o un fichero con la marca en su
+  // nombre (p. ej. `src/makerkit/`) se ve en imports, trazas y el explorador
+  // de ficheros aunque su contenido esté limpio (BITACORA B-40).
+  const pathFindings = PATH_FORBIDDEN.some((re) => re.test(path))
+    ? [{ path, line: 0, text: `(ruta) ${path}` }]
+    : [];
+
   const isHarness = matchesAny(path, HARNESS);
   const lines = readFileSync(full, 'utf8').split('\n');
   const findings = [];
@@ -145,7 +156,7 @@ function checkFile(path, allowlist) {
       findings.push({ path, line: index + 1, text: original.trim() });
   });
 
-  return findings;
+  return [...pathFindings, ...findings];
 }
 
 function main() {

@@ -154,7 +154,7 @@ select tests.authenticate_as('cms_root_promoted');
 -- Con solo la contraseña (sesión aal1) no basta: el CMS exige segundo factor.
 -- Un JWT real de Supabase siempre incluye el claim `aal`; el helper genérico
 -- no lo pone, así que se fija explícitamente.
-select makerkit.set_session_aal('aal1');
+select pymekit.set_session_aal('aal1');
 
 select ok(
     not cms.verify_admin_access(),
@@ -172,14 +172,14 @@ insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, c
 values (gen_random_uuid(), tests.get_supabase_uid('cms_root_promoted'), 'totp-test', 'totp', 'verified', now(), now(), 'secreto-de-prueba');
 
 select tests.authenticate_as('cms_root_promoted');
-select makerkit.set_session_aal('aal1');
+select pymekit.set_session_aal('aal1');
 
 select ok(
     not cms.verify_admin_access(),
     'Con MFA configurado pero sesión aal1, el super-admin no entra al CMS (no falla en abierto)'
 );
 
-select makerkit.set_session_aal('aal2');
+select pymekit.set_session_aal('aal2');
 
 select ok(cms.verify_admin_access(), 'Con MFA (aal2) el super-admin supera verify_admin_access');
 

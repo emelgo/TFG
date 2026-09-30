@@ -11,7 +11,7 @@ select tests.create_supabase_user('test2');
 ------------
 --- Primary Owner
 ------------
-select makerkit.authenticate_as('test1');
+select pymekit.authenticate_as('test1');
 
 -- should create the personal account automatically with the same ID as the user
 SELECT row_eq(
@@ -33,7 +33,7 @@ SELECT throws_ok(
 
 -- the primary owner should be able to see the personal account
 
-select makerkit.authenticate_as('test1');
+select pymekit.authenticate_as('test1');
 
 SELECT isnt_empty(
    $$ select * from public.accounts where primary_owner_user_id = tests.get_supabase_uid('test1') $$,
@@ -82,7 +82,7 @@ select throws_ok(
 
 -- other users should not be able to see the personal account
 
-select makerkit.authenticate_as('test2');
+select pymekit.authenticate_as('test2');
 
 SELECT is_empty(
    $$ select * from public.accounts where primary_owner_user_id = tests.get_supabase_uid('test1') $$,

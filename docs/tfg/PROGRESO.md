@@ -34,7 +34,7 @@
 - [x] Corregido un fallo del renombrado: la regex `noExternal` de `vite.config.ts` conservaba el scope original escapado (`check-branding` ya detecta esa forma)
 - [x] CU-01 probado a mano por el autor: registro y login funcionan (vía túnel SSH)
 - [x] Job de E2E activado en GitHub (`ENABLE_E2E_JOB` y secretos de Supabase). Para ahorrar minutos, solo se ejecuta en PR a `main` y a mano (*Run workflow*). Los secretos de Stripe se añadirán en F5
-- [ ] Estabilizar el test inestable de admin (o documentarlo) antes de F6
+- [ ] Estabilizar los E2E inestables bajo carga (`--workers=4`) antes de F6: admin «ban user flow», «MFA configured but not verified», «delete team account flow», dos de autenticación y `cms-display-formats` › membresía enlazada a la cuenta (todos pasan en serie)
 - [ ] El setup de auth de los E2E falla contra `pnpm dev` (envía el formulario antes de la hidratación); de momento los E2E se lanzan contra la build de test
 
 ## F2 · Integración del CMS (en `/admin/cms`, ADR-011)
@@ -67,13 +67,14 @@
 - [ ] F2.9 · Cierre: E2E, skills (`react-form-builder`, `service-builder`, `playwright-e2e`) y `AGENTS.md` actualizados
 
 ## F3 · Desmarcado e i18n
-- [ ] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS
+- [x] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS (adelantado a F2, B-40)
 - [ ] `check-branding` a cero
 - [ ] Locale `es` por defecto (web, emails, CMS)
 - [ ] Plantillas y `config.toml` de Supabase
 - [ ] Marca visual (logo, favicon, landing)
-- [ ] Helpers pgTAP `pymekit.*`
-- [ ] Carpeta `packages/ui/src/makerkit/` → `src/pymekit/` (y sus exports)
+- [x] Helpers pgTAP `pymekit.*` (adelantado a F2)
+- [x] Carpeta `packages/ui/src/makerkit/` → `src/pymekit/` (y sus exports) y `styles/makerkit.css` → `pymekit.css` (adelantado a F2 a petición del autor, B-40)
+- [ ] Contenido pendiente: equipo de prueba con slug `makerkit` y emails `@makerkit.dev` del seed y los tests, emails de la demo del dashboard, enlace de documentación en `lazy-render.tsx`
 - [ ] Plantillas de email solo tienen locale `en`: añadir `es`; revisar `EMAIL_TEMPLATE_RENDERERS` (no tiene consumidores)
 
 ## F4 · Comentarios en español
@@ -145,6 +146,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-30 | F2 | El autor detecta rutas con la marca (`packages/ui/src/makerkit/`): renombradas `src/pymekit/`, `pymekit.css` y los helpers pgTAP `pymekit.*`; `check-branding` revisa ya las rutas y lo hace de forma bloqueante (B-40) |
 | 2026-09-30 | F2.6b | Blog gestionado desde el CMS y visible en la web, demo de pyme, textos legibles en relaciones y tablas en la barra lateral; superficie de `anon` auditada (AISLADO) |
 | 2026-09-30 | F2.6 | Endurecimiento tras `/rls-review`: redacción de la auditoría en BD, tiempo máximo de la búsqueda, sin `SQLERRM` en avisos y MFA exigido a quien lo tiene configurado (B-31 a B-35) |
 | 2026-09-30 | F2.6 | Auditoría del CMS y búsqueda global; auditoría no falsificable, lectura redactada por permisos y búsqueda endurecida (B-27, B-28) |

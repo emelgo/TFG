@@ -39,7 +39,7 @@ where id = tests.get_supabase_uid('iso_root');
 -- -------------------------------------------------------
 
 select tests.authenticate_as('iso_root');
-select makerkit.set_session_aal('aal2');
+select pymekit.set_session_aal('aal2');
 
 select ok(cms.verify_admin_access(), 'A0: el super-admin con aal2 tiene acceso al CMS');
 
@@ -102,7 +102,7 @@ select is(
 -- -------------------------------------------------------
 
 select tests.authenticate_as('iso_root');
-select makerkit.set_session_aal('aal1');
+select pymekit.set_session_aal('aal1');
 
 select ok(not cms.verify_admin_access(), 'B1: con aal1 el super-admin no supera verify_admin_access');
 
@@ -133,7 +133,7 @@ select is_empty(
 -- -------------------------------------------------------
 
 select tests.authenticate_as('iso_normal');
-select makerkit.set_session_aal('aal2');
+select pymekit.set_session_aal('aal2');
 
 select ok(not cms.verify_admin_access(), 'C1: un usuario normal no tiene acceso al CMS (ni con aal2)');
 

@@ -2,12 +2,12 @@ BEGIN;
 
 select no_plan();
 
-select makerkit.set_identifier('primary_owner', 'test@makerkit.dev');
-select makerkit.set_identifier('owner', 'owner@makerkit.dev');
-select makerkit.set_identifier('member', 'member@makerkit.dev');
-select makerkit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@makerkit.dev');
+select pymekit.set_identifier('owner', 'owner@makerkit.dev');
+select pymekit.set_identifier('member', 'member@makerkit.dev');
+select pymekit.set_identifier('custom', 'custom@makerkit.dev');
 
-select makerkit.authenticate_as('member');
+select pymekit.authenticate_as('member');
 
 select throws_ok(
     $$ insert into storage.objects ("bucket_id", "metadata", "name", "owner", "owner_id", "version") values
@@ -15,7 +15,7 @@ select throws_ok(
         'new row violates row-level security policy for table "objects"'
 );
 
-select makerkit.authenticate_as('primary_owner');
+select pymekit.authenticate_as('primary_owner');
 
 select lives_ok(
     $$ insert into storage.objects ("bucket_id", "metadata", "name", "owner", "owner_id", "version") values
@@ -28,7 +28,7 @@ select isnt_empty(
     'The object should be inserted'
 );
 
-select makerkit.authenticate_as('owner');
+select pymekit.authenticate_as('owner');
 
 select is_empty(
     $$ select * from storage.objects where owner = tests.get_supabase_uid('primary_owner') $$,
@@ -54,7 +54,7 @@ with check (
   and auth.uid() = tests.get_supabase_uid('primary_owner')
 );
 
-select makerkit.authenticate_as('member');
+select pymekit.authenticate_as('member');
 
 -- user should not be able to insert into the new bucket according to the new policy
 select throws_ok(
@@ -63,7 +63,7 @@ select throws_ok(
         'new row violates row-level security policy for table "objects"'
 );
 
-select makerkit.authenticate_as('primary_owner');
+select pymekit.authenticate_as('primary_owner');
 
 -- primary_owner should be able to insert into the new bucket according to the new policy
 -- this is to check the new policy system is working
@@ -87,7 +87,7 @@ with check (
   and auth.uid() = tests.get_supabase_uid('owner')
 );
 
-select makerkit.authenticate_as('owner');
+select pymekit.authenticate_as('owner');
 
 -- insert a new object into the new bucket
 --
@@ -105,7 +105,7 @@ select isnt_empty(
 );
 
 -- check other members cannot insert into the new bucket
-select makerkit.authenticate_as('member');
+select pymekit.authenticate_as('member');
 
 select throws_ok(
     $$ insert into storage.objects ("bucket_id", "metadata", "name", "owner", "owner_id", "version") values
@@ -128,20 +128,20 @@ set local storage.allow_delete_query = 'true';
 
 -- the team image for the seeded 'makerkit' team, named after the account id
 insert into storage.objects ("bucket_id", "metadata", "name", "version") values
-    ('account_image', '{"key": "value"}', concat(makerkit.get_account_id_by_slug('makerkit'), '.png'), 1);
+    ('account_image', '{"key": "value"}', concat(pymekit.get_account_id_by_slug('makerkit'), '.png'), 1);
 
 -- 'custom' holds custom-role on the team, which has NO permissions
-select makerkit.authenticate_as('custom');
+select pymekit.authenticate_as('custom');
 
 select isnt_empty(
-    $$ select * from storage.objects where name = concat(makerkit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
     'A team member can read the team image'
 );
 
 -- a member without settings.manage cannot replace the team image
 select throws_ok(
     $$ insert into storage.objects ("bucket_id", "metadata", "name", "version") values
-        ('account_image', '{"forged": true}', concat(makerkit.get_account_id_by_slug('makerkit'), '.forged.png'), 1) $$,
+        ('account_image', '{"forged": true}', concat(pymekit.get_account_id_by_slug('makerkit'), '.forged.png'), 1) $$,
     'new row violates row-level security policy for table "objects"',
     'A member without settings.manage cannot upload into the team image namespace'
 );
@@ -150,40 +150,40 @@ select throws_ok(
 -- permission), so the object is untouched
 select lives_ok(
     $$ update storage.objects set metadata = '{"tampered": true}'
-       where name = concat(makerkit.get_account_id_by_slug('makerkit'), '.png') $$,
+       where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
     'An overwrite attempt without settings.manage should not crash'
 );
 
 select results_eq(
-    $$ select metadata from storage.objects where name = concat(makerkit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select metadata from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
     $$ values ('{"key": "value"}'::jsonb) $$,
     'The team image metadata is untouched after an overwrite attempt without settings.manage'
 );
 
 select lives_ok(
-    $$ delete from storage.objects where name = concat(makerkit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ delete from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
     'A delete attempt without settings.manage should not crash'
 );
 
 set local role postgres;
 
 select isnt_empty(
-    $$ select * from storage.objects where name = concat(makerkit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
     'The team image should still exist after a delete attempt by a member without settings.manage'
 );
 
 -- 'owner' holds the owner role, which has settings.manage
-select makerkit.authenticate_as('owner');
+select pymekit.authenticate_as('owner');
 
 select lives_ok(
-    $$ delete from storage.objects where name = concat(makerkit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ delete from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
     'A delete attempt with settings.manage should not crash'
 );
 
 set local role postgres;
 
 select is_empty(
-    $$ select * from storage.objects where name = concat(makerkit.get_account_id_by_slug('makerkit'), '.png') $$,
+    $$ select * from storage.objects where name = concat(pymekit.get_account_id_by_slug('makerkit'), '.png') $$,
     'The team image should be deleted by a member with settings.manage'
 );
 

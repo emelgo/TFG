@@ -186,7 +186,7 @@ select results_eq(
 -- ---------------------------------------------------------------------------
 
 select tests.authenticate_as('audit_iso_root');
-select makerkit.set_session_aal('aal2');
+select pymekit.set_session_aal('aal2');
 
 select ok(cms.verify_admin_access(), 'Root con AAL2 tiene acceso al CMS (control del test)');
 
@@ -239,7 +239,7 @@ select is(
 
 -- Root con AAL1 y MFA obligatorio: todo cerrado.
 select tests.authenticate_as('audit_iso_root');
-select makerkit.set_session_aal('aal1');
+select pymekit.set_session_aal('aal1');
 
 select is_empty(
     $$ select 1 from cms.audit_logs $$,

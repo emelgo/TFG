@@ -219,7 +219,7 @@ select throws_ok(
 set local role postgres;
 
 select tests.create_supabase_user('blog_reader', 'blog-reader@test.com');
-select makerkit.authenticate_as('blog_reader');
+select pymekit.authenticate_as('blog_reader');
 
 select results_eq(
     $$ select slug::text from public.blog_posts where slug like 'bt-%' order by slug $$,
@@ -366,11 +366,11 @@ select is_empty(
 
 -- Root: el super-admin del seed (rol Root asignado por 53-cms-super-admin),
 -- con segundo factor (sesión aal2), como en el CMS real
-select makerkit.set_identifier('blog_root', 'super-admin@makerkit.dev');
-select makerkit.set_identifier('blog_staff', 'cms-staff@pymekit.test');
+select pymekit.set_identifier('blog_root', 'super-admin@makerkit.dev');
+select pymekit.set_identifier('blog_staff', 'cms-staff@pymekit.test');
 
 select tests.authenticate_as('blog_root');
-select makerkit.set_session_aal('aal2');
+select pymekit.set_session_aal('aal2');
 
 select ok(cms.verify_admin_access(), 'Root (aal2) supera verify_admin_access');
 
@@ -430,7 +430,7 @@ select isnt_empty(
 set local role postgres;
 
 select tests.authenticate_as('blog_staff');
-select makerkit.set_session_aal('aal2');
+select pymekit.set_session_aal('aal2');
 
 select ok(cms.verify_admin_access(), 'Soporte (aal2) supera verify_admin_access');
 

@@ -79,7 +79,7 @@ declare
     token_result jsonb;
     auth_user_id uuid;
 begin
-    auth_user_id := makerkit.get_id_by_identifier('token_creator');
+    auth_user_id := pymekit.get_id_by_identifier('token_creator');
     
     token_result := public.create_nonce(
         auth_user_id, 
@@ -184,7 +184,7 @@ begin
     user_token := current_setting('app.settings.user_token', false);
     
     set local role postgres;
-    user_id := makerkit.get_id_by_identifier('token_creator');
+    user_id := pymekit.get_id_by_identifier('token_creator');
     
     perform tests.authenticate_as('token_creator');
 
@@ -240,7 +240,7 @@ declare
 begin
     set local role postgres;
     scope_token := current_setting('app.settings.scope_token', false);
-    user_id := makerkit.get_id_by_identifier('token_verifier');
+    user_id := pymekit.get_id_by_identifier('token_verifier');
 
     perform tests.authenticate_as('token_verifier');
     
@@ -627,7 +627,7 @@ declare
 begin
     set local role postgres;
 
-    victim_id := makerkit.get_id_by_identifier('token_creator');
+    victim_id := pymekit.get_id_by_identifier('token_creator');
 
     perform set_config('app.settings.victim_id', victim_id::text, false);
 
@@ -716,7 +716,7 @@ declare
     first_token_status jsonb;
 begin
     -- Get user ID
-    auth_user_id := makerkit.get_id_by_identifier('token_creator');
+    auth_user_id := pymekit.get_id_by_identifier('token_creator');
     
     -- Create first token
     first_token_result := public.create_nonce(
@@ -1061,8 +1061,8 @@ begin
     set local role postgres;
     
     -- Get user IDs
-    creator_id := makerkit.get_id_by_identifier('token_creator');
-    verifier_id := makerkit.get_id_by_identifier('token_verifier');
+    creator_id := pymekit.get_id_by_identifier('token_creator');
+    verifier_id := pymekit.get_id_by_identifier('token_verifier');
     
     set local role service_role;
     

@@ -8,14 +8,14 @@ select tests.create_supabase_user('revoking_mfa_admin');
 select tests.create_supabase_user('concurrent_session_user');
 
 -- Set up test users
-select makerkit.set_identifier('transitioning_admin', 'transitioning@makerkit.dev');
-select makerkit.set_identifier('revoking_mfa_admin', 'revoking@makerkit.dev');
-select makerkit.set_identifier('concurrent_session_user', 'concurrent@makerkit.dev');
+select pymekit.set_identifier('transitioning_admin', 'transitioning@makerkit.dev');
+select pymekit.set_identifier('revoking_mfa_admin', 'revoking@makerkit.dev');
+select pymekit.set_identifier('concurrent_session_user', 'concurrent@makerkit.dev');
 
 -- Test 1: Role Transition Scenarios
-select makerkit.authenticate_as('transitioning_admin');
-select makerkit.set_mfa_factor();
-select makerkit.set_session_aal('aal2');
+select pymekit.authenticate_as('transitioning_admin');
+select pymekit.set_mfa_factor();
+select pymekit.set_session_aal('aal2');
 
 -- Initially not a super admin
 select is(
@@ -25,7 +25,7 @@ select is(
 );
 
 -- Grant super admin
-select makerkit.set_super_admin();
+select pymekit.set_super_admin();
 
 select is(
     (select public.is_super_admin()),
@@ -34,10 +34,10 @@ select is(
 );
 
 -- Test 2: MFA Revocation Scenarios
-select makerkit.authenticate_as('revoking_mfa_admin');
-select makerkit.set_mfa_factor();
-select makerkit.set_session_aal('aal2');
-select makerkit.set_super_admin();
+select pymekit.authenticate_as('revoking_mfa_admin');
+select pymekit.set_mfa_factor();
+select pymekit.set_session_aal('aal2');
+select pymekit.set_super_admin();
 
 -- Initially has super admin access
 select is(
@@ -47,7 +47,7 @@ select is(
 );
 
 -- Simulate MFA revocation by setting AAL1
-select makerkit.set_session_aal('aal1');
+select pymekit.set_session_aal('aal1');
 
 select is(
     (select public.is_super_admin()),
@@ -56,10 +56,10 @@ select is(
 );
 
 -- Test 3: Concurrent Session Management
-select makerkit.authenticate_as('concurrent_session_user');
-select makerkit.set_mfa_factor();
-select makerkit.set_session_aal('aal2');
-select makerkit.set_super_admin();
+select pymekit.authenticate_as('concurrent_session_user');
+select pymekit.set_mfa_factor();
+select pymekit.set_session_aal('aal2');
+select pymekit.set_super_admin();
 
 -- Test access with AAL2
 select is(
@@ -69,7 +69,7 @@ select is(
 );
 
 -- Simulate different session with AAL1
-select makerkit.set_session_aal('aal1');
+select pymekit.set_session_aal('aal1');
 
 select is(
     (select public.is_super_admin()),

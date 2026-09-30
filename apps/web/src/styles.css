@@ -14,7 +14,7 @@
 @import '@fontsource-variable/inter';
 
 /* local styles - update the below if you add a new style */
-@import './styles/makerkit.css';
+@import './styles/pymekit.css';
 @import './styles/shadcn-ui.css';
 @import './styles/theme.css';
 @import './styles/custom.css';
