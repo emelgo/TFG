@@ -53,9 +53,29 @@ comment on column cms.audit_logs.metadata is 'The metadata of the audit log';
 -- concedía INSERT con una política que solo exigía `account_id` propio: el
 -- personal podía escribir entradas con cualquier operación, tabla, datos e
 -- incluso `user_id` ajeno (ADR-015, pendiente cerrado en F2.6).
+--
+-- [TFG] RNF-02 · Redacción en la base de datos (bitácora B-31). El SELECT se
+-- concede POR COLUMNAS y deja fuera `record_id`, `old_data` y `new_data`: los
+-- datos de la fila auditada. La política `select_cms_audit_logs` decide qué
+-- ENTRADAS se ven (por rango), pero no puede ocultar columnas, y antes
+-- cualquier lector con rango suficiente leía esos datos con SQL directo
+-- aunque no tuviera permiso sobre la tabla auditada (la redacción solo
+-- estaba en la API). Ahora esos tres campos solo se leen a través de la
+-- vista `cms.audit_logs_readable` (ver al final del fichero), que los
+-- devuelve a `null` cuando `cms.can_read_audit_log_data` lo prohíbe.
 grant
 select
-  on cms.audit_logs to authenticated;
+  (
+    id,
+    created_at,
+    account_id,
+    user_id,
+    operation,
+    schema_name,
+    table_name,
+    severity,
+    metadata
+  ) on cms.audit_logs to authenticated;
 
 grant
 select
@@ -191,8 +211,9 @@ execute on function cms.can_read_audit_log to authenticated;
 -- `can_read_audit_log` decide qué ENTRADAS se ven (por el rango de quien
 -- actuó), pero una entrada guarda la fila completa antes y después del
 -- cambio, y esa fila puede ser de una tabla que el lector no puede leer (la
--- cambió alguien de rango inferior con otros permisos). La API del CMS usa
--- esta función para devolver esos datos a `null` (redactados) cuando:
+-- cambió alguien de rango inferior con otros permisos). La vista
+-- `cms.audit_logs_readable` (y, como segunda barrera, la API del CMS) usa
+-- esta función para devolver esos datos a `null` (redactados) salvo que:
 --
 --  - esquema `cms`: basta `log:select` (es el rastro del propio CMS, lo que
 --    ese permiso autoriza a revisar);
@@ -230,7 +251,7 @@ end;
 $$;
 
 comment on function cms.can_read_audit_log_data (text, text) is
-  'Indica si la sesión puede ver los datos de fila de una entrada de auditoría sobre esa tabla (si no, la API los redacta)';
+  'Indica si la sesión puede ver los datos de fila de una entrada de auditoría sobre esa tabla (si no, la vista cms.audit_logs_readable y la API los redactan)';
 
 grant execute on function cms.can_read_audit_log_data (text, text) to authenticated;
 
@@ -238,6 +259,117 @@ grant execute on function cms.can_read_audit_log_data (text, text) to authentica
 create policy select_cms_audit_logs on cms.audit_logs for
 select
   using (cms.can_read_audit_log (account_id));
+
+-- SECTION: AUDIT LOG ROW DATA (lectura redactada)
+-- [TFG] RNF-02 · Redacción de los datos de fila en la base de datos
+-- (bitácora B-31, endurecimiento F2.6).
+--
+-- Devuelve `record_id`, `old_data` y `new_data` de UNA entrada, o `null` en
+-- los tres (con `data_redacted = true`) si la sesión no puede ver los datos
+-- de esa tabla (`cms.can_read_audit_log_data`).
+--
+-- Es SECURITY DEFINER porque `authenticated` ya no tiene SELECT sobre esas
+-- tres columnas (ver los *grants*): la función las lee como propietaria de
+-- la tabla. Como cualquiera con EXECUTE puede llamarla con un id arbitrario,
+-- repite ella misma las dos políticas de la tabla antes de devolver nada:
+--
+--  - `cms.is_mfa_compliant()` (política RESTRICTIVE `restrict_mfa_audit_logs`);
+--  - `cms.can_read_audit_log(account_id)` (política `select_cms_audit_logs`:
+--    acceso vigente, `log:select` y jerarquía de rangos).
+--
+-- Si la entrada no existe o no es visible, no devuelve ninguna fila: ni los
+-- datos ni la pista de que la entrada existe. `auth.uid()` y los *claims*
+-- siguen siendo los de la petición dentro de la función, así que todas las
+-- comprobaciones se hacen para el usuario real.
+create or replace function cms.get_audit_log_row_data (p_log_id uuid) returns table (
+  record_id text,
+  old_data jsonb,
+  new_data jsonb,
+  data_redacted boolean
+) language plpgsql stable security definer
+-- Siempre devuelve como mucho una fila y es cara (varias comprobaciones de
+-- permisos): con `rows 1` y un coste alto, el planificador ordena y limita la
+-- página de la vista ANTES de llamarla, así que solo se evalúa para las filas
+-- que se devuelven y no para todo el registro.
+rows 1
+cost 1000
+set
+  search_path = '' as $$
+declare
+    v_log cms.audit_logs%rowtype;
+begin
+    select *
+    into v_log
+    from cms.audit_logs a
+    where a.id = p_log_id;
+
+    if not found then
+        return;
+    end if;
+
+    if not cms.is_mfa_compliant() or not cms.can_read_audit_log(v_log.account_id) then
+        return;
+    end if;
+
+    if cms.can_read_audit_log_data(v_log.schema_name, v_log.table_name) then
+        return query select v_log.record_id, v_log.old_data, v_log.new_data, false;
+    else
+        return query select null::text,
+                            null::jsonb,
+                            null::jsonb,
+                            (v_log.record_id is not null
+                                or v_log.old_data is not null
+                                or v_log.new_data is not null);
+    end if;
+end;
+$$;
+
+comment on function cms.get_audit_log_row_data (uuid) is
+  'Datos de fila (record_id, old_data, new_data) de una entrada de auditoría visible para la sesión, redactados si no puede leer la tabla auditada';
+
+-- Solo el personal del CMS (y el servidor) la ejecuta; `anon` nunca.
+revoke all on function cms.get_audit_log_row_data (uuid) from public, anon;
+
+grant execute on function cms.get_audit_log_row_data (uuid) to authenticated, service_role;
+
+-- Vista de lectura del registro de auditoría: las columnas de la tabla, con
+-- los datos de fila ya redactados por `get_audit_log_row_data`.
+--
+-- `security_invoker = true`: la vista se evalúa con los permisos de quien la
+-- consulta, así que las políticas RLS de `cms.audit_logs` (rango y MFA) se
+-- siguen aplicando para decidir qué entradas aparecen. La vista no lee las
+-- columnas protegidas de la tabla; solo la función, y únicamente para las
+-- filas que el lector ya puede ver. Es la ruta de lectura que usa la API del
+-- CMS (`packages/cms/audit-logs`).
+create or replace view cms.audit_logs_readable
+with
+  (security_invoker = true) as
+select
+  a.id,
+  a.created_at,
+  a.account_id,
+  a.user_id,
+  a.operation,
+  a.schema_name,
+  a.table_name,
+  d.record_id,
+  d.old_data,
+  d.new_data,
+  coalesce(d.data_redacted, false) as data_redacted,
+  a.severity,
+  a.metadata
+from
+  cms.audit_logs a
+  left join lateral cms.get_audit_log_row_data (a.id) d on true;
+
+comment on view cms.audit_logs_readable is
+  'Registro de auditoría con los datos de fila redactados según los permisos del lector (lectura del CMS)';
+
+-- Solo lectura, y solo para quien ya puede leer la tabla. `anon` no recibe
+-- nada (los valores por defecto de Supabase le concederían todo).
+revoke all on cms.audit_logs_readable from anon, authenticated, service_role;
+
+grant select on cms.audit_logs_readable to authenticated, service_role;
 
 -- Sin política de INSERT (ni UPDATE/DELETE): `authenticated` no tiene esos
 -- privilegios sobre la tabla y las funciones del sistema escriben como su

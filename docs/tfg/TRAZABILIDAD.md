@@ -34,7 +34,7 @@ _Última actualización: 2026-09-30 (F2.6 cerrada)._
 ## Etiquetas `[TFG]` en el código
 
 <!-- tfg-tags:inicio -->
-_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (112 etiquetas). No se edita a mano._
+_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (120 etiquetas). No se edita a mano._
 
 | Fichero:línea | Referencias | Qué ilustra |
 |---|---|---|
@@ -70,7 +70,8 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (112 etiquetas). No 
 | `apps/web/src/routes/admin/route.tsx:49` | RNF-02, ADR-014 | RNF-02 · ADR-014/016: la consola exige SIEMPRE segundo factor. |
 | `apps/web/src/routes/api/cms/$.ts:19` | RF-09, ADR-011 | RF-09 · ADR-011: el CMS se integra en la web como una API Hono montada |
 | `apps/web/supabase/schemas/23-cms-auth.sql:63` | RNF-02 | RNF-02 · Corrección de seguridad de PymeKit (fallo heredado). |
-| `apps/web/supabase/schemas/23-cms-auth.sql:117` | ADR-014 | ADR-014 · En PymeKit el MFA es obligatorio salvo que se desactive |
+| `apps/web/supabase/schemas/23-cms-auth.sql:113` | RNF-02 | RNF-02 · Endurecimiento F2.6 (bitácora B-34). Quien tiene un factor |
+| `apps/web/supabase/schemas/23-cms-auth.sql:130` | ADR-014 | ADR-014 · En PymeKit el MFA es obligatorio salvo que se desactive |
 | `apps/web/supabase/schemas/24-cms-utils.sql:126` | RNF-02 | RNF-02 · Corrección de PymeKit (hallada en la refutación de |
 | `apps/web/supabase/schemas/24-cms-utils.sql:477` | RNF-02 | RNF-02: PymeKit revoca por defecto el EXECUTE de PUBLIC sobre todas las |
 | `apps/web/supabase/schemas/40-cms-permissions-rls.sql:23` | RNF-02 | RNF-02 · Corrección de PymeKit: la condición heredada |
@@ -78,12 +79,18 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (112 etiquetas). No 
 | `apps/web/supabase/schemas/40-cms-permissions-rls.sql:155` | RNF-02 | RNF-02 · Mismo arreglo que en update_role_permissions: el WITH CHECK |
 | `apps/web/supabase/schemas/40-cms-permissions-rls.sql:210` | RNF-02 | RNF-02 · Mismo arreglo: la fila nueva debe seguir cumpliendo que el |
 | `apps/web/supabase/schemas/46-cms-crud-functions.sql:30` | RNF-02 | RNF-02 · Corrección de PymeKit: igual que insert/update/delete, |
-| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1563` | RNF-02 | RNF-02 · Corrección de PymeKit: esta función salta RLS |
-| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1646` | RNF-02 | RNF-02: `grant` explícitos que sustituyen al EXECUTE implícito de |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:401` | RNF-02 | RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:614` | RNF-02 | RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:928` | RNF-02 | RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1572` | RNF-02 | RNF-02 · Corrección de PymeKit: esta función salta RLS |
+| `apps/web/supabase/schemas/46-cms-crud-functions.sql:1655` | RNF-02 | RNF-02: `grant` explícitos que sustituyen al EXECUTE implícito de |
 | `apps/web/supabase/schemas/47-cms-audit-logs.sql:46` | RNF-02 | RNF-02 · Integridad del registro de auditoría (PymeKit, F2.6): el |
-| `apps/web/supabase/schemas/47-cms-audit-logs.sql:204` | RNF-02 | RNF-02 · PymeKit, F2.6. |
-| `apps/web/supabase/schemas/47-cms-audit-logs.sql:246` | RNF-02 | RNF-02: `create_audit_log` escribe cualquier operación, tabla y datos |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:57` | RNF-02 | RNF-02 · Redacción en la base de datos (bitácora B-31). El SELECT se |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:225` | RNF-02 | RNF-02 · PymeKit, F2.6. |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:264` | RNF-02 | RNF-02 · Redacción de los datos de fila en la base de datos |
+| `apps/web/supabase/schemas/47-cms-audit-logs.sql:378` | RNF-02 | RNF-02: `create_audit_log` escribe cualquier operación, tabla y datos |
 | `apps/web/supabase/schemas/48-cms-global-search.sql:20` | RNF-02 | RNF-02 · Endurecimiento de PymeKit (F2.6) sobre la función heredada: |
+| `apps/web/supabase/schemas/48-cms-global-search.sql:30` | RNF-02 | RNF-02 · Segundo endurecimiento (F2.6, revisión `/rls-review`): |
 | `apps/web/supabase/schemas/52-cms-dashboards.sql:82` | RNF-02 | RNF-02 · Corrección de PymeKit: sin acceso de administración |
 | `apps/web/supabase/schemas/52-cms-dashboards.sql:117` | RNF-02 | RNF-02 · Corrección de PymeKit: sin acceso de administración |
 | `apps/web/supabase/schemas/52-cms-dashboards.sql:323` | RNF-02 | RNF-02 · Corrección de PymeKit: listar paneles exige acceso de |
@@ -96,6 +103,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (112 etiquetas). No 
 | `apps/web/supabase/tests/database/cms-audit-isolation.test.sql:25` | RNF-02, ADR-015 | RNF-02 · ADR-015. |
 | `apps/web/supabase/tests/database/cms-audit-logs-integrity.test.sql:22` | RNF-02, ADR-015 | RNF-02 · ADR-015. |
 | `apps/web/supabase/tests/database/cms-dashboards-security.test.sql:253` | RNF-02 | RNF-02 · Endurecimiento de PymeKit: sin acceso de administración |
+| `apps/web/supabase/tests/database/cms-hardening-f26.test.sql:19` | RNF-02, ADR-015 | RNF-02 · ADR-015 · bitácora B-31 a B-34. |
 | `apps/web/supabase/tests/database/cms-isolation.test.sql:19` | RF-09, RNF-02, RNF-03, ADR-014, ADR-015 | RF-09, RNF-02, RNF-03 · ADR-014 y ADR-015. |
 | `apps/web/supabase/tests/database/cms-super-admin-root.test.sql:9` | RF-08, RF-09, RNF-02, ADR-014 | RF-08, RF-09, RNF-02 y ADR-014. |
 | `packages/cms/api/src/client.ts:13` | RF-09, ADR-011 | RF-09 · ADR-011: la interfaz y la API del CMS se comunican por RPC |
@@ -103,7 +111,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (112 etiquetas). No 
 | `packages/cms/api/src/server.ts:153` | RNF-02, ADR-014 | RNF-02 · ADR-014/015: además del claim, se pide a la base de |
 | `packages/cms/audit-logs-ui/src/components/audit-logs-view.tsx:12` | RF-10 | RF-10: consulta del registro de auditoría del CMS. |
 | `packages/cms/audit-logs/src/api/routes/get-audit-logs-route.ts:19` | RF-10, RNF-02 | RF-10 · RNF-02. |
-| `packages/cms/audit-logs/src/api/services/audit-logs.service.ts:28` | RF-10, RNF-02 | RF-10 · RNF-02: trazabilidad de las acciones del CMS con lectura |
+| `packages/cms/audit-logs/src/api/services/audit-logs.service.ts:33` | RF-10, RNF-02 | RF-10 · RNF-02: trazabilidad de las acciones del CMS con lectura |
 | `packages/cms/audit-logs/src/api/utils/audit-logs-errors.ts:10` | RNF-02 | RNF-02 Seguridad: los errores internos no llegan al cliente. |
 | `packages/cms/audit-logs/src/api/utils/audit-logs-query.ts:18` | RNF-02 | RNF-02: entrada validada y errores internos que no llegan al cliente. |
 | `packages/cms/auth/src/api/routes/index.ts:26` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014: acceso al CMS integrado en la consola de |
@@ -125,8 +133,8 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (112 etiquetas). No 
 | `packages/cms/data-explorer/src/api/routes/index.ts:813` | RF-09, RNF-02 | RF-09 · RNF-02: la autorización se aplica en la API y otra vez en la |
 | `packages/cms/data-explorer/src/api/utils/crud-errors.ts:24` | RNF-02 | RNF-02 Seguridad: los errores de la base de datos no se filtran al |
 | `packages/cms/resources/src/api/routes/index.ts:5` | RF-09 | RF-09. |
-| `packages/cms/resources/src/api/services/global-search.service.ts:10` | RF-09, RNF-02 | RF-09 · RNF-02. |
-| `packages/cms/resources/src/api/utils/global-search.ts:14` | RNF-02, RF-09 | RNF-02 · RF-09. |
+| `packages/cms/resources/src/api/services/global-search.service.ts:18` | RF-09, RNF-02 | RF-09 · RNF-02 (bitácora B-32). |
+| `packages/cms/resources/src/api/utils/global-search.ts:15` | RNF-02, RF-09 | RNF-02 · RF-09. |
 | `packages/cms/settings/src/api/routes/get-account-route.ts:19` | RF-09, ADR-014 | RF-09 · ADR-014. |
 | `packages/cms/shared/src/utils/storage-paths.ts:17` | RNF-02 | RNF-02 Seguridad: validación de rutas antes de usar el cliente de |
 | `packages/cms/storage-explorer/src/api/routes/file-operations-route.ts:16` | RF-09, RNF-02 | RF-09 · RNF-02. |

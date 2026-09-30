@@ -398,7 +398,10 @@ BEGIN
     EXCEPTION
         WHEN OTHERS THEN
             -- Don't fail the operation if audit logging fails
-            RAISE WARNING 'Failed to log insert operation: %', SQLERRM;
+            -- [TFG] RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un
+            -- aviso llega al cliente con el texto interno de PostgreSQL; el
+            -- log solo lo ve quien administra el servidor.
+            RAISE LOG 'Failed to log insert operation: %', SQLERRM;
     END;
 
     RETURN cms.build_crud_response(
@@ -608,7 +611,10 @@ BEGIN
     EXCEPTION
         WHEN OTHERS THEN
             -- Don't fail the operation if audit logging fails
-            RAISE WARNING 'Failed to log update operation: %', SQLERRM;
+            -- [TFG] RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un
+            -- aviso llega al cliente con el texto interno de PostgreSQL; el
+            -- log solo lo ve quien administra el servidor.
+            RAISE LOG 'Failed to log update operation: %', SQLERRM;
     END;
 
     RETURN cms.build_crud_response(
@@ -919,7 +925,10 @@ BEGIN
     EXCEPTION
         WHEN OTHERS THEN
             -- Don't fail the operation if audit logging fails
-            RAISE WARNING 'Failed to log delete operation: %', SQLERRM;
+            -- [TFG] RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un
+            -- aviso llega al cliente con el texto interno de PostgreSQL; el
+            -- log solo lo ve quien administra el servidor.
+            RAISE LOG 'Failed to log delete operation: %', SQLERRM;
     END;
 
     RETURN jsonb_build_object(

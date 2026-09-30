@@ -629,8 +629,12 @@ SELECT cms_tests.authenticate_as('crud_admin');
 SELECT cms.insert_record('public', 'test_customers', '{"name": "Audit Test", "email": "audit@test.com"}'::jsonb);
 
 -- Check that audit logs were created
+-- Se selecciona `id` y no `*`: desde el endurecimiento F2.6 (bitácora B-31)
+-- `authenticated` no puede leer `record_id`, `old_data` ni `new_data` de la
+-- tabla (solo redactados, por `cms.audit_logs_readable`). Estas pruebas solo
+-- comprueban que la entrada existe.
 SELECT isnt_empty(
-    $$ SELECT * FROM cms.audit_logs WHERE operation = 'INSERT' AND schema_name = 'public' AND table_name = 'test_customers' AND account_id = cms_tests.test_uuid(101) $$,
+    $$ SELECT id FROM cms.audit_logs WHERE operation = 'INSERT' AND schema_name = 'public' AND table_name = 'test_customers' AND account_id = cms_tests.test_uuid(101) $$,
     'Audit logs are created for INSERT operations with correct account'
 );
 
@@ -638,7 +642,7 @@ SELECT isnt_empty(
 SELECT cms.update_record_by_conditions('public', 'test_customers', '{"email": "audit@test.com"}'::jsonb, '{"name": "Audit Updated"}'::jsonb);
 
 SELECT isnt_empty(
-    $$ SELECT * FROM cms.audit_logs WHERE operation = 'UPDATE' AND schema_name = 'public' AND table_name = 'test_customers' AND account_id = cms_tests.test_uuid(101) $$,
+    $$ SELECT id FROM cms.audit_logs WHERE operation = 'UPDATE' AND schema_name = 'public' AND table_name = 'test_customers' AND account_id = cms_tests.test_uuid(101) $$,
     'Audit logs are created for UPDATE operations with correct account'
 );
 
@@ -658,7 +662,7 @@ SELECT is_empty(
 SELECT cms_tests.authenticate_as('crud_admin');
 
 SELECT isnt_empty(
-    $$ SELECT * FROM cms.audit_logs WHERE operation = 'DELETE' AND schema_name = 'public' AND table_name = 'test_customers' AND account_id = cms_tests.test_uuid(101) $$,
+    $$ SELECT id FROM cms.audit_logs WHERE operation = 'DELETE' AND schema_name = 'public' AND table_name = 'test_customers' AND account_id = cms_tests.test_uuid(101) $$,
     'Audit logs are created for DELETE operations with correct account'
 );
 

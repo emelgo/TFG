@@ -26,6 +26,27 @@
 -- así que las tablas sin columna `id` no tenían enlace, y cada tabla aportaba
 -- sus 5 primeras coincidencias sin ordenar por relevancia, de modo que una
 -- coincidencia exacta podía quedarse fuera.
+--
+-- [TFG] RNF-02 · Segundo endurecimiento (F2.6, revisión `/rls-review`):
+--
+--  - Tiempo máximo (bitácora B-32). La función hacía `SET LOCAL
+--    statement_timeout` dentro de sí misma, pero PostgreSQL arma el
+--    temporizador al EMPEZAR cada sentencia del cliente: cambiarlo a mitad no
+--    lo reinicia, así que el límite no se aplicaba (una vista lenta tardó
+--    4,5 s con un límite de 1 s). Además, por la salida de error
+--    (`WHEN OTHERS … RETURN`) no se restauraba, y el resto de la transacción
+--    del llamante quedaba con ese límite. Ahora la función no toca
+--    `statement_timeout`: lo fija la API en su transacción, con
+--    `set_config(..., true)`, justo antes de llamarla
+--    (`global-search.service.ts`). `p_timeout_seconds` se conserva para no
+--    cambiar la firma y solo se informa en `performance`.
+--  - Errores (bitácora B-33). `RAISE WARNING` con `SQLERRM` enviaba el texto
+--    interno de PostgreSQL al cliente como aviso del protocolo; ahora se usa
+--    `RAISE LOG`, que solo llega al log del servidor. Si se agota el tiempo,
+--    la cancelación ya no se captura: llega a la API, que responde con un
+--    código estable.
+--  - Comodines de LIKE. `%`, `_` y `\` del texto buscado se escapan antes de
+--    construir los patrones: buscar `%%` ya no coincide con todas las filas.
 CREATE OR REPLACE FUNCTION cms.global_search (
   p_query_text TEXT,
   p_limit_val INT DEFAULT 10,
@@ -41,7 +62,8 @@ SET
 DECLARE
     result JSONB;
     search_terms TEXT[];
-    v_original_timeout TEXT;
+    -- Texto con los comodines de LIKE escapados (ver más abajo).
+    v_query_like TEXT;
     v_search_start_time TIMESTAMPTZ;
     v_elapsed_seconds NUMERIC;
     table_metadata RECORD;
@@ -71,18 +93,18 @@ BEGIN
     p_offset_val := least(greatest(coalesce(p_offset_val, 0), 0), 1000);
     p_timeout_seconds := least(greatest(coalesce(p_timeout_seconds, 15), 1), 15);
 
-    -- Store original timeout and set protective timeout
-    BEGIN
-        SHOW statement_timeout INTO v_original_timeout;
-    EXCEPTION
-        WHEN OTHERS THEN
-            v_original_timeout := '0';
-    END;
+    -- Sin `SET LOCAL statement_timeout` aquí: no reiniciaría el temporizador
+    -- de la sentencia en curso y podría quedarse activo en la transacción del
+    -- llamante. El límite lo fija la API antes de llamar (ver la cabecera).
 
-    EXECUTE format('SET LOCAL statement_timeout = %L', p_timeout_seconds * 1000 || 'ms');
+    -- En un patrón LIKE, `%` y `_` son comodines y `\` es el carácter de
+    -- escape por defecto. Se escapan (primero la barra) para que el texto del
+    -- usuario se busque literalmente.
+    v_query_like := replace(replace(replace(p_query_text, '\', '\\'), '%', '\%'), '_', '\_');
 
-    -- Split search query into terms for better matching
-    search_terms := regexp_split_to_array(lower(p_query_text), '\s+');
+    -- Split search query into terms for better matching (ya escapados: el
+    -- escape no contiene espacios, así que no altera la división).
+    search_terms := regexp_split_to_array(lower(v_query_like), '\s+');
 
     -- =================================================================
     -- OPTIMIZATION: Build a single UNION ALL query instead of looping
@@ -111,8 +133,8 @@ BEGIN
         -- Order the tables to prioritize better matches first, just like the original cursor.
         ORDER BY
             CASE
-                WHEN tm.table_name ILIKE '%' || p_query_text || '%' THEN 0
-                WHEN tm.display_name ILIKE '%' || p_query_text || '%' THEN 1
+                WHEN tm.table_name ILIKE '%' || v_query_like || '%' THEN 0
+                WHEN tm.display_name ILIKE '%' || v_query_like || '%' THEN 1
                 ELSE 2
             END,
             tm.ordering NULLS LAST,
@@ -196,8 +218,8 @@ BEGIN
             -- Build score calculation
             score_sql := format(
                 '(CASE WHEN %I::text ILIKE %L THEN 100.0 WHEN %I::text ILIKE %L THEN 50.0 ELSE 1.0 END)',
-                display_column, p_query_text,
-                display_column, p_query_text || '%'
+                display_column, v_query_like,
+                display_column, v_query_like || '%'
             );
 
             -- Construct the SELECT statement for this table and add it to our array of queries
@@ -268,29 +290,18 @@ BEGIN
     );
 
     -- Step 4: Execute the single, powerful query.
+    -- Un tiempo agotado (`query_canceled`) no se captura: `WHEN OTHERS` no lo
+    -- incluye, así que llega a la API como error y esta responde con un
+    -- código estable en vez de devolver una lista vacía engañosa.
     BEGIN
         EXECUTE final_sql INTO final_results, total_count;
     EXCEPTION
-        WHEN query_canceled THEN
-            RAISE WARNING 'Global search query timed out.';
-            final_results := '[]'::jsonb;
-            total_count := 0;
         WHEN OTHERS THEN
-            -- El detalle solo va al log del servidor: al llamante nunca le
-            -- llega el texto de PostgreSQL (nombres de tablas o columnas).
-            RAISE WARNING 'Global search failed: %. SQLSTATE: %', SQLERRM, SQLSTATE;
+            -- `RAISE LOG`: el detalle solo va al log del servidor. Al
+            -- llamante no le llega el texto de PostgreSQL (nombres de tablas
+            -- o columnas), ni en la respuesta ni como aviso del protocolo.
+            RAISE LOG 'Global search failed: %. SQLSTATE: %', SQLERRM, SQLSTATE;
             RETURN jsonb_build_object('results', '[]'::jsonb, 'total', 0, 'error', 'search_failed');
-    END;
-
-    -- Reset timeout to original value
-    BEGIN
-        IF v_original_timeout IS NOT NULL AND v_original_timeout != '0' THEN
-            EXECUTE format('SET LOCAL statement_timeout = %L', v_original_timeout);
-        ELSE
-            RESET statement_timeout;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE WARNING 'Could not reset statement_timeout: %', SQLERRM;
     END;
 
     -- Calculate final elapsed time
@@ -315,17 +326,8 @@ BEGIN
 
 EXCEPTION
     WHEN OTHERS THEN
-        -- Ensure timeout is reset even on error
-        BEGIN
-            IF v_original_timeout IS NOT NULL AND v_original_timeout != '0' THEN
-                EXECUTE format('SET LOCAL statement_timeout = %L', v_original_timeout);
-            ELSE
-                RESET statement_timeout;
-            END IF;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING 'Emergency timeout reset failed: %', SQLERRM;
-        END;
-        RAISE WARNING 'Global search failed: %. SQLSTATE: %', SQLERRM, SQLSTATE;
+        -- Solo al log del servidor (ver el bloque anterior).
+        RAISE LOG 'Global search failed: %. SQLSTATE: %', SQLERRM, SQLSTATE;
         RETURN jsonb_build_object(
             'results', '[]'::jsonb, 'total', 0, 'error', 'search_failed'
         );

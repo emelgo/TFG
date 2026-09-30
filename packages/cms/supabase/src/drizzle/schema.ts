@@ -455,6 +455,39 @@ export const auditLogsInCms = cms.table(
   ],
 );
 
+/**
+ * Vista de lectura del registro de auditoría (`cms.audit_logs_readable`,
+ * endurecimiento F2.6).
+ *
+ * `authenticated` no puede leer `record_id`, `old_data` ni `new_data`
+ * directamente de `cms.audit_logs` (SELECT por columnas): la vista los
+ * devuelve ya redactados por la base de datos (`null` y
+ * `dataRedacted = true` si el lector no puede consultar la tabla auditada).
+ * Es `security_invoker`, así que las políticas RLS de la tabla siguen
+ * filtrando las entradas. Se declara con `.existing()` porque la define el
+ * esquema SQL (`47-cms-audit-logs.sql`), no Drizzle.
+ */
+export const auditLogsReadableInCms = cms
+  .view('audit_logs_readable', {
+    id: uuid().notNull(),
+    createdAt: timestamp('created_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).notNull(),
+    accountId: uuid('account_id'),
+    userId: uuid('user_id'),
+    operation: text().notNull(),
+    schemaName: text('schema_name').notNull(),
+    tableName: text('table_name').notNull(),
+    recordId: text('record_id'),
+    oldData: jsonb('old_data'),
+    newData: jsonb('new_data'),
+    dataRedacted: boolean('data_redacted').notNull(),
+    severity: auditLogSeverityInCms().notNull(),
+    metadata: jsonb(),
+  })
+  .existing();
+
 export const configurationInCms = cms.table(
   'configuration',
   {

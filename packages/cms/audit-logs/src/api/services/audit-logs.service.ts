@@ -1,12 +1,15 @@
 /**
  * Servicio del registro de auditoría del CMS.
  *
- * Lee `cms.audit_logs` con el cliente Drizzle de la petición, así que cada
- * consulta se ejecuta con la identidad del usuario y PostgreSQL aplica la
- * política RLS `select_cms_audit_logs` (`cms.can_read_audit_log`): permiso
- * `log:select`, acceso vigente al CMS y jerarquía de rangos (nadie lee las
- * entradas de una cuenta de rango superior al suyo). El servicio añade tres
- * barreras más:
+ * Lee la vista `cms.audit_logs_readable` con el cliente Drizzle de la
+ * petición, así que cada consulta se ejecuta con la identidad del usuario y
+ * PostgreSQL aplica la política RLS `select_cms_audit_logs`
+ * (`cms.can_read_audit_log`): permiso `log:select`, acceso vigente al CMS y
+ * jerarquía de rangos (nadie lee las entradas de una cuenta de rango superior
+ * al suyo). La vista es `security_invoker` y devuelve los datos de fila ya
+ * redactados por la base de datos: `authenticated` ni siquiera puede leer
+ * `record_id`, `old_data` ni `new_data` de la tabla (endurecimiento F2.6,
+ * ver `47-cms-audit-logs.sql`). El servicio añade tres barreras más:
  *
  *  1. **Permiso explícito.** Sin `log:select` responde 403 en lugar de una
  *     lista vacía, y en el registro de un miembro comprueba el rango del
@@ -19,7 +22,9 @@
  *     `select` sobre la tabla, `auth_user:select` para `auth.users`, nunca
  *     otros esquemas protegidos; las del propio esquema `cms` son lo que
  *     `log:select` autoriza a revisar); si no, llegan a `null` con
- *     `dataRedacted = true`, igual que el id del registro afectado. El correo
+ *     `dataRedacted = true`, igual que el id del registro afectado. La vista
+ *     ya lo hace; la API lo repite como segunda barrera, por si la ruta de
+ *     lectura cambiara algún día. El correo
  *     de quien actuó solo se añade con `account:select` o `auth_user:select`.
  *  3. **Errores estables.** Nada de texto de PostgreSQL: `AuditLogsError`.
  *
@@ -43,7 +48,7 @@ import type { Context } from 'hono';
 
 import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
 import { getDrizzleSupabaseAdminClient } from '@pymekit/cms-supabase/client';
-import { auditLogsInCms } from '@pymekit/cms-supabase/schema';
+import { auditLogsReadableInCms as auditLogs } from '@pymekit/cms-supabase/schema';
 
 import { AuditLogsError } from '../utils/audit-logs-errors';
 import {
@@ -110,7 +115,7 @@ class AuditLogsService {
   }) {
     const limit = params.limit ?? AUDIT_LOGS_DEFAULT_PAGE_SIZE;
     const conditions = [
-      eq(auditLogsInCms.accountId, params.accountId),
+      eq(auditLogs.accountId, params.accountId),
       ...cursorConditions(params.cursor),
     ];
 
@@ -137,7 +142,7 @@ class AuditLogsService {
     const {
       rows: [log],
       canReadActorEmails,
-    } = await this.readLogs([eq(auditLogsInCms.id, params.id)], 1);
+    } = await this.readLogs([eq(auditLogs.id, params.id)], 1);
 
     if (!log) {
       throw new AuditLogsError(
@@ -192,42 +197,45 @@ class AuditLogsService {
         return { denied: true as const };
       }
 
-      // Redacción en la propia consulta: la función SQL decide, fila a fila,
-      // si el lector puede leer la tabla de la entrada.
-      const dataReadable = sql`cms.can_read_audit_log_data(${auditLogsInCms.schemaName}, ${auditLogsInCms.tableName})`;
+      // Segunda barrera: la vista ya devuelve los datos redactados, pero la
+      // consulta vuelve a preguntar a la función SQL, fila a fila, si el
+      // lector puede leer la tabla de la entrada.
+      const dataReadable = sql`cms.can_read_audit_log_data(${auditLogs.schemaName}, ${auditLogs.tableName})`;
 
       const rows = await tx
         .select({
-          id: auditLogsInCms.id,
-          createdAt: auditLogsInCms.createdAt,
-          accountId: auditLogsInCms.accountId,
-          userId: auditLogsInCms.userId,
-          operation: auditLogsInCms.operation,
-          schemaName: auditLogsInCms.schemaName,
-          tableName: auditLogsInCms.tableName,
+          id: auditLogs.id,
+          createdAt: auditLogs.createdAt,
+          accountId: auditLogs.accountId,
+          userId: auditLogs.userId,
+          operation: auditLogs.operation,
+          schemaName: auditLogs.schemaName,
+          tableName: auditLogs.tableName,
           // El id del registro afectado también es un dato de la tabla (en
           // `auth.users`, el id o el correo de un usuario): se redacta igual.
           recordId: sql<
             string | null
-          >`case when ${dataReadable} then ${auditLogsInCms.recordId} end`,
-          severity: auditLogsInCms.severity,
-          metadata: auditLogsInCms.metadata,
+          >`case when ${dataReadable} then ${auditLogs.recordId} end`,
+          severity: auditLogs.severity,
+          metadata: auditLogs.metadata,
           oldData:
-            sql<unknown>`case when ${dataReadable} then ${auditLogsInCms.oldData} end`.mapWith(
-              auditLogsInCms.oldData,
+            sql<unknown>`case when ${dataReadable} then ${auditLogs.oldData} end`.mapWith(
+              auditLogs.oldData,
             ),
           newData:
-            sql<unknown>`case when ${dataReadable} then ${auditLogsInCms.newData} end`.mapWith(
-              auditLogsInCms.newData,
+            sql<unknown>`case when ${dataReadable} then ${auditLogs.newData} end`.mapWith(
+              auditLogs.newData,
             ),
+          // La vista ya marca las entradas redactadas (sus datos llegan a
+          // `null`, así que no se pueden volver a comprobar aquí).
           dataRedacted:
-            sql<boolean>`(not ${dataReadable} and (${auditLogsInCms.oldData} is not null or ${auditLogsInCms.newData} is not null or ${auditLogsInCms.recordId} is not null))`.mapWith(
+            sql<boolean>`(${auditLogs.dataRedacted} or (not ${dataReadable} and (${auditLogs.oldData} is not null or ${auditLogs.newData} is not null or ${auditLogs.recordId} is not null)))`.mapWith(
               Boolean,
             ),
         })
-        .from(auditLogsInCms)
+        .from(auditLogs)
         .where(and(...conditions))
-        .orderBy(desc(auditLogsInCms.createdAt), desc(auditLogsInCms.id))
+        .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
         .limit(limit);
 
       return {
@@ -313,10 +321,10 @@ function cursorConditions(cursor: string | undefined) {
 
   return [
     or(
-      lt(auditLogsInCms.createdAt, position.createdAt),
+      lt(auditLogs.createdAt, position.createdAt),
       and(
-        eq(auditLogsInCms.createdAt, position.createdAt),
-        lt(auditLogsInCms.id, position.id),
+        eq(auditLogs.createdAt, position.createdAt),
+        lt(auditLogs.id, position.id),
       ),
     ),
   ];
@@ -330,8 +338,8 @@ function filterConditions(filters: AuditLogsFilters) {
     if (isFullUuid(filters.author)) {
       conditions.push(
         or(
-          eq(auditLogsInCms.accountId, filters.author),
-          eq(auditLogsInCms.userId, filters.author),
+          eq(auditLogs.accountId, filters.author),
+          eq(auditLogs.userId, filters.author),
         ),
       );
     } else {
@@ -341,35 +349,35 @@ function filterConditions(filters: AuditLogsFilters) {
       const pattern = `%${filters.author}%`;
 
       conditions.push(
-        sql`(${auditLogsInCms.accountId}::text ilike ${pattern} or ${auditLogsInCms.userId}::text ilike ${pattern})`,
+        sql`(${auditLogs.accountId}::text ilike ${pattern} or ${auditLogs.userId}::text ilike ${pattern})`,
       );
     }
   }
 
   if (filters.action && filters.action.length > 0) {
-    conditions.push(inArray(auditLogsInCms.operation, filters.action));
+    conditions.push(inArray(auditLogs.operation, filters.action));
   }
 
   if (filters.schema) {
-    conditions.push(eq(auditLogsInCms.schemaName, filters.schema));
+    conditions.push(eq(auditLogs.schemaName, filters.schema));
   }
 
   if (filters.table) {
-    conditions.push(eq(auditLogsInCms.tableName, filters.table));
+    conditions.push(eq(auditLogs.tableName, filters.table));
   }
 
   if (filters.severity) {
-    conditions.push(eq(auditLogsInCms.severity, filters.severity));
+    conditions.push(eq(auditLogs.severity, filters.severity));
   }
 
   const range = toCreatedAtRange(filters);
 
   if (range.from) {
-    conditions.push(gte(auditLogsInCms.createdAt, range.from));
+    conditions.push(gte(auditLogs.createdAt, range.from));
   }
 
   if (range.toExclusive) {
-    conditions.push(lt(auditLogsInCms.createdAt, range.toExclusive));
+    conditions.push(lt(auditLogs.createdAt, range.toExclusive));
   }
 
   return conditions;

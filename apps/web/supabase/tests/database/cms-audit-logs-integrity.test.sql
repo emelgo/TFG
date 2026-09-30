@@ -92,8 +92,12 @@ on conflict do nothing;
 -- 1. Privilegios: el personal solo lee la auditoría
 -- ---------------------------------------------------------------------------
 
-select ok(has_table_privilege('authenticated', 'cms.audit_logs', 'SELECT'),
-    'authenticated puede leer cms.audit_logs (filtrado por RLS)');
+-- Desde el endurecimiento F2.6 (bitácora B-31) el SELECT es por columnas:
+-- sin `record_id`, `old_data` ni `new_data`, que solo se leen redactados por
+-- `cms.audit_logs_readable` (ver cms-hardening-f26.test.sql). Por eso se
+-- comprueba el privilegio de alguna columna y no el de la tabla completa.
+select ok(has_any_column_privilege('authenticated', 'cms.audit_logs', 'SELECT'),
+    'authenticated puede leer cms.audit_logs (por columnas, filtrado por RLS)');
 
 select ok(not has_table_privilege('authenticated', 'cms.audit_logs', 'INSERT'),
     'authenticated no tiene INSERT sobre cms.audit_logs');

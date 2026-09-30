@@ -45,6 +45,11 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-28 | 2026-09-30 | F2.6 | seguridad | heredado | La búsqueda global podía buscar en `auth.users` | Alta |
 | B-29 | 2026-09-30 | F2.6 | calidad | heredado | Errores controlados convertidos en 500 por el envoltorio de transacciones | Baja |
 | B-30 | 2026-09-30 | F2.6 | proceso | propio | La búsqueda global no estaba en el plan inicial | Baja |
+| B-31 | 2026-09-30 | F2.6 | seguridad | heredado | La redacción de los datos de auditoría solo la hacía la API | Media |
+| B-32 | 2026-09-30 | F2.6 | seguridad | heredado | El tiempo máximo de la búsqueda global no se aplicaba | Baja |
+| B-33 | 2026-09-30 | F2.6 | seguridad | heredado | `RAISE WARNING` enviaba el texto de los errores al cliente | Baja |
+| B-34 | 2026-09-30 | F2.6 | seguridad | heredado | Un factor MFA configurado no se exigía si el MFA era opcional | Baja |
+| B-35 | 2026-09-30 | F2.6 | herramientas | entorno | `db diff` omite `security_invoker` y los permisos por columna | Media |
 
 ---
 
@@ -238,3 +243,27 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** al comparar, a petición del autor, las secciones del CMS original con las portadas, apareció la búsqueda global, que no figuraba en el plan. Además, los Ajustes resultaron ser casi tan grandes como el explorador de datos.
 - **Solución:** añadir la búsqueda a la F2.6, dividir la F2.7 en tres entregas y registrar ADR-017 (blog y demo, a raíz de la misma revisión).
 - **Lección:** al portar un producto, el inventario de funcionalidades debe hacerse al principio **ruta a ruta**, no por paquetes.
+
+## B-31 · La redacción de los datos de auditoría solo la hacía la API
+- **Qué pasó:** tras B-27, la API ocultaba `old_data`, `new_data` y `record_id` de las entradas cuya tabla no podía leer el lector, pero la política de la tabla los devolvía sin redactar. No era explotable (el esquema `cms` no se expone por PostgREST), pero toda la protección dependía de una sola capa.
+- **Cómo se detectó:** en `/rls-review` de la F2.6 (veredicto AISLADO, debilidad W1).
+- **Solución:** `authenticated` pierde el permiso `SELECT` sobre esas tres columnas. Se leen a través de la vista `cms.audit_logs_readable` (`security_invoker`), que llama a la función `security definer` `cms.get_audit_log_row_data`: esta vuelve a comprobar el MFA y el rango y devuelve los datos a `NULL` si el lector no puede consultar esa tabla. La API lee la vista y mantiene su propia redacción como segunda capa.
+- **Evidencia:** `cms-hardening-f26.test.sql`; comprobación manual de la sesión principal (el personal de soporte obtiene 0 filas de una entrada de Root por la función y por la vista; Root sí la ve).
+- **Lección:** la defensa en profundidad exige que la base de datos aplique la regla, no solo la API.
+
+## B-32 · El tiempo máximo de la búsqueda global no se aplicaba
+- **Qué pasó:** `global_search` hacía `SET LOCAL statement_timeout` dentro de la propia sentencia en ejecución, lo que no reinicia el temporizador: una consulta lenta seguía corriendo. Además, en una rama de error dejaba el tiempo máximo de 1 s activo para el resto de la transacción de quien llamaba.
+- **Solución:** la API fija el tiempo máximo (5 s) en su transacción antes de la consulta; la función ya no lo toca. De paso se escapan los comodines de `LIKE`, porque `'%%'` coincidía con todo.
+
+## B-33 · `RAISE WARNING` enviaba el texto de los errores al cliente
+- **Qué pasó:** varias funciones del CMS emitían `RAISE WARNING ... SQLERRM`, y los avisos viajan al cliente por el protocolo de PostgreSQL. El valor devuelto estaba limpio, pero el aviso llevaba el error interno.
+- **Solución:** `RAISE LOG`, que solo queda en el log del servidor. Aplicado en `global_search`, `insert_record`, `_update_record_impl`, `_delete_record_impl` y `verify_admin_access`.
+
+## B-34 · Un factor MFA configurado no se exigía si el MFA era opcional
+- **Qué pasó:** con `requires_mfa = 'false'`, un usuario que sí tenía un factor verificado podía usar el CMS con sesión aal1 a través de las funciones `security definer`. Solo las políticas restrictivas de las tablas lo impedían.
+- **Solución:** `verify_admin_access` exige además `cms.is_mfa_compliant()`: quien tiene MFA configurado debe usarlo siempre, sea cual sea la opción global.
+
+## B-35 · `db diff` omite `security_invoker` y los permisos por columna
+- **Qué pasó:** al generar la migración de B-31, `supabase db diff` (migra) no incluyó la opción `security_invoker` de la vista ni los `grant` por columna. Una migración generada automáticamente habría creado una vista con permisos del propietario, que **ignora RLS**, y el `db diff` posterior tampoco lo habría detectado.
+- **Solución:** esa parte de la migración se escribe a mano, y pgTAP comprueba las dos propiedades. Queda anotado en `apps/web/supabase/AGENTS.md`.
+- **Lección:** que `db diff` salga limpio no demuestra que la migración sea segura. Las propiedades de seguridad se verifican con tests, no con la herramienta de diferencias.

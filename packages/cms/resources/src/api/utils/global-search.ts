@@ -8,8 +8,9 @@
  * filtrarse si algún día una columna sensible entra en una tabla legible.
  *
  * También fija los límites que la API acepta (`GlobalSearchQuerySchema`):
- * texto de 2 a 100 caracteres y como mucho 20 resultados. La función SQL
- * vuelve a acotarlos por su cuenta (defensa en profundidad).
+ * texto de 2 a 100 caracteres, como mucho 20 resultados y 5 s de consulta.
+ * La función SQL vuelve a acotar texto y resultados por su cuenta (defensa
+ * en profundidad).
  *
  * [TFG] RNF-02 · RF-09.
  */
@@ -22,6 +23,15 @@ export const GLOBAL_SEARCH_MAX_QUERY_LENGTH = 100;
 
 /** Resultados máximos por petición. */
 export const GLOBAL_SEARCH_MAX_LIMIT = 20;
+
+/**
+ * Tiempo máximo de una búsqueda (ms). Lo aplica el servicio a su transacción
+ * con `statement_timeout` antes de llamar a `cms.global_search`; si se supera,
+ * PostgreSQL cancela la consulta y la ruta responde `GLOBAL_SEARCH_FAILED`.
+ * Es menor que el tope de 15 s de la función: la paleta de búsqueda es
+ * interactiva y no merece la pena esperar más.
+ */
+export const GLOBAL_SEARCH_STATEMENT_TIMEOUT_MS = 5000;
 
 /** Parámetros de `GET /v1/resources/search`. */
 export const GlobalSearchQuerySchema = z.object({

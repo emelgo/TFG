@@ -110,6 +110,19 @@ begin
         return false;
     end if;
 
+    -- [TFG] RNF-02 · Endurecimiento F2.6 (bitácora B-34). Quien tiene un factor
+    -- MFA verificado tiene que haber entrado con él (aal2), valga lo que valga
+    -- `requires_mfa`. Antes, con `requires_mfa = 'false'`, un usuario con
+    -- factor y sesión aal1 (solo contraseña) pasaba esta comprobación: las
+    -- políticas RESTRICTIVE de las tablas le ocultaban las filas, pero las
+    -- funciones `security definer` que confían en esta función (búsqueda
+    -- global, escrituras del explorador, auditoría…) seguían adelante. Es la
+    -- misma regla que `cms.is_mfa_compliant()` aplica en las políticas, ahora
+    -- también en el punto de control común.
+    if not cms.is_mfa_compliant() then
+        return false;
+    end if;
+
     -- Get MFA requirement from configuration
     -- Se lee con cms.get_mfa_requirement() para no fallar en abierto (ver arriba).
     select lower(cms.get_mfa_requirement()) into requires_mfa;
@@ -121,8 +134,10 @@ begin
     if requires_mfa is null then
         requires_mfa := 'true';
     elsif requires_mfa not in ('true', 'false') then
-        -- Log suspicious configuration value
-        raise warning 'Invalid requires_mfa configuration value: %', requires_mfa;
+        -- Valor sospechoso: se anota solo en el log del servidor (`raise log`).
+        -- Un `raise warning` llegaría al cliente como aviso del protocolo con
+        -- un dato de configuración interno (bitácora B-33).
+        raise log 'Invalid requires_mfa configuration value: %', requires_mfa;
         -- Default to requiring MFA for security
         requires_mfa := 'true';
     end if;
