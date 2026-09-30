@@ -1,22 +1,27 @@
+/**
+ * Rutas Hono de los recursos del CMS: tablas legibles por el usuario y
+ * búsqueda global (F2.6).
+ *
+ * [TFG] RF-09.
+ */
 import { zValidator } from '@hono/zod-validator';
-import { Hono } from 'hono';
-import { z } from 'zod';
+import type { Hono } from 'hono';
+
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
+import { getLogger } from '@pymekit/shared/logger';
 
 import { createGlobalSearchService, createResourcesService } from '../services';
+import { GlobalSearchQuerySchema } from '../utils/global-search';
 
 /**
- * Register resources routes
- * @param router - Hono router instance
+ * Registra las rutas de recursos: tablas legibles y búsqueda global.
  */
 export function registerResourcesRoutes(router: Hono) {
   registerReadableResourcesRoute(router);
   registerGlobalSearchRoute(router);
 }
 
-/**
- * Register the readable resources route
- * GET /v1/resources - returns all readable resources for the current user
- */
+/** `GET /v1/resources`: tablas que el usuario puede leer. */
 function registerReadableResourcesRoute(router: Hono) {
   return router.get('/v1/resources', async (c) => {
     const service = createResourcesService(c);
@@ -27,38 +32,53 @@ function registerReadableResourcesRoute(router: Hono) {
 }
 
 /**
- * Register the global search route
- * GET /v1/resources/search - search across readable resources
+ * `GET /v1/resources/search`: búsqueda global en las tablas legibles (paleta
+ * Cmd/Ctrl+K de la interfaz).
+ *
+ * Limita el texto (2–100 caracteres) y el número de resultados (máximo 20)
+ * y responde a cualquier fallo con un código estable
+ * (`GLOBAL_SEARCH_INVALID_QUERY`, `GLOBAL_SEARCH_FAILED`) sin el texto de
+ * PostgreSQL, que antes llegaba al cliente dentro de la respuesta.
  */
 function registerGlobalSearchRoute(router: Hono) {
   return router.get(
     '/v1/resources/search',
-    zValidator(
-      'query',
-      z.object({
-        query: z
-          .string()
-          .min(2)
-          .transform((val) => val.trim()),
-        offset: z.coerce.number().optional(),
-        limit: z.coerce.number().optional(),
-      }),
-    ),
+    zValidator('query', GlobalSearchQuerySchema, (result, c) => {
+      if (!result.success) {
+        return c.json(
+          {
+            success: false as const,
+            error: 'The search query is not valid',
+            errorCode: CMS_API_ERROR_CODES.GLOBAL_SEARCH_INVALID_QUERY,
+          },
+          400,
+        );
+      }
+    }),
     async (c) => {
-      const client = c.get('drizzle');
-      const service = createGlobalSearchService(client);
-      const params = c.req.valid('query');
+      const service = createGlobalSearchService(c.get('drizzle'));
 
-      const results = await service.searchGlobal(params);
+      try {
+        return c.json(await service.searchGlobal(c.req.valid('query')));
+      } catch (error) {
+        const logger = await getLogger();
 
-      return c.json(results);
+        logger.error({ error }, 'Global search failed');
+
+        return c.json(
+          {
+            success: false as const,
+            error: 'The search could not be completed',
+            errorCode: CMS_API_ERROR_CODES.GLOBAL_SEARCH_FAILED,
+          },
+          500,
+        );
+      }
     },
   );
 }
 
-/**
- * Type definitions for route handlers
- */
+/** Tipos de las rutas para el cliente RPC tipado. */
 export type GetReadableResourcesRoute = ReturnType<
   typeof registerReadableResourcesRoute
 >;

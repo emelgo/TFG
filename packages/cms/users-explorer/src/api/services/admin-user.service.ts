@@ -341,8 +341,11 @@ class AdminUserService {
    * Auth guarda su propio registro, pero todas las llamadas con la clave de
    * servicio aparecen como `service_role` y un restablecimiento pedido por un
    * operador se atribuye al propio usuario. Esta entrada se escribe con los
-   * *claims* del operador, así que `cms.create_audit_log` sabe quién actuó.
-   * Si falla, se registra en el *log* sin deshacer la acción, que ya ocurrió.
+   * *claims* del operador mediante `cms.log_auth_user_action`, que vuelve a
+   * exigir el permiso `auth_user` de la acción, fija esquema y tabla y toma
+   * la atribución de la sesión (el personal ya no puede insertar entradas de
+   * auditoría directamente; ver `47-cms-audit-logs.sql`). Si falla, se
+   * registra en el *log* sin deshacer la acción, que ya ocurrió.
    */
   private async recordAudit(
     operation: string,
@@ -351,11 +354,11 @@ class AdminUserService {
   ) {
     try {
       const client = this.context.get('drizzle');
-      const newData = JSON.stringify({ operation, ...metadata });
+      const details = JSON.stringify(metadata);
 
       await client.runTransaction(async (tx) => {
         await tx.execute(
-          sql`select cms.create_audit_log(${operation}, 'auth', 'users', ${recordId}, null, ${newData}::jsonb, 'info'::cms.audit_log_severity, ${'{"operation_type":"auth_user_management"}'}::jsonb)`,
+          sql`select cms.log_auth_user_action(${operation}, ${recordId}, ${details}::jsonb)`,
         );
       });
     } catch (error) {

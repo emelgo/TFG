@@ -94,3 +94,12 @@ export {
   type SelectedRecord,
 } from './record-selection';
 export { getWriteErrorKey } from './write-errors';
+export {
+  GLOBAL_SEARCH_DEBOUNCE_MS,
+  GLOBAL_SEARCH_MAX_LENGTH,
+  GLOBAL_SEARCH_MIN_LENGTH,
+  getGlobalSearchResultUrl,
+  groupGlobalSearchResults,
+  normalizeGlobalSearchQuery,
+  type GlobalSearchGroup,
+} from './global-search';

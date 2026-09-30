@@ -11,6 +11,10 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import type { CmsApi, RecordParams, TableDataParams } from './api';
+import type {
+  AuditLogsListParams,
+  MemberAuditLogsParams,
+} from './audit-logs-api';
 import { shouldRetryCmsQuery } from './errors';
 import type { BucketContentsParams } from './storage-api';
 import type { UsersListParams } from './users-api';
@@ -85,6 +89,36 @@ export const cmsQueryKeys = {
         page: params.page ?? 1,
       },
     ] as const,
+  /** Prefijo de todo lo del registro de auditoría. */
+  auditLogs: () => [...cmsQueryKeys.all, 'audit-logs'] as const,
+  auditLogsList: (params: AuditLogsListParams) =>
+    [
+      ...cmsQueryKeys.auditLogs(),
+      'list',
+      {
+        cursor: params.cursor ?? null,
+        limit: params.limit ?? null,
+        author: params.author ?? '',
+        actions: [...(params.actions ?? [])].sort(),
+        schema: params.schema ?? '',
+        table: params.table ?? '',
+        severity: params.severity ?? null,
+        startDate: params.startDate ?? null,
+        endDate: params.endDate ?? null,
+      },
+    ] as const,
+  auditLog: (id: string) =>
+    [...cmsQueryKeys.auditLogs(), 'detail', id] as const,
+  memberAuditLogs: (params: MemberAuditLogsParams) =>
+    [
+      ...cmsQueryKeys.auditLogs(),
+      'member',
+      params.accountId,
+      { cursor: params.cursor ?? null, limit: params.limit ?? null },
+    ] as const,
+  /** Resultados de la búsqueda global para un texto ya normalizado. */
+  globalSearch: (query: string) =>
+    [...cmsQueryKeys.all, 'global-search', query] as const,
 };
 
 /**
@@ -215,6 +249,45 @@ export function createCmsQueries(api: CmsApi) {
         queryFn: () => api.getBucketContents(params),
         retry: shouldRetryCmsQuery,
         staleTime: 60 * 1000,
+      }),
+
+    /**
+     * Página del registro de auditoría. Fresca 15 segundos: es un registro
+     * vivo, pero volver atrás entre páginas debe ser instantáneo.
+     */
+    auditLogsList: (params: AuditLogsListParams) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.auditLogsList(params),
+        queryFn: () => api.getAuditLogs(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Una entrada del registro (no cambia nunca: fresca 5 minutos). */
+    auditLog: (id: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.auditLog(id),
+        queryFn: () => api.getAuditLog(id),
+        retry: shouldRetryCmsQuery,
+        staleTime: 5 * 60 * 1000,
+      }),
+
+    /** Página del registro de un miembro del CMS. */
+    memberAuditLogs: (params: MemberAuditLogsParams) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.memberAuditLogs(params),
+        queryFn: () => api.getMemberAuditLogs(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Búsqueda global (la paleta ya aplica el retardo al escribir). */
+    globalSearch: (query: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.globalSearch(query),
+        queryFn: () => api.globalSearch({ query }),
+        retry: shouldRetryCmsQuery,
+        staleTime: 30 * 1000,
       }),
   };
 }

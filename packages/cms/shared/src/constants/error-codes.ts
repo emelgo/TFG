@@ -90,6 +90,28 @@ export const CMS_API_ERROR_CODES = {
   STORAGE_TOO_MANY_FILES: 'STORAGE_TOO_MANY_FILES',
   /** Error inesperado del almacenamiento (500). */
   STORAGE_OPERATION_FAILED: 'STORAGE_OPERATION_FAILED',
+
+  // Registro de auditoría (F2.6). La lectura la filtra RLS con
+  // `cms.can_read_audit_log` (permiso `log:select` y jerarquía de rangos).
+
+  /** Sin el permiso `log:select`, o la cuenta pedida es de rango superior (403). */
+  AUDIT_LOG_PERMISSION_DENIED: 'AUDIT_LOG_PERMISSION_DENIED',
+  /**
+   * La entrada no existe o el usuario no puede leerla: no se distingue, para
+   * no confirmar la existencia de entradas ajenas (404).
+   */
+  AUDIT_LOG_NOT_FOUND: 'AUDIT_LOG_NOT_FOUND',
+  /** Filtro, cursor o parámetro no válido (400). */
+  AUDIT_LOG_INVALID_FILTER: 'AUDIT_LOG_INVALID_FILTER',
+  /** Error inesperado al leer la auditoría (500). */
+  AUDIT_LOG_READ_FAILED: 'AUDIT_LOG_READ_FAILED',
+
+  // Búsqueda global (F2.6).
+
+  /** Texto o paginación no válidos (400). */
+  GLOBAL_SEARCH_INVALID_QUERY: 'GLOBAL_SEARCH_INVALID_QUERY',
+  /** Error inesperado al buscar (500). */
+  GLOBAL_SEARCH_FAILED: 'GLOBAL_SEARCH_FAILED',
 } as const;
 
 export type CmsApiErrorCode =

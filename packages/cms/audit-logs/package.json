@@ -15,7 +15,8 @@
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@hono/zod-validator": "catalog:",
@@ -27,6 +28,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@pymekit/tsconfig": "workspace:*"
+    "@pymekit/tsconfig": "workspace:*",
+    "vitest": "catalog:"
   }
 }

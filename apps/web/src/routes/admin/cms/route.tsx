@@ -46,7 +46,7 @@ import { Trans } from '@pymekit/ui/trans';
 
 import { CmsAccessRequired } from '#/components/admin/cms/cms-access-required.tsx';
 import { loadCmsAccess } from '#/lib/cms/cms-access.ts';
-import { cmsApi, cmsQueries } from '#/lib/cms/cms-queries.ts';
+import { cmsApiContext, cmsQueries } from '#/lib/cms/cms-queries.ts';
 
 export const Route = createFileRoute('/admin/cms')({
   beforeLoad: async ({ context, location }) => {
@@ -71,9 +71,6 @@ function CmsLayout() {
 
   return <CmsAccountOutlet />;
 }
-
-/** API del CMS para los componentes de los paquetes (instancia estable). */
-const cmsApiContext = { api: cmsApi, queries: cmsQueries };
 
 /**
  * Publica la cuenta del CMS, el acceso a su API y la zona horaria de sus

@@ -38,4 +38,6 @@ export interface GlobalSearchResponse {
   tables_searched: number;
   query: string;
   has_more: boolean;
+  /** Solo si la búsqueda falló (sin el texto de PostgreSQL). */
+  error?: string;
 }

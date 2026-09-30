@@ -311,6 +311,9 @@ importers:
       '@pymekit/cms-api':
         specifier: workspace:*
         version: link:../../packages/cms/api
+      '@pymekit/cms-audit-logs-ui':
+        specifier: workspace:*
+        version: link:../../packages/cms/audit-logs-ui
       '@pymekit/cms-data-explorer-ui':
         specifier: workspace:*
         version: link:../../packages/cms/data-explorer-ui
@@ -651,6 +654,55 @@ importers:
       '@pymekit/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/typescript
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
+
+  packages/cms/audit-logs-ui:
+    dependencies:
+      '@pymekit/cms-formatters':
+        specifier: workspace:*
+        version: link:../formatters
+      '@pymekit/cms-shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@pymekit/cms-ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
+    devDependencies:
+      '@pymekit/tsconfig':
+        specifier: workspace:*
+        version: link:../../../tooling/typescript
+      '@pymekit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      '@tanstack/react-query':
+        specifier: 'catalog:'
+        version: 5.103.2(react@19.3.0)
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.39(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-table':
+        specifier: 'catalog:'
+        version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.48.0(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      use-intl:
+        specifier: 'catalog:'
+        version: 4.14.6(react@19.3.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
 
   packages/cms/auth:
     dependencies:
@@ -1022,9 +1074,15 @@ importers:
       '@hono/zod-validator':
         specifier: 'catalog:'
         version: 0.9.1(hono@4.13.9)(zod@4.6.5)
+      '@pymekit/cms-shared':
+        specifier: workspace:*
+        version: link:../shared
       '@pymekit/cms-supabase':
         specifier: workspace:*
         version: link:../supabase
+      '@pymekit/shared':
+        specifier: workspace:*
+        version: link:../../shared
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.3(@opentelemetry/api@1.9.1)(postgres@3.4.9)
@@ -1038,6 +1096,9 @@ importers:
       '@pymekit/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/typescript
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
 
   packages/cms/settings:
     dependencies:
@@ -1242,6 +1303,9 @@ importers:
         specifier: workspace:*
         version: link:../shared
     devDependencies:
+      '@pymekit/cms-audit-logs':
+        specifier: workspace:*
+        version: link:../audit-logs
       '@pymekit/cms-data-explorer':
         specifier: workspace:*
         version: link:../data-explorer

@@ -16,3 +16,11 @@ export const cmsApi = createCmsApi({ fetch: cmsFetch });
 
 /** Opciones de TanStack Query de la interfaz base del CMS. */
 export const cmsQueries = createCmsQueries(cmsApi);
+
+/**
+ * Valor de `CmsApiProvider` (instancia estable): la API y las consultas con
+ * las que los componentes de los paquetes del CMS comparten caché con los
+ * *loaders*. Lo usan el *layout* del CMS y la búsqueda global de la barra
+ * lateral de la consola.
+ */
+export const cmsApiContext = { api: cmsApi, queries: cmsQueries };

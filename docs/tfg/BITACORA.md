@@ -41,6 +41,10 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-24 | 2026-09-30 | F2.5 | seguridad | heredado | Inyección SQL por sustitución manual de parámetros | Alta |
 | B-25 | 2026-09-30 | F2.5 | seguridad | heredado | Subidas con tipo de contenido elegido por el cliente | Media |
 | B-26 | 2026-09-30 | F2.5 | proceso | propio | Un E2E que cierra todas las sesiones rompía otros tests | Baja |
+| B-27 | 2026-09-30 | F2.6 | seguridad | heredado | Entradas de auditoría falsificables por el personal | Alta |
+| B-28 | 2026-09-30 | F2.6 | seguridad | heredado | La búsqueda global podía buscar en `auth.users` | Alta |
+| B-29 | 2026-09-30 | F2.6 | calidad | heredado | Errores controlados convertidos en 500 por el envoltorio de transacciones | Baja |
+| B-30 | 2026-09-30 | F2.6 | proceso | propio | La búsqueda global no estaba en el plan inicial | Baja |
 
 ---
 
@@ -207,3 +211,30 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** el test heredado «delete user flow» hace un cierre de sesión global, que revoca la sesión compartida del super-admin. Los tests nuevos que leían al usuario con `getUser()` fallaban solo al ejecutar la suite completa. Además, Playwright no envía `Origin` en peticiones sin cuerpo o multipart, y el 403 en texto plano del CSRF hacía pasar por error algunas aserciones de 403.
 - **Solución:** leer al actor del JWT verificado (como el middleware), añadir `Origin` en esas peticiones y comprobar también el `errorCode`, no solo el estado HTTP.
 - **Lección:** los tests E2E comparten estado (sesiones); un 403 no demuestra nada si no se comprueba **por qué** se rechazó.
+
+## B-27 · Entradas de auditoría falsificables por el personal
+- **Qué pasó:** cualquier miembro del personal del CMS podía insertar filas en `cms.audit_logs`, incluso con el `user_id` de otro usuario, porque tenía `INSERT` sobre la tabla, una política de inserción y permiso para ejecutar `create_audit_log`. Un registro de auditoría que el auditado puede escribir no sirve como evidencia. Era el pendiente menor que ADR-015 había dejado anotado.
+- **Solución:**
+  - Se revoca el `INSERT`, se elimina la política de inserción y se revoca el `EXECUTE` de `create_audit_log`.
+  - Las acciones del explorador de usuarios se auditan con la nueva función `security definer` `cms.log_auth_user_action`, que exige el permiso `auth_user` y siempre atribuye la entrada al propio actor.
+  - La lectura de los datos (`old_data`, `new_data`, `record_id`) se redacta con `cms.can_read_audit_log_data`, salvo que el lector pueda consultar esa tabla.
+- **Evidencia:** migración `20260930120000_cms_audit_logs_integrity.sql`; `cms-audit-logs-integrity.test.sql` (32 tests).
+- **Riesgo residual documentado:** quien tenga el permiso `auth_user` puede llamar a `log_auth_user_action` directamente y registrar una acción que no hizo, siempre a su propio nombre. Solo es alcanzable con SQL directo, porque el esquema `cms` no se expone por PostgREST.
+- **Lección:** el registro de auditoría solo lo deben escribir las funciones del sistema, nunca el usuario auditado.
+
+## B-28 · La búsqueda global podía buscar en `auth.users`
+- **Qué pasó:** `cms.global_search` no llamaba a `verify_admin_access` ni a `validate_schema_access`, así que `auth.users` era buscable. Además devolvía `SQLERRM` en bruto, no tenía límites de resultados, de tiempo ni de longitud de la consulta, leía las claves primarias del sitio equivocado y ordenaba los resultados después de un `LIMIT 5` por tabla.
+- **Solución:**
+  - la función queda endurecida (acceso, esquemas protegidos, parámetros enlazados, límites y tiempo máximo);
+  - la API recorta cada resultado a título, tabla y claves.
+- **Evidencia:** E2E `cms-global-search.spec.ts` (el personal de soporte no ve filas de tablas no permitidas).
+- **Lección:** es la misma familia que B-07 y B-08. Todas las funciones que se saltan RLS deben compartir un único punto de control, en lugar de repetir la lista de comprobaciones en cada una.
+
+## B-29 · Errores controlados convertidos en 500 por el envoltorio de transacciones
+- **Qué pasó:** `runTransaction` envolvía todos los errores. Un 403 lanzado a propósito dentro de la transacción acababa como 500.
+- **Solución:** desenvolver la causa antes de clasificar el error. Es la continuación de B-17.
+
+## B-30 · La búsqueda global no estaba en el plan inicial
+- **Qué pasó:** al comparar, a petición del autor, las secciones del CMS original con las portadas, apareció la búsqueda global, que no figuraba en el plan. Además, los Ajustes resultaron ser casi tan grandes como el explorador de datos.
+- **Solución:** añadir la búsqueda a la F2.6, dividir la F2.7 en tres entregas y registrar ADR-017 (blog y demo, a raíz de la misma revisión).
+- **Lección:** al portar un producto, el inventario de funcionalidades debe hacerse al principio **ruta a ruta**, no por paquetes.

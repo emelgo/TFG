@@ -53,7 +53,10 @@
 - [ ] Mejora menor (F2.4): el filtro por autocompletado muestra el id si la fila relacionada no está en la página actual
 - [x] F2.5 · Explorador de usuarios (listado, ficha, crear/invitar, bloquear, restablecer, borrar, lote, acceso al CMS) y de almacenamiento (buckets, carpetas, subida, renombrado, borrado, vista previa). Paquetes `@pymekit/cms-{users,storage}-explorer-ui`. 9 fallos heredados corregidos por el agente y 2 más en la revisión posterior (B-21 a B-26). E2E 102 (14 nuevos)
 - [ ] Pendiente (F2.5): renombrar carpetas; E2E de invitar, enlace de acceso y retirada de MFA
-- [ ] F2.6 · Auditoría (RF-10) y búsqueda global (no estaba en el plan inicial: detectada al comparar sección por sección con el CMS original)
+- [x] F2.6 · Auditoría (RF-10): listado con filtros, detalle con diferencias, auditoría por miembro; búsqueda global ⌘K según permisos. Paquete `@pymekit/cms-audit-logs-ui`. Corregidas la falsificación de auditoría y las fugas de la búsqueda (B-27, B-28). pgTAP 1.583, unit 1.518, E2E 110
+- [x] F2.6 · `/rls-review` (etapas 1–4): veredicto AISLADO, sin brechas; +31 pruebas (`cms-audit-isolation.test.sql`). pgTAP 59 ficheros / 1.614
+- [ ] F2.6 · Endurecimiento de 4 debilidades de la revisión: W1 redacción de datos de auditoría también en BD (hoy solo en la API); W2 el tiempo máximo de `global_search` no se aplica; W3 `RAISE WARNING` filtra `SQLERRM` como aviso del protocolo; W4 un factor MFA configurado no se exige si `requires_mfa=false`
+- [ ] Pendiente (F2.6): borrar a un miembro del personal borra la atribución de sus entradas de auditoría (`ON DELETE SET NULL` heredado) → decidir en F2.7a; la búsqueda global falla entera si los metadatos de una columna están desfasados; sin buscador en la navegación móvil; filtros de fecha solo en UTC
 - [ ] F2.6b · Contenido y demo (ADR-017): blog en la BD gestionado desde el CMS y rutas `/blog`; esquema `demo` de pyme; formatos legibles (texto en lugar de id); tablas bajo «Recursos» en la barra lateral
 - [ ] F2.7a · Ajustes: General, Autenticación y Miembros
 - [ ] F2.7b · Ajustes: RBAC (roles, grupos y permisos)
@@ -140,6 +143,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-30 | F2.6 | Auditoría del CMS y búsqueda global; auditoría no falsificable, lectura redactada por permisos y búsqueda endurecida (B-27, B-28) |
 | 2026-09-30 | F2.5 | Exploradores de usuarios y almacenamiento del CMS; corregidos fallos heredados de autorización, almacenamiento e inyección SQL (B-21 a B-25); E2E 102 |
 | 2026-09-29 | F2.4c | Escritura en el explorador de datos (crear, editar, borrar, lote, en línea, relaciones); fallo de edición/borrado masivo y `not_nullviolation` corregidos; primeros borradores de la memoria (caps. 2, 4 y 5) |
 | 2026-09-29 | F2.4b | Ficha de registro del CMS con relaciones y enlaces según permisos; E2E 76 ✔. Bitácora de incidencias y trazabilidad al día |

@@ -37,6 +37,7 @@
     "@pymekit/billing": "workspace:*",
     "@pymekit/billing-gateway": "workspace:*",
     "@pymekit/cms-api": "workspace:*",
+    "@pymekit/cms-audit-logs-ui": "workspace:*",
     "@pymekit/cms-data-explorer-ui": "workspace:*",
     "@pymekit/cms-formatters": "workspace:*",
     "@pymekit/cms-storage-explorer-ui": "workspace:*",

@@ -39,6 +39,7 @@ import type { GetNavigationRoute } from '@pymekit/cms-navigation/routes';
 import type { GetRolesForSharingRoute } from '@pymekit/cms-permissions/routes';
 import type { GetAccountRoute } from '@pymekit/cms-settings/routes';
 
+import { createAuditLogsApi } from './audit-logs-api';
 import { createStorageApi } from './storage-api';
 import { createUsersApi } from './users-api';
 
@@ -59,6 +60,8 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
     // para que este no crezca sin control.
     ...createUsersApi(clientOptions),
     ...createStorageApi(clientOptions),
+    // Registro de auditoría y búsqueda global (F2.6).
+    ...createAuditLogsApi(clientOptions),
 
     /**
      * Devuelve la cuenta del CMS del usuario y las secciones que puede usar.
@@ -502,3 +505,20 @@ export type CmsBucketContents = Awaited<
 
 /** Un fichero o carpeta del almacenamiento. */
 export type CmsStorageItem = CmsBucketContents['contents'][number];
+
+/** Página del registro de auditoría (`GET /v1/audit-logs`). */
+export type CmsAuditLogsPage = Awaited<ReturnType<CmsApi['getAuditLogs']>>;
+
+/** Una entrada del registro de auditoría tal como la lista la API. */
+export type CmsAuditLog = CmsAuditLogsPage['logs'][number];
+
+/** Ficha de una entrada (`GET /v1/audit-logs/:id`). */
+export type CmsAuditLogDetails = Awaited<ReturnType<CmsApi['getAuditLog']>>;
+
+/** Resultados de la búsqueda global (`GET /v1/resources/search`). */
+export type CmsGlobalSearchResponse = Awaited<
+  ReturnType<CmsApi['globalSearch']>
+>;
+
+/** Un resultado de la búsqueda global. */
+export type CmsGlobalSearchItem = CmsGlobalSearchResponse['results'][number];

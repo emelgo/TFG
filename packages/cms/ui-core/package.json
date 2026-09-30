@@ -21,7 +21,8 @@
     "./preferences": "./src/preferences.ts",
     "./users-api": "./src/users-api.ts",
     "./storage-api": "./src/storage-api.ts",
-    "./hydration": "./src/hydration.ts"
+    "./hydration": "./src/hydration.ts",
+    "./audit-logs-api": "./src/audit-logs-api.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
@@ -33,6 +34,7 @@
     "@pymekit/cms-shared": "workspace:*"
   },
   "devDependencies": {
+    "@pymekit/cms-audit-logs": "workspace:*",
     "@pymekit/cms-data-explorer": "workspace:*",
     "@pymekit/cms-navigation": "workspace:*",
     "@pymekit/cms-permissions": "workspace:*",

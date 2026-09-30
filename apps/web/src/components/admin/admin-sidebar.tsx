@@ -4,6 +4,7 @@
  * Tiene dos grupos: «Plataforma», solo para el super-admin, y «CMS», para
  * cualquiera que haya entrado en la consola (super-admin o personal del CMS),
  * con las entradas que la API del CMS le permite (ver `admin-navigation.ts`).
+ * En la cabecera, para quien tiene acceso al CMS, la búsqueda global.
  */
 import { Link, useLocation } from '@tanstack/react-router';
 
@@ -31,6 +32,7 @@ import {
   isEntryActive,
   useCmsNavigationEntries,
 } from './admin-navigation.ts';
+import { CmsGlobalSearch } from './cms/cms-global-search.tsx';
 
 export function AdminSidebar(props: { user: JWTUserData | null }) {
   const cmsEntries = useCmsNavigationEntries(props.user);
@@ -39,6 +41,9 @@ export function AdminSidebar(props: { user: JWTUserData | null }) {
     <Sidebar variant="floating" collapsible="icon">
       <SidebarHeader className={'m-2'}>
         <AppLogo className="max-w-full" />
+
+        {/* Búsqueda global del CMS (Cmd/Ctrl+K), solo con acceso al CMS. */}
+        {props.user?.has_cms_access ? <CmsGlobalSearch /> : null}
       </SidebarHeader>
 
       <SidebarContent>

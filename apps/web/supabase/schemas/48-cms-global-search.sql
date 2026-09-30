@@ -1,5 +1,31 @@
 -- SECTION: GLOBAL SEARCH
--- In this section, we define the global search function. This function is used to search for tables and columns in the database. We require SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+-- Búsqueda global del CMS (paleta Cmd/Ctrl+K): busca un texto en las columnas
+-- de todas las tablas marcadas como buscables y devuelve las filas que
+-- coinciden, agrupables por tabla.
+--
+-- Es SECURITY DEFINER (con `row_security = off`) porque tiene que leer las
+-- tablas de la aplicación, igual que `query_table`. Por eso aplica las mismas
+-- barreras que ella antes de construir ninguna consulta:
+--
+--  - `verify_admin_access()` (claim, cuenta activa y MFA);
+--  - `validate_schema_access()` sobre cada tabla: nunca busca en esquemas
+--    protegidos (`auth`, `vault`, `cms`, `pg_*`…) aunque el llamante pase ese
+--    esquema en `p_schema_filter` o tenga un permiso comodín como Root;
+--  - `has_data_permission('select')` por tabla: solo entran las tablas que el
+--    usuario puede leer.
+--
+-- Todos los valores del usuario entran en el SQL dinámico con `format(%L)` o
+-- `%I` (literal o identificador escapado), nunca concatenados.
+--
+-- [TFG] RNF-02 · Endurecimiento de PymeKit (F2.6) sobre la función heredada:
+-- faltaban `verify_admin_access` y `validate_schema_access` (con un permiso
+-- comodín, `p_schema_filter => array['auth']` devolvía filas de `auth.users`),
+-- el límite, el desplazamiento y el tiempo máximo no tenían tope, el texto
+-- tampoco, y ante un error devolvía `SQLERRM` al llamante. Además las claves
+-- primarias se leían de un sitio que no existe (`columns_config.ui_config`),
+-- así que las tablas sin columna `id` no tenían enlace, y cada tabla aportaba
+-- sus 5 primeras coincidencias sin ordenar por relevancia, de modo que una
+-- coincidencia exacta podía quedarse fuera.
 CREATE OR REPLACE FUNCTION cms.global_search (
   p_query_text TEXT,
   p_limit_val INT DEFAULT 10,
@@ -28,10 +54,22 @@ BEGIN
     -- Record start time for performance monitoring
     v_search_start_time := clock_timestamp();
 
-    -- Skip processing for very short queries
-    IF length(p_query_text) < 2 THEN
+    -- Textos vacíos, de una letra o desmesurados no se buscan (un texto
+    -- enorme multiplica el coste de cada ILIKE en todas las tablas).
+    IF p_query_text IS NULL OR length(p_query_text) < 2 OR length(p_query_text) > 200 THEN
         RETURN jsonb_build_object('results', '[]'::jsonb, 'total', 0);
     END IF;
+
+    -- Sin acceso vigente al CMS no se busca nada (falla en cerrado).
+    IF NOT cms.verify_admin_access() THEN
+        RETURN jsonb_build_object('results', '[]'::jsonb, 'total', 0);
+    END IF;
+
+    -- Topes: como mucho 50 resultados por página, un desplazamiento
+    -- razonable y nunca más de 15 s de consulta, pida lo que pida el llamante.
+    p_limit_val := least(greatest(coalesce(p_limit_val, 10), 1), 50);
+    p_offset_val := least(greatest(coalesce(p_offset_val, 0), 0), 1000);
+    p_timeout_seconds := least(greatest(coalesce(p_timeout_seconds, 15), 1), 15);
 
     -- Store original timeout and set protective timeout
     BEGIN
@@ -46,16 +84,6 @@ BEGIN
     -- Split search query into terms for better matching
     search_terms := regexp_split_to_array(lower(p_query_text), '\s+');
 
-    -- If the limit is less than 1, set it to 1
-    if p_limit_val < 1 then
-        p_limit_val := 1;
-    end if;
-
-    -- If the offset is less than 0, set it to 0
-    if p_offset_val < 0 then
-        p_offset_val := 0;
-    end if;
-
     -- =================================================================
     -- OPTIMIZATION: Build a single UNION ALL query instead of looping
     -- =================================================================
@@ -67,13 +95,16 @@ BEGIN
             tm.schema_name,
             tm.table_name,
             tm.display_name,
-            tm.columns_config
+            tm.columns_config,
+            tm.ui_config
         FROM cms.table_metadata tm
         WHERE
             tm.is_searchable = TRUE
             AND (p_schema_filter IS NULL OR tm.schema_name = ANY (p_schema_filter))
             AND (p_table_filter IS NULL OR tm.table_name = ANY (p_table_filter))
-            -- IMPORTANT: Check permissions *before* trying to build a query for the table.
+            -- Nunca esquemas protegidos, aunque haya metadatos y permiso comodín.
+            AND cms.validate_schema_access(tm.schema_name)
+            -- Solo tablas que el usuario puede leer (antes de construir nada).
             AND cms.has_data_permission('select'::cms.system_action, tm.schema_name, tm.table_name)
             AND tm.columns_config IS NOT NULL
             AND jsonb_typeof(tm.columns_config) = 'object'
@@ -107,13 +138,16 @@ BEGIN
             -- Extract column names from columns_config
             col_keys := ARRAY(SELECT k FROM jsonb_object_keys(table_metadata.columns_config) AS k);
 
-            -- Find primary key columns for URL building
-            IF table_metadata.columns_config ? 'ui_config' AND
-               jsonb_typeof(table_metadata.columns_config -> 'ui_config' -> 'primary_keys') = 'array' THEN
+            -- Claves primarias (para el enlace a la ficha): viven en la columna
+            -- `ui_config` de `table_metadata`.
+            IF jsonb_typeof(table_metadata.ui_config -> 'primary_keys') = 'array' THEN
                 FOR pk_col IN SELECT *
-                              FROM jsonb_array_elements(table_metadata.columns_config -> 'ui_config' -> 'primary_keys')
+                              FROM jsonb_array_elements(table_metadata.ui_config -> 'primary_keys')
                 LOOP
-                    primary_key_columns := array_append(primary_key_columns, pk_col ->> 'column_name');
+                    -- Sin repetidos: `ui_config` puede listar dos veces la misma.
+                    IF NOT (pk_col ->> 'column_name') = ANY (primary_key_columns) THEN
+                        primary_key_columns := array_append(primary_key_columns, pk_col ->> 'column_name');
+                    END IF;
                 END LOOP;
             END IF;
             IF array_length(primary_key_columns, 1) IS NULL THEN
@@ -180,6 +214,7 @@ BEGIN
                     jsonb_build_object('schema', %L, 'table', %L, 'id', to_jsonb(t.*)->%L) as url_params
                 FROM %I.%I t
                 WHERE %s
+                ORDER BY rank DESC
                 LIMIT 5)
                 $subquery$,
                 table_metadata.schema_name,
@@ -241,9 +276,10 @@ BEGIN
             final_results := '[]'::jsonb;
             total_count := 0;
         WHEN OTHERS THEN
+            -- El detalle solo va al log del servidor: al llamante nunca le
+            -- llega el texto de PostgreSQL (nombres de tablas o columnas).
             RAISE WARNING 'Global search failed: %. SQLSTATE: %', SQLERRM, SQLSTATE;
-            RAISE NOTICE 'Failing SQL: %', final_sql;
-            RETURN jsonb_build_object('error', SQLERRM, 'detail', SQLSTATE);
+            RETURN jsonb_build_object('results', '[]'::jsonb, 'total', 0, 'error', 'search_failed');
     END;
 
     -- Reset timeout to original value
@@ -289,9 +325,9 @@ EXCEPTION
         EXCEPTION WHEN OTHERS THEN
             RAISE WARNING 'Emergency timeout reset failed: %', SQLERRM;
         END;
-        -- Return error information for debugging
+        RAISE WARNING 'Global search failed: %. SQLSTATE: %', SQLERRM, SQLSTATE;
         RETURN jsonb_build_object(
-            'results', '[]'::jsonb, 'total', 0, 'error', SQLERRM, 'detail', SQLSTATE
+            'results', '[]'::jsonb, 'total', 0, 'error', 'search_failed'
         );
 END;
 $$;

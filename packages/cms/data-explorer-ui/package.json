@@ -12,7 +12,8 @@
   },
   "exports": {
     "./components": "./src/components/index.ts",
-    "./utils": "./src/utils/index.ts"
+    "./utils": "./src/utils/index.ts",
+    "./global-search": "./src/components/global-search.tsx"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",

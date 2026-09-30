@@ -45,7 +45,7 @@ El CMS se integra en la web (ADR-011): no hay `apps/cms` ni `apps/cms-api`.
 | `apps/api/app/routes.ts` | `apps/web/src/routes/api/cms/$.ts` + `packages/cms/api` | A | 🏷️ | Hono montado en `/api/cms`. F2.2 |
 | `packages/features/*` (parte `/routes`, servidor) | `packages/cms/<feature>` | R/A | 🏷️ | Servicios Drizzle y rutas Hono. F2.2 |
 | `packages/{supabase,permissions,resources,query-builder,filters-core,data-explorer-core,formatters,types}` | `packages/cms/*` | R/A | 🏷️ | F2.2. `schema` (generador de seeds) y `captcha` descartados: el CMS está detrás de la consola admin |
-| `packages/features/*` (parte `/router`, cliente) | `apps/web/src/routes/admin/cms/**` + paquetes cliente `packages/cms/{ui-core,data-explorer-ui,filters,table,users-explorer-ui,storage-explorer-ui}` | A | 🟨 | Reescritura a TanStack Router, Form y use-intl (ADR-013). Datos (F2.4), usuarios y almacenamiento (F2.5) hechos; resto F2.6–F2.8 |
+| `packages/features/*` (parte `/router`, cliente) | `apps/web/src/routes/admin/cms/**` + paquetes cliente `packages/cms/{ui-core,data-explorer-ui,filters,table,users-explorer-ui,storage-explorer-ui,audit-logs-ui}` | A | 🟨 | Reescritura a TanStack Router, Form y use-intl (ADR-013). Datos (F2.4), usuarios y almacenamiento (F2.5), auditoría y búsqueda (F2.6) hechos; resto F2.7–F2.8 |
 | `packages/ui` | `@pymekit/ui` | A | ⬜ | Solo se incorporan los componentes que falten |
 | `packages/shared` (router-query-bridge) | — | X | — | Sustituido por *loaders* de TanStack + Query |
 | `apps/app/src` (entrada de la SPA, `main.tsx`) | — | X | — | Lo sustituye el router de la web |

@@ -139,7 +139,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
   6. **Catálogos del sistema (hallado en la refutación independiente, gravedad alta):** `validate_schema_access` no bloqueaba `pg_catalog`. Root podía leer `pg_authid`, con los hashes de contraseña de los roles de Postgres. Ahora se bloquea cualquier esquema `pg_*` (migración `20260929120800_cms_rls_hardening_2`).
   7. **Política tautológica:** en `view_role_permissions`, `ar.role_id = role_id` comparaba la columna consigo misma y cualquiera con un rol veía todas las asignaciones. Ahora cada usuario ve las de sus roles, y quien tiene `permission:select` las ve todas.
   8. **Deriva heredada:** 4 funciones cuyo esquema declarativo no coincidía con las migraciones (`can_read_audit_log`, `create_dashboard`, `grant_admin_access` y `share_dashboard_with_role`) se alinean con la versión de las migraciones.
-- **Pendiente (debilidades menores, se revisan en F2.7):**
+- **Pendiente (debilidades menores, se revisan en F2.7; la de auditoría se resolvió en F2.6, B-27):**
   - un permiso de almacenamiento sin `bucket_name` equivale a comodín;
   - `has_permission`, `account_has_role` y `build_where_clause` son invocables con ids arbitrarios (filtran respuestas sí/no);
   - el personal puede insertar entradas de auditoría a su nombre;

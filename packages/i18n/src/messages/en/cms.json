@@ -458,7 +458,8 @@
       "mfaFactors": "Two-factor factors",
       "noMfaFactors": "No two-factor factors.",
       "appMetadata": "App metadata (read only)",
-      "userMetadata": "User metadata (read only)"
+      "userMetadata": "User metadata (read only)",
+      "auditLogs": "View audit logs"
     },
     "form": {
       "email": "Email",
@@ -608,5 +609,91 @@
       "fileTooLarge": "The file is larger than the maximum upload size.",
       "tooManyFiles": "Too many files in a single operation."
     }
+  },
+  "auditLogs": {
+    "title": "Audit logs",
+    "filters": {
+      "author": "Performed by",
+      "authorPlaceholder": "Account or user ID",
+      "operations": "Operations",
+      "allOperations": "All operations",
+      "selectedOperations": "{count, plural, one {# operation} other {# operations}}",
+      "resource": "Table",
+      "resourcePlaceholder": "schema.table",
+      "severity": "Severity",
+      "allSeverities": "All severities",
+      "from": "From (UTC)",
+      "to": "To (UTC)",
+      "apply": "Apply",
+      "clear": "Clear filters",
+      "invalidResource": "Use a table name or schema.table"
+    },
+    "severity": {
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Error"
+    },
+    "table": {
+      "timestamp": "Date",
+      "performedBy": "Performed by",
+      "operation": "Operation",
+      "resource": "Table",
+      "severity": "Severity",
+      "recordId": "ID: {id}",
+      "system": "System",
+      "noResults": "No audit logs found.",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "details": {
+      "performedBy": "Performed by",
+      "timestamp": "Date",
+      "severity": "Severity",
+      "record": "Record",
+      "openRecord": "Open",
+      "metadata": "Metadata",
+      "logId": "Log ID: {id}",
+      "tabs": {
+        "diff": "Changes",
+        "oldData": "Old data",
+        "newData": "New data"
+      },
+      "field": "Field",
+      "oldValue": "Old value",
+      "newValue": "New value",
+      "changesCount": "{count, plural, =0 {No fields changed} one {# field changed} other {# fields changed}}",
+      "status": {
+        "added": "Added",
+        "removed": "Removed",
+        "changed": "Changed",
+        "unchanged": "Unchanged"
+      },
+      "noChanges": "No data changes were recorded.",
+      "noOldData": "No old data.",
+      "noNewData": "No new data.",
+      "redacted": "The row data is hidden because you do not have permission to read {resource}.",
+      "yes": "Yes",
+      "no": "No",
+      "empty": "empty"
+    },
+    "member": {
+      "title": "Audit logs",
+      "noResults": "No activity recorded.",
+      "forbidden": "You cannot read the audit logs of this member.",
+      "loadError": "The audit logs could not be loaded."
+    }
+  },
+  "globalSearch": {
+    "trigger": "Search records",
+    "shortcut": "Ctrl K",
+    "title": "Global search",
+    "description": "Search the records of every table you can read.",
+    "placeholder": "Search records in all tables…",
+    "minChars": "Type at least 2 characters to search.",
+    "loading": "Searching…",
+    "noResults": "No results found.",
+    "error": "The search could not be completed.",
+    "moreResults": "Showing the best matches. Refine the text to narrow them down.",
+    "hint": "↑ ↓ to move · Enter to open · Esc to close"
   }
 }

@@ -14,11 +14,15 @@
  *    la jerarquía de rangos del RBAC del CMS.
  *
  * Todas las acciones se vuelven a autorizar en la API al ejecutarse.
+ *
+ * Si el usuario es personal del CMS y el lector puede ver la auditoría, se
+ * enlaza su actividad en el registro (`/admin/cms/audit-logs?author=<id>`).
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   BanIcon,
+  ClipboardListIcon,
   LinkIcon,
   MailIcon,
   ShieldIcon,
@@ -30,6 +34,7 @@ import {
 import { useTranslations } from 'use-intl';
 
 import { useDateFormatter } from '@pymekit/cms-formatters/hooks';
+import { useCmsAccount } from '@pymekit/cms-ui-core/account-context';
 import type { CmsUserDetails } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
 import { cmsQueryKeys } from '@pymekit/cms-ui-core/queries';
@@ -52,6 +57,7 @@ export function UserDetailsView(props: { data: CmsUserDetails }) {
   const hydrated = useIsHydrated();
   const formatDate = useDateFormatter();
   const { user, actions } = props.data;
+  const canReadAuditLogs = useCmsAccount().access.auditLogs;
 
   const format = (value: string | null) =>
     value
@@ -86,6 +92,19 @@ export function UserDetailsView(props: { data: CmsUserDetails }) {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold">{user.email ?? user.phone}</h1>
         <UserBadges user={user} />
+        {/* Personal del CMS: su actividad en el registro de auditoría, solo
+            si el lector puede verlo (la API filtra además por rango). */}
+        {user.has_cms_access && canReadAuditLogs ? (
+          <Link
+            to={CMS_SECTION_PATHS.auditLogs}
+            search={{ author: user.id }}
+            className="text-primary flex items-center gap-1 text-xs underline-offset-4 hover:underline"
+            data-testid="user-details-audit-logs"
+          >
+            <ClipboardListIcon className="h-3.5 w-3.5" />
+            {t('details.auditLogs')}
+          </Link>
+        ) : null}
         {user.is_banned ? (
           <Badge variant="destructive" data-testid="user-banned-badge">
             {t('status.banned')}

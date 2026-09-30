@@ -445,11 +445,8 @@ export const auditLogsInCms = cms.table(
       to: ['public'],
       using: sql`cms.can_read_audit_log(account_id)`,
     }),
-    pgPolicy('insert_cms_audit_logs', {
-      as: 'permissive',
-      for: 'insert',
-      to: ['public'],
-    }),
+    // Sin política de INSERT: solo las funciones del sistema escriben en la
+    // auditoría (ver `47-cms-audit-logs.sql`, F2.6).
     pgPolicy('restrict_mfa_audit_logs', {
       as: 'restrictive',
       for: 'all',
