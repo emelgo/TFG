@@ -4,7 +4,10 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { getCmsSectionVisibility } from '../sections';
+import {
+  getCmsSectionVisibility,
+  getCmsSettingsTabVisibility,
+} from '../sections';
 
 describe('getCmsSectionVisibility', () => {
   it('oculta todas las secciones si la API no concede acceso', () => {
@@ -18,7 +21,13 @@ describe('getCmsSectionVisibility', () => {
 
   it('muestra solo las secciones con permiso para el personal limitado', () => {
     const visibility = getCmsSectionVisibility({
-      access: { users: false, storage: false, auditLogs: true },
+      access: {
+        users: false,
+        storage: false,
+        auditLogs: true,
+        members: false,
+        systemSettings: false,
+      },
       visibleResourcesCount: 2,
     });
 
@@ -34,11 +43,53 @@ describe('getCmsSectionVisibility', () => {
 
   it('oculta el explorador de datos si no hay tablas legibles', () => {
     const visibility = getCmsSectionVisibility({
-      access: { users: true, storage: true, auditLogs: true },
+      access: {
+        users: true,
+        storage: true,
+        auditLogs: true,
+        members: true,
+        systemSettings: true,
+      },
       visibleResourcesCount: 0,
     });
 
     expect(visibility.resources).toBe(false);
     expect(visibility.users).toBe(true);
+  });
+});
+
+describe('getCmsSettingsTabVisibility (F2.7a)', () => {
+  const base = {
+    users: false,
+    storage: false,
+    auditLogs: true,
+    members: false,
+    systemSettings: false,
+  };
+
+  it('sin acceso al CMS no muestra ninguna pestaña', () => {
+    expect(getCmsSettingsTabVisibility(null)).toEqual({
+      general: false,
+      authentication: false,
+      members: false,
+    });
+  });
+
+  it('el personal de soporte solo ve «General»', () => {
+    expect(getCmsSettingsTabVisibility(base)).toEqual({
+      general: true,
+      authentication: false,
+      members: false,
+    });
+  });
+
+  it('cada pestaña de gestión depende de su permiso', () => {
+    expect(
+      getCmsSettingsTabVisibility({ ...base, members: true }).members,
+    ).toBe(true);
+    expect(
+      getCmsSettingsTabVisibility({ ...base, systemSettings: true })
+        .authentication,
+    ).toBe(true);
   });
 });

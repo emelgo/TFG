@@ -16,6 +16,7 @@ import type {
   MemberAuditLogsParams,
 } from './audit-logs-api';
 import { shouldRetryCmsQuery } from './errors';
+import type { MembersListParams } from './settings-api';
 import type { BucketContentsParams } from './storage-api';
 import type { UsersListParams } from './users-api';
 
@@ -116,6 +117,17 @@ export const cmsQueryKeys = {
       params.accountId,
       { cursor: params.cursor ?? null, limit: params.limit ?? null },
     ] as const,
+  /** Obligación de MFA (Ajustes > Autenticación). */
+  mfaConfiguration: () => [...cmsQueryKeys.all, 'settings', 'mfa'] as const,
+  /** Prefijo de todo lo de Ajustes > Miembros (se invalida tras actuar). */
+  members: () => [...cmsQueryKeys.all, 'members'] as const,
+  membersList: (params: MembersListParams) =>
+    [
+      ...cmsQueryKeys.members(),
+      'list',
+      { page: params.page ?? 1, search: params.search ?? '' },
+    ] as const,
+  member: (id: string) => [...cmsQueryKeys.members(), 'detail', id] as const,
   /** Resultados de la búsqueda global para un texto ya normalizado. */
   globalSearch: (query: string) =>
     [...cmsQueryKeys.all, 'global-search', query] as const,
@@ -277,6 +289,32 @@ export function createCmsQueries(api: CmsApi) {
       queryOptions({
         queryKey: cmsQueryKeys.memberAuditLogs(params),
         queryFn: () => api.getMemberAuditLogs(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Obligación de MFA y lo que el usuario puede hacer con ella. */
+    mfaConfiguration: () =>
+      queryOptions({
+        queryKey: cmsQueryKeys.mfaConfiguration(),
+        queryFn: () => api.getMfaConfiguration(),
+        retry: shouldRetryCmsQuery,
+      }),
+
+    /** Página del listado de miembros del CMS. */
+    membersList: (params: MembersListParams) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.membersList(params),
+        queryFn: () => api.getMembers(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Ficha de un miembro y acciones disponibles. */
+    member: (id: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.member(id),
+        queryFn: () => api.getMember(id),
         retry: shouldRetryCmsQuery,
         staleTime: 15 * 1000,
       }),

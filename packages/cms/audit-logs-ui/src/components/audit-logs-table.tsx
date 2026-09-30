@@ -141,13 +141,24 @@ export function AuditLogsTable(props: {
   );
 }
 
-/** Autor de una entrada: su correo, su id o «Sistema» si no hay ninguno. */
+/**
+ * Autor de una entrada: su correo, su id o «Sistema» si no hay ninguno.
+ *
+ * Si el autor se borró después (su FK quedó a `null`), la API devuelve la
+ * instantánea que guardó la base de datos al escribir la entrada
+ * (`actorEmail`, `actorUserId`) y `actorDeleted = true`: se muestra igual,
+ * con una marca de «eliminado», para no perder quién hizo qué (F2.7a).
+ */
 export function AuditLogActor(props: {
-  log: Pick<CmsAuditLog, 'actorEmail' | 'accountId' | 'userId'>;
+  log: Pick<
+    CmsAuditLog,
+    'actorEmail' | 'accountId' | 'userId' | 'actorUserId' | 'actorDeleted'
+  >;
 }) {
   const t = useTranslations('cms.auditLogs.table');
-  const { actorEmail, accountId, userId } = props.log;
-  const label = actorEmail ?? userId ?? accountId;
+  const { actorEmail, accountId, userId, actorUserId, actorDeleted } =
+    props.log;
+  const label = actorEmail ?? userId ?? accountId ?? actorUserId;
 
   if (!label) {
     return <span className="text-muted-foreground italic">{t('system')}</span>;
@@ -159,6 +170,15 @@ export function AuditLogActor(props: {
       <span className={cn('truncate', !actorEmail && 'font-mono text-xs')}>
         {actorEmail ?? `${label.slice(0, 8)}…`}
       </span>
+      {actorDeleted ? (
+        <Badge
+          variant="outline"
+          className="text-muted-foreground"
+          data-testid="audit-log-actor-deleted"
+        >
+          {t('actorDeleted')}
+        </Badge>
+      ) : null}
     </span>
   );
 }

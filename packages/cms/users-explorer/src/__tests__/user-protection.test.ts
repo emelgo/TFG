@@ -150,27 +150,35 @@ describe('errores del explorador de usuarios', () => {
     );
   });
 
-  it('traduce los rechazos de las funciones de acceso al CMS sin filtrar SQLERRM', () => {
-    expect(
-      fromAdminAccessFailure(
-        'Cannot revoke admin access from users with equal or higher role rank',
-      ).code,
-    ).toBe(CMS_API_ERROR_CODES.AUTH_USER_PERMISSION_DENIED);
-    expect(
-      fromAdminAccessFailure('Insufficient permissions to grant admin access')
-        .code,
-    ).toBe(CMS_API_ERROR_CODES.AUTH_USER_PERMISSION_DENIED);
-    expect(fromAdminAccessFailure('User not found').code).toBe(
+  it('traduce los códigos estables de las funciones de acceso al CMS', () => {
+    expect(fromAdminAccessFailure('RANK_DENIED').code).toBe(
+      CMS_API_ERROR_CODES.AUTH_USER_PERMISSION_DENIED,
+    );
+    expect(fromAdminAccessFailure('PERMISSION_DENIED').code).toBe(
+      CMS_API_ERROR_CODES.AUTH_USER_PERMISSION_DENIED,
+    );
+    expect(fromAdminAccessFailure('USER_NOT_FOUND').code).toBe(
       CMS_API_ERROR_CODES.AUTH_USER_NOT_FOUND,
     );
+    expect(fromAdminAccessFailure('SELF_ACTION').code).toBe(
+      CMS_API_ERROR_CODES.AUTH_USER_SELF_ACTION,
+    );
+    expect(fromAdminAccessFailure('PROTECTED').code).toBe(
+      CMS_API_ERROR_CODES.AUTH_USER_PROTECTED,
+    );
 
-    const internal = fromAdminAccessFailure(
+    const internal = fromAdminAccessFailure('INTERNAL_ERROR');
+
+    expect(internal.code).toBe(CMS_API_ERROR_CODES.AUTH_USER_ACTION_FAILED);
+    expect(internal).toBeInstanceOf(UsersExplorerError);
+
+    // Un texto libre (como el antiguo `SQLERRM`) nunca llega a la respuesta.
+    const legacy = fromAdminAccessFailure(
       'relation "cms.accounts" does not exist',
     );
 
-    expect(internal.code).toBe(CMS_API_ERROR_CODES.AUTH_USER_ACTION_FAILED);
-    expect(classifyUsersError(internal).message).not.toContain('cms.accounts');
-    expect(internal).toBeInstanceOf(UsersExplorerError);
+    expect(legacy.code).toBe(CMS_API_ERROR_CODES.AUTH_USER_ACTION_FAILED);
+    expect(classifyUsersError(legacy).message).not.toContain('cms.accounts');
   });
 });
 

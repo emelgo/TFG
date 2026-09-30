@@ -506,18 +506,19 @@ BEGIN
         RETURN FALSE;
     END IF;
 
+    -- Nadie actúa sobre su propia cuenta con esta función (estado, roles,
+    -- borrado): el código heredado tenía después un bloque de «auto
+    -- modificación» que nunca se alcanzaba y se ha retirado.
     v_account_id := cms.get_current_user_account_id();
     IF v_account_id IS NULL OR v_account_id = p_target_account_id THEN
         RETURN FALSE;
     END IF;
 
-    -- Self-modification rules
-    IF v_account_id = p_target_account_id THEN
-        -- Cannot delete own account
-        IF p_action = 'delete' THEN
-            RETURN FALSE;
-        END IF;
-        RETURN TRUE; -- Other self-modifications allowed
+    -- [TFG] RNF-02 · ADR-014 · F2.7a: las cuentas raíz (super-admins de la
+    -- plataforma) no se gestionan desde el CMS. Lo garantiza también el rango
+    -- (Root = 100, único), pero se comprueba de forma explícita.
+    IF cms.is_root_managed_account(p_target_account_id) THEN
+        RETURN FALSE;
     END IF;
 
     -- Get priorities (simple reads)

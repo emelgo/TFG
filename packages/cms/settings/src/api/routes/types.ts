@@ -92,12 +92,6 @@ export type AssignPermissionToRoleSchemaType = z.infer<
   typeof AssignPermissionToRoleSchema
 >;
 
-// Define the request schema for updating a member's role
-export const UpdateMemberRoleSchema = z.object({
-  accountId: z.string().uuid(),
-  roleId: z.string().uuid(),
-});
-
 // Batch update schema for role permissions
 export const BatchUpdateRolePermissionsSchema = z.object({
   toAdd: z.array(z.string()),

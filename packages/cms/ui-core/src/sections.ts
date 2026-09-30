@@ -16,7 +16,8 @@
  * | `dashboards` | siempre que haya acceso al CMS: cada miembro tiene los   |
  * |              | suyos y la BD filtra los compartidos                     |
  * | `settings`   | siempre que haya acceso al CMS: incluye las preferencias |
- * |              | personales; las pestañas de gestión se filtran en F2.7   |
+ * |              | personales; sus pestañas se filtran con                  |
+ * |              | `getCmsSettingsTabVisibility` (F2.7a)                    |
  *
  * Ocultar una entrada es solo ayuda visual: la autorización real la hacen la
  * API y las políticas RLS del esquema `cms`.
@@ -36,11 +37,17 @@ export const CMS_SECTIONS = [
 
 export type CmsSection = (typeof CMS_SECTIONS)[number];
 
-/** Secciones con permiso propio, tal como las devuelve `GET /v1/account`. */
+/**
+ * Secciones y pestañas con permiso propio, tal como las devuelve
+ * `GET /v1/account`. `members` y `systemSettings` son pestañas de Ajustes
+ * (F2.7a): `account:select` y `system_setting` (lectura o escritura).
+ */
 export type CmsSectionAccess = {
   users: boolean;
   storage: boolean;
   auditLogs: boolean;
+  members: boolean;
+  systemSettings: boolean;
 };
 
 /** Ruta de la consola de administración de cada sección. */
@@ -85,5 +92,45 @@ export function getCmsSectionVisibility(params: {
     auditLogs: access.auditLogs,
     dashboards: true,
     settings: true,
+  };
+}
+
+/**
+ * Pestañas de Ajustes del CMS (F2.7a), en el orden en que se muestran.
+ *
+ * | Pestaña          | Visible si…                                          |
+ * |------------------|------------------------------------------------------|
+ * | `general`        | siempre: preferencias personales (zona horaria…)     |
+ * | `authentication` | `access.systemSettings` (permiso `system_setting`)   |
+ * | `members`        | `access.members` (permiso `account:select`)          |
+ *
+ * Igual que con las secciones, ocultar una pestaña es solo ayuda visual: la
+ * ruta la vuelve a comprobar (404) y la API responde 403 sin el permiso.
+ *
+ * [TFG] RF-09 · ADR-014 · ADR-016.
+ */
+export const CMS_SETTINGS_TABS = [
+  'general',
+  'authentication',
+  'members',
+] as const;
+
+export type CmsSettingsTab = (typeof CMS_SETTINGS_TABS)[number];
+
+/** Ruta de cada pestaña de Ajustes. */
+export const CMS_SETTINGS_TAB_PATHS = {
+  general: '/admin/cms/settings/general',
+  authentication: '/admin/cms/settings/authentication',
+  members: '/admin/cms/settings/members',
+} as const satisfies Record<CmsSettingsTab, string>;
+
+/** Calcula qué pestañas de Ajustes puede ver el usuario. */
+export function getCmsSettingsTabVisibility(
+  access: CmsSectionAccess | null | undefined,
+): Record<CmsSettingsTab, boolean> {
+  return {
+    general: Boolean(access),
+    authentication: access?.systemSettings === true,
+    members: access?.members === true,
   };
 }

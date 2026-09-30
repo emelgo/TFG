@@ -108,6 +108,13 @@ describe('classifyCrudError', () => {
     expect(classifyCrudError('boom').status).toBe(500);
   });
 
+  it('auditoría fallida (PKA01, F2.7a) → 500 genérico, no un error de datos', () => {
+    expect(classify('Audit log write failed', 'PKA01')).toMatchObject({
+      status: 500,
+      errorCode: 'RECORD_WRITE_FAILED',
+    });
+  });
+
   it('nunca devuelve el texto interno de PostgreSQL', () => {
     const internal =
       'duplicate key value violates unique constraint "accounts_slug_key"';

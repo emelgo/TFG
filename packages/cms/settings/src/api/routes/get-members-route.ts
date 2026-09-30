@@ -1,339 +1,164 @@
+/**
+ * Rutas de Ajustes > Miembros del CMS (F2.7a).
+ *
+ *  - `GET /v1/members`: página del listado (búsqueda por nombre o correo).
+ *  - `GET /v1/members/:id`: ficha con rol, estado, qué puede hacer el
+ *    usuario actual y los roles que podría asignar.
+ *  - `POST /v1/members/:id/roles`: cambia el rol (quitar y/o asignar).
+ *  - `POST /v1/members/:id/activate` y `/deactivate`: estado de la cuenta.
+ *
+ * La autorización la decide `MembersService` con las funciones SQL de
+ * rango y RLS (ver su cabecera). Los errores se responden con un código
+ * estable (`MEMBER_*`) y un mensaje genérico; el detalle solo va al *log*.
+ * Antes devolvían el texto del error con un 500 en todos los casos.
+ *
+ * Las rutas heredadas `PUT /v1/members/role` (asignar un rol con *upsert*)
+ * y `PUT /v1/members/:id` (reescribir el nombre y un correo «de adorno» en
+ * `metadata`) se retiraron: ninguna pantalla las usa y la segunda permitía
+ * mostrar un correo distinto del real de Auth.
+ *
+ * [TFG] RF-09 · RNF-02 · ADR-014.
+ */
 import { zValidator } from '@hono/zod-validator';
-import { Hono } from 'hono';
-import { z } from 'zod';
-
-import { createAuthorizationService } from '@pymekit/cms-auth/services';
-import { getErrorMessage } from '@pymekit/cms-shared/utils';
-import { getSupabaseClient } from '@pymekit/cms-supabase/hono';
-import { getLogger } from '@pymekit/shared/logger';
+import type { Hono } from 'hono';
+import * as z from 'zod';
 
 import { createMembersService } from '../services/members.service';
+import {
+  invalidSettingsInput,
+  respondWithSettingsError,
+} from './settings-responses';
+
+const IdParamsSchema = z.object({ id: z.string().uuid() });
+
+const MembersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+  search: z.string().trim().max(100).optional(),
+});
 
 /**
- * Register the members management routes
+ * Cambio de rol. Una cuenta tiene como mucho un rol, así que se admite
+ * asignar uno y quitar a lo sumo uno (el actual); el servicio comprueba el
+ * resto.
  */
+const UpdateMemberRolesSchema = z
+  .object({
+    rolesToAdd: z.array(z.string().uuid()).max(1),
+    rolesToRemove: z.array(z.string().uuid()).max(1),
+  })
+  .strict()
+  .refine((value) => value.rolesToAdd.length + value.rolesToRemove.length > 0);
+
+/** Registra `GET /v1/members`. */
 export function registerGetMembersRouter(router: Hono) {
   return router.get(
     '/v1/members',
-    zValidator(
-      'query',
-      z.object({
-        page: z.coerce.number().min(1).default(1),
-        search: z.string().optional(),
-      }),
-    ),
+    zValidator('query', MembersQuerySchema, invalidSettingsInput('MEMBER')),
     async (c) => {
-      const service = createMembersService(c);
-      const logger = await getLogger();
       const { page, search } = c.req.valid('query');
 
       try {
-        // Get the members with pagination info
-        const result = await service.getMembers({
+        const data = await createMembersService(c).getMembers({
           page,
           search,
-          limit: 10,
         });
 
-        return c.json({
-          members: result.data,
-          pageSize: result.pageSize,
-          pageIndex: result.pageIndex,
-          pageCount: result.pageCount,
-          total: result.total,
-        });
+        return c.json(data);
       } catch (error) {
-        logger.error(
-          {
-            error,
-          },
-          'Error fetching members',
-        );
-
-        return c.json(
-          {
-            error: getErrorMessage(error),
-            success: false,
-          },
-          500,
-        );
+        return respondWithSettingsError(c, error, {
+          fallback: 'MEMBER_ACTION_FAILED',
+          logContext: { route: 'members:list' },
+        });
       }
     },
   );
 }
 
-/**
- * Register the member details route
- * @param router - The router to register the route on
- * @returns The router with the member details route registered
- */
+/** Registra `GET /v1/members/:id`. */
 export function registerGetMemberDetailsRouter(router: Hono) {
   return router.get(
     '/v1/members/:id',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', IdParamsSchema, invalidSettingsInput('MEMBER')),
     async (c) => {
-      const service = createMembersService(c);
-      const authorizationService = createAuthorizationService(c);
-
-      const accountId = c.req.param('id');
+      const { id } = c.req.valid('param');
 
       try {
-        const [data, access] = await Promise.all([
-          service.getMemberDetails(accountId),
-          authorizationService.canActionAccount(accountId, 'update'),
-        ]);
+        const data = await createMembersService(c).getMemberDetails(id);
 
-        return c.json({
-          ...data,
-          access: {
-            canActionAccount: access,
-          },
-        });
+        return c.json(data);
       } catch (error) {
-        const logger = await getLogger();
-
-        logger.error(
-          {
-            accountId,
-            error,
-          },
-          'Error fetching member details',
-        );
-
-        return c.json(
-          {
-            error: getErrorMessage(error),
-            success: false,
-          },
-          500,
-        );
+        return respondWithSettingsError(c, error, {
+          fallback: 'MEMBER_ACTION_FAILED',
+          logContext: { route: 'members:details', id },
+        });
       }
     },
   );
 }
 
-/**
- * Register the route for updating member roles
- * @param router - The router to register the route on
- * @returns The router with the member roles update route registered
- */
+/** Registra `POST /v1/members/:id/roles`. */
 export function registerUpdateMemberRolesRouter(router: Hono) {
   return router.post(
     '/v1/members/:id/roles',
-    zValidator('param', z.object({ id: z.string().uuid() })),
-    zValidator(
-      'json',
-      z.object({
-        rolesToAdd: z.array(z.string()),
-        rolesToRemove: z.array(z.string()),
-      }),
-    ),
+    zValidator('param', IdParamsSchema, invalidSettingsInput('MEMBER')),
+    zValidator('json', UpdateMemberRolesSchema, invalidSettingsInput('MEMBER')),
     async (c) => {
-      const memberId = c.req.param('id');
-      const { rolesToAdd, rolesToRemove } = await c.req.json();
-      const service = createMembersService(c);
-      const logger = await getLogger();
-
-      // Get the current user from auth
-      const supabase = getSupabaseClient(c);
-
-      logger.info(
-        {
-          memberId,
-          rolesToAdd,
-          rolesToRemove,
-        },
-        'Updating member roles...',
-      );
+      const { id } = c.req.valid('param');
+      const changes = c.req.valid('json');
 
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        await createMembersService(c).updateMemberRoles(id, changes);
 
-        if (!user) {
-          return c.json(
-            {
-              error: 'Unauthorized: User not found',
-              success: false,
-            },
-            401,
-          );
-        }
-
-        // Get the current user's account ID
-        const account = await service.getAccountByAuthId(user.id);
-
-        if (!account) {
-          return c.json(
-            {
-              error: 'User account not found',
-              success: false,
-            },
-            404,
-          );
-        }
-
-        // Check if user is trying to edit their own roles
-        if (account.id === memberId) {
-          return c.json(
-            {
-              error: 'You cannot modify your own roles',
-              success: false,
-            },
-            403,
-          );
-        }
-
-        await service.updateMemberRoles(memberId, {
-          rolesToAdd,
-          rolesToRemove,
-        });
-
-        logger.info(
-          {
-            memberId,
-            rolesToAdd,
-            rolesToRemove,
-          },
-          'Member roles updated successfully',
-        );
-
-        // Return updated member details
-        const updatedMember = await service.getMemberDetails(memberId);
-
-        return c.json({
-          success: true,
-          ...updatedMember,
-        });
+        return c.json({ success: true as const });
       } catch (error) {
-        logger.error(
-          {
-            memberId,
-            rolesToAdd,
-            rolesToRemove,
-            error,
-          },
-          'Error updating member roles',
-        );
-
-        return c.json(
-          {
-            error: getErrorMessage(error),
-            success: false,
-          },
-          500,
-        );
+        return respondWithSettingsError(c, error, {
+          fallback: 'MEMBER_ACTION_FAILED',
+          logContext: { route: 'members:roles', id, changes },
+        });
       }
     },
   );
 }
 
-/**
- * Register the route for deactivating a member
- * @param router - The router to register the route on
- * @returns The router with the member deactivation route registered
- */
+/** Registra `POST /v1/members/:id/deactivate`. */
 export function registerDeactivateMemberRouter(router: Hono) {
   return router.post(
     '/v1/members/:id/deactivate',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', IdParamsSchema, invalidSettingsInput('MEMBER')),
     async (c) => {
-      const service = createMembersService(c);
-      const memberId = c.req.param('id');
-      const logger = await getLogger();
-
-      logger.info(
-        {
-          memberId,
-        },
-        'Deactivating member...',
-      );
+      const { id } = c.req.valid('param');
 
       try {
-        await service.deactivateMember(memberId);
+        await createMembersService(c).setMemberActive(id, false);
 
-        logger.info(
-          {
-            memberId,
-          },
-          'Member deactivated successfully',
-        );
-
-        return c.json({
-          success: true,
-        });
+        return c.json({ success: true as const });
       } catch (error) {
-        logger.error(
-          {
-            memberId,
-            error,
-          },
-          'Error deactivating member',
-        );
-
-        return c.json(
-          {
-            error: getErrorMessage(error),
-            success: false,
-          },
-          500,
-        );
+        return respondWithSettingsError(c, error, {
+          fallback: 'MEMBER_ACTION_FAILED',
+          logContext: { route: 'members:deactivate', id },
+        });
       }
     },
   );
 }
 
-/**
- * Register the route for activating a member
- * @param router - The router to register the route on
- * @returns The router with the member activation route registered
- */
+/** Registra `POST /v1/members/:id/activate`. */
 export function registerActivateMemberRouter(router: Hono) {
   return router.post(
     '/v1/members/:id/activate',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', IdParamsSchema, invalidSettingsInput('MEMBER')),
     async (c) => {
-      const service = createMembersService(c);
-      const memberId = c.req.param('id');
-      const logger = await getLogger();
+      const { id } = c.req.valid('param');
 
       try {
-        logger.info(
-          {
-            memberId,
-          },
-          'Activating member...',
-        );
+        await createMembersService(c).setMemberActive(id, true);
 
-        await service.activateMember(memberId);
-
-        logger.info(
-          {
-            memberId,
-          },
-          'Member activated successfully',
-        );
-
-        return c.json({
-          success: true,
-        });
+        return c.json({ success: true as const });
       } catch (error) {
-        logger.error(
-          {
-            memberId,
-            error,
-          },
-          'Error activating member',
-        );
-
-        return c.json(
-          {
-            error: getErrorMessage(error),
-            success: false,
-          },
-          500,
-        );
+        return respondWithSettingsError(c, error, {
+          fallback: 'MEMBER_ACTION_FAILED',
+          logContext: { route: 'members:activate', id },
+        });
       }
     },
   );

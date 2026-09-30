@@ -91,7 +91,14 @@ begin
             p_record_id := v_record_id,
             p_old_data := v_old_data,
             p_new_data := v_new_data,
-            p_severity := 'info',
+            -- [TFG] RNF-02 · F2.7a: los cambios de configuración global (por
+            -- ejemplo, quitar la obligación de MFA) son cambios de seguridad y
+            -- se registran como aviso para que destaquen en el registro.
+            p_severity := case
+                              when TG_TABLE_SCHEMA = 'cms' and TG_TABLE_NAME = 'configuration'
+                                  then 'warning'::cms.audit_log_severity
+                              else 'info'::cms.audit_log_severity
+                          end,
             p_metadata := jsonb_build_object(
                     'trigger_name', TG_NAME,
                     'trigger_when', TG_WHEN,

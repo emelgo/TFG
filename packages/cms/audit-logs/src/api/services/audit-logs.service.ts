@@ -151,8 +151,14 @@ class AuditLogsService {
       );
     }
 
-    const [withEmail = { ...log, actorEmail: null }] =
-      await this.withActorEmails([log], canReadActorEmails);
+    const [withEmail] = await this.withActorEmails([log], canReadActorEmails);
+
+    if (!withEmail) {
+      throw new AuditLogsError(
+        CMS_API_ERROR_CODES.AUDIT_LOG_NOT_FOUND,
+        `Audit log ${params.id} not found or not readable`,
+      );
+    }
 
     return {
       log: withEmail,
@@ -218,6 +224,11 @@ class AuditLogsService {
           >`case when ${dataReadable} then ${auditLogs.recordId} end`,
           severity: auditLogs.severity,
           metadata: auditLogs.metadata,
+          // Instantánea del autor (F2.7a): identifica a quien actuó aunque
+          // después se haya borrado su usuario o su cuenta del CMS.
+          actorUserId: auditLogs.actorUserId,
+          actorAccountId: auditLogs.actorAccountId,
+          actorEmailSnapshot: auditLogs.actorEmail,
           oldData:
             sql<unknown>`case when ${dataReadable} then ${auditLogs.oldData} end`.mapWith(
               auditLogs.oldData,
@@ -265,7 +276,7 @@ class AuditLogsService {
   }
 
   /**
-   * Añade el correo de quien hizo cada entrada.
+   * Añade el correo de quien hizo cada entrada y si su autor ya no existe.
    *
    * `auth.users` no es legible con la identidad del usuario, así que se usa
    * el cliente administrador (ignora RLS). Se limita a lo imprescindible:
@@ -273,11 +284,20 @@ class AuditLogsService {
    * `auth_user:select`; si no, ve el id), solo para los autores de entradas
    * que RLS ya le ha dejado leer, con sus ids como parámetros enlazados, y
    * solo se devuelve el correo.
+   *
+   * [TFG] RF-10 · F2.7a (ADR-018 propuesto): si el autor se borró, `userId`
+   * llega a `null` (FK `on delete set null`) y se usa la instantánea que
+   * guardó la base de datos al escribir la entrada (`actorEmailSnapshot`,
+   * que la vista ya devuelve a `null` sin permiso; aquí se vuelve a exigir
+   * `allowed` como segunda barrera). `actorDeleted` avisa a la interfaz.
    */
-  private async withActorEmails<T extends { userId: string | null }>(
-    logs: T[],
-    allowed: boolean,
-  ) {
+  private async withActorEmails<
+    T extends {
+      userId: string | null;
+      actorUserId?: string | null;
+      actorEmailSnapshot?: string | null;
+    },
+  >(logs: T[], allowed: boolean) {
     const ids = [
       ...new Set(
         logs.map((log) => log.userId).filter((id): id is string => !!id),
@@ -285,7 +305,11 @@ class AuditLogsService {
     ];
 
     if (!allowed || ids.length === 0) {
-      return logs.map((log) => ({ ...log, actorEmail: null as string | null }));
+      return logs.map(({ actorEmailSnapshot, ...log }) => ({
+        ...log,
+        actorEmail: allowed ? (actorEmailSnapshot ?? null) : null,
+        actorDeleted: isActorDeleted(log),
+      }));
     }
 
     const rows = (await getDrizzleSupabaseAdminClient().execute(
@@ -297,11 +321,26 @@ class AuditLogsService {
 
     const emails = new Map(rows.map((row) => [row.id, row.email]));
 
-    return logs.map((log) => ({
+    return logs.map(({ actorEmailSnapshot, ...log }) => ({
       ...log,
-      actorEmail: (log.userId ? emails.get(log.userId) : null) ?? null,
+      actorEmail:
+        (log.userId ? emails.get(log.userId) : null) ??
+        actorEmailSnapshot ??
+        null,
+      actorDeleted: isActorDeleted(log),
     }));
   }
+}
+
+/**
+ * Una entrada cuyo autor se borró: la FK `user_id` quedó a `null`, pero la
+ * instantánea recuerda quién fue.
+ */
+function isActorDeleted(log: {
+  userId: string | null;
+  actorUserId?: string | null;
+}) {
+  return log.userId === null && Boolean(log.actorUserId);
 }
 
 /** Condiciones del cursor (entradas anteriores a la última de la página). */

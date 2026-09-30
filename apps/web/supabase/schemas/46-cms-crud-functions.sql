@@ -385,7 +385,14 @@ BEGIN
             END IF;
     END;
 
-    -- Create audit log entry
+    -- [TFG] RF-10 · RNF-02 · Auditoría que falla en cerrado (F2.7a, pendiente
+    -- de ADR-015). El código heredado capturaba cualquier error de esta
+    -- llamada y seguía adelante: si la entrada de auditoría no se podía
+    -- escribir, el cambio se guardaba igualmente SIN rastro. Ahora el fallo se
+    -- anota en el log del servidor y se relanza con un SQLSTATE propio
+    -- (`PKA01`, «no se pudo auditar»): el manejador del final de la función
+    -- revierte TODO lo hecho en ella (el cambio incluido) y devuelve
+    -- `success = false`; la API lo traduce a `RECORD_WRITE_FAILED` (500).
     BEGIN
         v_audit_log_id := cms.create_audit_log(
                 'INSERT',
@@ -397,11 +404,9 @@ BEGIN
                           );
     EXCEPTION
         WHEN OTHERS THEN
-            -- Don't fail the operation if audit logging fails
-            -- [TFG] RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un
-            -- aviso llega al cliente con el texto interno de PostgreSQL; el
-            -- log solo lo ve quien administra el servidor.
-            RAISE LOG 'Failed to log insert operation: %', SQLERRM;
+            RAISE LOG 'Audit log write failed for insert: % (SQLSTATE: %)', SQLERRM, SQLSTATE;
+            RAISE EXCEPTION 'Audit log write failed'
+                USING ERRCODE = 'PKA01';
     END;
 
     RETURN cms.build_crud_response(
@@ -598,7 +603,14 @@ BEGIN
             RAISE EXCEPTION 'Error updating record: % (SQLSTATE: %)', SQLERRM, SQLSTATE;
     END;
 
-    -- Add audit log entry
+    -- [TFG] RF-10 · RNF-02 · Auditoría que falla en cerrado (F2.7a, pendiente
+    -- de ADR-015). El código heredado capturaba cualquier error de esta
+    -- llamada y seguía adelante: si la entrada de auditoría no se podía
+    -- escribir, el cambio se guardaba igualmente SIN rastro. Ahora el fallo se
+    -- anota en el log del servidor y se relanza con un SQLSTATE propio
+    -- (`PKA01`, «no se pudo auditar»): el manejador del final de la función
+    -- revierte TODO lo hecho en ella (el cambio incluido) y devuelve
+    -- `success = false`; la API lo traduce a `RECORD_WRITE_FAILED` (500).
     BEGIN
         v_audit_log_id := cms.create_audit_log(
                 'UPDATE',
@@ -610,11 +622,9 @@ BEGIN
                           );
     EXCEPTION
         WHEN OTHERS THEN
-            -- Don't fail the operation if audit logging fails
-            -- [TFG] RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un
-            -- aviso llega al cliente con el texto interno de PostgreSQL; el
-            -- log solo lo ve quien administra el servidor.
-            RAISE LOG 'Failed to log update operation: %', SQLERRM;
+            RAISE LOG 'Audit log write failed for update: % (SQLSTATE: %)', SQLERRM, SQLSTATE;
+            RAISE EXCEPTION 'Audit log write failed'
+                USING ERRCODE = 'PKA01';
     END;
 
     RETURN cms.build_crud_response(
@@ -912,7 +922,14 @@ BEGIN
             RAISE EXCEPTION 'Error deleting record: % (SQLSTATE: %)', SQLERRM, SQLSTATE;
     END;
 
-    -- Add audit log entry
+    -- [TFG] RF-10 · RNF-02 · Auditoría que falla en cerrado (F2.7a, pendiente
+    -- de ADR-015). El código heredado capturaba cualquier error de esta
+    -- llamada y seguía adelante: si la entrada de auditoría no se podía
+    -- escribir, el cambio se guardaba igualmente SIN rastro. Ahora el fallo se
+    -- anota en el log del servidor y se relanza con un SQLSTATE propio
+    -- (`PKA01`, «no se pudo auditar»): el manejador del final de la función
+    -- revierte TODO lo hecho en ella (el cambio incluido) y devuelve
+    -- `success = false`; la API lo traduce a `RECORD_WRITE_FAILED` (500).
     BEGIN
         v_audit_log_id := cms.create_audit_log(
                 'DELETE',
@@ -924,11 +941,9 @@ BEGIN
                           );
     EXCEPTION
         WHEN OTHERS THEN
-            -- Don't fail the operation if audit logging fails
-            -- [TFG] RNF-02 · `RAISE LOG` y no `WARNING` (bitácora B-33): un
-            -- aviso llega al cliente con el texto interno de PostgreSQL; el
-            -- log solo lo ve quien administra el servidor.
-            RAISE LOG 'Failed to log delete operation: %', SQLERRM;
+            RAISE LOG 'Audit log write failed for delete: % (SQLSTATE: %)', SQLERRM, SQLSTATE;
+            RAISE EXCEPTION 'Audit log write failed'
+                USING ERRCODE = 'PKA01';
     END;
 
     RETURN jsonb_build_object(

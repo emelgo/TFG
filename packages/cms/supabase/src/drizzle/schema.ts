@@ -410,6 +410,12 @@ export const auditLogsInCms = cms.table(
     newData: jsonb('new_data'),
     severity: auditLogSeverityInCms().notNull(),
     metadata: jsonb(),
+    // Instantánea del autor (F2.7a): sin FK, sobrevive al borrado del
+    // miembro. La rellena un *trigger*; `actor_email` no es legible
+    // directamente por `authenticated` (se lee por la vista).
+    actorUserId: uuid('actor_user_id'),
+    actorAccountId: uuid('actor_account_id'),
+    actorEmail: text('actor_email'),
   },
   (table) => [
     index('idx_audit_logs_account_id').using(
@@ -485,6 +491,12 @@ export const auditLogsReadableInCms = cms
     dataRedacted: boolean('data_redacted').notNull(),
     severity: auditLogSeverityInCms().notNull(),
     metadata: jsonb(),
+    // Instantánea del autor (F2.7a). `actor_email` llega a `null` si el
+    // lector no puede ver miembros ni usuarios
+    // (`cms.get_audit_log_actor_email`).
+    actorUserId: uuid('actor_user_id'),
+    actorAccountId: uuid('actor_account_id'),
+    actorEmail: text('actor_email'),
   })
   .existing();
 

@@ -60,7 +60,10 @@
 - [ ] Pendiente (F2.6): borrar a un miembro del personal borra la atribución de sus entradas de auditoría (`ON DELETE SET NULL` heredado) → decidir en F2.7a; la búsqueda global falla entera si los metadatos de una columna están desfasados; sin buscador en la navegación móvil; filtros de fecha solo en UTC
 - [x] F2.6b · Contenido y demo (ADR-017): blog en la BD (`19-blog.sql`) gestionado desde el CMS y rutas `/blog` y `/blog/$slug` con Markdown seguro; esquema `demo` de pyme (seed); formatos legibles (incluida la relación virtual de membresías con cuentas); tablas bajo «Recursos» en la barra lateral. `/rls-review`: AISLADO. pgTAP 62 / 1.730, E2E 129
 - [ ] Pendiente (F2.6b): un formato de visualización con una columna inexistente muestra ids; un texto con forma de fecha ISO se filtra como fecha
-- [ ] F2.7a · Ajustes: General, Autenticación y Miembros
+- [x] F2.7a · Ajustes: General (preferencias y zona horaria), Autenticación (MFA obligatorio; solo Root con aal2 puede desactivarlo) y Miembros (roles, activar/desactivar, auditoría). Paquete `@pymekit/cms-settings-ui`. Autor de la auditoría conservado al borrar (ADR-018), auditoría obligatoria en las escrituras, reglas de rango y cuentas raíz protegidas (B-41 a B-44). pgTAP 1.794, E2E 141
+- [x] F2.7a · `/rls-review`: AISLADO; +68 pruebas (`cms-members-isolation.test.sql`), pgTAP 64 ficheros / 1.862
+- [ ] F2.7a · Debilidad previa hallada en la revisión (B-45): `cms._delete_record_impl` concatena `p_where_clauses` sin validar y es ejecutable por `authenticated` → corregir antes de F2.7b
+- [ ] Pendiente (F2.7a): `update/delete_record_by_conditions` pueden tocar hasta 25 filas con una sola entrada de auditoría (no alcanzable por la API, B-19); un miembro puede editar su nombre visible en `metadata`; `assigned_by` solo en asignaciones nuevas; el E2E del MFA lo desactiva globalmente unos segundos durante la suite
 - [ ] F2.7b · Ajustes: RBAC (roles, grupos y permisos)
 - [ ] F2.7c · Ajustes: Recursos y diseñador de fichas
 - [ ] F2.8 · Paneles (RF-11, recortable)
@@ -146,6 +149,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-30 | F2.7a | Ajustes del CMS (General, Autenticación, Miembros), autor de auditoría conservado (ADR-018), auditoría obligatoria y reglas de rango; `/rls-review` AISLADO; pgTAP 1.862, E2E 141 |
 | 2026-09-30 | F3 (adelantada) | Limpieza completa de la marca a petición del autor: `check-branding` a cero y bloqueante en la CI; pgTAP 1.730 y E2E 126 en verde |
 | 2026-09-30 | F2 | El autor detecta rutas con la marca (`packages/ui/src/makerkit/`): renombradas `src/pymekit/`, `pymekit.css` y los helpers pgTAP `pymekit.*`; `check-branding` revisa ya las rutas y lo hace de forma bloqueante (B-40) |
 | 2026-09-30 | F2.6b | Blog gestionado desde el CMS y visible en la web, demo de pyme, textos legibles en relaciones y tablas en la barra lateral; superficie de `anon` auditada (AISLADO) |

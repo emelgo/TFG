@@ -22,7 +22,8 @@
     "./users-api": "./src/users-api.ts",
     "./storage-api": "./src/storage-api.ts",
     "./hydration": "./src/hydration.ts",
-    "./audit-logs-api": "./src/audit-logs-api.ts"
+    "./audit-logs-api": "./src/audit-logs-api.ts",
+    "./settings-api": "./src/settings-api.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",

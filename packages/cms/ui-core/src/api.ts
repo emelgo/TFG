@@ -40,6 +40,7 @@ import type { GetRolesForSharingRoute } from '@pymekit/cms-permissions/routes';
 import type { GetAccountRoute } from '@pymekit/cms-settings/routes';
 
 import { createAuditLogsApi } from './audit-logs-api';
+import { createSettingsApi } from './settings-api';
 import { createStorageApi } from './storage-api';
 import { createUsersApi } from './users-api';
 
@@ -62,6 +63,8 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
     ...createStorageApi(clientOptions),
     // Registro de auditoría y búsqueda global (F2.6).
     ...createAuditLogsApi(clientOptions),
+    // Ajustes: preferencias, MFA y miembros (F2.7a).
+    ...createSettingsApi(clientOptions),
 
     /**
      * Devuelve la cuenta del CMS del usuario y las secciones que puede usar.
@@ -522,3 +525,17 @@ export type CmsGlobalSearchResponse = Awaited<
 
 /** Un resultado de la búsqueda global. */
 export type CmsGlobalSearchItem = CmsGlobalSearchResponse['results'][number];
+
+/** Estado de la obligación de MFA (`GET /v1/configuration/mfa`). */
+export type CmsMfaConfiguration = Awaited<
+  ReturnType<CmsApi['getMfaConfiguration']>
+>['data'];
+
+/** Página del listado de miembros (`GET /v1/members`). */
+export type CmsMembersList = Awaited<ReturnType<CmsApi['getMembers']>>;
+
+/** Un miembro del listado. */
+export type CmsMemberListItem = CmsMembersList['members'][number];
+
+/** Ficha de un miembro (`GET /v1/members/:id`). */
+export type CmsMemberDetails = Awaited<ReturnType<CmsApi['getMember']>>;

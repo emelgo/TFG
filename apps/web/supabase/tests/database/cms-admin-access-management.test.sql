@@ -392,6 +392,8 @@ SELECT is(
     'Super Admin restores Editor access for further testing'
 );
 
+-- F2.7a: `grant/revoke_admin_access` devuelven códigos estables en `error`
+-- (RANK_DENIED, PERMISSION_DENIED…), nunca texto libre ni `SQLERRM`.
 -- Test 20: Regular Admin CANNOT revoke admin access from Super Admin (lower rank < higher rank)
 SELECT cms_tests.authenticate_as('regular_admin');
 SELECT cms_tests.set_admin_access('regular@test.com', 'true');
@@ -402,8 +404,8 @@ SELECT is(
     'Regular Admin (rank 2) CANNOT revoke admin access from Super Admin (rank 3)'
 );
 
-SELECT ok(
-    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(10), false)->>'error') ~ 'Cannot revoke admin access from users with equal or higher role rank',
+SELECT is(
+    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(10), false)->>'error'), 'RANK_DENIED',
     'Regular Admin gets role hierarchy error when trying to revoke Super Admin access'
 );
 
@@ -418,7 +420,7 @@ SELECT is(
 );
 
 SELECT is(
-    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(11), false)->>'error'), 'Insufficient permissions to revoke admin access'
+    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(11), false)->>'error'), 'PERMISSION_DENIED'
 );
 
 -- Test 22: Editor CANNOT revoke admin access from Super Admin (lower rank < higher rank)
@@ -429,7 +431,7 @@ SELECT is(
 );
 
 SELECT is(
-    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(10), false)->>'error'), 'Insufficient permissions to revoke admin access'
+    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(10), false)->>'error'), 'PERMISSION_DENIED'
 );
 
 -- Test 23: Users with equal rank cannot revoke each other's admin access
@@ -452,8 +454,8 @@ SELECT is(
     'Regular Admin (rank 2) CANNOT revoke admin access from another Regular Admin (rank 2) - equal priorities'
 );
 
-SELECT ok(
-    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(13), false)->>'error') ~ 'Cannot revoke admin access from users with equal or higher role rank',
+SELECT is(
+    (SELECT cms.revoke_admin_access(cms_tests.test_uuid(13), false)->>'error'), 'RANK_DENIED',
     'Regular Admin gets role hierarchy error when trying to revoke equal rank user access'
 );
 

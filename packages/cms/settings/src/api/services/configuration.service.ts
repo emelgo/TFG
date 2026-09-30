@@ -1,3 +1,13 @@
+/**
+ * Servicio de la configuración global del CMS (`cms.configuration`).
+ *
+ * Lee y escribe con el cliente Drizzle de la petición, así que la política
+ * RLS de la tabla exige `system_setting:update` para cambiar una opción y el
+ * *trigger* `cms.guard_mfa_requirement_change` protege `requires_mfa`
+ * (ver `54-cms-members-hardening.sql`). Lo usa Ajustes > Autenticación.
+ *
+ * [TFG] RF-09 · RNF-02.
+ */
 import { eq } from 'drizzle-orm';
 import { Context } from 'hono';
 

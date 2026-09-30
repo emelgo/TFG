@@ -13,7 +13,17 @@ create table if not exists cms.audit_logs (
   old_data JSONB,
   new_data JSONB,
   severity cms.audit_log_severity not null,
-  metadata JSONB
+  metadata JSONB,
+  -- [TFG] RF-10 · RNF-02 · Instantánea del autor (F2.7a, ADR-018 propuesto).
+  -- `account_id` y `user_id` son claves foráneas con `on delete set null`:
+  -- al borrar a un miembro del personal, sus entradas se quedaban sin autor
+  -- y se perdía quién hizo qué. Estas tres columnas copian el autor en el
+  -- momento de escribir la entrada y NO son claves foráneas, así que
+  -- sobreviven al borrado. Las rellena siempre el *trigger*
+  -- `audit_logs_set_actor_snapshot` (nunca quien llama) y no cambian después.
+  actor_user_id UUID,
+  actor_account_id UUID,
+  actor_email TEXT
 );
 
 comment on table cms.audit_logs is 'Table to store the audit logs';
@@ -41,6 +51,15 @@ comment on column cms.audit_logs.new_data is 'The new data of the audit log';
 comment on column cms.audit_logs.severity is 'The severity of the audit log';
 
 comment on column cms.audit_logs.metadata is 'The metadata of the audit log';
+
+comment on column cms.audit_logs.actor_user_id is
+  'Instantánea del usuario de Auth que actuó (sin FK: se conserva aunque se borre el usuario)';
+
+comment on column cms.audit_logs.actor_account_id is
+  'Instantánea de la cuenta del CMS que actuó (sin FK: se conserva aunque se borre la cuenta)';
+
+comment on column cms.audit_logs.actor_email is
+  'Instantánea del correo de Auth de quien actuó, tomada al escribir la entrada';
 
 -- Grants
 -- [TFG] RNF-02 · Integridad del registro de auditoría (PymeKit, F2.6): el
@@ -74,7 +93,13 @@ select
     schema_name,
     table_name,
     severity,
-    metadata
+    metadata,
+    -- Los identificadores de la instantánea del autor son tan visibles como
+    -- `account_id`/`user_id`. El correo (`actor_email`) es un dato personal
+    -- y queda fuera: se lee con `cms.get_audit_log_actor_email`, que exige
+    -- además poder ver miembros o usuarios.
+    actor_user_id,
+    actor_account_id
   ) on cms.audit_logs to authenticated;
 
 grant
@@ -92,6 +117,72 @@ create index idx_audit_logs_account_id on cms.audit_logs (account_id);
 create index idx_audit_logs_operation on cms.audit_logs (operation);
 
 create index idx_audit_logs_schema_table on cms.audit_logs (schema_name, table_name);
+
+-- SECTION: INSTANTÁNEA DEL AUTOR
+-- [TFG] RF-10 · RNF-02 · F2.7a (ADR-018 propuesto).
+--
+-- Rellena `actor_user_id`, `actor_account_id` y `actor_email` en cada
+-- INSERT a partir de `user_id` y `account_id`, que ya ponen las funciones del
+-- sistema con la identidad de la sesión (`auth.uid()` y
+-- `cms.get_current_user_account_id()`). Cualquier valor que llegue en esas
+-- columnas se sobrescribe: la instantánea la decide la base de datos, nunca
+-- quien escribe la entrada. Si falta `user_id` pero hay cuenta, el usuario se
+-- deduce de la cuenta.
+--
+-- En un UPDATE conserva la instantánea anterior. El único UPDATE posible es
+-- el `on delete set null` de las claves foráneas (`authenticated` no tiene
+-- UPDATE sobre la tabla): justo el caso en que la instantánea tiene que
+-- sobrevivir.
+--
+-- SECURITY DEFINER: lee el correo de `auth.users`, que los roles de la API
+-- no pueden leer. Solo toca la fila que se está guardando.
+create or replace function cms.audit_logs_set_actor_snapshot () returns trigger
+language plpgsql
+security definer
+set
+  search_path = '' as $$
+begin
+    if tg_op = 'UPDATE' then
+        new.actor_user_id := old.actor_user_id;
+        new.actor_account_id := old.actor_account_id;
+        new.actor_email := old.actor_email;
+
+        return new;
+    end if;
+
+    new.actor_account_id := new.account_id;
+    new.actor_user_id := new.user_id;
+
+    if new.actor_user_id is null and new.account_id is not null then
+        select a.auth_user_id
+        into new.actor_user_id
+        from cms.accounts a
+        where a.id = new.account_id;
+    end if;
+
+    new.actor_email := null;
+
+    if new.actor_user_id is not null then
+        select u.email
+        into new.actor_email
+        from auth.users u
+        where u.id = new.actor_user_id;
+    end if;
+
+    return new;
+end;
+$$;
+
+comment on function cms.audit_logs_set_actor_snapshot () is
+  'Trigger: guarda en cada entrada de auditoría una instantánea inmutable de su autor (id de usuario, id de cuenta y correo)';
+
+-- Solo la ejecuta el propio *trigger* (no necesita EXECUTE).
+revoke all on function cms.audit_logs_set_actor_snapshot () from public, anon, authenticated, service_role;
+
+create trigger audit_logs_set_actor_snapshot
+  before insert or update on cms.audit_logs
+  for each row
+execute function cms.audit_logs_set_actor_snapshot ();
 
 
 -- SECTION: CREATE AUDIT LOG
@@ -332,6 +423,53 @@ revoke all on function cms.get_audit_log_row_data (uuid) from public, anon;
 
 grant execute on function cms.get_audit_log_row_data (uuid) to authenticated, service_role;
 
+-- SECTION: AUDIT LOG ACTOR EMAIL (instantánea)
+-- [TFG] RNF-02 · F2.7a. Devuelve el correo guardado en la instantánea del
+-- autor de UNA entrada. Es SECURITY DEFINER porque `authenticated` no tiene
+-- SELECT sobre `actor_email`; por eso repite las comprobaciones de la tabla
+-- (`is_mfa_compliant` y `can_read_audit_log`) y exige además el mismo
+-- permiso con el que la API muestra el correo de los autores vivos:
+-- `account:select` o `auth_user:select`. Sin ellos devuelve `null`.
+create or replace function cms.get_audit_log_actor_email (p_log_id uuid) returns text
+language plpgsql
+stable
+security definer
+cost 1000
+set
+  search_path = '' as $$
+declare
+    v_account_id uuid;
+    v_email      text;
+begin
+    select a.account_id, a.actor_email
+    into v_account_id, v_email
+    from cms.audit_logs a
+    where a.id = p_log_id;
+
+    if not found or v_email is null then
+        return null;
+    end if;
+
+    if not cms.is_mfa_compliant() or not cms.can_read_audit_log(v_account_id) then
+        return null;
+    end if;
+
+    if not (cms.has_admin_permission('account'::cms.system_resource, 'select'::cms.system_action)
+        or cms.has_admin_permission('auth_user'::cms.system_resource, 'select'::cms.system_action)) then
+        return null;
+    end if;
+
+    return v_email;
+end;
+$$;
+
+comment on function cms.get_audit_log_actor_email (uuid) is
+  'Correo de la instantánea del autor de una entrada de auditoría, si la sesión puede ver la entrada y los miembros o usuarios';
+
+revoke all on function cms.get_audit_log_actor_email (uuid) from public, anon;
+
+grant execute on function cms.get_audit_log_actor_email (uuid) to authenticated, service_role;
+
 -- Vista de lectura del registro de auditoría: las columnas de la tabla, con
 -- los datos de fila ya redactados por `get_audit_log_row_data`.
 --
@@ -357,7 +495,12 @@ select
   d.new_data,
   coalesce(d.data_redacted, false) as data_redacted,
   a.severity,
-  a.metadata
+  a.metadata,
+  -- Instantánea del autor (F2.7a): se añade al final porque una vista solo
+  -- admite columnas nuevas tras las existentes (`create or replace view`).
+  a.actor_user_id,
+  a.actor_account_id,
+  cms.get_audit_log_actor_email (a.id) as actor_email
 from
   cms.audit_logs a
   left join lateral cms.get_audit_log_row_data (a.id) d on true;

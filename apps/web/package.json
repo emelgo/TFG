@@ -40,6 +40,7 @@
     "@pymekit/cms-audit-logs-ui": "workspace:*",
     "@pymekit/cms-data-explorer-ui": "workspace:*",
     "@pymekit/cms-formatters": "workspace:*",
+    "@pymekit/cms-settings-ui": "workspace:*",
     "@pymekit/cms-storage-explorer-ui": "workspace:*",
     "@pymekit/cms-ui-core": "workspace:*",
     "@pymekit/cms-users-explorer-ui": "workspace:*",

@@ -49,6 +49,7 @@ import { Route as MarketingBlogSlugRouteImport } from './routes/_marketing/blog/
 import { Route as AdminAccountsIndexRouteImport } from './routes/admin/accounts/index'
 import { Route as AdminAccountsIdRouteImport } from './routes/admin/accounts/$id'
 import { Route as AdminCmsIndexRouteImport } from './routes/admin/cms/index'
+import { Route as AdminCmsSettingsRouteRouteImport } from './routes/admin/cms/settings/route'
 import { Route as ApiBillingWebhookRouteImport } from './routes/api/billing/webhook'
 import { Route as ApiCmsSplatRouteImport } from './routes/api/cms/$'
 import { Route as ApiDbWebhookRouteImport } from './routes/api/db/webhook'
@@ -62,10 +63,14 @@ import { Route as AdminCmsAuditLogsIdRouteImport } from './routes/admin/cms/audi
 import { Route as AdminCmsDashboardsIndexRouteImport } from './routes/admin/cms/dashboards/index'
 import { Route as AdminCmsResourcesIndexRouteImport } from './routes/admin/cms/resources/index'
 import { Route as AdminCmsSettingsIndexRouteImport } from './routes/admin/cms/settings/index'
+import { Route as AdminCmsSettingsAuthenticationRouteImport } from './routes/admin/cms/settings/authentication'
+import { Route as AdminCmsSettingsGeneralRouteImport } from './routes/admin/cms/settings/general'
 import { Route as AdminCmsStorageIndexRouteImport } from './routes/admin/cms/storage/index'
 import { Route as AdminCmsStorageBucketRouteImport } from './routes/admin/cms/storage/$bucket'
 import { Route as AdminCmsUsersIndexRouteImport } from './routes/admin/cms/users/index'
 import { Route as AdminCmsUsersIdRouteImport } from './routes/admin/cms/users/$id'
+import { Route as AdminCmsSettingsMembersIndexRouteImport } from './routes/admin/cms/settings/members/index'
+import { Route as AdminCmsSettingsMembersIdRouteImport } from './routes/admin/cms/settings/members/$id'
 import { Route as AdminCmsResourcesSchemaTableIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/index'
 import { Route as AdminCmsResourcesSchemaTableNewRouteImport } from './routes/admin/cms/resources/$schema/$table/new'
 import { Route as AdminCmsResourcesSchemaTableRecordIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/record/index'
@@ -278,6 +283,11 @@ const AdminCmsIndexRoute = AdminCmsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminCmsRouteRoute,
 } as any)
+const AdminCmsSettingsRouteRoute = AdminCmsSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
 const ApiBillingWebhookRoute = ApiBillingWebhookRouteImport.update({
   id: '/api/billing/webhook',
   path: '/api/billing/webhook',
@@ -342,9 +352,20 @@ const AdminCmsResourcesIndexRoute = AdminCmsResourcesIndexRouteImport.update({
   getParentRoute: () => AdminCmsRouteRoute,
 } as any)
 const AdminCmsSettingsIndexRoute = AdminCmsSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => AdminCmsRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminCmsSettingsRouteRoute,
+} as any)
+const AdminCmsSettingsAuthenticationRoute =
+  AdminCmsSettingsAuthenticationRouteImport.update({
+    id: '/authentication',
+    path: '/authentication',
+    getParentRoute: () => AdminCmsSettingsRouteRoute,
+  } as any)
+const AdminCmsSettingsGeneralRoute = AdminCmsSettingsGeneralRouteImport.update({
+  id: '/general',
+  path: '/general',
+  getParentRoute: () => AdminCmsSettingsRouteRoute,
 } as any)
 const AdminCmsStorageIndexRoute = AdminCmsStorageIndexRouteImport.update({
   id: '/storage/',
@@ -366,6 +387,18 @@ const AdminCmsUsersIdRoute = AdminCmsUsersIdRouteImport.update({
   path: '/users/$id',
   getParentRoute: () => AdminCmsRouteRoute,
 } as any)
+const AdminCmsSettingsMembersIndexRoute =
+  AdminCmsSettingsMembersIndexRouteImport.update({
+    id: '/members/',
+    path: '/members/',
+    getParentRoute: () => AdminCmsSettingsRouteRoute,
+  } as any)
+const AdminCmsSettingsMembersIdRoute =
+  AdminCmsSettingsMembersIdRouteImport.update({
+    id: '/members/$id',
+    path: '/members/$id',
+    getParentRoute: () => AdminCmsSettingsRouteRoute,
+  } as any)
 const AdminCmsResourcesSchemaTableIndexRoute =
   AdminCmsResourcesSchemaTableIndexRouteImport.update({
     id: '/resources/$schema/$table/',
@@ -433,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/join/': typeof JoinIndexRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRouteRouteWithChildren
+  '/admin/cms/settings': typeof AdminCmsSettingsRouteRouteWithChildren
   '/settings/members': typeof AuthenticatedSettingsMembersRouteWithChildren
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/blog/$slug': typeof MarketingBlogSlugRoute
@@ -450,6 +484,8 @@ export interface FileRoutesByFullPath {
   '/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
   '/admin/cms/audit-logs/$id': typeof AdminCmsAuditLogsIdRoute
+  '/admin/cms/settings/authentication': typeof AdminCmsSettingsAuthenticationRoute
+  '/admin/cms/settings/general': typeof AdminCmsSettingsGeneralRoute
   '/admin/cms/storage/$bucket': typeof AdminCmsStorageBucketRoute
   '/admin/cms/users/$id': typeof AdminCmsUsersIdRoute
   '/settings/billing/': typeof AuthenticatedSettingsBillingIndexRoute
@@ -459,6 +495,8 @@ export interface FileRoutesByFullPath {
   '/admin/cms/settings/': typeof AdminCmsSettingsIndexRoute
   '/admin/cms/storage/': typeof AdminCmsStorageIndexRoute
   '/admin/cms/users/': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/settings/members/$id': typeof AdminCmsSettingsMembersIdRoute
+  '/admin/cms/settings/members/': typeof AdminCmsSettingsMembersIndexRoute
   '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/resources/$schema/$table/': typeof AdminCmsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
@@ -507,6 +545,8 @@ export interface FileRoutesByTo {
   '/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
   '/admin/cms/audit-logs/$id': typeof AdminCmsAuditLogsIdRoute
+  '/admin/cms/settings/authentication': typeof AdminCmsSettingsAuthenticationRoute
+  '/admin/cms/settings/general': typeof AdminCmsSettingsGeneralRoute
   '/admin/cms/storage/$bucket': typeof AdminCmsStorageBucketRoute
   '/admin/cms/users/$id': typeof AdminCmsUsersIdRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingIndexRoute
@@ -516,6 +556,8 @@ export interface FileRoutesByTo {
   '/admin/cms/settings': typeof AdminCmsSettingsIndexRoute
   '/admin/cms/storage': typeof AdminCmsStorageIndexRoute
   '/admin/cms/users': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/settings/members/$id': typeof AdminCmsSettingsMembersIdRoute
+  '/admin/cms/settings/members': typeof AdminCmsSettingsMembersIndexRoute
   '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/resources/$schema/$table': typeof AdminCmsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
@@ -556,6 +598,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/join/': typeof JoinIndexRoute
   '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRouteRouteWithChildren
+  '/admin/cms/settings': typeof AdminCmsSettingsRouteRouteWithChildren
   '/_authenticated/settings/members': typeof AuthenticatedSettingsMembersRouteWithChildren
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_marketing/blog/$slug': typeof MarketingBlogSlugRoute
@@ -573,6 +616,8 @@ export interface FileRoutesById {
   '/_authenticated/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/_authenticated/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
   '/admin/cms/audit-logs/$id': typeof AdminCmsAuditLogsIdRoute
+  '/admin/cms/settings/authentication': typeof AdminCmsSettingsAuthenticationRoute
+  '/admin/cms/settings/general': typeof AdminCmsSettingsGeneralRoute
   '/admin/cms/storage/$bucket': typeof AdminCmsStorageBucketRoute
   '/admin/cms/users/$id': typeof AdminCmsUsersIdRoute
   '/_authenticated/settings/billing/': typeof AuthenticatedSettingsBillingIndexRoute
@@ -582,6 +627,8 @@ export interface FileRoutesById {
   '/admin/cms/settings/': typeof AdminCmsSettingsIndexRoute
   '/admin/cms/storage/': typeof AdminCmsStorageIndexRoute
   '/admin/cms/users/': typeof AdminCmsUsersIndexRoute
+  '/admin/cms/settings/members/$id': typeof AdminCmsSettingsMembersIdRoute
+  '/admin/cms/settings/members/': typeof AdminCmsSettingsMembersIndexRoute
   '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/resources/$schema/$table/': typeof AdminCmsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
@@ -621,6 +668,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/join/'
     | '/settings/billing'
+    | '/admin/cms/settings'
     | '/settings/members'
     | '/settings/profile'
     | '/blog/$slug'
@@ -638,6 +686,8 @@ export interface FileRouteTypes {
     | '/settings/billing/return'
     | '/settings/members/policies'
     | '/admin/cms/audit-logs/$id'
+    | '/admin/cms/settings/authentication'
+    | '/admin/cms/settings/general'
     | '/admin/cms/storage/$bucket'
     | '/admin/cms/users/$id'
     | '/settings/billing/'
@@ -647,6 +697,8 @@ export interface FileRouteTypes {
     | '/admin/cms/settings/'
     | '/admin/cms/storage/'
     | '/admin/cms/users/'
+    | '/admin/cms/settings/members/$id'
+    | '/admin/cms/settings/members/'
     | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/resources/$schema/$table/'
     | '/admin/cms/resources/$schema/$table/record/edit'
@@ -695,6 +747,8 @@ export interface FileRouteTypes {
     | '/settings/billing/return'
     | '/settings/members/policies'
     | '/admin/cms/audit-logs/$id'
+    | '/admin/cms/settings/authentication'
+    | '/admin/cms/settings/general'
     | '/admin/cms/storage/$bucket'
     | '/admin/cms/users/$id'
     | '/settings/billing'
@@ -704,6 +758,8 @@ export interface FileRouteTypes {
     | '/admin/cms/settings'
     | '/admin/cms/storage'
     | '/admin/cms/users'
+    | '/admin/cms/settings/members/$id'
+    | '/admin/cms/settings/members'
     | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/resources/$schema/$table'
     | '/admin/cms/resources/$schema/$table/record/edit'
@@ -743,6 +799,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/join/'
     | '/_authenticated/settings/billing'
+    | '/admin/cms/settings'
     | '/_authenticated/settings/members'
     | '/_authenticated/settings/profile'
     | '/_marketing/blog/$slug'
@@ -760,6 +817,8 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/billing/return'
     | '/_authenticated/settings/members/policies'
     | '/admin/cms/audit-logs/$id'
+    | '/admin/cms/settings/authentication'
+    | '/admin/cms/settings/general'
     | '/admin/cms/storage/$bucket'
     | '/admin/cms/users/$id'
     | '/_authenticated/settings/billing/'
@@ -769,6 +828,8 @@ export interface FileRouteTypes {
     | '/admin/cms/settings/'
     | '/admin/cms/storage/'
     | '/admin/cms/users/'
+    | '/admin/cms/settings/members/$id'
+    | '/admin/cms/settings/members/'
     | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/resources/$schema/$table/'
     | '/admin/cms/resources/$schema/$table/record/edit'
@@ -1077,6 +1138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCmsIndexRouteImport
       parentRoute: typeof AdminCmsRouteRoute
     }
+    '/admin/cms/settings': {
+      id: '/admin/cms/settings'
+      path: '/settings'
+      fullPath: '/admin/cms/settings'
+      preLoaderRoute: typeof AdminCmsSettingsRouteRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
     '/api/billing/webhook': {
       id: '/api/billing/webhook'
       path: '/api/billing/webhook'
@@ -1163,10 +1231,24 @@ declare module '@tanstack/react-router' {
     }
     '/admin/cms/settings/': {
       id: '/admin/cms/settings/'
-      path: '/settings'
+      path: '/'
       fullPath: '/admin/cms/settings/'
       preLoaderRoute: typeof AdminCmsSettingsIndexRouteImport
-      parentRoute: typeof AdminCmsRouteRoute
+      parentRoute: typeof AdminCmsSettingsRouteRoute
+    }
+    '/admin/cms/settings/authentication': {
+      id: '/admin/cms/settings/authentication'
+      path: '/authentication'
+      fullPath: '/admin/cms/settings/authentication'
+      preLoaderRoute: typeof AdminCmsSettingsAuthenticationRouteImport
+      parentRoute: typeof AdminCmsSettingsRouteRoute
+    }
+    '/admin/cms/settings/general': {
+      id: '/admin/cms/settings/general'
+      path: '/general'
+      fullPath: '/admin/cms/settings/general'
+      preLoaderRoute: typeof AdminCmsSettingsGeneralRouteImport
+      parentRoute: typeof AdminCmsSettingsRouteRoute
     }
     '/admin/cms/storage/': {
       id: '/admin/cms/storage/'
@@ -1195,6 +1277,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/cms/users/$id'
       preLoaderRoute: typeof AdminCmsUsersIdRouteImport
       parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/settings/members/': {
+      id: '/admin/cms/settings/members/'
+      path: '/members'
+      fullPath: '/admin/cms/settings/members/'
+      preLoaderRoute: typeof AdminCmsSettingsMembersIndexRouteImport
+      parentRoute: typeof AdminCmsSettingsRouteRoute
+    }
+    '/admin/cms/settings/members/$id': {
+      id: '/admin/cms/settings/members/$id'
+      path: '/members/$id'
+      fullPath: '/admin/cms/settings/members/$id'
+      preLoaderRoute: typeof AdminCmsSettingsMembersIdRouteImport
+      parentRoute: typeof AdminCmsSettingsRouteRoute
     }
     '/admin/cms/resources/$schema/$table/': {
       id: '/admin/cms/resources/$schema/$table/'
@@ -1367,7 +1463,29 @@ const AdminAccountsRouteRouteChildren: AdminAccountsRouteRouteChildren = {
 const AdminAccountsRouteRouteWithChildren =
   AdminAccountsRouteRoute._addFileChildren(AdminAccountsRouteRouteChildren)
 
+interface AdminCmsSettingsRouteRouteChildren {
+  AdminCmsSettingsAuthenticationRoute: typeof AdminCmsSettingsAuthenticationRoute
+  AdminCmsSettingsGeneralRoute: typeof AdminCmsSettingsGeneralRoute
+  AdminCmsSettingsIndexRoute: typeof AdminCmsSettingsIndexRoute
+  AdminCmsSettingsMembersIdRoute: typeof AdminCmsSettingsMembersIdRoute
+  AdminCmsSettingsMembersIndexRoute: typeof AdminCmsSettingsMembersIndexRoute
+}
+
+const AdminCmsSettingsRouteRouteChildren: AdminCmsSettingsRouteRouteChildren = {
+  AdminCmsSettingsAuthenticationRoute: AdminCmsSettingsAuthenticationRoute,
+  AdminCmsSettingsGeneralRoute: AdminCmsSettingsGeneralRoute,
+  AdminCmsSettingsIndexRoute: AdminCmsSettingsIndexRoute,
+  AdminCmsSettingsMembersIdRoute: AdminCmsSettingsMembersIdRoute,
+  AdminCmsSettingsMembersIndexRoute: AdminCmsSettingsMembersIndexRoute,
+}
+
+const AdminCmsSettingsRouteRouteWithChildren =
+  AdminCmsSettingsRouteRoute._addFileChildren(
+    AdminCmsSettingsRouteRouteChildren,
+  )
+
 interface AdminCmsRouteRouteChildren {
+  AdminCmsSettingsRouteRoute: typeof AdminCmsSettingsRouteRouteWithChildren
   AdminCmsIndexRoute: typeof AdminCmsIndexRoute
   AdminCmsAuditLogsIdRoute: typeof AdminCmsAuditLogsIdRoute
   AdminCmsStorageBucketRoute: typeof AdminCmsStorageBucketRoute
@@ -1375,7 +1493,6 @@ interface AdminCmsRouteRouteChildren {
   AdminCmsAuditLogsIndexRoute: typeof AdminCmsAuditLogsIndexRoute
   AdminCmsDashboardsIndexRoute: typeof AdminCmsDashboardsIndexRoute
   AdminCmsResourcesIndexRoute: typeof AdminCmsResourcesIndexRoute
-  AdminCmsSettingsIndexRoute: typeof AdminCmsSettingsIndexRoute
   AdminCmsStorageIndexRoute: typeof AdminCmsStorageIndexRoute
   AdminCmsUsersIndexRoute: typeof AdminCmsUsersIndexRoute
   AdminCmsResourcesSchemaTableNewRoute: typeof AdminCmsResourcesSchemaTableNewRoute
@@ -1387,6 +1504,7 @@ interface AdminCmsRouteRouteChildren {
 }
 
 const AdminCmsRouteRouteChildren: AdminCmsRouteRouteChildren = {
+  AdminCmsSettingsRouteRoute: AdminCmsSettingsRouteRouteWithChildren,
   AdminCmsIndexRoute: AdminCmsIndexRoute,
   AdminCmsAuditLogsIdRoute: AdminCmsAuditLogsIdRoute,
   AdminCmsStorageBucketRoute: AdminCmsStorageBucketRoute,
@@ -1394,7 +1512,6 @@ const AdminCmsRouteRouteChildren: AdminCmsRouteRouteChildren = {
   AdminCmsAuditLogsIndexRoute: AdminCmsAuditLogsIndexRoute,
   AdminCmsDashboardsIndexRoute: AdminCmsDashboardsIndexRoute,
   AdminCmsResourcesIndexRoute: AdminCmsResourcesIndexRoute,
-  AdminCmsSettingsIndexRoute: AdminCmsSettingsIndexRoute,
   AdminCmsStorageIndexRoute: AdminCmsStorageIndexRoute,
   AdminCmsUsersIndexRoute: AdminCmsUsersIndexRoute,
   AdminCmsResourcesSchemaTableNewRoute: AdminCmsResourcesSchemaTableNewRoute,

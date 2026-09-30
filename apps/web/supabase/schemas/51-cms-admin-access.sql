@@ -1,88 +1,102 @@
 
--- Admin Access Management Functions
--- This migration adds functions to properly manage admin access by handling both JWT metadata and account creation
-
--- Function to grant admin access to a user
--- This function performs two operations in a transaction:
--- 1. Updates the user's app_metadata in auth.users to set cms_access = 'true'
--- 2. Creates or activates an account in cms.accounts if it doesn't exist
--- Alineada con la versión que dejan las migraciones (el esquema declarativo
--- heredado estaba desfasado respecto a ellas). Ver ADR-015.
-CREATE OR REPLACE FUNCTION cms.grant_admin_access(p_user_id uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET row_security TO 'off'
- SET search_path TO ''
-AS $function$
+/*
+ * -------------------------------------------------------
+ * Sección: gestión del acceso al CMS del personal
+ *
+ * `grant_admin_access` y `revoke_admin_access` dan o retiran a un usuario
+ * de Auth el acceso al CMS: el claim `cms_access` de `app_metadata` y su
+ * cuenta en `cms.accounts`. Las llama la API del CMS (explorador de
+ * usuarios) con la sesión del operador; son SECURITY DEFINER porque
+ * escriben en `auth.users`, así que repiten todas las comprobaciones:
+ * sesión, que no sea uno mismo, permiso `account`, jerarquía de rangos y que
+ * el destino no sea un super-admin de la plataforma (su acceso lo gobierna el
+ * pegamento de ADR-014, `53-cms-super-admin.sql`).
+ *
+ * [TFG] RNF-02 · F2.7a (bitácora, pendiente B de la F2.7a): el código
+ * heredado devolvía `SQLERRM` dentro del resultado ante cualquier error
+ * inesperado, y el texto de PostgreSQL (nombres de tablas, restricciones,
+ * valores) acababa en la API. Ahora el campo `error` lleva SIEMPRE un código
+ * estable (ver la lista) y el detalle solo va al log del servidor con
+ * `RAISE LOG` (un `RAISE WARNING` llegaría al cliente, bitácora B-33).
+ *
+ * Códigos: NOT_AUTHENTICATED · SELF_ACTION · PERMISSION_DENIED ·
+ * RANK_DENIED · PROTECTED · USER_NOT_FOUND · UPDATE_FAILED · INTERNAL_ERROR.
+ *
+ * El manejador `exception when others` revierte todo lo hecho dentro de la
+ * función (claim, cuenta y auditoría), así que un fallo al auditar deja el
+ * acceso como estaba: la auditoría falla en cerrado.
+ * -------------------------------------------------------
+ */
+create or replace function cms.grant_admin_access (p_user_id uuid) returns jsonb
+language plpgsql
+security definer
+set
+  row_security = off
+set
+  search_path = '' as $$
 declare
-    v_current_user_id uuid;
+    v_current_user_id   uuid;
     v_existing_metadata jsonb;
-    v_updated_metadata jsonb;
-    v_account_exists boolean;
     v_target_account_id uuid;
 begin
     v_current_user_id := auth.uid();
 
     if v_current_user_id is null then
-        return jsonb_build_object('success', false, 'error', 'Not authenticated');
+        return jsonb_build_object('success', false, 'error', 'NOT_AUTHENTICATED');
     end if;
 
     if v_current_user_id = p_user_id then
-        return jsonb_build_object('success', false, 'error', 'Cannot grant admin access to yourself');
+        return jsonb_build_object('success', false, 'error', 'SELF_ACTION');
     end if;
 
     if not cms.has_admin_permission('account'::cms.system_resource, 'insert') then
-        return jsonb_build_object('success', false, 'error', 'Insufficient permissions to grant admin access');
+        return jsonb_build_object('success', false, 'error', 'PERMISSION_DENIED');
     end if;
 
-    -- An account that already exists carries a rank; reactivating it is an action ON that
-    -- account and must respect the hierarchy. A brand-new account has no rank to outrank.
+    -- `for update`: bloquea la fila hasta el final para que el claim se
+    -- escriba sobre lo mismo que se ha comprobado (sin «actualización
+    -- perdida» si la plataforma cambia a la vez su `app_metadata`, por
+    -- ejemplo al hacerlo super-admin).
+    select raw_app_meta_data into v_existing_metadata
+    from auth.users
+    where id = p_user_id
+    for update;
+
+    if v_existing_metadata is null then
+        return jsonb_build_object('success', false, 'error', 'USER_NOT_FOUND');
+    end if;
+
+    -- El acceso de un super-admin de la plataforma no se gestiona desde el
+    -- CMS (ADR-014): lo mantiene el *trigger* `cms.sync_super_admin_claim`.
+    if v_existing_metadata ->> 'role' = 'super-admin' then
+        return jsonb_build_object('success', false, 'error', 'PROTECTED');
+    end if;
+
+    -- Una cuenta que ya existe tiene rango: reactivarla es actuar SOBRE ella
+    -- y debe respetar la jerarquía. Una cuenta nueva no tiene rango.
     select id into v_target_account_id
     from cms.accounts
     where auth_user_id = p_user_id;
 
     if v_target_account_id is not null
         and not cms.can_action_account(v_target_account_id, 'update'::cms.system_action) then
-        return jsonb_build_object('success', false, 'error', 'Insufficient permissions to grant admin access to this account');
+        return jsonb_build_object('success', false, 'error', 'RANK_DENIED');
     end if;
-
-    select raw_app_meta_data into v_existing_metadata
-    from auth.users
-    where id = p_user_id;
-
-    if v_existing_metadata is null then
-        return jsonb_build_object('success', false, 'error', 'User not found');
-    end if;
-
-    v_updated_metadata := coalesce(v_existing_metadata, '{}'::jsonb) || jsonb_build_object('cms_access', 'true');
 
     update auth.users
-    set raw_app_meta_data = v_updated_metadata,
+    set raw_app_meta_data = coalesce(v_existing_metadata, '{}'::jsonb) || jsonb_build_object('cms_access', 'true'),
         updated_at = now()
     where id = p_user_id;
 
     if not found then
-        return jsonb_build_object('success', false, 'error', 'Failed to update user metadata');
+        return jsonb_build_object('success', false, 'error', 'UPDATE_FAILED');
     end if;
 
-    select exists(
-        select 1 from cms.accounts
-        where auth_user_id = p_user_id
-    ) into v_account_exists;
-
-    if not v_account_exists then
-        insert into cms.accounts (auth_user_id, is_active)
-        values (p_user_id, true)
-        on conflict (auth_user_id) do update set
-            is_active = true,
-            updated_at = now();
-    else
-        update cms.accounts
-        set is_active = true,
-            updated_at = now()
-        where auth_user_id = p_user_id;
-    end if;
+    insert into cms.accounts (auth_user_id, is_active)
+    values (p_user_id, true)
+    on conflict (auth_user_id) do update set
+        is_active = true,
+        updated_at = now();
 
     perform cms.create_audit_log(
         'grant_admin_access',
@@ -100,103 +114,99 @@ begin
         jsonb_build_object('operation_type', 'admin_access_management')
     );
 
-    return jsonb_build_object('success', true, 'message', 'Admin access granted successfully');
+    return jsonb_build_object('success', true);
 
 exception when others then
-    return jsonb_build_object('success', false, 'error', SQLERRM);
-end;
-$function$;
+    raise log 'grant_admin_access failed for %: % (SQLSTATE: %)', p_user_id, SQLERRM, SQLSTATE;
 
--- Function to revoke admin access from a user
--- This function performs two operations in a transaction:
--- 1. Updates the user's app_metadata in auth.users to set admin_access = 'false'
--- 2. Optionally deactivates the account in cms.accounts (but preserves the record)
+    return jsonb_build_object('success', false, 'error', 'INTERNAL_ERROR');
+end;
+$$;
+
+comment on function cms.grant_admin_access (uuid) is
+  'Da acceso al CMS a un usuario (claim cms_access y cuenta activa) con permiso account:insert y respetando rangos; devuelve un código de error estable';
+
+-- Retira el acceso al CMS: pone `cms_access = 'false'` y, si se pide,
+-- desactiva la cuenta (se conserva el registro para la auditoría).
 create or replace function cms.revoke_admin_access (
-    p_user_id uuid,
-    p_deactivate_account boolean default false
+  p_user_id uuid,
+  p_deactivate_account boolean default false
 ) returns jsonb
-set search_path = ''
-set row_security = off
 language plpgsql
 security definer
-as $$
+set
+  search_path = ''
+set
+  row_security = off as $$
 declare
-    v_current_user_id uuid;
-    v_result jsonb;
+    v_current_user_id   uuid;
     v_existing_metadata jsonb;
-    v_updated_metadata jsonb;
-    v_can_action_account boolean;
     v_target_account_id uuid;
 begin
-    -- Get the current user's ID from JWT
     v_current_user_id := auth.uid();
-    
+
     if v_current_user_id is null then
-        return jsonb_build_object('success', false, 'error', 'Not authenticated');
+        return jsonb_build_object('success', false, 'error', 'NOT_AUTHENTICATED');
     end if;
-    
-    -- Prevent users from revoking admin access from themselves
+
     if v_current_user_id = p_user_id then
-        return jsonb_build_object('success', false, 'error', 'Cannot revoke admin access from yourself');
+        return jsonb_build_object('success', false, 'error', 'SELF_ACTION');
     end if;
-    
-    -- Check if current user has permission to delete accounts
+
     if not cms.has_admin_permission('account'::cms.system_resource, 'delete') then
-        return jsonb_build_object('success', false, 'error', 'Insufficient permissions to revoke admin access');
+        return jsonb_build_object('success', false, 'error', 'PERMISSION_DENIED');
     end if;
-    
-    -- Check if current user can action the target account (role hierarchy check)
-    -- First get the target account ID
+
+    -- `for update`: bloquea la fila hasta el final para que el claim se
+    -- escriba sobre lo mismo que se ha comprobado (sin «actualización
+    -- perdida» si la plataforma cambia a la vez su `app_metadata`, por
+    -- ejemplo al hacerlo super-admin).
+    select raw_app_meta_data into v_existing_metadata
+    from auth.users
+    where id = p_user_id
+    for update;
+
+    if v_existing_metadata is null then
+        return jsonb_build_object('success', false, 'error', 'USER_NOT_FOUND');
+    end if;
+
+    if v_existing_metadata ->> 'role' = 'super-admin' then
+        return jsonb_build_object('success', false, 'error', 'PROTECTED');
+    end if;
+
+    -- Jerarquía: solo se retira el acceso a cuentas de rango inferior. Sin
+    -- cuenta en el CMS no hay rango que comprobar (no tiene acceso real).
     select id into v_target_account_id
     from cms.accounts
     where auth_user_id = p_user_id;
-    
-    if v_target_account_id is not null then
-        select cms.can_action_account(v_target_account_id, 'update') into v_can_action_account;
-        
-        if not v_can_action_account then
-            return jsonb_build_object('success', false, 'error', 'Cannot revoke admin access from users with equal or higher role rank');
-        end if;
+
+    if v_target_account_id is not null
+        and not cms.can_action_account(v_target_account_id, 'update'::cms.system_action) then
+        return jsonb_build_object('success', false, 'error', 'RANK_DENIED');
     end if;
-    -- If no account exists, we can proceed (they don't have admin access anyway)
-    
-    -- Get current app_metadata from auth.users
-    select raw_app_meta_data into v_existing_metadata
-    from auth.users
-    where id = p_user_id;
-    
-    if v_existing_metadata is null then
-        return jsonb_build_object('success', false, 'error', 'User not found');
-    end if;
-    
-    -- Update app_metadata to set cms_access = 'false'
-    v_updated_metadata := coalesce(v_existing_metadata, '{}'::jsonb) || jsonb_build_object('cms_access', 'false');
-    
-    -- Update the user's app_metadata
-    update auth.users 
-    set raw_app_meta_data = v_updated_metadata,
+
+    update auth.users
+    set raw_app_meta_data = coalesce(v_existing_metadata, '{}'::jsonb) || jsonb_build_object('cms_access', 'false'),
         updated_at = now()
     where id = p_user_id;
-    
+
     if not found then
-        return jsonb_build_object('success', false, 'error', 'Failed to update user metadata');
+        return jsonb_build_object('success', false, 'error', 'UPDATE_FAILED');
     end if;
-    
-    -- Optionally deactivate the account (but preserve the record and roles)
+
     if p_deactivate_account then
-        update cms.accounts 
+        update cms.accounts
         set is_active = false,
             updated_at = now()
         where auth_user_id = p_user_id;
     end if;
-    
-    -- Create audit log
+
     perform cms.create_audit_log(
         'revoke_admin_access',
-        'cms', 
+        'cms',
         'accounts',
         p_user_id::text,
-        null, -- old_data
+        null,
         jsonb_build_object(
             'target_user_id', p_user_id,
             'action', 'revoke_admin_access',
@@ -207,27 +217,43 @@ begin
         'info'::cms.audit_log_severity,
         jsonb_build_object('operation_type', 'admin_access_management')
     );
-    
-    return jsonb_build_object('success', true, 'message', 'Admin access revoked successfully');
-    
+
+    return jsonb_build_object('success', true);
+
 exception when others then
-    return jsonb_build_object('success', false, 'error', SQLERRM);
+    raise log 'revoke_admin_access failed for %: % (SQLSTATE: %)', p_user_id, SQLERRM, SQLSTATE;
+
+    return jsonb_build_object('success', false, 'error', 'INTERNAL_ERROR');
 end;
 $$;
+
+comment on function cms.revoke_admin_access (uuid, boolean) is
+  'Retira el acceso al CMS a un usuario con permiso account:delete y respetando rangos; devuelve un código de error estable';
 
 -- Grant execute permissions to authenticated users
 grant execute on function cms.grant_admin_access(uuid) to authenticated;
 
 grant execute on function cms.revoke_admin_access(uuid, boolean) to authenticated;
--- Function to activate or deactivate a CMS account
--- The activate/deactivate routes used to write is_active through the RLS-bypassing admin
--- pool, where the service_role-only column grant, update_accounts, restrict_mfa_accounts
--- and prevent_active_status_update_by_user are all inert and the audit row lands with a
--- NULL actor. Routing the write through this function keeps the caller's JWT on the
--- connection, so authorization and audit attribution both work.
--- Clearing cms_access is what makes deactivation an actual revocation: the claim
--- otherwise survives (GoTrue re-mints app_metadata on refresh), which both preserved the
--- account's read access and made assertUserIsNotAdminAccount block every harder response.
+/*
+ * cms.set_account_active
+ *
+ * Activa o desactiva la cuenta del CMS de un miembro del personal (pantalla
+ * Ajustes > Miembros). Es SECURITY DEFINER porque escribe `is_active` (que
+ * `authenticated` no puede actualizar) y el claim `cms_access` en
+ * `auth.users`: desactivar sin retirar el claim no sería una revocación real,
+ * porque Auth lo vuelve a emitir en cada refresco del JWT.
+ *
+ * Se ejecuta con el JWT de quien actúa (la API la llama desde su transacción
+ * con *claims*), así que la autorización y la auditoría (*trigger* de
+ * `cms.accounts`) se atribuyen a esa persona.
+ *
+ * [TFG] RNF-02 · F2.7a (pendiente D, reglas de rango): nadie cambia su
+ * propio estado, solo se actúa sobre cuentas de rango inferior
+ * (`can_action_account`) y las cuentas raíz gestionadas por la plataforma
+ * (super-admins, ADR-014) nunca se desactivan desde el CMS. Los errores son
+ * códigos estables: INVALID_ARGUMENTS · MFA_REQUIRED · SELF_ACTION ·
+ * PROTECTED · PERMISSION_DENIED · NOT_FOUND.
+ */
 create or replace function cms.set_account_active (
     p_account_id uuid,
     p_is_active boolean
@@ -241,15 +267,23 @@ declare
     v_auth_user_id uuid;
 begin
     if p_account_id is null or p_is_active is null then
-        return jsonb_build_object('success', false, 'error', 'Invalid arguments');
+        return jsonb_build_object('success', false, 'error', 'INVALID_ARGUMENTS');
     end if;
 
     if not cms.is_mfa_compliant() then
-        return jsonb_build_object('success', false, 'error', 'MFA required');
+        return jsonb_build_object('success', false, 'error', 'MFA_REQUIRED');
+    end if;
+
+    if p_account_id = cms.get_current_user_account_id() then
+        return jsonb_build_object('success', false, 'error', 'SELF_ACTION');
+    end if;
+
+    if cms.is_root_managed_account(p_account_id) then
+        return jsonb_build_object('success', false, 'error', 'PROTECTED');
     end if;
 
     if not cms.can_action_account(p_account_id, 'update'::cms.system_action) then
-        return jsonb_build_object('success', false, 'error', 'You are not authorized to update this member');
+        return jsonb_build_object('success', false, 'error', 'PERMISSION_DENIED');
     end if;
 
     select auth_user_id
@@ -258,7 +292,7 @@ begin
     where id = p_account_id;
 
     if not found then
-        return jsonb_build_object('success', false, 'error', 'Account not found');
+        return jsonb_build_object('success', false, 'error', 'NOT_FOUND');
     end if;
 
     update cms.accounts
@@ -268,13 +302,8 @@ begin
 
     if v_auth_user_id is not null then
         update auth.users
-        set raw_app_meta_data = case
-                                    when p_is_active
-                                        then coalesce(raw_app_meta_data, '{}'::jsonb) ||
-                                             jsonb_build_object('cms_access', 'true')
-                                    else coalesce(raw_app_meta_data, '{}'::jsonb) ||
-                                         jsonb_build_object('cms_access', 'false')
-                                end,
+        set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) ||
+                                jsonb_build_object('cms_access', case when p_is_active then 'true' else 'false' end),
             updated_at = now()
         where id = v_auth_user_id;
     end if;

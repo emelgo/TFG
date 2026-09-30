@@ -112,6 +112,53 @@ export const CMS_API_ERROR_CODES = {
   GLOBAL_SEARCH_INVALID_QUERY: 'GLOBAL_SEARCH_INVALID_QUERY',
   /** Error inesperado al buscar (500). */
   GLOBAL_SEARCH_FAILED: 'GLOBAL_SEARCH_FAILED',
+
+  // Ajustes (F2.7a): preferencias personales y configuración global.
+
+  /** Sin el permiso `system_setting` necesario, o sin cuenta del CMS (403). */
+  SETTINGS_PERMISSION_DENIED: 'SETTINGS_PERMISSION_DENIED',
+  /** Preferencia no válida (zona horaria o idioma desconocidos) (400). */
+  SETTINGS_INVALID_DATA: 'SETTINGS_INVALID_DATA',
+  /**
+   * Cambiar la obligación de MFA exige una sesión con segundo factor (aal2)
+   * (403).
+   */
+  SETTINGS_MFA_VERIFICATION_REQUIRED: 'SETTINGS_MFA_VERIFICATION_REQUIRED',
+  /**
+   * Desactivar la obligación de MFA solo lo puede hacer una cuenta raíz
+   * (super-admin de la plataforma) con sesión aal2 (403).
+   */
+  SETTINGS_MFA_DISABLE_REQUIRES_ROOT: 'SETTINGS_MFA_DISABLE_REQUIRES_ROOT',
+  /** Error inesperado al leer o guardar los ajustes (500). */
+  SETTINGS_ACTION_FAILED: 'SETTINGS_ACTION_FAILED',
+
+  // Ajustes > Miembros (F2.7a). Las reglas de rango las aplica la base de
+  // datos (`can_action_account`, `can_modify_account_role`,
+  // `set_account_active`); la API las comprueba antes para responder con el
+  // motivo exacto.
+
+  /** Sin el permiso `account`/`role` necesario (403). */
+  MEMBER_PERMISSION_DENIED: 'MEMBER_PERMISSION_DENIED',
+  /** La cuenta del CMS no existe (404). */
+  MEMBER_NOT_FOUND: 'MEMBER_NOT_FOUND',
+  /** Nadie cambia sus propios roles ni su propio estado (403). */
+  MEMBER_SELF_ACTION: 'MEMBER_SELF_ACTION',
+  /**
+   * Cuenta raíz (super-admin de la plataforma): se gestiona desde la
+   * plataforma, no desde el CMS (403).
+   */
+  MEMBER_PROTECTED: 'MEMBER_PROTECTED',
+  /**
+   * La cuenta o el rol son de rango igual o superior al de quien actúa
+   * (403).
+   */
+  MEMBER_RANK_DENIED: 'MEMBER_RANK_DENIED',
+  /** No se asignan roles a una cuenta desactivada (409). */
+  MEMBER_INACTIVE: 'MEMBER_INACTIVE',
+  /** Petición no válida: rol inexistente, ya asignado o más de uno (400). */
+  MEMBER_INVALID_DATA: 'MEMBER_INVALID_DATA',
+  /** Error inesperado al gestionar el miembro (500). */
+  MEMBER_ACTION_FAILED: 'MEMBER_ACTION_FAILED',
 } as const;
 
 export type CmsApiErrorCode =

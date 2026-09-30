@@ -174,3 +174,18 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - El blog no lleva política MFA restrictiva: el contenido es público, y con ella un usuario con sesión aal1 vería un blog vacío mientras un anónimo lo vería entero.
 - Las etiquetas y categorías son legibles aunque solo las usen borradores. Es una exposición menor que se acepta (un tema aún no publicado podría adelantarse).
 - `/rls-review` (etapas 1–4, con refutación independiente): veredicto AISLADO. `anon-surface.test.sql` fija la superficie exacta de `anon` y falla si se amplía.
+
+## ADR-018 · Instantánea del autor en la auditoría del CMS
+- **Fecha:** 2026-09-30 · **Fase:** F2.7a · **Estado:** Aceptada
+- **Contexto:** `cms.audit_logs.account_id` y `user_id` usan `ON DELETE SET NULL`. Si se borra a un miembro del personal, sus entradas dejan de indicar quién hizo cada cosa, y eso anula el valor probatorio de la auditoría (RF-10).
+- **Decisión:**
+  - Nuevas columnas `actor_user_id`, `actor_account_id` (sin claves ajenas) y `actor_email`.
+  - Las rellena **solo** un *trigger* con los datos de la sesión al insertar; los valores que envíe quien llama se ignoran. Nunca cambian después.
+  - Se mantienen las claves ajenas existentes y se rellenan las filas antiguas.
+  - El email solo es legible mediante `cms.get_audit_log_actor_email`, que comprueba MFA, rango y permiso de lectura de cuentas o usuarios; los permisos por columna se escriben a mano (B-35).
+  - La interfaz muestra el email guardado con la etiqueta «Eliminado» cuando el usuario ya no existe.
+- **Alternativas consideradas:**
+  - cambiar las claves ajenas a `RESTRICT`: impediría borrar usuarios;
+  - borrado lógico de cuentas: más complejo y afecta a todas las consultas.
+- **Consecuencias:** las entradas de un miembro borrado siguen atribuidas. Las que quedan sin cuenta viva solo son legibles por el rango máximo.
+- **Requisitos relacionados:** RF-10, RNF-02.

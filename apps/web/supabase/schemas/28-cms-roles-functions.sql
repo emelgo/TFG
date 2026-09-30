@@ -67,7 +67,6 @@ DECLARE
     v_user_max_rank    INTEGER;
     v_role_rank        INTEGER;
     v_target_max_rank  INTEGER;
-    v_is_self_modification BOOLEAN;
 BEGIN
     -- Input validation
     IF p_account_id IS NULL OR p_target_account_id IS NULL OR p_role_id IS NULL OR p_action IS NULL THEN
@@ -84,8 +83,22 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    -- Determine if this is self-modification
-    v_is_self_modification := (p_account_id = p_target_account_id);
+    -- [TFG] RNF-02 · F2.7a (pendiente D, reglas de rango). Nadie cambia sus
+    -- propios roles: el código heredado permitía asignarse o quitarse roles de
+    -- rango inferior al propio, es decir, degradarse o cambiar de perfil sin
+    -- que nadie por encima lo decidiera. La gestión de roles es siempre una
+    -- acción sobre OTRA cuenta.
+    IF p_account_id = p_target_account_id THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Las cuentas raíz (super-admins de la plataforma, ADR-014) las gestiona
+    -- el pegamento de `53-cms-super-admin.sql`, nunca el CMS. Hoy ya lo impide
+    -- el rango (Root tiene 100, el máximo y único), pero la regla se escribe
+    -- de forma explícita para no depender de esa coincidencia.
+    IF cms.is_root_managed_account(p_target_account_id) THEN
+        RETURN FALSE;
+    END IF;
 
     -- CANONICAL LOCKING: Lock all resources in consistent order
     -- This prevents deadlocks regardless of caller order
@@ -124,26 +137,7 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    -- RULE 2: Self-modification restrictions
-    IF v_is_self_modification THEN
-        CASE p_action
-            WHEN 'delete' THEN -- Users cannot remove their own highest rank role (prevents lockout)
-            IF v_role_rank = v_user_max_rank THEN
-                RETURN FALSE;
-            END IF;
-
-            WHEN 'insert', 'update' THEN -- Users cannot assign themselves equal/higher roles (prevents escalation)
-            IF v_role_rank >= v_user_max_rank THEN
-                RETURN FALSE;
-            END IF;
-
-            ELSE -- Other actions allowed if user has higher rank
-            NULL;
-            END CASE;
-
-        RETURN TRUE; -- Self-modification allowed for lower rank roles
-    END IF;
-
+    -- RULE 2: solo se actúa sobre cuentas de rango ESTRICTAMENTE inferior.
     RETURN v_user_max_rank > v_target_max_rank;
 EXCEPTION
     WHEN OTHERS THEN

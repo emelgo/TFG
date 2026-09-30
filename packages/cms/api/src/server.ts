@@ -50,8 +50,6 @@ import {
   registerSaveLayoutRouter,
   registerSyncManagedTablesRouter,
   registerTablesMetadataManagementRouter,
-  registerUpdateAccountRouter,
-  registerUpdateMemberRoleRouter,
   registerUpdateMemberRolesRouter,
   registerUpdatePermissionsRouter,
   registerUpdatePreferencesRouter,
@@ -242,7 +240,6 @@ function registerFeatureRoutes(router: Hono) {
   registerUpdateMemberRolesRouter(router);
   registerDeactivateMemberRouter(router);
   registerActivateMemberRouter(router);
-  registerUpdateMemberRoleRouter(router);
 
   // Ajustes: permisos, grupos de permisos y MFA
   registerPermissionsRouter(router);
@@ -251,7 +248,6 @@ function registerFeatureRoutes(router: Hono) {
   registerMfaConfigurationRouter(router);
 
   // Ajustes: cuenta y preferencias del usuario del CMS
-  registerUpdateAccountRouter(router);
   registerUpdatePreferencesRouter(router);
   registerGetAccountRoute(router);
 

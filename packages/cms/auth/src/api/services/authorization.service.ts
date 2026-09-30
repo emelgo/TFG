@@ -467,6 +467,12 @@ export class AuthorizationService {
    *  - `storage`: existe algún permiso de datos con ámbito `storage` y acción
    *    `select` (o `*`) concedido a la cuenta. Es una aproximación: el acceso
    *    real a cada bucket y ruta lo decide `has_storage_permission`.
+   *  - `members` (pestaña Ajustes > Miembros, F2.7a):
+   *    `has_admin_permission('account', 'select')`, lo mismo que exige la
+   *    API de miembros.
+   *  - `systemSettings` (pestaña Ajustes > Autenticación, F2.7a): permiso
+   *    `system_setting` de lectura o de escritura; cambiar la opción exige
+   *    además `update` (y, para desactivar el MFA, ser cuenta raíz con aal2).
    *
    * Ocultar una entrada es solo una ayuda de interfaz: si alguien navega a
    * la ruta, la API vuelve a comprobar el permiso concreto.
@@ -482,9 +488,16 @@ export class AuthorizationService {
         users: boolean | null;
         audit_logs: boolean | null;
         storage: boolean | null;
+        members: boolean | null;
+        system_settings: boolean | null;
       }>(
         sql`SELECT
               cms.has_admin_permission('auth_user'::cms.system_resource, 'select'::cms.system_action) as users,
+              cms.has_admin_permission('account'::cms.system_resource, 'select'::cms.system_action) as members,
+              (
+                cms.has_admin_permission('system_setting'::cms.system_resource, 'select'::cms.system_action)
+                or cms.has_admin_permission('system_setting'::cms.system_resource, 'update'::cms.system_action)
+              ) as system_settings,
               cms.has_admin_permission('log'::cms.system_resource, 'select'::cms.system_action) as audit_logs,
               exists (
                 select 1
@@ -503,6 +516,8 @@ export class AuthorizationService {
       users: row?.users === true,
       auditLogs: row?.audit_logs === true,
       storage: row?.storage === true,
+      members: row?.members === true,
+      systemSettings: row?.system_settings === true,
     };
   }
 

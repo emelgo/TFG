@@ -646,7 +646,8 @@
       "system": "System",
       "noResults": "No audit logs found.",
       "previous": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "actorDeleted": "Deleted"
     },
     "details": {
       "performedBy": "Performed by",
@@ -698,5 +699,116 @@
     "error": "The search could not be completed.",
     "moreResults": "Showing the best matches. Refine the text to narrow them down.",
     "hint": "↑ ↓ to move · Enter to open · Esc to close"
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "label": "Settings sections",
+      "general": "General",
+      "authentication": "Authentication",
+      "members": "Members"
+    },
+    "general": {
+      "title": "General",
+      "description": "Your personal preferences in the CMS.",
+      "language": "Language",
+      "languageDescription": "Language of the interface. Only the languages available in the console can be selected.",
+      "timezone": "Time zone",
+      "timezoneDescription": "Dates and times in the CMS (tables, records and audit logs) are shown in this time zone.",
+      "findTimezone": "Search time zone...",
+      "noTimezone": "No time zone found",
+      "save": "Save preferences",
+      "saved": "Preferences saved",
+      "saveError": "The preferences could not be saved",
+      "errors": {
+        "invalidLanguage": "Choose a valid language",
+        "invalidTimezone": "Choose a valid time zone"
+      }
+    },
+    "authentication": {
+      "title": "Authentication",
+      "description": "Security rules that apply to every member of the CMS staff.",
+      "warningTitle": "This setting affects the whole console",
+      "warningText": "When multi-factor authentication (MFA) is not required, a stolen password is enough to open the CMS with that person's permissions. Keep it required unless you have a strong reason. Only a platform super admin who has verified their second factor can turn it off, and the change is recorded in the audit logs.",
+      "requireMfa": "Require multi-factor authentication",
+      "requireMfaDescription": "Staff members must verify a second factor (for example, an authenticator app) before using the CMS.",
+      "readOnly": "You can see this setting but you do not have permission to change it.",
+      "rootOnly": "Only a platform super admin can stop requiring MFA.",
+      "verifyToDisable": "Verify your second factor in this session before turning MFA off.",
+      "save": "Save",
+      "enabled": "MFA is now required for all staff",
+      "disabled": "MFA is no longer required",
+      "saveError": "The MFA setting could not be saved",
+      "confirmDisableTitle": "Stop requiring MFA?",
+      "confirmDisableText": "Staff members will be able to sign in to the CMS with only their password. Members who already have a verified factor will still have to use it. This change is recorded in the audit logs.",
+      "confirmDisable": "Stop requiring MFA",
+      "cancel": "Cancel"
+    },
+    "members": {
+      "title": "Members",
+      "back": "Back to members",
+      "you": "You",
+      "noRole": "No role",
+      "platformManaged": "Platform super admin",
+      "selfNotice": "You cannot change your own role or status. Ask a member with a higher rank.",
+      "protectedNotice": "This account belongs to a platform super admin. Its access is managed from the platform, not from the CMS.",
+      "table": {
+        "member": "Member",
+        "role": "Role",
+        "status": "Status",
+        "joined": "Joined",
+        "searchPlaceholder": "Search by name or email",
+        "clearSearch": "Clear",
+        "noResults": "No members found"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Deactivated",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "activated": "Member activated",
+        "deactivated": "Member deactivated",
+        "saveError": "The member status could not be changed",
+        "confirmDeactivateTitle": "Deactivate this member?",
+        "confirmDeactivateText": "{name} will lose access to the CMS immediately. Their role and audit logs are kept, and you can activate the account again later.",
+        "confirmActivateTitle": "Activate this member?",
+        "confirmActivateText": "{name} will be able to use the CMS again with their current role.",
+        "cancel": "Cancel"
+      },
+      "role": {
+        "manage": "Change role",
+        "title": "Change role",
+        "description": "A member has a single role. You can only assign roles with a lower rank than yours.",
+        "label": "Role",
+        "none": "No role",
+        "option": "{name} (rank {rank})",
+        "help": "The role decides which data and sections of the CMS the member can use.",
+        "save": "Save role",
+        "cancel": "Cancel",
+        "saved": "Role updated",
+        "saveError": "The role could not be changed"
+      },
+      "cards": {
+        "status": "Account status",
+        "statusHelp": "Deactivated members cannot use the CMS.",
+        "role": "Role",
+        "roleHelp": "Decides the member's permissions and rank.",
+        "accountId": "CMS account",
+        "joined": "Joined on {date}",
+        "authUserId": "Auth user",
+        "authUserIdHelp": "Identifier of the user in Auth."
+      }
+    },
+    "errors": {
+      "permissionDenied": "You do not have permission to do this",
+      "invalidData": "The request is not valid",
+      "mfaVerificationRequired": "Verify your second factor before changing this setting",
+      "mfaDisableRequiresRoot": "Only a platform super admin with a verified second factor can stop requiring MFA",
+      "memberNotFound": "The member no longer exists",
+      "selfAction": "You cannot change your own role or status",
+      "protected": "This account is managed by the platform",
+      "rankDenied": "You can only manage members and roles below your own rank",
+      "inactive": "Activate the member before assigning a role"
+    }
   }
 }

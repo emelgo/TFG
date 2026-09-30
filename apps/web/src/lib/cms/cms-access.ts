@@ -21,9 +21,11 @@ import type { QueryClient } from '@tanstack/react-query';
 import { notFound, redirect } from '@tanstack/react-router';
 
 import { getCmsAccessFailure } from '@pymekit/cms-ui-core/errors';
-import type {
-  CmsSection,
-  CmsSectionAccess,
+import {
+  type CmsSection,
+  type CmsSectionAccess,
+  type CmsSettingsTab,
+  getCmsSettingsTabVisibility,
 } from '@pymekit/cms-ui-core/sections';
 
 import pathsConfig from '#/config/paths.config.ts';
@@ -92,6 +94,26 @@ export function requireCmsSection(
   section: Extract<CmsSection, 'users' | 'storage' | 'auditLogs'>,
 ) {
   if (cmsAccess.status === 'ok' && !cmsAccess.access[section]) {
+    throw notFound();
+  }
+}
+
+/**
+ * Exige que el usuario pueda ver una pestaña de Ajustes del CMS (F2.7a).
+ *
+ * Igual que `requireCmsSection`: si la pestaña no se muestra en la
+ * navegación de Ajustes (`getCmsSettingsTabVisibility`), escribir su URL a
+ * mano responde «no encontrado». La API vuelve a exigir el permiso (403 con
+ * su `errorCode`).
+ */
+export function requireCmsSettingsTab(
+  cmsAccess: CmsAccessState,
+  tab: Exclude<CmsSettingsTab, 'general'>,
+) {
+  if (
+    cmsAccess.status === 'ok' &&
+    !getCmsSettingsTabVisibility(cmsAccess.access)[tab]
+  ) {
     throw notFound();
   }
 }

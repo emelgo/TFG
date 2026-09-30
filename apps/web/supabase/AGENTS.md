@@ -9,7 +9,7 @@ Los esquemas declarativos están en `schemas/`, con un prefijo numérico que fij
 - `00`–`18`: plataforma SaaS (esquema `public`).
 - `19-blog.sql`: blog público gestionado desde el CMS (ADR-017). Es el único fichero que concede algo a `anon`: `usage` sobre `public` (tras retirarle cualquier privilegio residual) y lectura de lo publicado; `blog.test.sql` comprueba que no puede leer nada más.
 - El esquema `demo` (datos de ejemplo de una pyme) solo existe en `seed.sql`, nunca en las migraciones. Los metadatos del CMS para las tablas de PymeKit (formatos de visualización, relación virtual de membresías) van en la migración `20260930140100_cms_display_formats.sql`; los de la demo, en el *seed*.
-- `20`–`53`: CMS integrado (esquema `cms`, ADR-011 y ADR-012). La numeración es la del CMS original más 20, con el prefijo `cms-`. `53-cms-super-admin.sql` es el pegamento que convierte al super-admin de la plataforma en raíz del CMS (ADR-014).
+- `20`–`54`: CMS integrado (esquema `cms`, ADR-011 y ADR-012). La numeración es la del CMS original más 20, con el prefijo `cms-`. `53-cms-super-admin.sql` es el pegamento que convierte al super-admin de la plataforma en raíz del CMS (ADR-014). `54-cms-members-hardening.sql` (F2.7a) añade las cuentas raíz protegidas (`is_root_managed_account`) y la guardia de `requires_mfa`.
 - Los tests del CMS se llaman `cms-*.test.sql` y usan los helpers de `00001-cms-test-helpers.sql` (esquema `cms_tests`). PymeKit exige MFA en el CMS por defecto: los tests funcionales lo desactivan explícitamente dentro de su transacción.
 
 ## Skills

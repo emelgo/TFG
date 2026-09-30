@@ -6,6 +6,7 @@
  * cualquier valor ausente o con otro tipo se ignora en lugar de romper el
  * formateo de fechas y números de las tablas.
  */
+import { isValidTimeZone } from '@pymekit/cms-shared/preferences';
 
 /** Preferencias válidas del usuario del CMS. */
 export type CmsPreferences = {
@@ -29,8 +30,11 @@ export function getCmsPreferences(preferences: unknown): CmsPreferences {
       typeof language === 'string' && language.length > 0
         ? language
         : undefined,
+    // Una zona no válida (guardada antes de validarla en la API, o escrita a
+    // mano en la BD) haría fallar cada formateador de fechas: se ignora y se
+    // usa la de por defecto (UTC).
     timezone:
-      typeof timezone === 'string' && timezone.length > 0
+      typeof timezone === 'string' && isValidTimeZone(timezone)
         ? timezone
         : undefined,
   };

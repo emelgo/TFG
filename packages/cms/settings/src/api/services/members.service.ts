@@ -1,428 +1,684 @@
-import { and, desc, eq, inArray, like, sql } from 'drizzle-orm';
-import { Context } from 'hono';
+/**
+ * Servicio de Ajustes > Miembros del CMS (F2.7a).
+ *
+ * Lista las cuentas del personal del CMS, devuelve la ficha de una con lo
+ * que el usuario actual puede hacer con ella, cambia su rol y la activa o
+ * desactiva. Todas las operaciones se ejecutan con el cliente Drizzle de la
+ * petición (transacción con los *claims* del usuario), así que PostgreSQL
+ * aplica las políticas RLS del esquema `cms` y las reglas de rango de
+ * `can_modify_account_role`, `can_action_account` y `set_account_active`.
+ *
+ * El servicio comprueba lo mismo ANTES de escribir para responder con el
+ * motivo exacto (`MEMBER_*`) en lugar de un error genérico; la base de datos
+ * sigue siendo la autoridad:
+ *
+ *  - leer miembros exige `account:select` (la política de `cms.accounts`
+ *    deja verlas a cualquier miembro del personal; la API es más estricta);
+ *  - nadie cambia sus propios roles ni su estado;
+ *  - las cuentas raíz (super-admins de la plataforma, ADR-014) no se tocan;
+ *  - solo se asignan o quitan roles de rango inferior al propio, a cuentas
+ *    de rango inferior.
+ *
+ * El correo de cada miembro sale de `auth.users` (el de verdad, no el que
+ * pueda haber escrito alguien en `metadata`), con el cliente administrador,
+ * solo tras comprobar `auth_user:select` (como el explorador de usuarios) y
+ * solo para las cuentas de la página. La búsqueda por correo exige lo mismo.
+ *
+ * Todo valor del usuario entra en SQL como parámetro enlazado.
+ *
+ * [TFG] RF-09 · RNF-02 · ADR-014.
+ */
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import type { Context } from 'hono';
 
-import { getDrizzleSupabaseAdminClient } from '@pymekit/cms-supabase/client';
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
+import {
+  type DrizzleSupabaseClient,
+  getDrizzleSupabaseAdminClient,
+} from '@pymekit/cms-supabase/client';
 import {
   accountRolesInCms,
   accountsInCms,
   rolesInCms,
 } from '@pymekit/cms-supabase/schema';
 
-/**
- * Creates a MembersService instance.
- */
+import {
+  SettingsError,
+  fromMemberRolesDbError,
+  fromSetAccountActiveCode,
+} from '../utils/settings-errors';
+
+/** Miembros por página del listado. */
+export const MEMBERS_PAGE_SIZE = 10;
+
+/** Crea el servicio de miembros para la petición actual. */
 export function createMembersService(c: Context) {
   return new MembersService(c);
 }
 
-/**
- * @name MembersService
- * @description Service for managing account members and roles
- */
+/** Transacción de Drizzle con los *claims* del usuario. */
+type Tx = Parameters<Parameters<DrizzleSupabaseClient['runTransaction']>[0]>[0];
+
 class MembersService {
   constructor(private readonly context: Context) {}
 
   /**
-   * Get all accounts with their roles
-   * @param props - The properties for the query
-   * @param props.page - The page number
-   * @param props.limit - The number of members to return
-   * @param props.search - The search query
-   * @returns The members with their roles and pagination metadata
+   * Devuelve una página de miembros (más recientes primero) con su rol, su
+   * estado y si su cuenta es raíz. `search` busca en el nombre visible y, si
+   * el lector puede ver correos, también en el correo.
+   *
+   * @throws `SettingsError` `MEMBER_PERMISSION_DENIED` sin `account:select`.
    */
-  async getMembers(props: { page: number; limit: number; search?: string }) {
+  async getMembers(params: { page: number; search?: string }) {
     const client = this.context.get('drizzle');
-    const adminClient = getDrizzleSupabaseAdminClient();
+    const search = params.search?.trim() ?? '';
 
-    return client.runTransaction(async (tx) => {
-      const conditions = props.search
-        ? like(
-            sql`CONCAT(
-            COALESCE(${accountsInCms.metadata}->>'display_name', ''),
-            ' ',
-            COALESCE(${accountsInCms.metadata}->>'email', '')
-          )`,
-            `%${props.search}%`,
-          )
-        : undefined;
+    const result = await client.runTransaction(async (tx) => {
+      const access = await readAccess(tx);
 
-      // Build the base query for counting total records
-      const totalCountQuery = tx
-        .select({ count: sql`count(*)` })
-        .from(accountsInCms)
-        .where(conditions);
-
-      // Get total count
-      const totalCountResult = await totalCountQuery;
-      const total = Number(totalCountResult[0]?.count) || 0;
-
-      // Calculate pagination metadata
-      const pageSize = props.limit;
-      const pageIndex = props.page - 1; // Convert to 0-based index
-      const pageCount = Math.ceil(total / pageSize);
-
-      // Query accounts with their roles
-      const accountsWithRolesQuery = tx
-        .select({
-          account: {
-            id: accountsInCms.id,
-            authUserId: accountsInCms.authUserId,
-            createdAt: accountsInCms.createdAt,
-            updatedAt: accountsInCms.updatedAt,
-            metadata: accountsInCms.metadata,
-            isActive: accountsInCms.isActive,
-          },
-        })
-        .from(accountsInCms)
-        .orderBy(desc(accountsInCms.createdAt))
-        .limit(props.limit)
-        .offset((props.page - 1) * props.limit);
-
-      if (props.search) {
-        accountsWithRolesQuery.where(
-          like(
-            sql`CONCAT(
-              COALESCE(${accountsInCms.metadata}->>'display_name', ''),
-              ' ',
-              COALESCE(${accountsInCms.metadata}->>'email', '')
-            )`,
-            `%${props.search}%`,
-          ),
-        );
+      if (!access.canReadMembers) {
+        return { denied: true as const };
       }
 
-      const accountsWithRoles = await accountsWithRolesQuery;
+      const pattern = search ? `%${escapeLike(search)}%` : null;
 
-      // Reading auth.users goes through the RLS-bypassing admin client, so it
-      // must be gated by the same auth_user:select permission the users-explorer
-      // enforces — otherwise an admin without that grant could enumerate emails.
-      const canReadAuthUsers = await this.hasAuthUserReadPermission(tx);
+      // El correo vive en `auth.users`, que `authenticated` no puede leer:
+      // se buscan antes los ids de usuario cuyo correo coincide, con el
+      // cliente administrador y solo si el lector puede ver correos.
+      const authUserIdsByEmail =
+        pattern && access.canReadEmails
+          ? await findAuthUserIdsByEmail(pattern)
+          : [];
 
-      // For each account, get their roles
-      const data = await Promise.all(
-        accountsWithRoles.map(async ({ account }) => {
-          const userRoles = await tx
-            .select({
-              role: {
+      const where = pattern
+        ? sql`(
+            coalesce(${accountsInCms.metadata} ->> 'display_name', '') ilike ${pattern}
+            or coalesce(${accountsInCms.metadata} ->> 'username', '') ilike ${pattern}
+            ${
+              authUserIdsByEmail.length > 0
+                ? sql`or ${inArray(accountsInCms.authUserId, authUserIdsByEmail)}`
+                : sql``
+            }
+          )`
+        : undefined;
+
+      const [countRow] = await tx
+        .select({ total: sql<number>`count(*)::int` })
+        .from(accountsInCms)
+        .where(where);
+
+      const rows = await tx
+        .select({
+          id: accountsInCms.id,
+          authUserId: accountsInCms.authUserId,
+          createdAt: accountsInCms.createdAt,
+          isActive: accountsInCms.isActive,
+          metadata: accountsInCms.metadata,
+          roleId: rolesInCms.id,
+          roleName: rolesInCms.name,
+          roleRank: rolesInCms.rank,
+          isProtected: sql<boolean>`cms.is_root_managed_account(${accountsInCms.id})`,
+        })
+        .from(accountsInCms)
+        .leftJoin(
+          accountRolesInCms,
+          eq(accountRolesInCms.accountId, accountsInCms.id),
+        )
+        .leftJoin(rolesInCms, eq(rolesInCms.id, accountRolesInCms.roleId))
+        .where(where)
+        .orderBy(desc(accountsInCms.createdAt), asc(accountsInCms.id))
+        .limit(MEMBERS_PAGE_SIZE)
+        .offset((params.page - 1) * MEMBERS_PAGE_SIZE);
+
+      return {
+        denied: false as const,
+        canReadEmails: access.canReadEmails,
+        total: countRow?.total ?? 0,
+        rows,
+      };
+    });
+
+    if (result.denied) {
+      throw new SettingsError(
+        CMS_API_ERROR_CODES.MEMBER_PERMISSION_DENIED,
+        'Missing account:select permission',
+      );
+    }
+
+    const emails = result.canReadEmails
+      ? await readEmails(result.rows.map((row) => row.authUserId))
+      : new Map<string, string | null>();
+
+    return {
+      members: result.rows.map((row) => ({
+        id: row.id,
+        authUserId: row.authUserId,
+        createdAt: row.createdAt,
+        isActive: row.isActive,
+        isProtected: row.isProtected === true,
+        displayName: getDisplayName(row.metadata),
+        email: emails.get(row.authUserId) ?? null,
+        role: row.roleId
+          ? { id: row.roleId, name: row.roleName ?? '', rank: row.roleRank }
+          : null,
+      })),
+      page: params.page,
+      pageSize: MEMBERS_PAGE_SIZE,
+      pageCount: Math.ceil(result.total / MEMBERS_PAGE_SIZE),
+      total: result.total,
+    };
+  }
+
+  /**
+   * Devuelve la ficha de un miembro: cuenta, rol, correo, qué puede hacer el
+   * usuario actual con ella (`access`) y los roles que podría asignarle
+   * (rango inferior al suyo).
+   *
+   * @throws `SettingsError` `MEMBER_PERMISSION_DENIED` sin `account:select`
+   *   y `MEMBER_NOT_FOUND` si la cuenta no existe.
+   */
+  async getMemberDetails(id: string) {
+    const client = this.context.get('drizzle');
+
+    const result = await client.runTransaction(async (tx) => {
+      const access = await readAccess(tx);
+
+      if (!access.canReadMembers) {
+        return { status: 'denied' as const };
+      }
+
+      const [member] = await tx
+        .select({
+          id: accountsInCms.id,
+          authUserId: accountsInCms.authUserId,
+          createdAt: accountsInCms.createdAt,
+          updatedAt: accountsInCms.updatedAt,
+          isActive: accountsInCms.isActive,
+          metadata: accountsInCms.metadata,
+          roleId: rolesInCms.id,
+          roleName: rolesInCms.name,
+          roleDescription: rolesInCms.description,
+          roleRank: rolesInCms.rank,
+          assignedAt: accountRolesInCms.assignedAt,
+        })
+        .from(accountsInCms)
+        .leftJoin(
+          accountRolesInCms,
+          eq(accountRolesInCms.accountId, accountsInCms.id),
+        )
+        .leftJoin(rolesInCms, eq(rolesInCms.id, accountRolesInCms.roleId))
+        .where(eq(accountsInCms.id, id))
+        .limit(1);
+
+      if (!member) {
+        return { status: 'not_found' as const };
+      }
+
+      const target = await readTargetAccess(tx, id);
+
+      // Roles asignables: estrictamente por debajo del rango propio, la
+      // misma regla que `can_modify_account_role` (RULE 1).
+      const assignableRoles =
+        target.actorRank === null
+          ? []
+          : await tx
+              .select({
                 id: rolesInCms.id,
                 name: rolesInCms.name,
                 description: rolesInCms.description,
                 rank: rolesInCms.rank,
-              },
-              assignedAt: accountRolesInCms.assignedAt,
-            })
-            .from(accountRolesInCms)
-            .innerJoin(rolesInCms, eq(accountRolesInCms.roleId, rolesInCms.id))
-            .where(eq(accountRolesInCms.accountId, account.id));
-
-          // Get user profile data from metadata
-          const metadata = (account.metadata as Record<string, unknown>) || {};
-          let displayName = metadata['display_name'];
-
-          const pictureUrl = (metadata['picture_url'] || null) as string | null;
-          const email = (metadata['email'] || null) as string | null;
-
-          if (!displayName) {
-            if (canReadAuthUsers) {
-              const users = await adminClient.execute(
-                sql`SELECT id, email FROM auth.users WHERE id = ${account.authUserId}`,
-              );
-
-              const user = users[0] as {
-                email: string;
-              };
-
-              displayName = user ? user.email : '-';
-            } else {
-              displayName = '-';
-            }
-          }
-
-          return {
-            account,
-            displayName,
-            email,
-            pictureUrl,
-            roles: userRoles,
-            highestRoleRank: userRoles.length
-              ? Math.max(...userRoles.map((r) => r.role.rank || 0))
-              : 0,
-          };
-        }),
-      );
+              })
+              .from(rolesInCms)
+              .where(sql`${rolesInCms.rank} < ${target.actorRank}`)
+              .orderBy(desc(rolesInCms.rank));
 
       return {
-        data,
-        pageSize,
-        pageIndex,
-        pageCount,
-        total,
+        status: 'ok' as const,
+        access,
+        canReadEmails: access.canReadEmails,
+        member,
+        target,
+        assignableRoles,
       };
     });
-  }
 
-  /**
-   * Get member details
-   * @param id - The member ID
-   * @returns The member details
-   */
-  async getMemberDetails(id: string) {
-    const client = this.context.get('drizzle');
-    const adminClient = getDrizzleSupabaseAdminClient();
-
-    return client.runTransaction(async (tx) => {
-      // First, get the account details
-      const account = await tx
-        .select()
-        .from(accountsInCms)
-        .where(eq(accountsInCms.id, id))
-        .limit(1)
-        .then((res) => res[0]);
-
-      if (!account) {
-        throw new Error('Member not found');
-      }
-
-      // Get user details from auth — gated by auth_user:select since this uses
-      // the RLS-bypassing admin client. Project only the columns we expose
-      // (never SELECT *, which would pull password hashes / recovery tokens).
-      const canReadAuthUsers = await this.hasAuthUserReadPermission(tx);
-
-      const authUser = canReadAuthUsers
-        ? (
-            await adminClient.execute(
-              sql`SELECT id, email FROM auth.users WHERE id = ${account.authUserId}`,
-            )
-          )[0]
-        : undefined;
-
-      // Get roles assigned to the account
-      const accountRoles = await tx
-        .select({
-          id: rolesInCms.id,
-          name: rolesInCms.name,
-          description: rolesInCms.description,
-          rank: rolesInCms.rank,
-          validFrom: accountRolesInCms.validFrom,
-          validUntil: accountRolesInCms.validUntil,
-          assignedAt: accountRolesInCms.assignedAt,
-          assignedBy: accountRolesInCms.assignedBy,
-          updatedAt: rolesInCms.updatedAt,
-          createdAt: rolesInCms.createdAt,
-          metadata: rolesInCms.metadata,
-        })
-        .from(accountRolesInCms)
-        .innerJoin(rolesInCms, eq(accountRolesInCms.roleId, rolesInCms.id))
-        .where(eq(accountRolesInCms.accountId, id));
-
-      return {
-        account,
-        roles: accountRoles,
-        user: {
-          id: authUser ? authUser['id'] : account.authUserId,
-          email: authUser ? authUser['email'] : null,
-        },
-      };
-    });
-  }
-
-  /**
-   * Whether the current user holds the auth_user:select permission, required
-   * before reading auth.users through the RLS-bypassing admin client.
-   */
-  private async hasAuthUserReadPermission(tx: {
-    execute: (
-      query: ReturnType<typeof sql>,
-    ) => Promise<Record<string, unknown>[]>;
-  }) {
-    const result = await tx.execute(
-      sql`select cms.has_admin_permission('auth_user'::cms.system_resource, 'select'::cms.system_action) as can_read`,
-    );
-
-    return result[0]?.['can_read'] === true;
-  }
-
-  /**
-   * Update a member's role
-   * @param params - The parameters for the update
-   * @param params.accountId - The account ID
-   * @param params.roleId - The role ID
-   * @returns The updated role
-   */
-  async updateMemberRole(params: { accountId: string; roleId: string }) {
-    const client = this.context.get('drizzle');
-
-    return client.runTransaction(async (tx) => {
-      // Check if the role assignment already exists
-      const existingRole = await tx
-        .select()
-        .from(accountRolesInCms)
-        .where(
-          and(
-            eq(accountRolesInCms.accountId, params.accountId),
-            eq(accountRolesInCms.roleId, params.roleId),
-          ),
-        )
-        .limit(1);
-
-      // If the role is already assigned, return it
-      if (existingRole.length > 0) {
-        return existingRole[0];
-      }
-
-      // Upsert the new role assignment
-      return tx
-        .insert(accountRolesInCms)
-        .values({
-          accountId: params.accountId,
-          roleId: params.roleId,
-          assignedAt: new Date().toISOString(),
-          validFrom: new Date().toISOString(),
-        })
-        .onConflictDoUpdate({
-          target: accountRolesInCms.accountId,
-          set: {
-            roleId: params.roleId,
-            assignedAt: new Date().toISOString(),
-            validFrom: new Date().toISOString(),
-          },
-        })
-        .returning();
-    });
-  }
-
-  /**
-   * Update member roles with batch operations
-   * @param memberId - The member account ID
-   * @param updates - The roles to add and remove
-   * @returns The success status
-   */
-  async updateMemberRoles(
-    memberId: string,
-    updates: {
-      rolesToAdd: string[];
-      rolesToRemove: string[];
-    },
-  ) {
-    const { rolesToAdd, rolesToRemove } = updates;
-    const client = this.context.get('drizzle');
-
-    return client.runTransaction(async (tx) => {
-      // Add new roles
-      if (rolesToAdd.length > 0) {
-        const values = rolesToAdd.map((roleId) => ({
-          accountId: memberId,
-          roleId,
-          assignedAt: new Date().toISOString(),
-        }));
-
-        await tx.insert(accountRolesInCms).values(values).onConflictDoNothing(); // Skip if already exists
-      }
-
-      // Remove roles
-      if (rolesToRemove.length > 0) {
-        await tx
-          .delete(accountRolesInCms)
-          .where(
-            and(
-              eq(accountRolesInCms.accountId, memberId),
-              inArray(accountRolesInCms.roleId, rolesToRemove),
-            ),
-          );
-      }
-    });
-  }
-
-  /**
-   * Deactivate a member
-   * @param id - The member ID
-   * @returns The success status
-   */
-  async deactivateMember(id: string) {
-    return this.setMemberActive(id, false);
-  }
-
-  /**
-   * Activate a member
-   * @param id - The member ID
-   * @returns The success status
-   */
-  async activateMember(id: string) {
-    return this.setMemberActive(id, true);
-  }
-
-  /**
-   * Update a member's account
-   * @param id - The member ID
-   * @param data - The account data to update
-   * @returns The success status
-   */
-  async updateAccount(
-    id: string,
-    data: { displayName: string; email: string },
-  ) {
-    const client = this.context.get('drizzle');
-
-    return client.runTransaction(async (tx) => {
-      await tx
-        .update(accountsInCms)
-        .set({
-          metadata: {
-            display_name: data.displayName,
-            email: data.email,
-          },
-        })
-        .where(eq(accountsInCms.id, id));
-    });
-  }
-  /**
-   * Get account by auth user ID
-   * @param authUserId - The auth user ID
-   * @returns The account details
-   */
-  async getAccountByAuthId(authUserId: string) {
-    const client = this.context.get('drizzle');
-
-    return client.runTransaction(async (tx) => {
-      return await tx
-        .select()
-        .from(accountsInCms)
-        .where(eq(accountsInCms.authUserId, authUserId))
-        .limit(1)
-        .then((res) => res[0]);
-    });
-  }
-
-  /**
-   * Set a member's active status
-   *
-   * Runs on the RLS-scoped client rather than the admin pool: the admin connection
-   * carries no JWT, so the rank check could not be re-evaluated at write time and the
-   * audit row landed with a NULL actor. cms.set_account_active enforces the rank
-   * check and clears the admin claim in the same transaction as the write.
-   *
-   * @param id - The member ID
-   * @param isActive - The desired active status
-   */
-  private async setMemberActive(id: string, isActive: boolean) {
-    const client = this.context.get('drizzle');
-
-    const result = await client.runTransaction(async (tx) => {
-      return tx.execute(
-        sql`select cms.set_account_active(${id}, ${isActive}) as result`,
-      );
-    });
-
-    const outcome = result[0]?.['result'] as
-      | { success: boolean; error?: string }
-      | undefined;
-
-    if (!outcome?.success) {
-      throw new Error(
-        outcome?.error ?? 'You are not authorized to update this member',
+    if (result.status === 'denied') {
+      throw new SettingsError(
+        CMS_API_ERROR_CODES.MEMBER_PERMISSION_DENIED,
+        'Missing account:select permission',
       );
     }
 
-    return outcome;
+    if (result.status === 'not_found') {
+      throw new SettingsError(
+        CMS_API_ERROR_CODES.MEMBER_NOT_FOUND,
+        `Member ${id} not found`,
+      );
+    }
+
+    const { member, target } = result;
+
+    const emails = result.canReadEmails
+      ? await readEmails([member.authUserId])
+      : new Map<string, string | null>();
+
+    const { access } = result;
+    const blocked = target.isSelf || target.isProtected;
+    const outranks =
+      target.actorRank !== null && target.actorRank > target.targetRank;
+
+    return {
+      member: {
+        id: member.id,
+        authUserId: member.authUserId,
+        createdAt: member.createdAt,
+        updatedAt: member.updatedAt,
+        isActive: member.isActive,
+        displayName: getDisplayName(member.metadata),
+        email: emails.get(member.authUserId) ?? null,
+        role: member.roleId
+          ? {
+              id: member.roleId,
+              name: member.roleName ?? '',
+              description: member.roleDescription,
+              rank: member.roleRank,
+              assignedAt: member.assignedAt,
+            }
+          : null,
+      },
+      access: {
+        isSelf: target.isSelf,
+        isProtected: target.isProtected,
+        canChangeStatus: !blocked && target.canActionAccount,
+        // Los mismos requisitos que `checkRoleChange`: asignar exige
+        // `role:insert` (y `role:delete` si hay que quitar el rol actual) y
+        // una cuenta activa; quitar el rol exige `role:delete`.
+        canAssignRole:
+          !blocked &&
+          outranks &&
+          member.isActive &&
+          access.canInsertRoles &&
+          (!member.roleId || access.canDeleteRoles),
+        canRemoveRole:
+          !blocked &&
+          outranks &&
+          Boolean(member.roleId) &&
+          access.canDeleteRoles,
+      },
+      assignableRoles: result.assignableRoles,
+    };
   }
+
+  /**
+   * Cambia el rol de un miembro: quita `rolesToRemove` y asigna
+   * `rolesToAdd` en UNA transacción (si falla cualquier paso, no cambia
+   * nada). Una cuenta solo tiene un rol (`unique (account_id)`), así que
+   * «cambiar de rol» es quitar el actual y asignar el nuevo.
+   *
+   * @throws `SettingsError` con el motivo (`MEMBER_*`).
+   */
+  async updateMemberRoles(
+    id: string,
+    changes: { rolesToAdd: string[]; rolesToRemove: string[] },
+  ) {
+    const client = this.context.get('drizzle');
+
+    // Los rechazos esperados (permiso, rango, uno mismo…) se devuelven desde
+    // la transacción y se lanzan fuera, como en el registro de auditoría: el
+    // cliente Drizzle registra como fallo cualquier error lanzado dentro. Se
+    // comprueban ANTES de escribir nada, así que no hay nada que deshacer; si
+    // una escritura falla después (RLS, carrera), sí se lanza dentro y la
+    // transacción se revierte entera.
+    const rejection = await client.runTransaction(async (tx) => {
+      const rejected = await checkRoleChange(tx, id, changes);
+
+      if (rejected) {
+        return rejected;
+      }
+
+      const actorAccountId = (await readTargetAccess(tx, id)).actorAccountId;
+
+      try {
+        if (changes.rolesToRemove.length > 0) {
+          const removed = await tx
+            .delete(accountRolesInCms)
+            .where(
+              and(
+                eq(accountRolesInCms.accountId, id),
+                inArray(accountRolesInCms.roleId, changes.rolesToRemove),
+              ),
+            )
+            .returning({ roleId: accountRolesInCms.roleId });
+
+          // RLS filtra en silencio las filas que no deja borrar: si faltan,
+          // la base de datos lo ha rechazado.
+          if (removed.length !== changes.rolesToRemove.length) {
+            throw new SettingsError(
+              CMS_API_ERROR_CODES.MEMBER_RANK_DENIED,
+              'RLS filtered the role removal',
+            );
+          }
+        }
+
+        if (changes.rolesToAdd.length > 0) {
+          await tx.insert(accountRolesInCms).values(
+            changes.rolesToAdd.map((roleId) => ({
+              accountId: id,
+              roleId,
+              assignedBy: actorAccountId,
+            })),
+          );
+        }
+      } catch (error) {
+        throw fromMemberRolesDbError(error) ?? error;
+      }
+
+      return null;
+    });
+
+    if (rejection) {
+      throw rejection;
+    }
+  }
+
+  /**
+   * Activa o desactiva la cuenta de un miembro con `cms.set_account_active`,
+   * que aplica las reglas de rango, retira o devuelve el claim `cms_access`
+   * y deja la entrada de auditoría a nombre de quien actúa.
+   *
+   * @throws `SettingsError` con el motivo (`MEMBER_*`).
+   */
+  async setMemberActive(id: string, isActive: boolean) {
+    const client = this.context.get('drizzle');
+
+    const rows = await client.runTransaction(async (tx) =>
+      tx.execute(
+        sql`select cms.set_account_active(${id}::uuid, ${isActive}) as result`,
+      ),
+    );
+
+    const outcome = rows[0]?.['result'] as
+      | { success?: boolean; error?: string }
+      | undefined;
+
+    if (!outcome?.success) {
+      throw fromSetAccountActiveCode(outcome?.error);
+    }
+  }
+}
+
+/** Permisos del usuario actual relevantes para los miembros. */
+async function readAccess(tx: Tx) {
+  const [row] = (await tx.execute(sql`
+    select
+      cms.has_admin_permission('account'::cms.system_resource, 'select'::cms.system_action) as can_read_members,
+      -- Los correos salen de auth.users con el cliente administrador: se
+      -- exige el mismo permiso que el explorador de usuarios, no basta con
+      -- ver las cuentas del CMS.
+      cms.has_admin_permission('auth_user'::cms.system_resource, 'select'::cms.system_action) as can_read_emails,
+      cms.has_admin_permission('role'::cms.system_resource, 'insert'::cms.system_action) as can_insert_roles,
+      cms.has_admin_permission('role'::cms.system_resource, 'delete'::cms.system_action) as can_delete_roles
+  `)) as Array<{
+    can_read_members: boolean | null;
+    can_read_emails: boolean | null;
+    can_insert_roles: boolean | null;
+    can_delete_roles: boolean | null;
+  }>;
+
+  return {
+    canReadMembers: row?.can_read_members === true,
+    canReadEmails: row?.can_read_emails === true,
+    canInsertRoles: row?.can_insert_roles === true,
+    canDeleteRoles: row?.can_delete_roles === true,
+  };
+}
+
+/**
+ * Relación entre el usuario actual y la cuenta destino: si existe, si es
+ * la propia, si es raíz, los rangos de ambos y si las funciones SQL le
+ * dejarían actuar sobre ella.
+ */
+async function readTargetAccess(tx: Tx, id: string) {
+  const [row] = (await tx.execute(sql`
+    select
+      exists (select 1 from cms.accounts where id = ${id}::uuid) as exists,
+      coalesce((select is_active from cms.accounts where id = ${id}::uuid), false) as is_active,
+      cms.get_current_user_account_id() as actor_account_id,
+      cms.get_current_user_account_id() = ${id}::uuid as is_self,
+      cms.is_root_managed_account(${id}::uuid) as is_protected,
+      cms.get_user_max_role_rank(cms.get_current_user_account_id()) as actor_rank,
+      coalesce(cms.get_user_max_role_rank(${id}::uuid), 0) as target_rank,
+      cms.can_action_account(${id}::uuid, 'update'::cms.system_action) as can_action_account,
+      (
+        cms.has_admin_permission('role'::cms.system_resource, 'insert'::cms.system_action)
+        or cms.has_admin_permission('role'::cms.system_resource, 'delete'::cms.system_action)
+      ) as can_manage_roles
+  `)) as Array<{
+    exists: boolean;
+    is_active: boolean;
+    actor_account_id: string | null;
+    is_self: boolean | null;
+    is_protected: boolean | null;
+    actor_rank: number | null;
+    target_rank: number;
+    can_action_account: boolean | null;
+    can_manage_roles: boolean | null;
+  }>;
+
+  return {
+    exists: row?.exists === true,
+    isActive: row?.is_active === true,
+    actorAccountId: row?.actor_account_id ?? null,
+    isSelf: row?.is_self === true,
+    isProtected: row?.is_protected === true,
+    actorRank: row?.actor_rank ?? null,
+    targetRank: row?.target_rank ?? 0,
+    canActionAccount: row?.can_action_account === true,
+    canManageRoles: row?.can_manage_roles === true,
+  };
+}
+
+/**
+ * Comprueba un cambio de rol sin escribir nada y devuelve el motivo del
+ * rechazo (o `null` si se puede hacer): permisos de rol, que la cuenta
+ * exista y no sea la propia ni raíz, que el cambio sea coherente (una
+ * cuenta tiene como mucho un rol) y los rangos de `can_modify_account_role`.
+ */
+async function checkRoleChange(
+  tx: Tx,
+  id: string,
+  changes: { rolesToAdd: string[]; rolesToRemove: string[] },
+) {
+  const access = await readAccess(tx);
+
+  if (
+    (changes.rolesToAdd.length > 0 && !access.canInsertRoles) ||
+    (changes.rolesToRemove.length > 0 && !access.canDeleteRoles)
+  ) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_PERMISSION_DENIED,
+      'Missing role permission',
+    );
+  }
+
+  // Bloquea la cuenta destino hasta el final de la transacción: nadie puede
+  // desactivarla entre la comprobación de `is_active` y la asignación.
+  await tx.execute(
+    sql`select 1 from cms.accounts where id = ${id}::uuid for update`,
+  );
+
+  const target = await readTargetAccess(tx, id);
+
+  if (!target.exists) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_NOT_FOUND,
+      `Member ${id} not found`,
+    );
+  }
+
+  if (target.isSelf) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_SELF_ACTION,
+      'Cannot change own roles',
+    );
+  }
+
+  if (target.isProtected) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_PROTECTED,
+      'Root account roles are managed by the platform',
+    );
+  }
+
+  const current = await tx
+    .select({ roleId: accountRolesInCms.roleId })
+    .from(accountRolesInCms)
+    .where(eq(accountRolesInCms.accountId, id));
+
+  const currentIds = new Set(current.map((row) => row.roleId));
+  const remaining = [...currentIds].filter(
+    (roleId) => !changes.rolesToRemove.includes(roleId),
+  );
+
+  // Quitar un rol que no tiene, o asignar uno sin quitar el actual.
+  if (
+    changes.rolesToRemove.some((roleId) => !currentIds.has(roleId)) ||
+    (changes.rolesToAdd.length > 0 && remaining.length > 0)
+  ) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_INVALID_DATA,
+      'Invalid role change',
+    );
+  }
+
+  if (changes.rolesToAdd.length > 0 && !target.isActive) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_INACTIVE,
+      'Cannot assign roles to an inactive member',
+    );
+  }
+
+  for (const roleId of changes.rolesToRemove) {
+    const rejected = await checkRoleRank(tx, id, roleId, 'delete');
+
+    if (rejected) {
+      return rejected;
+    }
+  }
+
+  for (const roleId of changes.rolesToAdd) {
+    const rejected = await checkRoleRank(tx, id, roleId, 'insert');
+
+    if (rejected) {
+      return rejected;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Devuelve el rechazo si `cms.can_modify_account_role` no permite quitar o asignar ese rol
+ * a esa cuenta (rango del rol y de la cuenta). Es la misma función que usa
+ * la política RLS de `cms.account_roles`.
+ */
+async function checkRoleRank(
+  tx: Tx,
+  accountId: string,
+  roleId: string,
+  action: 'insert' | 'delete',
+) {
+  const [row] = (await tx.execute(sql`
+    select
+      exists (select 1 from cms.roles where id = ${roleId}::uuid) as role_exists,
+      cms.can_modify_account_role(
+        cms.get_current_user_account_id(),
+        ${accountId}::uuid,
+        ${roleId}::uuid,
+        ${action}::cms.system_action
+      ) as allowed
+  `)) as Array<{ role_exists: boolean; allowed: boolean | null }>;
+
+  if (!row?.role_exists) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_INVALID_DATA,
+      `Role ${roleId} does not exist`,
+    );
+  }
+
+  if (row.allowed !== true) {
+    return new SettingsError(
+      CMS_API_ERROR_CODES.MEMBER_RANK_DENIED,
+      `Cannot ${action} role ${roleId} for ${accountId}`,
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Ids de usuario de Auth del PERSONAL del CMS cuyo correo coincide con el
+ * patrón (ya escapado). Se cruza con `cms.accounts` antes de filtrar: con un
+ * límite sobre todos los usuarios de la plataforma (clientes incluidos), un
+ * fragmento común como `.com` dejaba fuera a miembros al azar. Usa el
+ * cliente administrador: solo se llama tras comprobar que el lector puede
+ * ver correos y solo devuelve ids.
+ */
+async function findAuthUserIdsByEmail(pattern: string) {
+  const rows = (await getDrizzleSupabaseAdminClient().execute(
+    sql`select a.auth_user_id::text as id
+        from cms.accounts a
+        join auth.users u on u.id = a.auth_user_id
+        where u.email ilike ${pattern}`,
+  )) as unknown as Array<{ id: string }>;
+
+  return rows.map((row) => row.id);
+}
+
+/**
+ * Correos de Auth de los usuarios indicados (solo `id` y `email`, nunca
+ * `select *`, que traería los *hashes* de las contraseñas; bitácora B-38).
+ */
+async function readEmails(authUserIds: string[]) {
+  const ids = [...new Set(authUserIds)];
+
+  if (ids.length === 0) {
+    return new Map<string, string | null>();
+  }
+
+  const rows = (await getDrizzleSupabaseAdminClient().execute(
+    sql`select id::text as id, email from auth.users where id in (${sql.join(
+      ids.map((userId) => sql`${userId}::uuid`),
+      sql`, `,
+    )})`,
+  )) as unknown as Array<{ id: string; email: string | null }>;
+
+  return new Map(rows.map((row) => [row.id, row.email]));
+}
+
+/** Nombre visible guardado en `metadata` (`display_name` o `username`). */
+function getDisplayName(metadata: unknown) {
+  if (!metadata || typeof metadata !== 'object') {
+    return null;
+  }
+
+  const { display_name: displayName, username } = metadata as Record<
+    string,
+    unknown
+  >;
+
+  if (typeof displayName === 'string' && displayName.trim()) {
+    return displayName.trim();
+  }
+
+  if (typeof username === 'string' && username.trim()) {
+    return username.trim();
+  }
+
+  return null;
+}
+
+/** Escapa los comodines de `LIKE` (`%`, `_` y la barra invertida). */
+export function escapeLike(value: string) {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }

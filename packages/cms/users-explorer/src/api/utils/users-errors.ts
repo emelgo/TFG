@@ -139,38 +139,43 @@ export function fromAuthAdminError(
 
 /**
  * Traduce el `{ success: false, error }` de `cms.grant_admin_access` o
- * `cms.revoke_admin_access`. Esas funciones escriben mensajes fijos para los
- * rechazos esperados y el `SQLERRM` de PostgreSQL para el resto: se
- * reconocen los fijos y todo lo demás es un fallo interno sin detalles.
+ * `cms.revoke_admin_access`. Desde la F2.7a esas funciones devuelven SIEMPRE
+ * un código estable en `error` (nunca `SQLERRM`; ver
+ * `51-cms-admin-access.sql`); cualquier valor desconocido es un fallo
+ * interno sin detalles.
  */
-export function fromAdminAccessFailure(message: string | undefined) {
-  const text = message ?? '';
+export function fromAdminAccessFailure(code: string | undefined) {
+  const detail = `Admin access function rejected: ${code ?? 'none'}`;
 
-  if (/user not found/i.test(text)) {
-    return new UsersExplorerError(
-      CMS_API_ERROR_CODES.AUTH_USER_NOT_FOUND,
-      text,
-    );
+  switch (code) {
+    case 'USER_NOT_FOUND':
+      return new UsersExplorerError(
+        CMS_API_ERROR_CODES.AUTH_USER_NOT_FOUND,
+        detail,
+      );
+    case 'SELF_ACTION':
+      return new UsersExplorerError(
+        CMS_API_ERROR_CODES.AUTH_USER_SELF_ACTION,
+        detail,
+      );
+    case 'PROTECTED':
+      return new UsersExplorerError(
+        CMS_API_ERROR_CODES.AUTH_USER_PROTECTED,
+        detail,
+      );
+    case 'NOT_AUTHENTICATED':
+    case 'PERMISSION_DENIED':
+    case 'RANK_DENIED':
+      return new UsersExplorerError(
+        CMS_API_ERROR_CODES.AUTH_USER_PERMISSION_DENIED,
+        detail,
+      );
+    default:
+      return new UsersExplorerError(
+        CMS_API_ERROR_CODES.AUTH_USER_ACTION_FAILED,
+        detail,
+      );
   }
-
-  if (/yourself/i.test(text)) {
-    return new UsersExplorerError(
-      CMS_API_ERROR_CODES.AUTH_USER_SELF_ACTION,
-      text,
-    );
-  }
-
-  if (/insufficient permissions|rank|not authenticated/i.test(text)) {
-    return new UsersExplorerError(
-      CMS_API_ERROR_CODES.AUTH_USER_PERMISSION_DENIED,
-      text,
-    );
-  }
-
-  return new UsersExplorerError(
-    CMS_API_ERROR_CODES.AUTH_USER_ACTION_FAILED,
-    text,
-  );
 }
 
 /**

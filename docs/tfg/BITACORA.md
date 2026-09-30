@@ -55,6 +55,10 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-38 | 2026-09-30 | F2.6b | seguridad | heredado | El listado cargaba `auth.users` completo (con hashes) en memoria | Media |
 | B-39 | 2026-09-30 | F2.6b | seguridad | entorno | Privilegios por defecto de `supabase_admin` y el acceso anónimo a `public` | Media (latente) |
 | B-40 | 2026-09-30 | F2 | calidad | propio | El control de marca no revisaba los nombres de ficheros y carpetas | Media |
+| B-41 | 2026-09-30 | F2.7a | seguridad | heredado | La auditoría perdía al autor al borrar un miembro y se saltaba si fallaba | Media |
+| B-42 | 2026-09-30 | F2.7a | seguridad | heredado | Un miembro podía cambiar sus propios roles | Alta |
+| B-43 | 2026-09-30 | F2.7a | seguridad | heredado | Rutas de Ajustes con errores internos, 500 y comprobaciones insuficientes | Media |
+| B-44 | 2026-09-30 | F2.7a | seguridad | heredado | Cualquiera con permiso de ajustes podía desactivar el MFA obligatorio | Media |
 
 ---
 
@@ -299,3 +303,26 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Cómo se detectó:** **revisión del autor**.
 - **Solución:** renombrar ya a `src/pymekit/`, `pymekit.css` y `00000-pymekit-helpers.sql` (esquema de helpers `pymekit.*` en los 62 ficheros de pgTAP). `check-branding` comprueba ahora también las rutas, y lo hace de forma bloqueante incluso en el modo `--scope-only` que usa la CI.
 - **Lección:** un control automático solo cubre lo que se le ha dicho que mire. Cuando un criterio es «que no se vea la marca», hay que pensar en **todos** los lugares donde se ve: contenido, nombres de ficheros, rutas de import, identificadores de la BD, URLs y textos de la interfaz. Además, dejar una deuda «para más adelante» hace que se reproduzca: los agentes siguen el patrón que encuentran.
+
+## B-41 · La auditoría perdía al autor al borrar un miembro y se saltaba si fallaba
+- **Qué pasó:** las entradas de auditoría enlazaban al autor con claves ajenas `ON DELETE SET NULL`, así que al borrar a un miembro desaparecía quién hizo qué. Además, las funciones CRUD del CMS dejaban completar la escritura aunque fallara la entrada de auditoría (fallo en abierto, pendiente de ADR-015).
+- **Solución:** instantánea del autor rellenada por *trigger* (ADR-018). Los fallos de auditoría se relanzan como SQLSTATE `PKA01`, se deshace la escritura y la API responde `RECORD_WRITE_FAILED`.
+- **Evidencia:** `cms-members-hardening.test.sql` (64 tests).
+
+## B-42 · Un miembro podía cambiar sus propios roles
+- **Qué pasó:** el SQL heredado permitía a un miembro modificar sus propios roles de rango inferior al suyo. Las cuentas raíz (rol Root o super-admin de la plataforma, ADR-014) no tenían una protección explícita frente a desactivación o cambio de rol desde el CMS.
+- **Solución:** se prohíbe actuar sobre uno mismo. La nueva `cms.is_root_managed_account` se comprueba en `can_action_account`, `can_modify_account_role` y `set_account_active`. Las comprobaciones de rango, que ya eran correctas, quedan demostradas con tests.
+
+## B-43 · Rutas de Ajustes con errores internos, 500 y comprobaciones insuficientes
+- **Qué pasó:**
+  - las rutas heredadas de Ajustes devolvían errores en bruto y 500;
+  - el listado de miembros solo exigía acceso al CMS;
+  - `grant/revoke_admin_access` y `set_account_active` devolvían `SQLERRM` dentro del resultado;
+  - las preferencias sustituían el objeto entero y decían «guardado» aunque no se escribiera nada;
+  - dos rutas sin uso (`PUT /v1/members/role` y `PUT /v1/members/:id`), una de las cuales podía mostrar un email falso.
+- **Solución:** códigos estables `SETTINGS_*` y `MEMBER_*`, esquemas Zod estrictos, permiso `account:select` para el listado (y `auth_user:select` para ver emails), rutas sin uso eliminadas y bloqueo de fila (`FOR UPDATE`) en dar y quitar acceso.
+
+## B-44 · Cualquiera con permiso de ajustes podía desactivar el MFA obligatorio
+- **Qué pasó:** desactivar `requires_mfa` solo exigía el permiso `system_setting:update`, así que un miembro delegado podía rebajar la seguridad de todo el CMS.
+- **Solución:** un *trigger* solo permite ponerlo a `false` a una cuenta Root con sesión aal2, y los cambios de configuración quedan auditados con gravedad `warning`.
+- **Lección:** las opciones que rebajan la seguridad necesitan un nivel de autorización superior al de las que la suben.
