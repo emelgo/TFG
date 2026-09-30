@@ -144,7 +144,8 @@ Se distinguen dos medidas:
 | Fecha | Horas del autor | Tiempo de reloj (≈) | Fases trabajadas | Fuente |
 |---|---|---|---|---|
 | 2026-09-29 | 8,0 | ≈ 8,0 | F0, F1, F2.1–F2.4c, bitácora y borradores de la memoria | autor (confirma la estimación) |
-| 2026-09-30 | _pendiente_ | _en curso_ | F2.5 (usuarios y almacenamiento) | |
+| 2026-09-30 | 9,0 | — | F2.5, F2.6, F2.6b, F2.7a, F2.7b, limpieza de la marca (F3 adelantada) e identidad visual | autor |
+| **Total** | **17,0** | | | |
 
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
