@@ -1,902 +1,348 @@
+/**
+ * Servicio de acciones sobre usuarios del explorador de usuarios del CMS.
+ *
+ * Crea, invita, bloquea, desbloquea, borra y envía correos de recuperación a
+ * usuarios de Supabase Auth, quita factores MFA y concede o retira el acceso
+ * al CMS. Todas las acciones sobre usuarios existentes siguen el mismo orden:
+ *
+ *  1. **permiso** del RBAC del CMS sobre `auth_user` (`update`, `delete` o
+ *     `insert`), con los *claims* del usuario;
+ *  2. **protección** del usuario de destino (`assertCanActionUser`): nadie
+ *     actúa sobre sí mismo, sobre un super-admin de la plataforma ni sobre
+ *     personal del CMS con acceso;
+ *  3. solo entonces, la API de administración de Auth con la **clave de
+ *     servicio**, que no sabe nada de roles y por eso nunca se llama antes;
+ *  4. una entrada de auditoría a nombre del operador.
+ *
+ * Ninguna acción escribe `app_metadata` (donde viven `role` y `cms_access`):
+ * crear un usuario solo acepta correo, contraseña y confirmación, y el
+ * acceso al CMS cambia únicamente con `cms.grant_admin_access` y
+ * `cms.revoke_admin_access`, que comprueban el permiso `account` y la
+ * jerarquía de rangos. El super-admin de la plataforma no se puede conceder
+ * ni retirar desde aquí: se gestiona en la consola de la plataforma.
+ *
+ * [TFG] RF-09 · RNF-02: acciones sobre usuarios con autorización en el código
+ * antes del cliente de servicio de Auth. Ver Memoria §Diseño > Seguridad.
+ */
 import { sql } from 'drizzle-orm';
-import { Context } from 'hono';
+import type { Context } from 'hono';
 
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
 import { getSupabaseAdminClient } from '@pymekit/cms-supabase/hono';
 import { getLogger } from '@pymekit/shared/logger';
 
+import { isPlatformSuperAdmin } from '../utils/user-protection';
+import {
+  UsersExplorerError,
+  fromAdminAccessFailure,
+  fromAuthAdminError,
+  getUsersErrorCode,
+  protectionError,
+} from '../utils/users-errors';
 import { createAuthUsersService } from './auth-users.service';
 
-/**
- * @name createAdminUserService
- * @description Creates a service for admin operations on users
- * @param context - The Hono context
- */
+/** Duración del bloqueo: en la práctica, indefinido (100 años). */
+const BAN_DURATION = '876600h';
+
+type AuthUser = Awaited<
+  ReturnType<ReturnType<typeof createAuthUsersService>['getAuthUser']>
+>;
+
+/** Resultado de una acción sobre varios usuarios. */
+export type BatchResult = {
+  success: boolean;
+  processed: number;
+  failed: number;
+  /** Usuarios que no se pudieron procesar, con el código del motivo. */
+  errors: Array<{ userId: string; errorCode: string }>;
+};
+
+/** Crea el servicio de acciones sobre usuarios de una petición. */
 export function createAdminUserService(context: Context) {
   return new AdminUserService(context);
 }
 
-/**
- * @name AdminUserService
- * @description Service for admin operations on users
- */
 class AdminUserService {
-  private readonly userService: ReturnType<typeof createAuthUsersService>;
-  private readonly context: Context;
+  private readonly users: ReturnType<typeof createAuthUsersService>;
 
-  constructor(context: Context) {
-    this.context = context;
-    this.userService = createAuthUsersService(context);
+  constructor(private readonly context: Context) {
+    this.users = createAuthUsersService(context);
+  }
+
+  /** Invita a un usuario nuevo por correo. */
+  async inviteUser(params: { email: string }) {
+    await this.users.requirePermission('insert');
+
+    const { data, error } =
+      await getSupabaseAdminClient().auth.admin.inviteUserByEmail(params.email);
+
+    if (error) {
+      throw fromAuthAdminError(error, 'inviteUserByEmail');
+    }
+
+    await this.recordAudit('invite_auth_user', data.user?.id ?? params.email, {
+      email: params.email,
+    });
+
+    return { success: true, userId: data.user?.id ?? null };
   }
 
   /**
-   * @name inviteUser
-   * @description Invite a new user to the platform
-   * @param user - The user to invite
+   * Crea un usuario con correo y contraseña. A propósito no acepta metadatos:
+   * el `app_metadata` de un usuario nuevo es el que pone Auth (proveedor), así
+   * que no se puede crear un super-admin ni personal del CMS por esta vía.
    */
-  async inviteUser(user: { email: string }) {
-    const logger = await getLogger();
-
-    logger.info({ user }, 'Inviting user...');
-
-    const canInviteUser = await this.userService.canInsertAuthUser();
-
-    if (!canInviteUser) {
-      logger.error({ user }, 'User does not have permission to invite users');
-
-      throw new Error('You do not have permission to invite users');
-    }
-
-    const client = this.getAdminClient();
-
-    try {
-      const { error } = await client.auth.admin.inviteUserByEmail(user.email);
-
-      if (error) {
-        logger.error({ user, error }, 'Failed to invite user');
-
-        throw new Error(`Failed to invite user: ${error.message}`);
-      }
-
-      logger.info({ user }, 'User invited successfully');
-
-      await this.recordAudit('invite_auth_user', user.email, {
-        email: user.email,
-      });
-
-      return { success: true };
-    } catch (error) {
-      logger.error({ user, error }, 'Error inviting user');
-
-      throw error;
-    }
-  }
-
-  /**
-   * @name createUser
-   * @description Create a new user
-   * @param user - The user to create
-   */
-  async createUser(user: {
+  async createUser(params: {
     email: string;
     password: string;
     autoConfirm: boolean;
   }) {
-    const logger = await getLogger();
+    await this.users.requirePermission('insert');
 
-    logger.info({ user }, 'Creating user...');
+    const { data, error } =
+      await getSupabaseAdminClient().auth.admin.createUser({
+        email: params.email,
+        password: params.password,
+        email_confirm: params.autoConfirm,
+      });
 
-    const canCreateUser = await this.userService.canInsertAuthUser();
-
-    if (!canCreateUser) {
-      logger.error({ user }, 'User does not have permission to create users');
-
-      throw new Error('You do not have permission to create users');
+    if (error || !data.user) {
+      throw fromAuthAdminError(error, 'createUser');
     }
 
-    const client = this.getAdminClient();
+    await this.recordAudit('create_auth_user', data.user.id, {
+      email: params.email,
+      auto_confirm: params.autoConfirm,
+    });
 
-    try {
-      const { error } = await client.auth.admin.createUser({
-        email: user.email,
-        password: user.password,
-        email_confirm: user.autoConfirm,
-      });
+    return { success: true, userId: data.user.id };
+  }
+
+  /** Bloquea usuarios (sin fecha de fin práctica). */
+  banUsers(userIds: string[]) {
+    return this.runForEach(userIds, 'update', async (user) => {
+      const { error } =
+        await getSupabaseAdminClient().auth.admin.updateUserById(user.id, {
+          ban_duration: BAN_DURATION,
+        });
 
       if (error) {
-        logger.error({ user, error }, 'Failed to create user');
-
-        throw new Error(`Failed to create user: ${error.message}`);
+        throw fromAuthAdminError(error, 'ban');
       }
 
-      logger.info({ user }, 'User created successfully');
+      await this.recordAudit('ban_user', user.id, { banned: true });
+    });
+  }
 
-      await this.recordAudit('create_auth_user', user.email, {
-        email: user.email,
-        auto_confirm: user.autoConfirm,
-      });
+  /** Desbloquea usuarios. */
+  unbanUsers(userIds: string[]) {
+    return this.runForEach(userIds, 'update', async (user) => {
+      const { error } =
+        await getSupabaseAdminClient().auth.admin.updateUserById(user.id, {
+          ban_duration: 'none',
+        });
 
-      return {
-        success: true,
-      };
-    } catch (error) {
-      logger.error({ user, error }, 'Error creating user');
+      if (error) {
+        throw fromAuthAdminError(error, 'unban');
+      }
 
-      throw error;
-    }
+      await this.recordAudit('unban_user', user.id, { banned: false });
+    });
   }
 
   /**
-   * @name banUser
-   * @description Ban a user by setting their banned_until date to 100 years in the future
-   * @param userId - The ID of the user to ban
+   * Envía a cada usuario un correo de restablecimiento de contraseña. El
+   * enlace llega a su propio buzón: el operador nunca lo ve.
    */
-  async banUser(userId: string) {
-    const result = await this.banUsers([userId]);
-    return result;
+  resetPasswords(userIds: string[]) {
+    return this.runForEach(userIds, 'update', async (user) => {
+      await this.sendRecoveryEmail(user);
+      await this.recordAudit('reset_password', user.id);
+    });
   }
 
-  /**
-   * @name banUsers
-   * @description Ban multiple users by setting their banned_until date to 100 years in the future
-   * @param userIds - The IDs of the users to ban
-   */
-  async banUsers(userIds: string[]) {
-    return this._banUsers(userIds);
-  }
-
-  /**
-   * @name unbanUser
-   * @description Unban a user by setting their banned_until date to null
-   * @param userId - The ID of the user to unban
-   */
-  async unbanUser(userId: string) {
-    const result = await this.unbanUsers([userId]);
-    return result;
-  }
-
-  /**
-   * @name unbanUsers
-   * @description Unban multiple users by setting their banned_until date to null
-   * @param userIds - The IDs of the users to unban
-   */
-  async unbanUsers(userIds: string[]) {
-    return this._unbanUsers(userIds);
-  }
-
-  /**
-   * @name resetPassword
-   * @description Send a password reset email to the user
-   * @param userId - The ID of the user
-   */
-  async resetPassword(userId: string) {
-    const result = await this.resetPasswords([userId]);
-    return result;
-  }
-
-  /**
-   * @name resetPasswords
-   * @description Send password reset emails to multiple users
-   * @param userIds - The IDs of the users
-   */
-  async resetPasswords(userIds: string[]) {
-    return this._resetPasswords(userIds);
-  }
-
-  /**
-   * @name deleteUser
-   * @description Delete a user
-   * @param userId - The ID of the user to delete
-   */
-  async deleteUser(userId: string) {
-    const result = await this.deleteUsers([userId]);
-    return result;
-  }
-
-  /**
-   * @name deleteUsers
-   * @description Delete multiple users
-   * @param userIds - The IDs of the users to delete
-   */
-  async deleteUsers(userIds: string[]) {
-    return this._deleteUsers(userIds);
-  }
-
-  /**
-   * @name sendMagicLink
-   * @description Send a magic link to a user for passwordless login
-   * @param userId - The ID of the user
-   * @param type - The type of magic link (signup, recovery, etc.)
-   */
-  async sendMagicLink(
-    userId: string,
-    type: 'signup' | 'recovery' | 'invite' = 'recovery',
-  ) {
-    const logger = await getLogger();
-
-    logger.info({ userId, type }, 'Sending magic link...');
-
-    const canUpdateUser = await this.userService.canUpdateAuthUser();
-
-    if (!canUpdateUser) {
-      logger.error(
-        { userId },
-        'User does not have permission to send magic links',
+  /** Borra usuarios de Auth (y, en cascada, sus cuentas personales). */
+  deleteUsers(userIds: string[]) {
+    return this.runForEach(userIds, 'delete', async (user) => {
+      const { error } = await getSupabaseAdminClient().auth.admin.deleteUser(
+        user.id,
       );
-      throw new Error('You do not have permission to send magic links');
-    }
-
-    try {
-      await this.userService.assertUserIsNotActioningItself(userId);
-      // Do not allow minting a login/recovery link for another admin account.
-      await this.userService.assertUserIsNotAdminAccount(userId);
-
-      const client = this.getAdminClient();
-
-      // Get user details to get their email
-      const { data: userData, error: userError } =
-        await client.auth.admin.getUserById(userId);
-
-      if (userError || !userData.user || !userData.user.email) {
-        const errorMessage = 'User not found or has no email';
-        logger.error({ userId, userError }, errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      // Deliver the link to the target user's own email out-of-band.
-      // We intentionally do NOT use admin.generateLink + return the
-      // action_link: that hands the caller a working single-use credential
-      // for the target user (account takeover). The email-sending APIs send
-      // the link to the user's inbox where only they can action it.
-      let error;
-
-      if (type === 'invite') {
-        ({ error } = await client.auth.admin.inviteUserByEmail(
-          userData.user.email,
-        ));
-      } else {
-        // Both 'recovery' and 'signup' resolve to a recovery email the user
-        // actions from their own inbox.
-        ({ error } = await client.auth.resetPasswordForEmail(
-          userData.user.email,
-        ));
-      }
 
       if (error) {
-        logger.error({ userId, error }, 'Failed to send magic link');
-        throw new Error(`Failed to send magic link: ${error.message}`);
+        throw fromAuthAdminError(error, 'deleteUser');
       }
 
-      logger.info({ userId, type }, 'Magic link sent successfully');
-
-      await this.recordAudit('send_magic_link', userId, { type });
-
-      // Never return the action_link to the caller; it is delivered to the
-      // target user's email above.
-      return {
-        success: true,
-      };
-    } catch (error) {
-      logger.error({ userId, error }, 'Error sending magic link');
-      throw error;
-    }
+      await this.recordAudit('delete_auth_user', user.id);
+    });
   }
 
   /**
-   * @name removeMfaFactor
-   * @description Remove an MFA factor from a user
-   * @param userId - The ID of the user
-   * @param factorId - The ID of the MFA factor to remove
+   * Envía un enlace de acceso al correo del usuario (recuperación o
+   * invitación). Nunca se genera el enlace para devolverlo
+   * (`admin.generateLink`): quien lo recibiera podría entrar en la cuenta.
    */
+  async sendMagicLink(userId: string, type: 'recovery' | 'invite') {
+    await this.users.requirePermission('update');
+
+    const user = await this.users.assertCanActionUser(userId);
+
+    if (type === 'invite') {
+      if (!user.email) {
+        throw invalidData('User has no email');
+      }
+
+      const { error } =
+        await getSupabaseAdminClient().auth.admin.inviteUserByEmail(user.email);
+
+      if (error) {
+        throw fromAuthAdminError(error, 'inviteUserByEmail');
+      }
+    } else {
+      await this.sendRecoveryEmail(user);
+    }
+
+    await this.recordAudit('send_magic_link', userId, { type });
+
+    return { success: true };
+  }
+
+  /** Quita un factor MFA de un usuario (por ejemplo, si perdió el móvil). */
   async removeMfaFactor(userId: string, factorId: string) {
-    const logger = await getLogger();
+    await this.users.requirePermission('update');
+    await this.users.assertCanActionUser(userId);
 
-    logger.info({ userId, factorId }, 'Removing MFA factor...');
-
-    const canUpdateUser = await this.userService.canUpdateAuthUser();
-
-    if (!canUpdateUser) {
-      logger.error(
-        { userId },
-        'User does not have permission to remove MFA factors',
-      );
-      throw new Error('You do not have permission to remove MFA factors');
-    }
-
-    try {
-      await this.userService.assertUserIsNotActioningItself(userId);
-      // Do not allow stripping MFA from another admin account.
-      await this.userService.assertUserIsNotAdminAccount(userId);
-
-      const client = this.getAdminClient();
-
-      // Remove the MFA factor
-      const { error } = await client.auth.admin.mfa.deleteFactor({
+    const { error } =
+      await getSupabaseAdminClient().auth.admin.mfa.deleteFactor({
         id: factorId,
         userId,
       });
 
-      if (error) {
-        logger.error(
-          { userId, factorId, error },
-          'Failed to remove MFA factor',
-        );
-        throw new Error(`Failed to remove MFA factor: ${error.message}`);
-      }
-
-      logger.info({ userId, factorId }, 'MFA factor removed successfully');
-
-      await this.recordAudit('remove_mfa_factor', userId, {
-        factor_id: factorId,
-      });
-
-      return { success: true };
-    } catch (error) {
-      logger.error({ userId, factorId, error }, 'Error removing MFA factor');
-      throw error;
+    if (error) {
+      throw fromAuthAdminError(error, 'deleteFactor');
     }
+
+    await this.recordAudit('remove_mfa_factor', userId, {
+      factor_id: factorId,
+    });
+
+    return { success: true };
   }
 
   /**
-   * @name _banUsers
-   * @description Private method to ban multiple users
-   * @param userIds - The IDs of the users to ban
+   * Concede o retira el acceso al CMS. La decisión final la toman las
+   * funciones SQL (`security definer`), que exigen el permiso `account` y
+   * que el operador tenga más rango que la cuenta del CMS de destino; aquí se
+   * añaden las barreras de la aplicación: permiso `auth_user:update`, no a
+   * uno mismo y nunca sobre un super-admin de la plataforma.
    */
-  private async _banUsers(userIds: string[]) {
-    const logger = await getLogger();
+  async updateAdminAccess(userId: string, grant: boolean) {
+    await this.users.requirePermission('update');
 
-    logger.info({ userIds, count: userIds.length }, 'Banning users...');
+    const actorId = await this.users.getCurrentUserId();
 
-    if (userIds.length === 0) {
-      return { success: true, processed: 0, skipped: 0 };
+    if (actorId === userId) {
+      throw protectionError('self');
     }
 
-    // Check permissions for batch operation
-    const canBanUser = await this.userService.canUpdateAuthUser();
+    const target = await this.users.getAuthUser(userId);
 
-    if (!canBanUser) {
-      logger.error({ userIds }, 'User does not have permission to ban users');
-      throw new Error('You do not have permission to ban users');
+    if (isPlatformSuperAdmin(target.app_metadata)) {
+      throw protectionError('super_admin');
     }
 
-    const client = this.getAdminClient();
+    const client = this.context.get('drizzle');
 
-    const errors: Array<{ userId: string; error: string }> = [];
-
-    try {
-      const banPromises = userIds.map(async (userId) => {
-        try {
-          await this.userService.assertUserIsNotActioningItself(userId);
-          await this.userService.assertUserIsNotAdminAccount(userId);
-
-          const { error } = await client.auth.admin.updateUserById(userId, {
-            ban_duration: '876600h', // 100 years
-          });
-
-          if (error) {
-            errors.push({ userId, error: error.message });
-            logger.error({ userId, error }, 'Failed to ban user');
-          } else {
-            await this.recordAudit('ban_user', userId, { banned: true });
-          }
-
-          return null; // Indicate success
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-
-          errors.push({ userId, error: errorMessage });
-          logger.error({ userId, error }, 'Error banning user');
-          return null; // Indicate failure, but don't throw
-        }
-      });
-
-      await Promise.all(banPromises);
-
-      const processed = userIds.length - errors.length;
-      const skipped = errors.length;
-
-      logger.info(
-        {
-          total: userIds.length,
-          processed,
-          skipped,
-          errors: errors.length,
-        },
-        'Batch ban operation completed',
-      );
-
-      if (errors.length > 0 && processed === 0) {
-        throw new Error(
-          `Failed to ban any users. First error: ${errors[0]?.error || 'Unknown error'}`,
-        );
-      }
-
-      return {
-        success: true,
-        processed,
-        skipped,
-        errors: errors.length > 0 ? errors : undefined,
-      };
-    } catch (error) {
-      logger.error({ userIds, error }, 'Error in batch ban operation');
-      throw error;
-    }
-  }
-
-  /**
-   * @name _unbanUsers
-   * @description Private method to unban multiple users
-   * @param userIds - The IDs of the users to unban
-   */
-  private async _unbanUsers(userIds: string[]) {
-    const logger = await getLogger();
-
-    logger.info({ userIds, count: userIds.length }, 'Unbanning users...');
-
-    if (userIds.length === 0) {
-      return { success: true, processed: 0, skipped: 0 };
-    }
-
-    // Check permissions for batch operation
-    const canUnbanUser = await this.userService.canUpdateAuthUser();
-
-    if (!canUnbanUser) {
-      logger.error({ userIds }, 'User does not have permission to unban users');
-      throw new Error('You do not have permission to unban users');
-    }
-
-    const client = this.getAdminClient();
-
-    try {
-      // Validate each user before processing
-      const validUsers: string[] = [];
-      const errors: Array<{ userId: string; error: string }> = [];
-
-      for (const userId of userIds) {
-        try {
-          await this.userService.assertUserIsNotActioningItself(userId);
-          await this.userService.assertUserIsNotAdminAccount(userId);
-
-          validUsers.push(userId);
-        } catch (error) {
-          logger.warn(
-            { userId, error: (error as Error).message },
-            'Skipping user due to validation error',
+    const result = await client.runTransaction(async (tx) => {
+      const rows = grant
+        ? await tx.execute(
+            sql`SELECT cms.grant_admin_access(${userId}) AS result`,
+          )
+        : await tx.execute(
+            sql`SELECT cms.revoke_admin_access(${userId}, false) AS result`,
           );
 
-          errors.push({ userId, error: (error as Error).message });
-        }
-      }
+      return rows[0]?.['result'] as
+        | { success?: boolean; error?: string }
+        | undefined;
+    });
 
-      const unbanPromises = validUsers.map(async (userId) => {
-        try {
-          const { error } = await client.auth.admin.updateUserById(userId, {
-            ban_duration: 'none',
-          });
-
-          if (error) {
-            errors.push({ userId, error: error.message });
-            logger.error({ userId, error }, 'Failed to unban user');
-          } else {
-            await this.recordAudit('unban_user', userId, { banned: false });
-          }
-
-          return null; // Indicate success
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-
-          errors.push({ userId, error: errorMessage });
-          logger.error({ userId, error }, 'Error unbanning user');
-          return null; // Indicate failure, but don't throw
-        }
-      });
-
-      await Promise.all(unbanPromises);
-
-      const executionErrors = errors.filter((e) =>
-        validUsers.includes(e.userId),
-      );
-
-      const processed = validUsers.length - executionErrors.length;
-      const skipped = userIds.length - processed;
-
-      logger.info(
-        {
-          total: userIds.length,
-          processed,
-          skipped,
-          errors: errors.length,
-        },
-        'Batch unban operation completed',
-      );
-
-      if (errors.length > 0 && processed === 0) {
-        throw new Error(
-          `Failed to unban any users. First error: ${errors[0]?.error || 'Unknown error'}`,
-        );
-      }
-
-      return {
-        success: true,
-        processed,
-        skipped,
-        errors: errors.length > 0 ? errors : undefined,
-      };
-    } catch (error) {
-      logger.error({ userIds, error }, 'Error in batch unban operation');
-      throw error;
+    if (!result?.success) {
+      throw fromAdminAccessFailure(result?.error);
     }
+
+    return { success: true };
   }
 
   /**
-   * @name _resetPasswords
-   * @description Private method to reset passwords for multiple users
-   * @param userIds - The IDs of the users
+   * Ejecuta `action` sobre cada usuario tras comprobar el permiso (una vez) y
+   * la protección de cada uno. Los fallos individuales no detienen al resto:
+   * se devuelven con su código. Si no se procesa ninguno, se lanza el primer
+   * error, para que una acción sobre un solo usuario responda con su estado
+   * (403, 404…) en vez de con un 200 vacío.
    */
-  private async _resetPasswords(userIds: string[]) {
+  private async runForEach(
+    userIds: string[],
+    permission: 'update' | 'delete',
+    action: (user: AuthUser) => Promise<void>,
+  ): Promise<BatchResult> {
+    await this.users.requirePermission(permission);
+
     const logger = await getLogger();
+    const failures: Array<{ userId: string; error: unknown }> = [];
 
-    logger.info({ userIds, count: userIds.length }, 'Resetting passwords...');
-
-    if (userIds.length === 0) {
-      return { success: true, processed: 0, skipped: 0 };
-    }
-
-    // Check permissions for batch operation
-    const canResetPassword = await this.userService.canUpdateAuthUser();
-
-    if (!canResetPassword) {
-      logger.error(
-        { userIds },
-        'User does not have permission to reset passwords',
-      );
-      throw new Error('You do not have permission to reset passwords');
-    }
-
-    const client = this.getAdminClient();
-
-    try {
-      const validUsers: string[] = [];
-      const errors: Array<{ userId: string; error: string }> = [];
-
-      // Validate users
-      await Promise.all(
-        userIds.map(async (userId) => {
-          try {
-            await this.userService.assertUserIsNotActioningItself(userId);
-            await this.userService.assertUserIsNotAdminAccount(userId);
-
-            validUsers.push(userId);
-          } catch (error) {
-            logger.warn(
-              { userId, error: (error as Error).message },
-              'Skipping user due to validation error',
-            );
-            errors.push({ userId, error: (error as Error).message });
-          }
-        }),
-      );
-
-      // Reset passwords for valid users
-      const resetPasswordPromises = validUsers.map(async (userId) => {
+    await Promise.all(
+      userIds.map(async (userId) => {
         try {
-          // Get user details to get their email
-          const { data: userData, error: userError } =
-            await client.auth.admin.getUserById(userId);
+          const user = await this.users.assertCanActionUser(userId);
 
-          if (userError || !userData.user || !userData.user.email) {
-            const errorMessage = 'User not found or has no email';
-
-            errors.push({ userId, error: errorMessage });
-            logger.error({ userId, userError }, errorMessage);
-
-            return;
-          }
-
-          // Send password reset email
-          const { error } = await client.auth.resetPasswordForEmail(
-            userData.user.email,
-          );
-
-          if (error) {
-            errors.push({ userId, error: error.message });
-
-            logger.error(
-              { userId, error },
-              'Failed to send password reset email',
-            );
-          } else {
-            // GoTrue books this against the target user's own id, so without this
-            // record an admin-triggered reset looks like a self-service one.
-            await this.recordAudit('reset_password', userId);
-          }
+          await action(user);
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-
-          errors.push({ userId, error: errorMessage });
-          logger.error({ userId, error }, 'Error resetting password');
+          logger.warn({ userId, error }, 'User action skipped or failed');
+          failures.push({ userId, error });
         }
-      });
+      }),
+    );
 
-      await Promise.all(resetPasswordPromises);
+    const processed = userIds.length - failures.length;
 
-      const processed =
-        validUsers.length -
-        errors.filter((e) => validUsers.includes(e.userId)).length;
+    if (processed === 0 && failures[0]) {
+      throw failures[0].error;
+    }
 
-      const skipped = userIds.length - processed;
+    return {
+      success: true,
+      processed,
+      failed: failures.length,
+      errors: failures.map(({ userId, error }) => ({
+        userId,
+        errorCode: getUsersErrorCode(error),
+      })),
+    };
+  }
 
-      logger.info(
-        {
-          total: userIds.length,
-          processed,
-          skipped,
-          errors: errors.length,
-        },
-        'Batch password reset operation completed',
-      );
+  /** Envía el correo de recuperación de contraseña al propio usuario. */
+  private async sendRecoveryEmail(user: AuthUser) {
+    if (!user.email) {
+      throw invalidData('User has no email');
+    }
 
-      if (errors.length > 0 && processed === 0) {
-        throw new Error(
-          `Failed to reset passwords for any users. First error: ${errors[0]?.error || 'Unknown error'}`,
-        );
-      }
+    const { error } = await getSupabaseAdminClient().auth.resetPasswordForEmail(
+      user.email,
+    );
 
-      return {
-        success: true,
-        processed,
-        skipped,
-        errors: errors.length > 0 ? errors : undefined,
-      };
-    } catch (error) {
-      logger.error(
-        { userIds, error },
-        'Error in batch password reset operation',
-      );
-      throw error;
+    if (error) {
+      throw fromAuthAdminError(error, 'resetPasswordForEmail');
     }
   }
 
   /**
-   * @name _deleteUsers
-   * @description Private method to delete multiple users
-   * @param userIds - The IDs of the users to delete
-   */
-  private async _deleteUsers(userIds: string[]) {
-    const logger = await getLogger();
-
-    logger.info({ userIds, count: userIds.length }, 'Deleting users...');
-
-    if (userIds.length === 0) {
-      return { success: true, processed: 0, skipped: 0 };
-    }
-
-    // Check permissions for batch operation
-    const canDeleteUser = await this.userService.canDeleteAuthUser();
-
-    // if the user does not have permission to delete users, throw an error
-    if (!canDeleteUser) {
-      logger.error(
-        { userIds },
-        'User does not have permission to delete users',
-      );
-
-      throw new Error('You do not have permission to delete users');
-    }
-
-    const client = this.getAdminClient();
-
-    try {
-      // Validate each user before processing
-      const validationResults = await Promise.all(
-        userIds.map(async (userId) => {
-          try {
-            await Promise.all([
-              this.userService.assertUserIsNotActioningItself(userId),
-              this.userService.assertUserIsNotAdminAccount(userId),
-            ]);
-
-            return {
-              userId,
-              valid: true,
-              error: undefined,
-            };
-          } catch (error) {
-            logger.warn(
-              { userId, error: (error as Error).message },
-              'Skipping user due to validation error',
-            );
-
-            return {
-              userId,
-              valid: false,
-              error: (error as Error).message,
-            };
-          }
-        }),
-      );
-
-      // Collect valid users from validation results
-      const validUsers = validationResults
-        .filter((result) => result.valid)
-        .map((result) => result.userId);
-
-      // Collect errors from validation results
-      const errors: Array<{ userId: string; error: string }> = validationResults
-        .filter((result) => !result.valid)
-        .map((result) => ({ userId: result.userId, error: result.error! }));
-
-      // Process users in batches to avoid overwhelming the API
-      const deletePromises = validUsers.map(async (userId) => {
-        try {
-          const { error } = await client.auth.admin.deleteUser(userId);
-
-          if (error) {
-            errors.push({ userId, error: error.message });
-            logger.error({ userId, error }, 'Failed to delete user');
-
-            return false; // Indicate failure
-          } else {
-            await this.recordAudit('delete_auth_user', userId);
-
-            return true; // Indicate success
-          }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-
-          errors.push({ userId, error: errorMessage });
-          logger.error({ userId, error }, 'Error deleting user');
-
-          return false; // Indicate failure
-        }
-      });
-
-      // Wait for all delete promises to complete
-      const results = await Promise.all(deletePromises);
-
-      // Count the number of users that were successfully deleted
-      const processed = results.filter((result) => result).length;
-      const skipped = userIds.length - processed;
-
-      logger.info(
-        {
-          total: userIds.length,
-          processed,
-          skipped,
-          errors: errors.length,
-        },
-        'Batch delete operation completed',
-      );
-
-      if (errors.length > 0 && processed === 0) {
-        throw new Error(
-          `Failed to delete any users. First error: ${errors[0]?.error || 'Unknown error'}`,
-        );
-      }
-
-      return {
-        success: true,
-        processed,
-        skipped,
-        errors: errors.length > 0 ? errors : undefined,
-      };
-    } catch (error) {
-      logger.error({ userIds, error }, 'Error in batch delete operation');
-      throw error;
-    }
-  }
-
-  /**
-   * @name updateAdminAccess
-   * @description Update admin access status for a user using PostgreSQL functions that handle both JWT and account creation
-   * @param userId - The ID of the user to update
-   * @param hasAdminAccess - Whether the user should have admin access
-   */
-  async updateAdminAccess(userId: string, hasAdminAccess: boolean) {
-    const logger = await getLogger();
-
-    logger.info({ userId, hasAdminAccess }, 'Updating admin access...');
-
-    try {
-      // Defense-in-depth: require auth-user update permission at the app layer.
-      // The SQL grant/revoke functions enforce the authoritative `account`
-      // permission + rank checks, but this route must not be the only place
-      // without an application-level gate.
-      const canUpdateUser = await this.userService.canUpdateAuthUser();
-
-      if (!canUpdateUser) {
-        logger.error(
-          { userId, hasAdminAccess },
-          'User does not have permission to update admin access',
-        );
-
-        throw new Error('You do not have permission to update admin access');
-      }
-
-      // Prevent users from actioning themselves
-      await this.userService.assertUserIsNotActioningItself(userId);
-
-      const client = this.context.get('drizzle');
-
-      let result;
-
-      if (hasAdminAccess) {
-        // Use PostgreSQL function to grant admin access (handles both JWT and account creation)
-        result = await client.runTransaction(async (tx) => {
-          const queryResult = await tx.execute(
-            sql`SELECT cms.grant_admin_access(${userId})`,
-          );
-
-          return queryResult[0]?.['grant_admin_access'];
-        });
-      } else {
-        // Use PostgreSQL function to revoke admin access (handles both JWT and optional account deactivation)
-        result = await client.runTransaction(async (tx) => {
-          const queryResult = await tx.execute(
-            sql`SELECT cms.revoke_admin_access(${userId}, false)`,
-          );
-
-          return queryResult[0]?.['revoke_admin_access'];
-        });
-      }
-
-      // Parse the result from the PostgreSQL function
-      if (!result || typeof result !== 'object') {
-        throw new Error('Invalid response from database function');
-      }
-
-      // Type assertion for the PostgreSQL function result
-      const functionResult = result as {
-        success: boolean;
-        error?: string;
-        message?: string;
-      };
-
-      if (!functionResult.success) {
-        logger.error(
-          { userId, hasAdminAccess, error: functionResult.error },
-          'Database function failed to update admin access',
-        );
-
-        throw new Error(
-          functionResult.error || 'Failed to update admin access',
-        );
-      }
-
-      logger.info(
-        { userId, hasAdminAccess, message: functionResult.message },
-        'Admin access updated successfully',
-      );
-
-      return {
-        success: true,
-        message: functionResult.message,
-      };
-    } catch (error) {
-      logger.error(
-        { userId, hasAdminAccess, error },
-        'Error updating admin access',
-      );
-
-      throw error;
-    }
-  }
-
-  /**
-   * @name recordAudit
-   * @description Write an attributed CMS audit record for an auth-admin action.
+   * Deja una entrada de auditoría del CMS a nombre del operador.
    *
-   * GoTrue keeps its own auth.audit_log_entries, but every service-role call lands there
-   * as `service_role` with no IP, so it cannot say which operator acted — and recovery
-   * mails are attributed to the target user, making an admin-triggered reset
-   * indistinguishable from a self-service one. This runs on the RLS-scoped client, where
-   * the caller's JWT is present, so create_audit_log resolves the acting account.
-   *
-   * A failure here must not roll back an action that already happened, so it is logged
-   * rather than thrown.
+   * Auth guarda su propio registro, pero todas las llamadas con la clave de
+   * servicio aparecen como `service_role` y un restablecimiento pedido por un
+   * operador se atribuye al propio usuario. Esta entrada se escribe con los
+   * *claims* del operador, así que `cms.create_audit_log` sabe quién actuó.
+   * Si falla, se registra en el *log* sin deshacer la acción, que ya ocurrió.
    */
   private async recordAudit(
     operation: string,
@@ -905,7 +351,6 @@ class AdminUserService {
   ) {
     try {
       const client = this.context.get('drizzle');
-
       const newData = JSON.stringify({ operation, ...metadata });
 
       await client.runTransaction(async (tx) => {
@@ -922,8 +367,11 @@ class AdminUserService {
       );
     }
   }
+}
 
-  private getAdminClient() {
-    return getSupabaseAdminClient();
-  }
+function invalidData(detail: string) {
+  return new UsersExplorerError(
+    CMS_API_ERROR_CODES.AUTH_USER_INVALID_DATA,
+    detail,
+  );
 }

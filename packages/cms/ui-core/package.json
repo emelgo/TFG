@@ -18,7 +18,10 @@
     "./resources": "./src/resources.ts",
     "./account-context": "./src/account-context.tsx",
     "./api-context": "./src/api-context.tsx",
-    "./preferences": "./src/preferences.ts"
+    "./preferences": "./src/preferences.ts",
+    "./users-api": "./src/users-api.ts",
+    "./storage-api": "./src/storage-api.ts",
+    "./hydration": "./src/hydration.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
@@ -35,6 +38,8 @@
     "@pymekit/cms-permissions": "workspace:*",
     "@pymekit/cms-resources": "workspace:*",
     "@pymekit/cms-settings": "workspace:*",
+    "@pymekit/cms-storage-explorer": "workspace:*",
+    "@pymekit/cms-users-explorer": "workspace:*",
     "@pymekit/tsconfig": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "@types/react": "catalog:",

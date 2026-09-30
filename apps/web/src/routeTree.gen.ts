@@ -60,7 +60,9 @@ import { Route as AdminCmsDashboardsIndexRouteImport } from './routes/admin/cms/
 import { Route as AdminCmsResourcesIndexRouteImport } from './routes/admin/cms/resources/index'
 import { Route as AdminCmsSettingsIndexRouteImport } from './routes/admin/cms/settings/index'
 import { Route as AdminCmsStorageIndexRouteImport } from './routes/admin/cms/storage/index'
+import { Route as AdminCmsStorageBucketRouteImport } from './routes/admin/cms/storage/$bucket'
 import { Route as AdminCmsUsersIndexRouteImport } from './routes/admin/cms/users/index'
+import { Route as AdminCmsUsersIdRouteImport } from './routes/admin/cms/users/$id'
 import { Route as AdminCmsResourcesSchemaTableIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/index'
 import { Route as AdminCmsResourcesSchemaTableNewRouteImport } from './routes/admin/cms/resources/$schema/$table/new'
 import { Route as AdminCmsResourcesSchemaTableRecordIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/record/index'
@@ -331,9 +333,19 @@ const AdminCmsStorageIndexRoute = AdminCmsStorageIndexRouteImport.update({
   path: '/storage/',
   getParentRoute: () => AdminCmsRouteRoute,
 } as any)
+const AdminCmsStorageBucketRoute = AdminCmsStorageBucketRouteImport.update({
+  id: '/storage/$bucket',
+  path: '/storage/$bucket',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
 const AdminCmsUsersIndexRoute = AdminCmsUsersIndexRouteImport.update({
   id: '/users/',
   path: '/users/',
+  getParentRoute: () => AdminCmsRouteRoute,
+} as any)
+const AdminCmsUsersIdRoute = AdminCmsUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
   getParentRoute: () => AdminCmsRouteRoute,
 } as any)
 const AdminCmsResourcesSchemaTableIndexRoute =
@@ -417,6 +429,8 @@ export interface FileRoutesByFullPath {
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
+  '/admin/cms/storage/$bucket': typeof AdminCmsStorageBucketRoute
+  '/admin/cms/users/$id': typeof AdminCmsUsersIdRoute
   '/settings/billing/': typeof AuthenticatedSettingsBillingIndexRoute
   '/admin/cms/audit-logs/': typeof AdminCmsAuditLogsIndexRoute
   '/admin/cms/dashboards/': typeof AdminCmsDashboardsIndexRoute
@@ -469,6 +483,8 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackIndexRoute
   '/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
+  '/admin/cms/storage/$bucket': typeof AdminCmsStorageBucketRoute
+  '/admin/cms/users/$id': typeof AdminCmsUsersIdRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingIndexRoute
   '/admin/cms/audit-logs': typeof AdminCmsAuditLogsIndexRoute
   '/admin/cms/dashboards': typeof AdminCmsDashboardsIndexRoute
@@ -530,6 +546,8 @@ export interface FileRoutesById {
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/_authenticated/settings/billing/return': typeof AuthenticatedSettingsBillingReturnRoute
   '/_authenticated/settings/members/policies': typeof AuthenticatedSettingsMembersPoliciesRoute
+  '/admin/cms/storage/$bucket': typeof AdminCmsStorageBucketRoute
+  '/admin/cms/users/$id': typeof AdminCmsUsersIdRoute
   '/_authenticated/settings/billing/': typeof AuthenticatedSettingsBillingIndexRoute
   '/admin/cms/audit-logs/': typeof AdminCmsAuditLogsIndexRoute
   '/admin/cms/dashboards/': typeof AdminCmsDashboardsIndexRoute
@@ -590,6 +608,8 @@ export interface FileRouteTypes {
     | '/auth/callback/'
     | '/settings/billing/return'
     | '/settings/members/policies'
+    | '/admin/cms/storage/$bucket'
+    | '/admin/cms/users/$id'
     | '/settings/billing/'
     | '/admin/cms/audit-logs/'
     | '/admin/cms/dashboards/'
@@ -642,6 +662,8 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/settings/billing/return'
     | '/settings/members/policies'
+    | '/admin/cms/storage/$bucket'
+    | '/admin/cms/users/$id'
     | '/settings/billing'
     | '/admin/cms/audit-logs'
     | '/admin/cms/dashboards'
@@ -702,6 +724,8 @@ export interface FileRouteTypes {
     | '/auth/callback/'
     | '/_authenticated/settings/billing/return'
     | '/_authenticated/settings/members/policies'
+    | '/admin/cms/storage/$bucket'
+    | '/admin/cms/users/$id'
     | '/_authenticated/settings/billing/'
     | '/admin/cms/audit-logs/'
     | '/admin/cms/dashboards/'
@@ -1094,11 +1118,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCmsStorageIndexRouteImport
       parentRoute: typeof AdminCmsRouteRoute
     }
+    '/admin/cms/storage/$bucket': {
+      id: '/admin/cms/storage/$bucket'
+      path: '/storage/$bucket'
+      fullPath: '/admin/cms/storage/$bucket'
+      preLoaderRoute: typeof AdminCmsStorageBucketRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
     '/admin/cms/users/': {
       id: '/admin/cms/users/'
       path: '/users'
       fullPath: '/admin/cms/users/'
       preLoaderRoute: typeof AdminCmsUsersIndexRouteImport
+      parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/users/$id': {
+      id: '/admin/cms/users/$id'
+      path: '/users/$id'
+      fullPath: '/admin/cms/users/$id'
+      preLoaderRoute: typeof AdminCmsUsersIdRouteImport
       parentRoute: typeof AdminCmsRouteRoute
     }
     '/admin/cms/resources/$schema/$table/': {
@@ -1270,6 +1308,8 @@ const AdminAccountsRouteRouteWithChildren =
 
 interface AdminCmsRouteRouteChildren {
   AdminCmsIndexRoute: typeof AdminCmsIndexRoute
+  AdminCmsStorageBucketRoute: typeof AdminCmsStorageBucketRoute
+  AdminCmsUsersIdRoute: typeof AdminCmsUsersIdRoute
   AdminCmsAuditLogsIndexRoute: typeof AdminCmsAuditLogsIndexRoute
   AdminCmsDashboardsIndexRoute: typeof AdminCmsDashboardsIndexRoute
   AdminCmsResourcesIndexRoute: typeof AdminCmsResourcesIndexRoute
@@ -1286,6 +1326,8 @@ interface AdminCmsRouteRouteChildren {
 
 const AdminCmsRouteRouteChildren: AdminCmsRouteRouteChildren = {
   AdminCmsIndexRoute: AdminCmsIndexRoute,
+  AdminCmsStorageBucketRoute: AdminCmsStorageBucketRoute,
+  AdminCmsUsersIdRoute: AdminCmsUsersIdRoute,
   AdminCmsAuditLogsIndexRoute: AdminCmsAuditLogsIndexRoute,
   AdminCmsDashboardsIndexRoute: AdminCmsDashboardsIndexRoute,
   AdminCmsResourcesIndexRoute: AdminCmsResourcesIndexRoute,

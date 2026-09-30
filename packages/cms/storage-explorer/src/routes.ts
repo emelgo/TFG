@@ -4,9 +4,11 @@ export {
   registerFileOperationsRouter,
 } from './api/routes';
 export type {
-  GetStorageBucketsRoute,
-  GetBucketContentsRoute,
-  RenameFileRoute,
+  CreateFolderRoute,
   DeleteFileRoute,
   DownloadFileRoute,
+  GetBucketContentsRoute,
+  GetStorageBucketsRoute,
+  RenameFileRoute,
+  UploadFileRoute,
 } from './api/routes';

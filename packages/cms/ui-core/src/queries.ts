@@ -12,6 +12,8 @@ import { queryOptions } from '@tanstack/react-query';
 
 import type { CmsApi, RecordParams, TableDataParams } from './api';
 import { shouldRetryCmsQuery } from './errors';
+import type { BucketContentsParams } from './storage-api';
+import type { UsersListParams } from './users-api';
 
 /** Claves de caché de TanStack Query del CMS. */
 export const cmsQueryKeys = {
@@ -60,6 +62,29 @@ export const cmsQueryKeys = {
   tablePermissions: (schema: string, table: string) =>
     [...cmsQueryKeys.table(schema, table), 'permissions'] as const,
   rolesForSharing: () => [...cmsQueryKeys.all, 'roles', 'sharing'] as const,
+  /** Prefijo de todo lo del explorador de usuarios (se invalida tras actuar). */
+  users: () => [...cmsQueryKeys.all, 'users'] as const,
+  usersList: (params: UsersListParams) =>
+    [
+      ...cmsQueryKeys.users(),
+      'list',
+      { page: params.page ?? 1, search: params.search ?? '' },
+    ] as const,
+  user: (id: string) => [...cmsQueryKeys.users(), 'detail', id] as const,
+  /** Prefijo de todo lo del explorador de almacenamiento. */
+  storage: () => [...cmsQueryKeys.all, 'storage'] as const,
+  storageBuckets: () => [...cmsQueryKeys.storage(), 'buckets'] as const,
+  bucketContents: (params: BucketContentsParams) =>
+    [
+      ...cmsQueryKeys.storage(),
+      'contents',
+      params.bucket,
+      {
+        path: params.path,
+        search: params.search ?? '',
+        page: params.page ?? 1,
+      },
+    ] as const,
 };
 
 /**
@@ -151,6 +176,45 @@ export function createCmsQueries(api: CmsApi) {
         queryFn: () => api.getRolesForSharing(),
         retry: shouldRetryCmsQuery,
         staleTime: 5 * 60 * 1000,
+      }),
+
+    /** Página del listado de usuarios de Auth. */
+    usersList: (params: UsersListParams) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.usersList(params),
+        queryFn: () => api.getUsers(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Ficha de un usuario de Auth y acciones disponibles. */
+    user: (id: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.user(id),
+        queryFn: () => api.getUser(id),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** *Buckets* legibles del almacenamiento. */
+    storageBuckets: () =>
+      queryOptions({
+        queryKey: cmsQueryKeys.storageBuckets(),
+        queryFn: () => api.getStorageBuckets(),
+        retry: shouldRetryCmsQuery,
+        staleTime: 60 * 1000,
+      }),
+
+    /**
+     * Contenido de una carpeta. Las URL de vista previa caducan a los 10
+     * minutos, así que la entrada se considera fresca solo 1 minuto.
+     */
+    bucketContents: (params: BucketContentsParams) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.bucketContents(params),
+        queryFn: () => api.getBucketContents(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 60 * 1000,
       }),
   };
 }

@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { type SQL, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 
 // Solo tipos: trae la ampliación de `ContextVariableMap` (`drizzle`,
@@ -409,117 +409,6 @@ export class AuthorizationService {
   }
 
   // =============================
-  // BULK STORAGE PERMISSIONS
-  // =============================
-
-  /**
-   * Get user permissions for multiple storage paths in a single optimized query
-   * @param bucketName - The bucket name
-   * @param objectPaths - Array of object paths
-   * @returns Promise with permissions map keyed by path
-   */
-  async getBulkStoragePermissions(
-    bucketName: string,
-    objectPaths: string[],
-  ): Promise<
-    Map<
-      string,
-      {
-        canRead: boolean;
-        canUpdate: boolean;
-        canDelete: boolean;
-        canUpload: boolean;
-      }
-    >
-  > {
-    const permissionsMap = new Map<
-      string,
-      {
-        canRead: boolean;
-        canUpdate: boolean;
-        canDelete: boolean;
-        canUpload: boolean;
-      }
-    >();
-
-    if (objectPaths.length === 0) {
-      return permissionsMap;
-    }
-
-    try {
-      const client = this.context.get('drizzle');
-
-      // Convert paths to proper format (with leading slash)
-      const formattedPaths = objectPaths.map((path) => {
-        return path.startsWith('/') ? path : `/${path}`;
-      });
-
-      const bucketNameParam = bucketName;
-      const pathsArrayLiteral = `ARRAY[${formattedPaths.map((p) => `'${p.replace(/'/g, "''")}'`).join(',')}]`;
-
-      const result = await client.runTransaction(async (tx) => {
-        return tx.execute(
-          sql`
-            WITH params AS (
-              SELECT 
-                ${bucketNameParam} as bucket_name,
-                unnest(${sql.raw(pathsArrayLiteral)}) as path
-            )
-            SELECT 
-              path,
-              cms.has_storage_permission(bucket_name, 'select'::cms.system_action, path) as can_read,
-              cms.has_storage_permission(bucket_name, 'update'::cms.system_action, path) as can_update,
-              cms.has_storage_permission(bucket_name, 'delete'::cms.system_action, path) as can_delete,
-              cms.has_storage_permission(bucket_name, 'insert'::cms.system_action, path) as can_upload
-            FROM params
-          `,
-        );
-      });
-
-      // Process results into the map
-      for (const row of result) {
-        const path = row['path'] as string;
-        const originalPath = path.startsWith('/') ? path.slice(1) : path;
-
-        permissionsMap.set(originalPath, {
-          canRead: (row['can_read'] as boolean) || false,
-          canUpdate: (row['can_update'] as boolean) || false,
-          canDelete: (row['can_delete'] as boolean) || false,
-          canUpload: (row['can_upload'] as boolean) || false,
-        });
-      }
-
-      // Ensure all requested paths have entries
-      for (const path of objectPaths) {
-        if (!permissionsMap.has(path)) {
-          permissionsMap.set(path, {
-            canRead: false,
-            canUpdate: false,
-            canDelete: false,
-            canUpload: false,
-          });
-        }
-      }
-
-      return permissionsMap;
-    } catch (error) {
-      console.error('Error checking bulk storage permissions:', error);
-
-      // Fail securely - return empty permissions for all paths
-      for (const path of objectPaths) {
-        permissionsMap.set(path, {
-          canRead: false,
-          canUpdate: false,
-          canDelete: false,
-          canUpload: false,
-        });
-      }
-
-      return permissionsMap;
-    }
-  }
-
-  // =============================
   // CONVENIENCE METHODS
   // =============================
 
@@ -818,27 +707,65 @@ export class AuthorizationService {
     // Build the UNION ALL query using the comprehensive builder
     const { query, params } = BulkPermissionBuilder.buildQuery(checks);
 
-    const result = await client.runTransaction(async (tx) => {
-      // We need to substitute the parameters into the query
-      let substitutedQuery = query;
-      for (let i = 0; i < params.length; i++) {
-        const placeholder = `$${i + 1}`;
-        const value = params[i];
-        const escapedValue =
-          typeof value === 'string'
-            ? `'${value.replace(/'/g, "''")}'`
-            : String(value);
-        substitutedQuery = substitutedQuery.replace(placeholder, escapedValue);
-      }
+    // [TFG] RNF-02 · Corrección de seguridad de PymeKit (BITACORA B-24).
+    // El código heredado sustituía `$1`, `$2`… a mano dentro del texto SQL,
+    // escapando solo las comillas, y lo ejecutaba con `sql.raw`. Un valor que
+    // contuviera a su vez la cadena `$2` (un nombre de tabla enviado por el
+    // cliente, por ejemplo) recibía la siguiente sustitución dentro de su
+    // literal y rompía el entrecomillado: inyección SQL. Ahora cada marcador
+    // `$n` se convierte en un parámetro enlazado de Drizzle, de modo que los
+    // valores nunca forman parte del texto de la consulta. El texto que queda
+    // entre marcadores lo genera `BulkPermissionBuilder` (sin datos del
+    // usuario), por eso puede ir con `sql.raw`.
+    const statement = buildParameterizedStatement(query, params);
 
+    const result = await client.runTransaction(async (tx) => {
       return tx.execute<{
         key: string;
         type: 'boolean' | 'string' | 'number';
         result: unknown;
-      }>(sql.raw(substitutedQuery));
+      }>(statement);
     });
 
     // Parse results using the builder's parser
     return BulkPermissionBuilder.parseResults(result);
   }
+}
+
+/**
+ * Convierte una consulta con marcadores posicionales (`$1`, `$2`…) y su lista
+ * de valores en una sentencia de Drizzle con parámetros enlazados.
+ *
+ * El texto entre marcadores se incluye tal cual (lo genera el propio
+ * servidor); cada marcador se sustituye por un parámetro, que el driver envía
+ * aparte del texto SQL. Un marcador sin valor correspondiente es un error de
+ * programación y se rechaza.
+ */
+export function buildParameterizedStatement(
+  query: string,
+  params: ReadonlyArray<unknown>,
+) {
+  const parts = query.split(/\$(\d+)/);
+  const chunks: SQL[] = [];
+
+  parts.forEach((part, index) => {
+    // Las posiciones pares son texto; las impares, el número del marcador.
+    if (index % 2 === 0) {
+      if (part) {
+        chunks.push(sql.raw(part));
+      }
+
+      return;
+    }
+
+    const position = Number(part) - 1;
+
+    if (position < 0 || position >= params.length) {
+      throw new Error(`Missing value for placeholder $${part}`);
+    }
+
+    chunks.push(sql`${params[position]}`);
+  });
+
+  return sql.join(chunks, sql.raw(''));
 }

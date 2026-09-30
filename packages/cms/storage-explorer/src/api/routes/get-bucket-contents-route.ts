@@ -1,41 +1,55 @@
+/**
+ * `GET /v1/storage/buckets/:bucket/contents`: una página del contenido de
+ * una carpeta del almacenamiento.
+ *
+ * La carpeta va en `path` (vacío para la raíz del *bucket*). Se valida aquí
+ * con las reglas compartidas y el servicio exige además el permiso `select`
+ * sobre ella; cada elemento lleva los permisos del usuario sobre su ruta
+ * exacta y, si es una imagen legible, una URL firmada de vista previa de
+ * corta duración.
+ *
+ * [TFG] RF-09 · RNF-02.
+ */
 import { zValidator } from '@hono/zod-validator';
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import { z } from 'zod';
 
-import { getPublicErrorMessage } from '@pymekit/cms-shared/utils';
-import { getLogger } from '@pymekit/shared/logger';
+import {
+  STORAGE_LIMITS,
+  isValidFolderPath,
+} from '@pymekit/cms-shared/storage-paths';
 
 import { createStorageService } from '../services/storage.service';
-
-const BucketContentsParamsSchema = z.object({
-  bucket: z.string().min(1),
-});
+import {
+  BucketParamsSchema,
+  invalidStorageInput,
+  respondWithStorageError,
+} from './file-operations-route';
 
 const BucketContentsQuerySchema = z.object({
-  path: z.string().optional(),
-  search: z.string().optional(),
-  page: z.coerce.number().min(1).default(1).optional(),
-  limit: z.coerce.number().min(1).max(25).default(25).optional(),
+  path: z
+    .string()
+    .max(STORAGE_LIMITS.maxPathLength)
+    .refine(isValidFolderPath, 'Invalid folder path')
+    .optional()
+    .default(''),
+  search: z.string().max(255).optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(25),
 });
 
-/**
- * Register the bucket contents router
- * @param router
- */
+/** Registra la ruta del contenido de una carpeta. */
 export function registerBucketContentsRouter(router: Hono) {
   return router.get(
     '/v1/storage/buckets/:bucket/contents',
-    zValidator('param', BucketContentsParamsSchema),
-    zValidator('query', BucketContentsQuerySchema),
+    zValidator('param', BucketParamsSchema, invalidStorageInput),
+    zValidator('query', BucketContentsQuerySchema, invalidStorageInput),
     async (c) => {
-      const service = createStorageService(c);
-      const logger = await getLogger();
-
       const { bucket } = c.req.valid('param');
-      const { path, search, page = 1, limit = 25 } = c.req.valid('query');
+      const { path, search, page, limit } = c.req.valid('query');
 
       try {
-        const result = await service.getBucketContents({
+        const result = await createStorageService(c).getBucketContents({
           bucket,
           path,
           search,
@@ -45,27 +59,17 @@ export function registerBucketContentsRouter(router: Hono) {
 
         return c.json(result);
       } catch (error) {
-        logger.error(
-          {
-            error,
-            bucket,
-            path,
-          },
+        return respondWithStorageError(
+          c,
+          error,
+          { bucket, path },
           'Error getting bucket contents',
-        );
-
-        return c.json(
-          { error: getPublicErrorMessage(error), success: false },
-          { status: 500 },
         );
       }
     },
   );
 }
 
-/**
- * Get bucket contents route type
- */
 export type GetBucketContentsRoute = ReturnType<
   typeof registerBucketContentsRouter
 >;

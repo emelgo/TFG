@@ -39,6 +39,9 @@ import type { GetNavigationRoute } from '@pymekit/cms-navigation/routes';
 import type { GetRolesForSharingRoute } from '@pymekit/cms-permissions/routes';
 import type { GetAccountRoute } from '@pymekit/cms-settings/routes';
 
+import { createStorageApi } from './storage-api';
+import { createUsersApi } from './users-api';
+
 /** Implementación de `fetch` que usan los clientes RPC. */
 export type CmsFetch = typeof fetch;
 
@@ -52,6 +55,11 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
   const clientOptions = { fetch: options.fetch };
 
   return {
+    // Explorador de usuarios y de almacenamiento (F2.5), en ficheros propios
+    // para que este no crezca sin control.
+    ...createUsersApi(clientOptions),
+    ...createStorageApi(clientOptions),
+
     /**
      * Devuelve la cuenta del CMS del usuario y las secciones que puede usar.
      * Lanza `ApiError` con `status` 401/403 si no tiene acceso.
@@ -469,3 +477,28 @@ export type CmsSavedViews = Awaited<ReturnType<CmsApi['getSavedViews']>>;
 
 /** Una vista guardada tal como la devuelve la API. */
 export type CmsSavedView = CmsSavedViews['personal'][number];
+
+/** Página del listado de usuarios (`GET /v1/users`). */
+export type CmsUsersList = Awaited<ReturnType<CmsApi['getUsers']>>;
+
+/** Un usuario del listado. */
+export type CmsUserListItem = CmsUsersList['users'][number];
+
+/** Ficha de un usuario (`GET /v1/users/:id`). */
+export type CmsUserDetails = Awaited<ReturnType<CmsApi['getUser']>>['data'];
+
+/** Resultado de una acción sobre uno o varios usuarios. */
+export type CmsUsersBatchResult = Awaited<ReturnType<CmsApi['banUser']>>;
+
+/** *Bucket* legible (`GET /v1/storage/buckets`). */
+export type CmsStorageBucket = Awaited<
+  ReturnType<CmsApi['getStorageBuckets']>
+>['buckets'][number];
+
+/** Página del contenido de una carpeta del almacenamiento. */
+export type CmsBucketContents = Awaited<
+  ReturnType<CmsApi['getBucketContents']>
+>;
+
+/** Un fichero o carpeta del almacenamiento. */
+export type CmsStorageItem = CmsBucketContents['contents'][number];

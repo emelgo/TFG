@@ -12,13 +12,16 @@
   },
   "exports": {
     "./utils": "./src/utils/get-error-message.ts",
-    "./error-codes": "./src/constants/error-codes.ts"
+    "./error-codes": "./src/constants/error-codes.ts",
+    "./storage-paths": "./src/utils/storage-paths.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
   },
   "devDependencies": {
-    "@pymekit/tsconfig": "workspace:*"
+    "@pymekit/tsconfig": "workspace:*",
+    "vitest": "catalog:"
   }
 }

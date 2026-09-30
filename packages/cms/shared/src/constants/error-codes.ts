@@ -48,6 +48,48 @@ export const CMS_API_ERROR_CODES = {
   RECORD_RULE_VIOLATION: 'RECORD_RULE_VIOLATION',
   /** Error inesperado al escribir (500). */
   RECORD_WRITE_FAILED: 'RECORD_WRITE_FAILED',
+
+  // Explorador de usuarios (F2.5). Sus acciones usan la API de administración
+  // de Auth con la clave de servicio, así que la autorización se decide en el
+  // código antes de llamarla; estos códigos explican el rechazo sin devolver
+  // el texto de Auth ni de PostgreSQL.
+
+  /** Sin el permiso del CMS para esa acción sobre usuarios (403). */
+  AUTH_USER_PERMISSION_DENIED: 'AUTH_USER_PERMISSION_DENIED',
+  /** El usuario no existe (404). */
+  AUTH_USER_NOT_FOUND: 'AUTH_USER_NOT_FOUND',
+  /** Nadie puede bloquearse, borrarse ni cambiar su propio acceso (403). */
+  AUTH_USER_SELF_ACTION: 'AUTH_USER_SELF_ACTION',
+  /**
+   * El destino es un super-admin de la plataforma o personal del CMS: hay que
+   * retirarle antes el acceso al CMS (con la jerarquía de rangos) o, si es
+   * super-admin, gestionarlo desde la consola de la plataforma (403).
+   */
+  AUTH_USER_PROTECTED: 'AUTH_USER_PROTECTED',
+  /** Ya existe un usuario con ese correo (409). */
+  AUTH_USER_ALREADY_EXISTS: 'AUTH_USER_ALREADY_EXISTS',
+  /** Datos no válidos (correo, contraseña débil…) (400). */
+  AUTH_USER_INVALID_DATA: 'AUTH_USER_INVALID_DATA',
+  /** Error inesperado al actuar sobre el usuario (500). */
+  AUTH_USER_ACTION_FAILED: 'AUTH_USER_ACTION_FAILED',
+
+  // Explorador de almacenamiento (F2.5). Cada operación se comprueba con
+  // `cms.has_storage_permission` antes de usar el cliente de servicio.
+
+  /** Sin permiso de almacenamiento para ese *bucket* y ruta (403). */
+  STORAGE_PERMISSION_DENIED: 'STORAGE_PERMISSION_DENIED',
+  /** Nombre de *bucket*, ruta o nombre de fichero no válido (400). */
+  STORAGE_INVALID_PATH: 'STORAGE_INVALID_PATH',
+  /** El fichero o la carpeta no existe (404). */
+  STORAGE_NOT_FOUND: 'STORAGE_NOT_FOUND',
+  /** Ya existe un fichero o carpeta con ese nombre (409). */
+  STORAGE_ALREADY_EXISTS: 'STORAGE_ALREADY_EXISTS',
+  /** El fichero supera el tamaño máximo de subida (413). */
+  STORAGE_FILE_TOO_LARGE: 'STORAGE_FILE_TOO_LARGE',
+  /** Demasiados ficheros en una operación (borrar una carpeta enorme) (400). */
+  STORAGE_TOO_MANY_FILES: 'STORAGE_TOO_MANY_FILES',
+  /** Error inesperado del almacenamiento (500). */
+  STORAGE_OPERATION_FAILED: 'STORAGE_OPERATION_FAILED',
 } as const;
 
 export type CmsApiErrorCode =

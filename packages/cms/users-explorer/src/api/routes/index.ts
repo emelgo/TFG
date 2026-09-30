@@ -1,32 +1,99 @@
+/**
+ * Rutas Hono del explorador de usuarios del CMS (`/v1/users`,
+ * `/v1/admin/users/...`).
+ *
+ * Lectura:
+ *  - `GET /v1/users`: página de usuarios con búsqueda por correo o teléfono.
+ *  - `GET /v1/users/:id`: ficha de un usuario y acciones disponibles.
+ *
+ * Acciones (todas pasan por `AdminUserService`, que comprueba permiso y
+ * protección antes de usar la clave de servicio de Auth):
+ *  - crear, invitar, bloquear, desbloquear, restablecer contraseña, enviar
+ *    enlace de acceso, quitar un factor MFA y borrar (una o varias);
+ *  - conceder o retirar el acceso al CMS (`PUT .../admin-access`).
+ *
+ * **No existe** ningún *endpoint* para editar metadatos de un usuario: el
+ * `app_metadata` (con `role` y `cms_access`) no se puede escribir desde el
+ * CMS. Los esquemas Zod son estrictos (`.strict()`), así que un campo de más
+ * en el cuerpo (por ejemplo, `app_metadata`) se rechaza con 400 en lugar de
+ * ignorarse en silencio.
+ *
+ * Los errores se responden con un código estable (`AUTH_USER_*`) y un mensaje
+ * genérico (`classifyUsersError`); el texto de Auth o de PostgreSQL solo va
+ * al *log*.
+ *
+ * [TFG] RF-09 · RNF-02.
+ */
 import { zValidator } from '@hono/zod-validator';
-import { Hono } from 'hono';
+import type { Context, Hono } from 'hono';
 import { z } from 'zod';
 
-import { getErrorMessage } from '@pymekit/cms-shared/utils';
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
 import { getLogger } from '@pymekit/shared/logger';
 
 import { createAdminUserService } from '../services/admin-user.service';
 import { createAuthUsersService } from '../services/auth-users.service';
+import { classifyUsersError } from '../utils/users-errors';
+
+/** Tamaño de página del listado de usuarios. */
+const USERS_PAGE_SIZE = 25;
+
+/** Máximo de usuarios por acción múltiple. */
+const MAX_BATCH_USERS = 50;
+
+const UserIdParamsSchema = z.object({ id: z.string().uuid() });
+
+const BatchUsersSchema = z
+  .object({
+    userIds: z.array(z.string().uuid()).min(1).max(MAX_BATCH_USERS),
+  })
+  .strict();
 
 /**
- * @name registerUsersExplorerRoutes
- * @description Register routes for users explorer
- * @param router - The router to register routes on
+ * Respuesta de los validadores Zod cuando la entrada no es válida (un campo
+ * de más, un id que no es UUID, una contraseña corta…): un 400 con el código
+ * estable `AUTH_USER_INVALID_DATA`, igual para todas las rutas.
  */
+function invalidUsersInput(result: { success: boolean }, c: Context) {
+  if (!result.success) {
+    return c.json(
+      {
+        success: false as const,
+        error: 'The submitted user data is not valid',
+        errorCode: CMS_API_ERROR_CODES.AUTH_USER_INVALID_DATA,
+      },
+      400,
+    );
+  }
+}
+
+/**
+ * Responde a un error del explorador con su código estable. El error
+ * original solo va al *log*.
+ */
+async function respondWithUsersError(
+  c: Context,
+  error: unknown,
+  logContext: Record<string, unknown>,
+  logMessage: string,
+) {
+  const logger = await getLogger();
+  const { status, errorCode, message } = classifyUsersError(error);
+
+  if (status >= 500) {
+    logger.error({ error, ...logContext }, logMessage);
+  } else {
+    logger.warn({ error, ...logContext }, logMessage);
+  }
+
+  return c.json({ success: false, error: message, errorCode }, status);
+}
+
+/** Registra todas las rutas del explorador de usuarios. */
 export function registerUsersExplorerRoutes(router: Hono) {
   registerGetUsersRoute(router);
   registerGetUserByIdRoute(router);
 
-  // Admin operations routes
-  registerAdminRoutes(router);
-}
-
-/**
- * @name registerAdminRoutes
- * @description Register admin routes for user operations
- * @param router - The router to register routes on
- */
-function registerAdminRoutes(router: Hono) {
   registerBanUserRoute(router);
   registerUnbanUserRoute(router);
   registerResetPasswordRoute(router);
@@ -37,672 +104,383 @@ function registerAdminRoutes(router: Hono) {
   registerRemoveMfaFactorRoute(router);
   registerUpdateAdminAccessRoute(router);
 
-  // Batch operations
   registerBatchBanUsersRoute(router);
   registerBatchUnbanUsersRoute(router);
   registerBatchResetPasswordsRoute(router);
   registerBatchDeleteUsersRoute(router);
 }
 
-/**
- * Get all users
- */
-export type GetUsersRoute = ReturnType<typeof registerGetUsersRoute>;
-
-/**
- * @name registerGetUsersRoute
- * @description Register a route for getting all users
- * @param router - The router to register the route on
- */
 function registerGetUsersRoute(router: Hono) {
   return router.get(
     '/v1/users',
     zValidator(
       'query',
       z.object({
-        page: z.coerce.number().optional().default(1),
-        search: z.string().optional(),
+        page: z.coerce.number().int().min(1).optional().default(1),
+        search: z.string().max(255).optional(),
       }),
+      invalidUsersInput,
     ),
     async (c) => {
       const service = createAuthUsersService(c);
       const { page, search } = c.req.valid('query');
-      const logger = await getLogger();
-      const pageSize = 25;
 
       try {
         const [{ users, total }, permissions] = await Promise.all([
-          service.getUsers({
-            page,
-            limit: pageSize,
-            search,
-          }),
+          service.getUsers({ page, limit: USERS_PAGE_SIZE, search }),
           service.getPermissions(),
         ]);
-
-        const pageCount = total ? Math.ceil(total / pageSize) : 0;
-        const pageIndex = page - 1;
 
         return c.json({
           users,
           permissions,
           pagination: {
-            pageCount,
-            pageIndex,
-            pageSize,
+            pageCount: Math.ceil(total / USERS_PAGE_SIZE),
+            pageIndex: page - 1,
+            pageSize: USERS_PAGE_SIZE,
             total,
           },
         });
       } catch (error) {
-        logger.error({ error }, 'Failed to fetch users');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(c, error, {}, 'Failed to fetch users');
       }
     },
   );
 }
 
-/**
- * Get user by ID
- */
-export type GetUserByIdRoute = ReturnType<typeof registerGetUserByIdRoute>;
-
-/**
- * @name registerGetUserByIdRoute
- * @description Register a route for getting a user by ID
- * @param router - The router to register the route on
- */
 function registerGetUserByIdRoute(router: Hono) {
   return router.get(
     '/v1/users/:id',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', UserIdParamsSchema, invalidUsersInput),
     async (c) => {
-      const service = createAuthUsersService(c);
       const { id } = c.req.valid('param');
-      const logger = await getLogger();
 
       try {
-        const [{ user }, permissions] = await Promise.all([
-          service.getUserById(id),
-          service.getPermissions(),
-        ]);
+        const data = await createAuthUsersService(c).getUserById(id);
 
-        return c.json({
-          data: {
-            user,
-            permissions,
-          },
-        });
+        return c.json({ data });
       } catch (error) {
-        logger.error({ error }, 'Failed to fetch user details');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(
+          c,
+          error,
+          { userId: id },
+          'Failed to fetch user details',
+        );
       }
     },
   );
 }
 
-/**
- * Ban user
- */
-export type BanUserRoute = ReturnType<typeof registerBanUserRoute>;
-
-/**
- * @name registerBanUserRoute
- * @description Register a route for banning a user
- * @param router - The router to register the route on
- */
 function registerBanUserRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/:id/ban',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', UserIdParamsSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { id } = c.req.valid('param');
-      const logger = await getLogger();
 
       try {
-        logger.info({ id }, 'Banning user...');
-
-        const result = await service.banUser(id);
-
-        logger.info({ id }, 'User banned successfully');
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).banUsers([id]));
       } catch (error) {
-        logger.error({ error, userId: id }, 'Failed to ban user');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(c, error, { userId: id }, 'Ban failed');
       }
     },
   );
 }
 
-/**
- * Unban user
- */
-export type UnbanUserRoute = ReturnType<typeof registerUnbanUserRoute>;
-
-/**
- * @name registerUnbanUserRoute
- * @description Register a route for unbanning a user
- * @param router - The router to register the route on
- */
 function registerUnbanUserRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/:id/unban',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', UserIdParamsSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { id } = c.req.valid('param');
-      const logger = await getLogger();
 
       try {
-        logger.info({ id }, 'Unbanning user...');
-
-        const result = await service.unbanUser(id);
-
-        logger.info({ id }, 'User unbanned successfully');
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).unbanUsers([id]));
       } catch (error) {
-        logger.error({ error, userId: id }, 'Failed to unban user');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(c, error, { userId: id }, 'Unban failed');
       }
     },
   );
 }
 
-/**
- * Reset password
- */
-export type ResetPasswordRoute = ReturnType<typeof registerResetPasswordRoute>;
-
-/**
- * @name registerResetPasswordRoute
- * @description Register a route for resetting a user's password
- * @param router - The router to register the route on
- */
 function registerResetPasswordRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/:id/reset-password',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', UserIdParamsSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { id } = c.req.valid('param');
-      const logger = await getLogger();
 
       try {
-        logger.info({ id }, 'Resetting password...');
-
-        const result = await service.resetPassword(id);
-
-        logger.info({ id }, 'Password reset successful');
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).resetPasswords([id]));
       } catch (error) {
-        logger.error({ error, userId: id }, 'Failed to reset password');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(
+          c,
+          error,
+          { userId: id },
+          'Password reset failed',
+        );
       }
     },
   );
 }
 
-/**
- * Delete user
- */
-export type DeleteUserRoute = ReturnType<typeof registerDeleteUserRoute>;
-
-/**
- * @name registerDeleteUserRoute
- * @description Register a route for deleting a user
- * @param router - The router to register the route on
- */
 function registerDeleteUserRoute(router: Hono) {
   return router.delete(
     '/v1/admin/users/:id',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', UserIdParamsSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { id } = c.req.valid('param');
-      const logger = await getLogger();
 
       try {
-        logger.info({ id }, 'Deleting user...');
-
-        const result = await service.deleteUser(id);
-
-        logger.info({ id }, 'User deleted successfully');
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).deleteUsers([id]));
       } catch (error) {
-        logger.error({ error, userId: id }, 'Failed to delete user');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(c, error, { userId: id }, 'Delete failed');
       }
     },
   );
 }
 
-/**
- * Invite user
- */
-export type InviteUserRoute = ReturnType<typeof registerInviteUserRoute>;
-
-/**
- * @name registerInviteUserRoute
- * @description Register a route for inviting a new user
- * @param router - The router to register the route on
- */
 function registerInviteUserRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/invite',
     zValidator(
       'json',
-      z.object({
-        email: z.string().email(),
-      }),
+      z.object({ email: z.string().email() }).strict(),
+      invalidUsersInput,
     ),
     async (c) => {
-      const service = createAdminUserService(c);
       const { email } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info({ email }, 'Inviting user...');
-
-        const result = await service.inviteUser({ email });
-
-        logger.info({ email }, 'User invited successfully');
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).inviteUser({ email }));
       } catch (error) {
-        logger.error({ error, email }, 'Failed to invite user');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(c, error, {}, 'Invite failed');
       }
     },
   );
 }
 
-/**
- * Create user
- */
-export type CreateUserRoute = ReturnType<typeof registerCreateUserRoute>;
-
-/**
- * @name registerCreateUserRoute
- * @description Register a route for creating a new user
- * @param router - The router to register the route on
- */
 function registerCreateUserRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/create',
     zValidator(
       'json',
-      z.object({
-        email: z.string().email(),
-        password: z.string().min(8),
-        autoConfirm: z.boolean().default(false),
-      }),
+      z
+        .object({
+          email: z.string().email(),
+          // 72 es el máximo que admite bcrypt, el algoritmo de Auth.
+          password: z.string().min(8).max(72),
+          autoConfirm: z.boolean().default(false),
+        })
+        .strict(),
+      invalidUsersInput,
     ),
     async (c) => {
-      const service = createAdminUserService(c);
       const { email, password, autoConfirm } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info({ email }, 'Creating user...');
-
-        // Create user
-        const result = await service.createUser({
-          email,
-          password,
-          autoConfirm,
-        });
-
-        logger.info({ email }, 'User created successfully');
-
-        return c.json(result);
+        return c.json(
+          await createAdminUserService(c).createUser({
+            email,
+            password,
+            autoConfirm,
+          }),
+        );
       } catch (error) {
-        logger.error({ error, email }, 'Failed to create user');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(c, error, {}, 'Create user failed');
       }
     },
   );
 }
 
-/**
- * Batch ban users
- */
-export type BatchBanUsersRoute = ReturnType<typeof registerBatchBanUsersRoute>;
-
-/**
- * @name registerBatchBanUsersRoute
- * @description Register a route for banning multiple users
- * @param router - The router to register the route on
- */
 function registerBatchBanUsersRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/ban/batch',
-    zValidator(
-      'json',
-      z.object({
-        userIds: z.array(z.string().uuid()).min(1).max(50),
-      }),
-    ),
+    zValidator('json', BatchUsersSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { userIds } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch banning users...',
-        );
-
-        const result = await service.banUsers(userIds);
-
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch ban operation completed',
-        );
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).banUsers(userIds));
       } catch (error) {
-        logger.error({ error, userIds }, 'Failed to batch ban users');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(c, error, { userIds }, 'Batch ban failed');
       }
     },
   );
 }
 
-/**
- * Batch unban users
- */
-export type BatchUnbanUsersRoute = ReturnType<
-  typeof registerBatchUnbanUsersRoute
->;
-
-/**
- * @name registerBatchUnbanUsersRoute
- * @description Register a route for unbanning multiple users
- * @param router - The router to register the route on
- */
 function registerBatchUnbanUsersRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/unban/batch',
-    zValidator(
-      'json',
-      z.object({
-        userIds: z.array(z.string().uuid()).min(1).max(50),
-      }),
-    ),
+    zValidator('json', BatchUsersSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { userIds } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch unbanning users...',
-        );
-
-        const result = await service.unbanUsers(userIds);
-
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch unban operation completed',
-        );
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).unbanUsers(userIds));
       } catch (error) {
-        logger.error({ error, userIds }, 'Failed to batch unban users');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(
+          c,
+          error,
+          { userIds },
+          'Batch unban failed',
+        );
       }
     },
   );
 }
 
-/**
- * Batch reset passwords
- */
-export type BatchResetPasswordsRoute = ReturnType<
-  typeof registerBatchResetPasswordsRoute
->;
-
-/**
- * @name registerBatchResetPasswordsRoute
- * @description Register a route for resetting multiple users' passwords
- * @param router - The router to register the route on
- */
 function registerBatchResetPasswordsRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/reset-password/batch',
-    zValidator(
-      'json',
-      z.object({
-        userIds: z.array(z.string().uuid()).min(1).max(50),
-      }),
-    ),
+    zValidator('json', BatchUsersSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { userIds } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch resetting passwords...',
-        );
-
-        const result = await service.resetPasswords(userIds);
-
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch password reset operation completed',
-        );
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).resetPasswords(userIds));
       } catch (error) {
-        logger.error({ error, userIds }, 'Failed to batch reset passwords');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(
+          c,
+          error,
+          { userIds },
+          'Batch password reset failed',
+        );
       }
     },
   );
 }
 
-/**
- * Batch delete users
- */
-export type BatchDeleteUsersRoute = ReturnType<
-  typeof registerBatchDeleteUsersRoute
->;
-
-/**
- * @name registerBatchDeleteUsersRoute
- * @description Register a route for deleting multiple users
- * @param router - The router to register the route on
- */
 function registerBatchDeleteUsersRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/delete/batch',
-    zValidator(
-      'json',
-      z.object({
-        userIds: z.array(z.string().uuid()).min(1).max(50),
-      }),
-    ),
+    zValidator('json', BatchUsersSchema, invalidUsersInput),
     async (c) => {
-      const service = createAdminUserService(c);
       const { userIds } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch deleting users...',
-        );
-
-        const result = await service.deleteUsers(userIds);
-
-        logger.info(
-          { userIds, count: userIds.length },
-          'Batch delete operation completed',
-        );
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).deleteUsers(userIds));
       } catch (error) {
-        logger.error({ error, userIds }, 'Failed to batch delete users');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(
+          c,
+          error,
+          { userIds },
+          'Batch delete failed',
+        );
       }
     },
   );
 }
 
-/**
- * Send magic link
- */
-export type SendMagicLinkRoute = ReturnType<typeof registerSendMagicLinkRoute>;
-
-/**
- * @name registerSendMagicLinkRoute
- * @description Register a route for sending a magic link to a user
- * @param router - The router to register the route on
- */
 function registerSendMagicLinkRoute(router: Hono) {
   return router.post(
     '/v1/admin/users/:id/magic-link',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', UserIdParamsSchema, invalidUsersInput),
     zValidator(
       'json',
-      z.object({
-        type: z.enum(['signup', 'recovery', 'invite']).default('recovery'),
-      }),
+      z
+        .object({
+          type: z.enum(['recovery', 'invite']).default('recovery'),
+        })
+        .strict(),
+      invalidUsersInput,
     ),
     async (c) => {
-      const service = createAdminUserService(c);
       const { id } = c.req.valid('param');
       const { type } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info({ id, type }, 'Sending magic link...');
-
-        const result = await service.sendMagicLink(id, type);
-
-        logger.info({ id, type }, 'Magic link sent successfully');
-
-        return c.json(result);
+        return c.json(await createAdminUserService(c).sendMagicLink(id, type));
       } catch (error) {
-        logger.error({ error, userId: id }, 'Failed to send magic link');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithUsersError(
+          c,
+          error,
+          { userId: id, type },
+          'Magic link failed',
+        );
       }
     },
   );
 }
 
-/**
- * Remove MFA factor
- */
-export type RemoveMfaFactorRoute = ReturnType<
-  typeof registerRemoveMfaFactorRoute
->;
-
-/**
- * @name registerRemoveMfaFactorRoute
- * @description Register a route for removing an MFA factor from a user
- * @param router - The router to register the route on
- */
 function registerRemoveMfaFactorRoute(router: Hono) {
   return router.delete(
     '/v1/admin/users/:id/mfa/:factorId',
     zValidator(
       'param',
-      z.object({
-        id: z.string().uuid(),
-        factorId: z.string().uuid(),
-      }),
+      z.object({ id: z.string().uuid(), factorId: z.string().uuid() }),
+      invalidUsersInput,
     ),
     async (c) => {
-      const service = createAdminUserService(c);
       const { id, factorId } = c.req.valid('param');
-      const logger = await getLogger();
 
       try {
-        logger.info({ id, factorId }, 'Removing MFA factor...');
-
-        const result = await service.removeMfaFactor(id, factorId);
-
-        logger.info({ id, factorId }, 'MFA factor removed successfully');
-
-        return c.json(result);
-      } catch (error) {
-        logger.error(
-          { error, userId: id, factorId },
-          'Failed to remove MFA factor',
+        return c.json(
+          await createAdminUserService(c).removeMfaFactor(id, factorId),
         );
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+      } catch (error) {
+        return respondWithUsersError(
+          c,
+          error,
+          { userId: id, factorId },
+          'Remove MFA factor failed',
+        );
       }
     },
   );
 }
 
-/**
- * Update admin access
- */
-export type UpdateAdminAccessRoute = ReturnType<
-  typeof registerUpdateAdminAccessRoute
->;
-
-/**
- * @name registerUpdateAdminAccessRoute
- * @description Register a route for updating admin access status of a user
- * @param router - The router to register the route on
- */
 function registerUpdateAdminAccessRoute(router: Hono) {
   return router.put(
     '/v1/admin/users/:id/admin-access',
-    zValidator('param', z.object({ id: z.string().uuid() })),
+    zValidator('param', UserIdParamsSchema, invalidUsersInput),
     zValidator(
       'json',
-      z.object({
-        adminAccess: z.boolean(),
-      }),
+      z.object({ adminAccess: z.boolean() }).strict(),
+      invalidUsersInput,
     ),
     async (c) => {
-      const service = createAdminUserService(c);
       const { id } = c.req.valid('param');
       const { adminAccess } = c.req.valid('json');
-      const logger = await getLogger();
 
       try {
-        logger.info({ id, adminAccess }, 'Updating admin access...');
-
-        const result = await service.updateAdminAccess(id, adminAccess);
-
-        logger.info({ id, adminAccess }, 'Admin access updated successfully');
-
-        return c.json(result);
-      } catch (error) {
-        logger.error(
-          { error, userId: id, adminAccess },
-          'Failed to update admin access',
+        return c.json(
+          await createAdminUserService(c).updateAdminAccess(id, adminAccess),
         );
-
-        return c.json({ error: getErrorMessage(error), success: false }, 500);
+      } catch (error) {
+        return respondWithUsersError(
+          c,
+          error,
+          { userId: id, adminAccess },
+          'Update admin access failed',
+        );
       }
     },
   );
 }
+
+export type GetUsersRoute = ReturnType<typeof registerGetUsersRoute>;
+export type GetUserByIdRoute = ReturnType<typeof registerGetUserByIdRoute>;
+export type BanUserRoute = ReturnType<typeof registerBanUserRoute>;
+export type UnbanUserRoute = ReturnType<typeof registerUnbanUserRoute>;
+export type ResetPasswordRoute = ReturnType<typeof registerResetPasswordRoute>;
+export type DeleteUserRoute = ReturnType<typeof registerDeleteUserRoute>;
+export type InviteUserRoute = ReturnType<typeof registerInviteUserRoute>;
+export type CreateUserRoute = ReturnType<typeof registerCreateUserRoute>;
+export type BatchBanUsersRoute = ReturnType<typeof registerBatchBanUsersRoute>;
+export type BatchUnbanUsersRoute = ReturnType<
+  typeof registerBatchUnbanUsersRoute
+>;
+export type BatchResetPasswordsRoute = ReturnType<
+  typeof registerBatchResetPasswordsRoute
+>;
+export type BatchDeleteUsersRoute = ReturnType<
+  typeof registerBatchDeleteUsersRoute
+>;
+export type SendMagicLinkRoute = ReturnType<typeof registerSendMagicLinkRoute>;
+export type RemoveMfaFactorRoute = ReturnType<
+  typeof registerRemoveMfaFactorRoute
+>;
+export type UpdateAdminAccessRoute = ReturnType<
+  typeof registerUpdateAdminAccessRoute
+>;

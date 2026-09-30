@@ -35,6 +35,12 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-18 | 2026-09-29 | F2.4c | calidad | heredado | Código de error inexistente (`not_nullviolation`) en `insert_record` | Baja |
 | B-19 | 2026-09-29 | F2.4c | seguridad | heredado | Edición y borrado de varias filas con una «clave» que no era clave | Alta |
 | B-20 | 2026-09-29 | F2.4c | seguridad | heredado | Mensajes internos de PostgreSQL devueltos al cliente | Media |
+| B-21 | 2026-09-30 | F2.5 | seguridad | heredado | La gestión de usuarios solo comprobaba el claim `cms_access` | Alta |
+| B-22 | 2026-09-30 | F2.5 | calidad/seguridad | heredado | Permisos de almacenamiento: consulta que siempre fallaba y herencia de carpetas | Alta |
+| B-23 | 2026-09-30 | F2.5 | seguridad | heredado | La comprobación de usuario bloqueado fallaba en abierto | Media |
+| B-24 | 2026-09-30 | F2.5 | seguridad | heredado | Inyección SQL por sustitución manual de parámetros | Alta |
+| B-25 | 2026-09-30 | F2.5 | seguridad | heredado | Subidas con tipo de contenido elegido por el cliente | Media |
+| B-26 | 2026-09-30 | F2.5 | proceso | propio | Un E2E que cierra todas las sesiones rompía otros tests | Baja |
 
 ---
 
@@ -163,3 +169,41 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** el borrado en lote devolvía el texto `SQLERRM`, y otras rutas de escritura respondían 500 con mensajes parcialmente internos. Eso expone detalles del esquema, como nombres de restricciones y tablas.
 - **Solución:** `classifyCrudError` traduce el SQLSTATE a 400/403/404/409 con un código estable (`RECORD_*`, definido en `@pymekit/cms-shared/error-codes`). El texto de PostgreSQL nunca llega al cliente, solo a los logs.
 - **Lección:** los errores de la base de datos se clasifican en el servidor; al cliente solo le llegan códigos pensados para la interfaz.
+
+## B-21 · La gestión de usuarios solo comprobaba el claim `cms_access`
+- **Qué pasó:** las rutas del explorador de usuarios usan el cliente administrador de Auth (clave de servicio), pero solo exigían el claim `cms_access`. Cualquier miembro del personal del CMS podía bloquear, borrar o restablecer la contraseña de un super-admin de la plataforma, de otro miembro de rango superior o de sí mismo.
+- **Cómo se detectó:** en la auditoría de seguridad que se encargó junto con la F2.5, orientada a escalada de privilegios.
+- **Solución:** cada acción exige el permiso RBAC concreto (`auth_user:update/delete/insert`) y comprueba el objetivo. No se puede actuar sobre uno mismo ni sobre un super-admin, y sobre el personal del CMS solo si se le supera en rango (`can_action_account`). Los esquemas de las peticiones son estrictos: `app_metadata` o `role` dan 400 y ningún endpoint escribe metadatos.
+- **Evidencia:** `user-protection.test.ts`; E2E «nadie actúa sobre sí mismo…» y «ningún endpoint acepta app_metadata».
+- **Lección:** cuando un servicio usa una credencial que se salta RLS, **toda** la autorización recae en el código que la llama, y hay que comprobar el objetivo de la acción, no solo al actor.
+
+## B-22 · Permisos de almacenamiento: consulta que siempre fallaba y herencia de carpetas
+- **Qué pasó:** la consulta de permisos en bloque de Storage pasaba un array que Drizzle expandía como `($1,$2)`, así que fallaba siempre. Todos los permisos por fichero salían falsos y borrar no funcionaba nunca. Además, los ficheros heredaban los permisos de su carpeta padre, lo que podía conceder de más.
+- **Solución:** parámetro `jsonb` en la consulta y comprobación siempre sobre la ruta exacta.
+- **Lección:** una comprobación de permisos que falla por error y «deniega» oculta el fallo; la funcionalidad parecía restringida cuando en realidad estaba rota.
+
+## B-23 · La comprobación de usuario bloqueado fallaba en abierto
+- **Qué pasó:** si la consulta del estado de bloqueo a Auth daba error, el middleware del CMS dejaba pasar la petición. Durante una caída momentánea de Auth, un usuario bloqueado con un JWT todavía vigente podía usar el CMS.
+- **Cómo se detectó:** el agente de la F2.5 lo dejó anotado como pendiente y se corrigió en la revisión de su informe.
+- **Solución:** se trata como bloqueado (fallo en cerrado).
+- **Lección:** es el mismo principio que B-06. En una consola de administración, ante la duda, se deniega.
+
+## B-24 · Inyección SQL por sustitución manual de parámetros
+- **Qué pasó:** `checkBulkPermissions` construía la consulta con marcadores `$1`, `$2`… y después los **sustituía a mano** en el texto, escapando solo las comillas simples, antes de ejecutarla con `sql.raw`. Si un valor controlado por el cliente (por ejemplo, un nombre de tabla) contenía la cadena `$2`, la siguiente sustitución se insertaba dentro de su literal y rompía el entrecomillado, lo que permitía inyectar SQL.
+- **Cómo se detectó:** en la revisión de la sesión principal sobre los pendientes del agente de la F2.5. El agente había señalado otro `sql.raw` sin uso, y al revisar el fichero apareció este segundo, que **sí se usa** en todas las comprobaciones de permisos del CMS. Ninguna de las revisiones automáticas anteriores lo había detectado.
+- **Solución:** `buildParameterizedStatement` convierte cada `$n` en un parámetro enlazado de Drizzle, así que los valores no forman parte del texto SQL. Además se eliminó el método sin uso que también construía SQL con `sql.raw`.
+- **Evidencia:** `build-parameterized-statement.test.ts`, que reproduce el valor malicioso; suite E2E completa en verde.
+- **Lección:** escapar a mano nunca sustituye a los parámetros enlazados. Y ninguna revisión es exhaustiva: los agentes pasaron por este fichero varias veces sin verlo, así que conviene que una persona (o la sesión principal) revise los informes y los «pendientes» con ojo crítico.
+
+## B-25 · Subidas con tipo de contenido elegido por el cliente
+- **Qué pasó:** los ficheros se subían directamente desde el navegador con el tipo de contenido que indicaba el cliente. Un HTML disfrazado de PNG podía quedar almacenado como imagen o servirse de forma que el navegador lo interpretara. Los enlaces firmados duraban 1 h y todos los tipos tenían URL pública.
+- **Solución:**
+  - las subidas pasan por la API, con un límite de 5 MB;
+  - un fichero se guarda como imagen solo si la extensión y los *magic bytes* coinciden, y si no como `application/octet-stream`;
+  - la vista previa solo existe para imágenes (10 min) y las descargas son siempre adjuntos firmados de 60 s.
+- **Evidencia:** E2E «HTML disfrazado de PNG».
+
+## B-26 · Un E2E que cierra todas las sesiones rompía otros tests
+- **Qué pasó:** el test heredado «delete user flow» hace un cierre de sesión global, que revoca la sesión compartida del super-admin. Los tests nuevos que leían al usuario con `getUser()` fallaban solo al ejecutar la suite completa. Además, Playwright no envía `Origin` en peticiones sin cuerpo o multipart, y el 403 en texto plano del CSRF hacía pasar por error algunas aserciones de 403.
+- **Solución:** leer al actor del JWT verificado (como el middleware), añadir `Origin` en esas peticiones y comprobar también el `errorCode`, no solo el estado HTTP.
+- **Lección:** los tests E2E comparten estado (sesiones); un 403 no demuestra nada si no se comprueba **por qué** se rechazó.

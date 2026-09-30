@@ -51,7 +51,8 @@
 - [x] F2.4 · Explorador de datos completo (RF-09)
 - [ ] Pendiente (F2.4c): E2E de vincular/desvincular M2M y de edición en línea (no hay tabla puente en el seed); editores de ficheros, texto enriquecido y direcciones; la inserción ignora en silencio columnas no editables y los fallos de auditoría se silencian (heredado, revisar en F2.6)
 - [ ] Mejora menor (F2.4): el filtro por autocompletado muestra el id si la fila relacionada no está en la página actual
-- [ ] F2.5 · Explorador de usuarios y de almacenamiento
+- [x] F2.5 · Explorador de usuarios (listado, ficha, crear/invitar, bloquear, restablecer, borrar, lote, acceso al CMS) y de almacenamiento (buckets, carpetas, subida, renombrado, borrado, vista previa). Paquetes `@pymekit/cms-{users,storage}-explorer-ui`. 9 fallos heredados corregidos por el agente y 2 más en la revisión posterior (B-21 a B-26). E2E 102 (14 nuevos)
+- [ ] Pendiente (F2.5): renombrar carpetas; E2E de invitar, enlace de acceso y retirada de MFA
 - [ ] F2.6 · Auditoría (RF-10)
 - [ ] F2.7 · Ajustes y RBAC del CMS
 - [ ] F2.8 · Paneles (RF-11, recortable)
@@ -129,13 +130,14 @@ Se distinguen dos medidas:
 | Fecha | Horas del autor | Tiempo de reloj (≈) | Fases trabajadas | Fuente |
 |---|---|---|---|---|
 | 2026-09-29 | 8,0 | ≈ 8,0 | F0, F1, F2.1–F2.4c, bitácora y borradores de la memoria | autor (confirma la estimación) |
-| 2026-09-30 | _pendiente_ | _en curso_ | F2.5 | |
+| 2026-09-30 | _pendiente_ | _en curso_ | F2.5 (usuarios y almacenamiento) | |
 
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-30 | F2.5 | Exploradores de usuarios y almacenamiento del CMS; corregidos fallos heredados de autorización, almacenamiento e inyección SQL (B-21 a B-25); E2E 102 |
 | 2026-09-29 | F2.4c | Escritura en el explorador de datos (crear, editar, borrar, lote, en línea, relaciones); fallo de edición/borrado masivo y `not_nullviolation` corregidos; primeros borradores de la memoria (caps. 2, 4 y 5) |
 | 2026-09-29 | F2.4b | Ficha de registro del CMS con relaciones y enlaces según permisos; E2E 76 ✔. Bitácora de incidencias y trazabilidad al día |
 | 2026-09-29 | F2.4a | Listado del explorador de datos del CMS (filtros, orden, búsqueda, columnas y vistas guardadas); E2E 69 ✔ |

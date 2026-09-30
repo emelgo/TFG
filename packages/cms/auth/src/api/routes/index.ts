@@ -148,8 +148,13 @@ async function authenticate(
  *
  * Se usa el cliente administrador porque `banned_until` solo se puede leer con
  * la API de administración de Auth; la consulta se limita al propio usuario
- * de la sesión, ya verificado. Un error transitorio no bloquea al usuario: la
- * base de datos sigue aplicando sus propias comprobaciones.
+ * de la sesión, ya verificado.
+ *
+ * [TFG] RNF-02 · Falla en cerrado (BITACORA B-23): si no se puede comprobar el
+ * bloqueo (error de Auth), la petición se trata como bloqueada. El código
+ * heredado dejaba pasar en ese caso, así que una caída momentánea de Auth
+ * abría el CMS a un usuario bloqueado con un JWT aún vigente. En una consola
+ * de administración es preferible denegar el acceso durante una incidencia.
  */
 async function isUserBanned(userId: string) {
   if (!userId) {
@@ -165,7 +170,7 @@ async function isUserBanned(userId: string) {
     if (error) {
       logger.error({ error }, 'Could not read the CMS user ban status');
 
-      return false;
+      return true;
     }
 
     const bannedUntil = (data?.user as { banned_until?: string } | undefined)
@@ -175,6 +180,6 @@ async function isUserBanned(userId: string) {
   } catch (error) {
     logger.error({ error }, 'Could not read the CMS user ban status');
 
-    return false;
+    return true;
   }
 }

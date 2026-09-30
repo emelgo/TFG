@@ -6,8 +6,9 @@ export type { GetBucketContentsRoute } from './get-bucket-contents-route';
 
 export { registerFileOperationsRouter } from './file-operations-route';
 export type {
-  RenameFileRoute,
+  CreateFolderRoute,
   DeleteFileRoute,
   DownloadFileRoute,
-  CreateFolderRoute,
+  RenameFileRoute,
+  UploadFileRoute,
 } from './file-operations-route';

@@ -1,39 +1,34 @@
-import { Hono } from 'hono';
-
-import { getPublicErrorMessage } from '@pymekit/cms-shared/utils';
-import { getLogger } from '@pymekit/shared/logger';
+/**
+ * `GET /v1/storage/buckets`: los *buckets* cuya raíz puede leer el usuario.
+ *
+ * Sin ningún permiso de almacenamiento la lista está vacía (y la sección
+ * «Almacenamiento» ni siquiera aparece en la barra lateral).
+ *
+ * [TFG] RF-09 · RNF-02.
+ */
+import type { Hono } from 'hono';
 
 import { createStorageService } from '../services/storage.service';
+import { respondWithStorageError } from './file-operations-route';
 
-/**
- * Register the storage buckets router
- * @param router
- */
+/** Registra la ruta de la lista de *buckets*. */
 export function registerStorageBucketsRouter(router: Hono) {
   return router.get('/v1/storage/buckets', async (c) => {
-    const service = createStorageService(c);
-    const logger = await getLogger();
-
     try {
-      const buckets = await service.getBuckets();
+      const buckets = await createStorageService(c).getBuckets();
 
       return c.json({ buckets });
     } catch (error) {
-      logger.error(
-        {
-          error,
-        },
+      return respondWithStorageError(
+        c,
+        error,
+        {},
         'Error getting storage buckets',
       );
-
-      return c.json({ error: getPublicErrorMessage(error) }, 500);
     }
   });
 }
 
-/**
- * Get storage buckets route type
- */
 export type GetStorageBucketsRoute = ReturnType<
   typeof registerStorageBucketsRouter
 >;

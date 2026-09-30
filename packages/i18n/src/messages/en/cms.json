@@ -347,5 +347,266 @@
       "descriptionTooLong": "The description is too long",
       "tooManyRoles": "You can share a view with up to 10 roles"
     }
+  },
+  "usersExplorer": {
+    "title": "Users",
+    "common": {
+      "cancel": "Cancel",
+      "never": "Never"
+    },
+    "status": {
+      "active": "Active",
+      "banned": "Banned"
+    },
+    "badges": {
+      "superAdmin": "Platform super admin",
+      "cmsStaff": "CMS staff",
+      "you": "You"
+    },
+    "table": {
+      "email": "Email",
+      "status": "Status",
+      "createdAt": "Created",
+      "lastSignIn": "Last sign in",
+      "noResults": "No users found.",
+      "searchPlaceholder": "Search by email or phone and press Enter",
+      "clearSearch": "Clear",
+      "selectPage": "Select all users on this page",
+      "selectRow": "Select user"
+    },
+    "actions": {
+      "addUser": "Add user",
+      "createUser": "Create user",
+      "inviteUser": "Invite user",
+      "ban": {
+        "button": "Ban",
+        "title": "Ban this user?",
+        "description": "{email} will be signed out and will not be able to sign in until the ban is lifted.",
+        "success": "User banned",
+        "error": "The user could not be banned"
+      },
+      "unban": {
+        "button": "Unban",
+        "title": "Unban this user?",
+        "description": "{email} will be able to sign in again.",
+        "success": "User unbanned",
+        "error": "The user could not be unbanned"
+      },
+      "resetPassword": {
+        "button": "Reset password",
+        "title": "Send a password reset email?",
+        "description": "{email} will receive an email with a link to choose a new password. You will not see the link.",
+        "success": "Password reset email sent",
+        "error": "The password reset email could not be sent"
+      },
+      "magicLink": {
+        "button": "Send sign-in link",
+        "title": "Send a sign-in link?",
+        "description": "{email} will receive a one-time sign-in link in their own inbox. You will not see the link.",
+        "success": "Sign-in link sent",
+        "error": "The sign-in link could not be sent"
+      },
+      "grantAdminAccess": {
+        "button": "Grant CMS access",
+        "title": "Grant CMS access?",
+        "description": "{email} will be able to open the CMS. They get no permissions until a CMS role is assigned to them in the CMS settings.",
+        "success": "CMS access granted",
+        "error": "CMS access could not be granted"
+      },
+      "revokeAdminAccess": {
+        "button": "Revoke CMS access",
+        "title": "Revoke CMS access?",
+        "description": "{email} will no longer be able to open the CMS. Their CMS account and roles are kept for auditing.",
+        "success": "CMS access revoked",
+        "error": "CMS access could not be revoked"
+      },
+      "delete": {
+        "button": "Delete",
+        "title": "Delete this user?",
+        "description": "{email} and their personal account will be permanently deleted. This cannot be undone.",
+        "success": "User deleted",
+        "error": "The user could not be deleted"
+      },
+      "removeMfaFactor": {
+        "button": "Remove factor",
+        "title": "Remove this two-factor factor?",
+        "description": "The user will have to set up two-factor authentication again.",
+        "success": "Factor removed",
+        "error": "The factor could not be removed"
+      }
+    },
+    "confirm": {
+      "typeToConfirm": "Type {word} to confirm",
+      "textDoesNotMatch": "The text does not match"
+    },
+    "protection": {
+      "self": "This is your own account. You cannot ban, delete or change it from the CMS.",
+      "super_admin": "This user is a platform super admin. Super admins can only be managed from the platform console.",
+      "cms_staff": "This user is CMS staff. Revoke their CMS access first (only staff with a higher role can) before changing their account.",
+      "cms_rank": "This user was CMS staff with a role equal to or higher than yours (or you cannot manage CMS staff). Only a higher-ranked administrator can change their account."
+    },
+    "details": {
+      "account": "Account",
+      "userId": "User ID",
+      "emailConfirmed": "Email confirmed",
+      "notConfirmed": "Not confirmed",
+      "createdAt": "Created",
+      "lastSignIn": "Last sign in",
+      "status": "Status",
+      "identities": "Sign-in methods",
+      "noIdentities": "No sign-in methods.",
+      "mfaFactors": "Two-factor factors",
+      "noMfaFactors": "No two-factor factors.",
+      "appMetadata": "App metadata (read only)",
+      "userMetadata": "User metadata (read only)"
+    },
+    "form": {
+      "email": "Email",
+      "password": "Password",
+      "autoConfirm": "Mark the email as confirmed",
+      "emailInvalid": "Enter a valid email address",
+      "passwordTooShort": "The password must have at least 8 characters",
+      "passwordTooLong": "The password must have at most 72 characters",
+      "passwordUppercase": "The password must contain an uppercase letter",
+      "passwordLowercase": "The password must contain a lowercase letter",
+      "passwordNumber": "The password must contain a number"
+    },
+    "create": {
+      "title": "Create user",
+      "description": "Create a user with an email and a password. The user can change the password after signing in.",
+      "submit": "Create user",
+      "success": "User created",
+      "error": "The user could not be created"
+    },
+    "invite": {
+      "title": "Invite user",
+      "description": "The user will receive an email with a link to set their password.",
+      "submit": "Send invitation",
+      "success": "Invitation sent",
+      "error": "The invitation could not be sent"
+    },
+    "batch": {
+      "selected": "{count, plural, one {# user selected} other {# users selected}}",
+      "clear": "Clear selection",
+      "success": "{count, plural, one {# user updated} other {# users updated}}",
+      "partial": "{processed} users updated, {failed} could not be updated",
+      "error": "The action could not be applied",
+      "actions": {
+        "ban": "Ban",
+        "unban": "Unban",
+        "resetPassword": "Reset password",
+        "delete": "Delete"
+      },
+      "dialogs": {
+        "ban": {
+          "title": "{count, plural, one {Ban # user?} other {Ban # users?}}",
+          "description": "These users will be signed out and will not be able to sign in:"
+        },
+        "unban": {
+          "title": "{count, plural, one {Unban # user?} other {Unban # users?}}",
+          "description": "These users will be able to sign in again:"
+        },
+        "resetPassword": {
+          "title": "{count, plural, one {Send # password reset email?} other {Send # password reset emails?}}",
+          "description": "These users will receive an email to choose a new password:"
+        },
+        "delete": {
+          "title": "{count, plural, one {Delete # user?} other {Delete # users?}}",
+          "description": "These users will be permanently deleted. This cannot be undone:"
+        }
+      }
+    },
+    "errors": {
+      "permissionDenied": "You do not have permission to do this.",
+      "notFound": "The user no longer exists.",
+      "selfAction": "You cannot do this on your own account.",
+      "protected": "This user is a platform super admin or CMS staff and cannot be changed here.",
+      "alreadyExists": "A user with this email already exists.",
+      "invalidData": "The data is not valid (for example, the password is too weak)."
+    }
+  },
+  "storageExplorer": {
+    "title": "Storage",
+    "common": {
+      "cancel": "Cancel"
+    },
+    "buckets": {
+      "emptyHeading": "No buckets available",
+      "emptyText": "You do not have permission to browse any storage bucket.",
+      "public": "Public",
+      "private": "Private"
+    },
+    "actions": {
+      "upload": "Upload",
+      "createFolder": "New folder",
+      "download": "Download",
+      "rename": "Rename",
+      "delete": "Delete",
+      "menu": "Actions for {name}"
+    },
+    "selection": {
+      "selected": "{count, plural, one {# item selected} other {# items selected}}",
+      "clear": "Clear",
+      "select": "Select {name}"
+    },
+    "list": {
+      "searchPlaceholder": "Search in this folder and press Enter",
+      "clearSearch": "Clear",
+      "emptyFolder": "This folder is empty",
+      "noResults": "Nothing matches “{search}”",
+      "emptyFolderText": "Files you upload here will appear in this folder.",
+      "truncated": "This folder has too many items; only the first 1,000 are listed.",
+      "pagination": "Page {page} of {totalPages} · {total} items",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "upload": {
+      "title": "Upload files",
+      "description": "Up to 10 files of at most {max} each. Only PNG, JPEG, GIF and WebP images are stored as images; other files are stored for download only.",
+      "submit": "Upload",
+      "success": "{count, plural, one {# file uploaded} other {# files uploaded}}",
+      "error": "A file could not be uploaded",
+      "tooManyFiles": "You can upload at most {max} files at once."
+    },
+    "createFolder": {
+      "title": "New folder",
+      "description": "Create a folder inside the current folder.",
+      "nameLabel": "Folder name",
+      "submit": "Create folder",
+      "success": "Folder created",
+      "error": "The folder could not be created"
+    },
+    "rename": {
+      "title": "Rename file",
+      "description": "Choose a new name for {name}.",
+      "nameLabel": "New name",
+      "submit": "Rename",
+      "success": "File renamed",
+      "error": "The file could not be renamed"
+    },
+    "delete": {
+      "title": "{count, plural, one {Delete # item?} other {Delete # items?}}",
+      "description": "These files will be permanently deleted:",
+      "descriptionWithFolders": "These files and folders, including everything inside the folders, will be permanently deleted:",
+      "confirm": "Delete",
+      "success": "{count, plural, one {# file deleted} other {# files deleted}}",
+      "error": "The items could not be deleted"
+    },
+    "download": {
+      "error": "The file could not be downloaded"
+    },
+    "preview": {
+      "description": "Image preview · {size}",
+      "unavailable": "No preview is available for this file."
+    },
+    "errors": {
+      "permissionDenied": "You do not have permission to do this in this folder.",
+      "invalidPath": "The name or path is not valid.",
+      "invalidFileName": "Names cannot contain /, \\, %, ?, #, “..” or control characters, nor end with a dot or a space.",
+      "notFound": "The file or folder no longer exists.",
+      "alreadyExists": "A file or folder with this name already exists.",
+      "fileTooLarge": "The file is larger than the maximum upload size.",
+      "tooManyFiles": "Too many files in a single operation."
+    }
   }
 }

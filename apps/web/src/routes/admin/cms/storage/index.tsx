@@ -1,27 +1,50 @@
 /**
- * Sección «Almacenamiento» del CMS (`/admin/cms/storage`): página provisional hasta F2.5.
+ * Explorador de almacenamiento del CMS: lista de *buckets*
+ * (`/admin/cms/storage`).
  *
- * Cuelga del *layout* `/admin/cms`, que comprueba el acceso al CMS. Tiene
- * permiso propio en el RBAC del CMS, así que además exige ese permiso
- * (`requireCmsSection`).
+ * Exige el permiso de la sección (`requireCmsSection`); la API solo devuelve
+ * los *buckets* cuya raíz puede leer el usuario (`cms.has_storage_permission`).
+ *
+ * [TFG] RF-09 · ADR-011 · ADR-013.
  */
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { Trans } from '@pymekit/ui/trans';
+import { StorageBucketsView } from '@pymekit/cms-storage-explorer-ui/components';
+import { PageBody } from '@pymekit/ui/page';
 
-import { CmsPlaceholderPage } from '#/components/admin/cms/cms-placeholder-page.tsx';
+import { CmsSectionError } from '#/components/admin/cms/cms-section-error.tsx';
 import { requireCmsSection } from '#/lib/cms/cms-access.ts';
+import { cmsQueries } from '#/lib/cms/cms-queries.ts';
+import { rethrowCmsSectionError } from '#/lib/cms/cms-section-data.ts';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/admin/cms/storage/')({
-  // Sección con permiso propio: si la barra lateral la oculta, escribir la
-  // URL a mano tampoco la muestra.
   beforeLoad: ({ context }) => requireCmsSection(context.cmsAccess, 'storage'),
+  loader: async ({ context }) => {
+    if (context.cmsAccess.status !== 'ok') {
+      return;
+    }
+
+    try {
+      await context.queryClient.ensureQueryData(cmsQueries.storageBuckets());
+    } catch (error) {
+      rethrowCmsSectionError(error);
+    }
+  },
   head: () => ({ meta: [{ title: getTranslator()('cms.sidebar.storage') }] }),
-  component: () => (
-    <CmsPlaceholderPage
-      title={<Trans i18nKey="cms.sidebar.storage" />}
-      increment="F2.5"
-    />
+  component: StoragePage,
+  errorComponent: ({ reset }) => (
+    <CmsSectionError reset={reset} testId="storage-load-error" />
   ),
 });
+
+function StoragePage() {
+  const { data } = useSuspenseQuery(cmsQueries.storageBuckets());
+
+  return (
+    <PageBody className="py-2">
+      <StorageBucketsView buckets={data.buckets} />
+    </PageBody>
+  );
+}

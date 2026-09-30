@@ -1,271 +1,250 @@
-import { Context } from 'hono';
+/**
+ * Servicio del explorador de almacenamiento del CMS.
+ *
+ * Lista *buckets* y carpetas, genera URL firmadas de vista previa y de
+ * descarga, sube ficheros, crea carpetas, renombra (mueve) y borra objetos de
+ * Supabase Storage.
+ *
+ * Usa el **cliente de servicio** de Storage (`getSupabaseAdminClient`), que
+ * ignora las políticas RLS de `storage.objects`: así el CMS puede gestionar
+ * *buckets* cuyas políticas solo contemplan a los usuarios de la app (como
+ * `account_image`, las fotos de perfil de los *tenants*). A cambio, cada
+ * método sigue siempre el mismo orden, sin excepciones:
+ *
+ *  1. valida el *bucket* y las rutas (`path-security`: sin `..`, absolutas
+ *     ni codificaciones);
+ *  2. comprueba `cms.has_storage_permission` sobre la ruta **exacta** de
+ *     cada objeto que se va a leer, crear o borrar;
+ *  3. solo entonces usa el cliente de servicio.
+ *
+ * Además:
+ *  - las URL firmadas son de corta duración (10 minutos para las vistas
+ *    previas, 1 minuto para las descargas) y las descargas fuerzan
+ *    `Content-Disposition: attachment`;
+ *  - solo se previsualizan imágenes (PNG, JPEG, GIF, WebP), y la interfaz
+ *    las muestra con `<img>`, que nunca ejecuta código;
+ *  - las subidas tienen un tamaño máximo y se guardan con un tipo de
+ *    contenido decidido por el servidor (`upload-content-type`).
+ *
+ * [TFG] RF-09 · RNF-02: almacenamiento del CMS con autorización propia antes
+ * del cliente de servicio. Ver Memoria §Diseño > Seguridad del CMS.
+ */
+import type { Context } from 'hono';
 
 import {
-  getSupabaseAdminClient,
-  getSupabaseClient,
-} from '@pymekit/cms-supabase/hono';
+  STORAGE_LIMITS,
+  getStorageFileType,
+  joinStoragePath,
+} from '@pymekit/cms-shared/storage-paths';
+import { getSupabaseAdminClient } from '@pymekit/cms-supabase/hono';
+import { getLogger } from '@pymekit/shared/logger';
 
 import {
-  normalizeFilePath,
   validateBatchFilePaths,
+  validateBucketName,
+  validateFileName,
   validateFilePath,
+  validateFolderPath,
 } from '../../utils/path-security';
-import { createStoragePermissionsService } from './storage-permissions.service';
+import { StorageError, fromStorageApiError } from '../../utils/storage-errors';
+import { getUploadContentType } from '../../utils/upload-content-type';
+import {
+  type StorageObjectPermissions,
+  createStoragePermissionsService,
+} from './storage-permissions.service';
 
-type Bucket = {
-  id: string;
-  name: string;
-  public: boolean;
-  created_at: string;
-  updated_at: string;
-};
+/** Validez de las URL firmadas de vista previa (segundos). */
+export const PREVIEW_URL_TTL_SECONDS = 10 * 60;
+
+/** Validez de las URL firmadas de descarga (segundos). */
+export const DOWNLOAD_URL_TTL_SECONDS = 60;
 
 /**
- * Creates a StorageService instance.
- * @param c - Hono context
+ * Máximo de elementos que se leen de una carpeta para listarla. La API de
+ * Storage no devuelve el total, así que se lee hasta este límite y se pagina
+ * en memoria (carpetas primero); si se alcanza, la respuesta lo indica
+ * (`truncated`).
  */
+const MAX_LISTED_ITEMS = 1000;
+
+/** Máximo de ficheros que puede borrar una sola operación (carpetas incluidas). */
+const MAX_DELETION_FILES = 1000;
+
+/** Marcador que crea Supabase para representar una carpeta vacía. */
+const FOLDER_PLACEHOLDER = '.emptyFolderPlaceholder';
+
+/** Un elemento de una carpeta tal como lo recibe la interfaz. */
+export type StorageItem = {
+  name: string;
+  /** Ruta completa dentro del *bucket*. */
+  path: string;
+  isDirectory: boolean;
+  fileType: ReturnType<typeof getStorageFileType>;
+  size: number | null;
+  mimeType: string | null;
+  updatedAt: string | null;
+  /** URL firmada de corta duración, solo para imágenes legibles. */
+  previewUrl?: string;
+  permissions: StorageObjectPermissions;
+};
+
+/** Crea el servicio de almacenamiento de una petición. */
 export function createStorageService(c: Context) {
   return new StorageService(c);
 }
 
-interface StorageFile {
-  name: string;
-  id: string | null;
-  updated_at: string | null;
-  created_at: string | null;
-  last_accessed_at: string | null;
-  metadata: Record<string, unknown> | null;
-}
-
-/**
- * @name StorageService
- * @description Service for managing Supabase storage operations with comprehensive permission checks
- */
 class StorageService {
-  private readonly permissionsService: ReturnType<
+  private readonly permissions: ReturnType<
     typeof createStoragePermissionsService
   >;
 
-  constructor(private readonly context: Context) {
-    this.permissionsService = createStoragePermissionsService(context);
+  constructor(context: Context) {
+    this.permissions = createStoragePermissionsService(context);
   }
 
   /**
-   * Get all storage buckets that the user has read access to
-   * @returns Promise containing array of storage buckets
+   * Devuelve los *buckets* cuya raíz puede leer el usuario. Sin ningún
+   * permiso de almacenamiento (el personal de soporte del *seed*), la lista
+   * está vacía.
    */
   async getBuckets() {
     const client = getSupabaseAdminClient();
-
     const { data: buckets, error } = await client.storage.listBuckets();
 
     if (error) {
-      throw new Error(`Failed to fetch storage buckets: ${error.message}`);
+      throw fromStorageApiError(error, 'listBuckets');
     }
 
-    const promises = buckets.map(async (bucket) => {
-      try {
-        // Check if user has read permission for the root of this bucket
-        const hasAccess = await this.permissionsService.canReadBucket(
-          bucket.name,
-          '/',
-        );
+    const readable = await Promise.all(
+      buckets.map(async (bucket) =>
+        (await this.permissions.canReadBucket(bucket.name)) ? bucket : null,
+      ),
+    );
 
-        if (hasAccess) {
-          return bucket;
-        }
-      } catch (error) {
-        // Log error but continue with other buckets
-        console.warn(`Error checking bucket access for ${bucket.name}:`, error);
-      }
-    });
-
-    const results = await Promise.all(promises);
-
-    return results.filter(Boolean) as Bucket[];
+    return readable
+      .filter((bucket) => bucket !== null)
+      .map((bucket) => ({
+        id: bucket.id,
+        name: bucket.name,
+        public: bucket.public,
+        createdAt: bucket.created_at,
+        updatedAt: bucket.updated_at,
+      }));
   }
 
   /**
-   * Get files and folders in a specific bucket and path
-   * @param params - Bucket name, optional path, search term, page, and limit
-   * @returns Promise containing paginated files and folders with enhanced metadata
+   * Devuelve una página del contenido de una carpeta, con los permisos del
+   * usuario sobre cada elemento y sobre la propia carpeta.
    */
   async getBucketContents(params: {
     bucket: string;
-    path?: string;
+    path: string;
     search?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<{
-    contents: Array<
-      StorageFile & {
-        isDirectory: boolean;
-        fileType: string;
-        publicUrl?: string;
-        previewUrl?: string;
-        permissions?: {
-          canRead: boolean;
-          canUpdate: boolean;
-          canDelete: boolean;
-          canUpload: boolean;
-        };
-      }
-    >;
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNextPage: boolean;
-      hasPreviousPage: boolean;
-    };
-  }> {
-    const requestedPath = params.path || '/';
+    page: number;
+    limit: number;
+  }) {
+    validateBucketName(params.bucket);
+    validateFolderPath(params.path);
 
-    // SECURITY: Validate read permission for the requested path
-    await this.permissionsService.validateStoragePermission(
+    // La raíz del *bucket* se autoriza como `/`, igual que en la lista de
+    // *buckets*.
+    await this.permissions.validateStoragePermission(
       params.bucket,
       'select',
-      requestedPath,
+      params.path || '/',
     );
 
     const client = getSupabaseAdminClient();
-
-    const listOptions: {
-      limit: number;
-      sortBy: { column: string; order: string };
-      search?: string;
-    } = {
-      limit: params.limit || 25,
-      sortBy: { column: 'name', order: 'asc' },
-    };
-
-    // Add search parameter if provided
-    if (params.search && params.search.trim()) {
-      listOptions.search = params.search.trim();
-    }
+    const search = params.search?.trim();
 
     const { data: files, error } = await client.storage
       .from(params.bucket)
-      .list(params.path || '', listOptions);
+      .list(params.path, {
+        limit: MAX_LISTED_ITEMS,
+        sortBy: { column: 'name', order: 'asc' },
+        ...(search ? { search } : {}),
+      });
 
     if (error) {
-      throw new Error(`Failed to fetch bucket contents: ${error.message}`);
+      throw fromStorageApiError(error, 'list');
     }
 
-    // Check if bucket is public to generate URLs
-    const { data: buckets } = await client.storage.listBuckets();
-    const bucket = buckets?.find((b) => b.name === params.bucket);
-    const isPublicBucket = bucket?.public || false;
-
-    // Filter out placeholder files and prepare file data
-    const filteredFiles = files.filter(
-      (file) =>
-        // special file that indicates an empty folder coming from Supabase Storage
-        file.name !== '.emptyFolderPlaceholder',
-    );
-
-    // Prepare file paths for bulk permission checking
-    const filePaths = filteredFiles.map((file) =>
-      params.path ? `${params.path}/${file.name}` : file.name,
-    );
-
-    // SECURITY: Get permissions for all files in a single optimized query
-    // Pass the current path as parent for potential optimization
-    const permissionsMap =
-      await this.permissionsService.getBulkUserStoragePermissions(
-        params.bucket,
-        filePaths,
-        params.path,
-      );
-
-    const enhancedFiles = await Promise.all(
-      filteredFiles.map(async (file, index) => {
-        const isDirectory = !file.id; // Folders don't have IDs
-        const fileType = this.getFileType(file.name);
-        const filePath = filePaths[index] || file.name; // Fallback to file.name if undefined
-
-        // Get permissions from the bulk result
-        const permissions = permissionsMap.get(filePath) || {
-          canRead: false,
-          canUpdate: false,
-          canDelete: false,
-          canUpload: false,
+    const items = files
+      .filter((file) => file.name !== FOLDER_PLACEHOLDER)
+      .map((file) => {
+        // En la API de Storage las carpetas no tienen `id`.
+        const isDirectory = !file.id;
+        const metadata = (file.metadata ?? {}) as {
+          size?: number;
+          mimetype?: string;
         };
-
-        let publicUrl: string | undefined;
-        let previewUrl: string | undefined;
-
-        // Only generate URLs if user has read permission for this specific file
-        if (!isDirectory && permissions.canRead) {
-          if (isPublicBucket) {
-            // For public buckets, use public URL
-            const { data } = client.storage
-              .from(params.bucket)
-              .getPublicUrl(filePath);
-
-            publicUrl = data.publicUrl;
-            previewUrl = publicUrl;
-          } else if (fileType === 'image') {
-            // For private buckets and images, generate signed URL
-            try {
-              const { data: signedData, error: signedError } =
-                await client.storage
-                  .from(params.bucket)
-                  .createSignedUrl(filePath, 3600); // 1 hour expiry
-
-              if (!signedError && signedData) {
-                previewUrl = signedData.signedUrl;
-              } else {
-                console.warn(
-                  `Failed to generate signed URL for ${filePath}:`,
-                  signedError,
-                );
-              }
-            } catch (signedUrlError) {
-              // If signed URL fails, we'll just show the icon
-              console.warn(
-                'Failed to generate signed URL for image:',
-                signedUrlError,
-              );
-            }
-          }
-        }
 
         return {
-          ...file,
+          name: file.name,
+          path: joinStoragePath(params.path, file.name),
           isDirectory,
-          fileType,
-          publicUrl,
-          previewUrl,
-          permissions,
+          fileType: getStorageFileType(file.name),
+          size: isDirectory ? null : (metadata.size ?? null),
+          mimeType: isDirectory ? null : (metadata.mimetype ?? null),
+          updatedAt: file.updated_at ?? null,
         };
-      }),
+      })
+      .sort((a, b) =>
+        a.isDirectory === b.isDirectory
+          ? a.name.localeCompare(b.name)
+          : a.isDirectory
+            ? -1
+            : 1,
+      );
+
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / params.limit));
+    const page = Math.min(params.page, totalPages);
+    const pageItems = items.slice(
+      (page - 1) * params.limit,
+      page * params.limit,
     );
 
-    // Sort: directories first, then files
-    const sortedFiles = enhancedFiles.sort((a, b) => {
-      if (a.isDirectory && !b.isDirectory) return -1;
-      if (!a.isDirectory && b.isDirectory) return 1;
+    // Permisos solo de la página visible, cada uno sobre su ruta exacta. El
+    // permiso de subir a la carpeta se calcula sobre el marcador de carpeta,
+    // que es un objeto real de esa carpeta (no hay otra forma de preguntar
+    // por «cualquier objeto dentro de…» con un patrón de ruta).
+    const folderProbe = joinStoragePath(params.path, FOLDER_PLACEHOLDER);
 
-      return a.name.localeCompare(b.name);
-    });
+    const permissionsMap = await this.permissions.getBulkUserStoragePermissions(
+      params.bucket,
+      [...pageItems.map((item) => item.path), folderProbe],
+    );
 
-    // Apply pagination
-    const page = params.page || 1;
-    const limit = params.limit || 25;
+    const previewUrls = await this.createPreviewUrls(
+      params.bucket,
+      pageItems
+        .filter(
+          (item) =>
+            !item.isDirectory &&
+            item.fileType === 'image' &&
+            permissionsMap.get(item.path)?.canRead,
+        )
+        .map((item) => item.path),
+    );
 
-    const total = sortedFiles.length;
-    const totalPages = Math.ceil(total / limit);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedFiles = sortedFiles.slice(startIndex, endIndex);
+    const contents: StorageItem[] = pageItems.map((item) => ({
+      ...item,
+      previewUrl: previewUrls.get(item.path),
+      permissions: permissionsMap.get(item.path)!,
+    }));
+
+    const folderPermissions = permissionsMap.get(folderProbe)!;
 
     return {
-      contents: paginatedFiles,
+      contents,
+      folderPermissions: {
+        canUpload: folderPermissions.canUpload,
+      },
+      truncated: files.length >= MAX_LISTED_ITEMS,
       pagination: {
         page,
-        limit,
+        limit: params.limit,
         total,
         totalPages,
         hasNextPage: page < totalPages,
@@ -275,95 +254,101 @@ class StorageService {
   }
 
   /**
-   * Get a public URL for a file
-   * @param params - Bucket name and file path
-   * @returns Public URL for the file
+   * Crea las URL firmadas de vista previa de varias imágenes con una sola
+   * llamada. Un fallo no impide listar: esas imágenes se ven con su icono.
    */
-  async getPublicUrl(params: {
-    bucket: string;
-    path: string;
-  }): Promise<string> {
-    // SECURITY: Validate read permission
-    await this.permissionsService.validateStoragePermission(
-      params.bucket,
-      'select',
-      params.path,
-    );
+  private async createPreviewUrls(bucket: string, paths: string[]) {
+    const urls = new Map<string, string>();
 
-    const client = getSupabaseClient(this.context);
+    if (paths.length === 0) {
+      return urls;
+    }
 
-    const { data } = client.storage
-      .from(params.bucket)
-      .getPublicUrl(params.path);
+    const client = getSupabaseAdminClient();
 
-    return data.publicUrl;
+    const { data, error } = await client.storage
+      .from(bucket)
+      .createSignedUrls(paths, PREVIEW_URL_TTL_SECONDS);
+
+    if (error) {
+      const logger = await getLogger();
+
+      logger.warn({ error, bucket }, 'Could not sign storage preview URLs');
+
+      return urls;
+    }
+
+    for (const entry of data) {
+      if (entry.path && entry.signedUrl && !entry.error) {
+        urls.set(entry.path, entry.signedUrl);
+      }
+    }
+
+    return urls;
   }
 
   /**
-   * Get signed URL for private files
-   * @param params - Bucket name, file path, and expiration time
-   * @returns Signed URL for the file
+   * Devuelve una URL firmada de descarga (1 minuto) que fuerza
+   * `Content-Disposition: attachment`: aunque el objeto sea HTML o SVG, el
+   * navegador lo descarga en lugar de abrirlo como documento. Se firma
+   * también en los *buckets* públicos, para que la descarga sea siempre igual
+   * de segura y caduque.
    */
-  async getSignedUrl(params: {
-    bucket: string;
-    path: string;
-    expiresIn?: number;
-  }): Promise<string> {
-    // SECURITY: Validate read permission
-    await this.permissionsService.validateStoragePermission(
+  async getDownloadUrl(params: { bucket: string; path: string }) {
+    validateBucketName(params.bucket);
+    validateFilePath(params.path);
+
+    await this.permissions.validateStoragePermission(
       params.bucket,
       'select',
       params.path,
     );
 
-    const client = getSupabaseClient(this.context);
+    const client = getSupabaseAdminClient();
+    const fileName = params.path.split('/').pop() || 'download';
 
     const { data, error } = await client.storage
       .from(params.bucket)
-      .createSignedUrl(params.path, params.expiresIn || 3600); // 1 hour default
+      .createSignedUrl(params.path, DOWNLOAD_URL_TTL_SECONDS, {
+        download: fileName,
+      });
 
     if (error) {
-      throw new Error(`Failed to create signed URL: ${error.message}`);
+      throw fromStorageApiError(error, 'createSignedUrl');
     }
 
     return data.signedUrl;
   }
 
   /**
-   * Rename a file or folder
-   * @param params - Bucket, current path, and new name
-   * @returns Success status
+   * Renombra o mueve un fichero. Mover borra el objeto de origen y lo crea en
+   * el destino, así que se exige exactamente eso: `delete` sobre el origen e
+   * `insert` sobre el destino (comprobar solo `update` permitiría sacar un
+   * objeto de una carpeta protegida o colocarlo en otra ajena).
    */
   async renameFile(params: {
     bucket: string;
     fromPath: string;
     toPath: string;
-  }): Promise<{ success: boolean }> {
-    // SECURITY: Validate file paths for safety
+  }) {
+    validateBucketName(params.bucket);
     validateFilePath(params.fromPath);
     validateFilePath(params.toPath);
 
-    // Normalize paths to prevent traversal attacks
-    const normalizedFromPath = normalizeFilePath(params.fromPath);
-    const normalizedToPath = normalizeFilePath(params.toPath);
+    if (params.fromPath === params.toPath) {
+      throw StorageError.invalidPath('Source and destination are the same');
+    }
 
-    // SECURITY: A move removes the object from the source and creates it at the
-    // destination. Authorize what the operation actually does — `delete` on the
-    // source and `insert` on the destination — mirroring the storage RLS
-    // delete/insert policies. Checking only `update` would let a caller plant an
-    // object into a prefix it cannot write to, or move a restricted object out
-    // of a prefix it cannot delete from. (createFolder already requires
-    // `insert` to create an object.)
     await Promise.all([
-      this.permissionsService.validateStoragePermission(
+      this.permissions.validateStoragePermission(
         params.bucket,
         'delete',
-        normalizedFromPath,
+        params.fromPath,
       ),
-      this.permissionsService.validateStoragePermission(
+      this.permissions.validateStoragePermission(
         params.bucket,
         'insert',
-        normalizedToPath,
+        params.toPath,
       ),
     ]);
 
@@ -371,388 +356,196 @@ class StorageService {
 
     const { error } = await client.storage
       .from(params.bucket)
-      .move(normalizedFromPath, normalizedToPath);
+      .move(params.fromPath, params.toPath);
 
     if (error) {
-      throw new Error(`Failed to rename file: ${error.message}`);
+      throw fromStorageApiError(error, 'move');
     }
 
     return { success: true };
   }
 
   /**
-   * Delete a file or folder
-   * @param params - Bucket and file paths
-   * @returns Success status
+   * Borra ficheros y carpetas. Una carpeta se borra fichero a fichero (Storage
+   * no tiene carpetas reales): se recorre su contenido y se exige `delete`
+   * sobre **cada** objeto que se va a borrar, no solo sobre la carpeta.
    */
-  async deleteFile(params: {
-    bucket: string;
-    paths: string[];
-  }): Promise<{ success: boolean }> {
-    // SECURITY: Validate batch file paths for safety and limits
-    validateBatchFilePaths(params.paths, 50); // Limit to 50 files per batch
+  async deleteFiles(params: { bucket: string; paths: string[] }) {
+    validateBucketName(params.bucket);
+    validateBatchFilePaths(params.paths);
 
-    // Normalize all paths to prevent traversal attacks
-    const normalizedPaths = params.paths.map((path) => normalizeFilePath(path));
-
-    // SECURITY: Validate delete permission for all paths using optimized bulk validation
-    await this.permissionsService.validateBulkStoragePermission(
+    // Primera barrera, barata: permiso sobre lo que el usuario ha elegido.
+    await this.permissions.validateBulkStoragePermission(
       params.bucket,
       'delete',
-      normalizedPaths,
+      params.paths,
     );
 
     const client = getSupabaseAdminClient();
+    const pathsToDelete = new Set<string>();
 
-    // For folders, we need to delete all contents using batch processing
-    const allPathsToDelete: string[] = [];
-    let totalFileCount = 0;
-    const MAX_DELETION_FILES = 1000; // Safety limit for batch deletion
-    const folderPermissionsChecked = new Set<string>();
+    for (const path of params.paths) {
+      const nested = await this.listFilesRecursively(params.bucket, path);
 
-    for (const path of normalizedPaths) {
-      // Check if this is a folder by trying to list its contents
-      const { data: folderContents, error: listError } = await client.storage
-        .from(params.bucket)
-        .list(path, { limit: 25 });
+      if (nested.length === 0) {
+        // Un fichero (o una carpeta vacía sin marcador).
+        pathsToDelete.add(path);
+      }
 
-      if (!listError && folderContents && folderContents.length > 0) {
-        try {
-          // This is a folder with contents - get all files using batch processing
-          const allFiles = await this.getAllFilesInBatches(
-            params.bucket,
-            path,
-            client,
-          );
+      for (const file of nested) {
+        pathsToDelete.add(file);
+      }
 
-          // SECURITY: Check if we're exceeding safe limits
-          totalFileCount += allFiles.length;
-
-          if (totalFileCount > MAX_DELETION_FILES) {
-            throw new Error(
-              `Too many files to delete in batch (max: ${MAX_DELETION_FILES}). Please delete in smaller batches.`,
-            );
-          }
-
-          // SECURITY: Use optimized folder deletion permission validation
-          // This checks parent folder permission first, then falls back to bulk validation
-          if (!folderPermissionsChecked.has(path)) {
-            await this.permissionsService.validateFolderDeletionPermission(
-              params.bucket,
-              path,
-              allFiles,
-            );
-            folderPermissionsChecked.add(path);
-          }
-
-          allPathsToDelete.push(...allFiles);
-        } catch (error) {
-          // If batch processing fails, provide a helpful error message
-          if (error instanceof Error) {
-            throw new Error(
-              `Failed to process folder "${path}" for deletion: ${error.message}`,
-            );
-          }
-          throw error;
-        }
-      } else {
-        // This is either a file or an empty folder
-        allPathsToDelete.push(path);
-        totalFileCount++;
+      if (pathsToDelete.size > MAX_DELETION_FILES) {
+        throw StorageError.tooManyFiles();
       }
     }
 
-    // Remove duplicates
-    const uniquePaths = [...new Set(allPathsToDelete)];
+    const allPaths = [...pathsToDelete];
 
-    if (uniquePaths.length > 0) {
-      const { error } = await client.storage
-        .from(params.bucket)
-        .remove(uniquePaths);
-
-      if (error) {
-        throw new Error(`Failed to delete files: ${error.message}`);
-      }
-    }
-
-    return { success: true };
-  }
-
-  /**
-   * Get all files in a folder using batch processing to avoid database exhaustion
-   * @param bucket - Bucket name
-   * @param folderPath - Folder path
-   * @param client - Supabase client
-   * @returns Array of all file paths
-   */
-  private async getAllFilesInBatches(
-    bucket: string,
-    folderPath: string,
-    client: ReturnType<typeof getSupabaseAdminClient>,
-  ): Promise<string[]> {
-    const allFiles: string[] = [];
-    const foldersToProcess: string[] = [folderPath];
-    const MAX_BATCH_SIZE = 10; // Process folders in batches of 10
-    const MAX_TOTAL_FILES = 1000; // Safety limit
-    const MAX_FOLDERS_PROCESSED = 100; // Prevent infinite loops
-
-    let foldersProcessed = 0;
-
-    while (foldersToProcess.length > 0) {
-      // Take a batch of folders to process
-      const currentBatch = foldersToProcess.splice(0, MAX_BATCH_SIZE);
-
-      // Process folders in parallel using Promise.allSettled for better error handling
-      const batchResults = await Promise.allSettled(
-        currentBatch.map((folder) =>
-          client.storage.from(bucket).list(folder, { limit: 100 }),
-        ),
-      );
-
-      // Process results from the batch
-      for (let i = 0; i < batchResults.length; i++) {
-        const result = batchResults[i];
-        const currentFolder = currentBatch[i];
-
-        if (!result || !currentFolder) continue;
-
-        if (result.status === 'fulfilled' && result.value.data) {
-          const contents = result.value.data;
-
-          for (const item of contents) {
-            const itemPath = currentFolder
-              ? `${currentFolder}/${item.name}`
-              : item.name;
-
-            if (item.id) {
-              // This is a file
-              allFiles.push(itemPath);
-
-              // Safety check: prevent collecting too many files
-              if (allFiles.length >= MAX_TOTAL_FILES) {
-                throw new Error(
-                  `Too many files to process (max: ${MAX_TOTAL_FILES}). Please delete in smaller batches.`,
-                );
-              }
-            } else {
-              // This is a folder, add to processing queue
-              foldersToProcess.push(itemPath);
-            }
-          }
-        } else if (result.status === 'rejected') {
-          // Log error but continue processing other folders
-          console.warn(
-            `Failed to list contents of folder ${currentFolder}:`,
-            result.reason,
-          );
-        }
-      }
-
-      foldersProcessed += currentBatch.length;
-
-      // Safety check: prevent infinite processing
-      if (foldersProcessed >= MAX_FOLDERS_PROCESSED) {
-        throw new Error(
-          `Too many folders to process (max: ${MAX_FOLDERS_PROCESSED}). Please delete in smaller batches.`,
-        );
-      }
-    }
-
-    return allFiles;
-  }
-
-  /**
-   * Get download URL for a file
-   * @param params - Bucket and file path
-   * @returns Download URL
-   */
-  async getDownloadUrl(params: {
-    bucket: string;
-    path: string;
-  }): Promise<string> {
-    // SECURITY: Validate file path for safety
-    validateFilePath(params.path);
-
-    // Normalize path to prevent traversal attacks
-    const normalizedPath = normalizeFilePath(params.path);
-
-    // SECURITY: Validate read permission
-    await this.permissionsService.validateStoragePermission(
+    // Segunda barrera: permiso exacto sobre cada objeto de las carpetas.
+    await this.permissions.validateBulkStoragePermission(
       params.bucket,
-      'select',
-      normalizedPath,
+      'delete',
+      allPaths,
     );
 
+    const { error } = await client.storage.from(params.bucket).remove(allPaths);
+
+    if (error) {
+      throw fromStorageApiError(error, 'remove');
+    }
+
+    return { success: true, deleted: allPaths.length };
+  }
+
+  /**
+   * Devuelve las rutas de todos los ficheros bajo `folderPath` (vacío si es
+   * un fichero). Recorre la carpeta por niveles con límites para no
+   * agotar la base de datos con una carpeta enorme.
+   */
+  private async listFilesRecursively(bucket: string, folderPath: string) {
     const client = getSupabaseAdminClient();
+    const files: string[] = [];
+    const pending = [folderPath];
+    let foldersVisited = 0;
 
-    // SECURITY: Force a download (Content-Disposition: attachment) so the object
-    // is never rendered inline as a top-level document. Without this, an
-    // attacker-uploaded SVG/HTML opened from a storage URL executes script in
-    // the storage origin (stored XSS).
-    const downloadFilename = normalizedPath.split('/').pop() || 'download';
+    while (pending.length > 0) {
+      const folder = pending.shift()!;
 
-    // Check if bucket is public
-    const { data: buckets } = await client.storage.listBuckets();
-    const bucket = buckets?.find((b) => b.name === params.bucket);
-    const isPublicBucket = bucket?.public || false;
+      foldersVisited += 1;
 
-    if (isPublicBucket) {
-      // For public buckets, use public URL
-      const { data } = client.storage
-        .from(params.bucket)
-        .getPublicUrl(normalizedPath, { download: downloadFilename });
+      if (foldersVisited > 100) {
+        throw StorageError.tooManyFiles('Too many nested folders');
+      }
 
-      return data.publicUrl;
-    } else {
-      // For private buckets, create signed URL
       const { data, error } = await client.storage
-        .from(params.bucket)
-        .createSignedUrl(normalizedPath, 3600, { download: downloadFilename }); // 1 hour expiry
+        .from(bucket)
+        .list(folder, { limit: MAX_DELETION_FILES });
 
       if (error) {
-        throw new Error(`Failed to create download URL: ${error.message}`);
+        throw fromStorageApiError(error, 'list');
       }
 
-      return data.signedUrl;
+      for (const item of data) {
+        const itemPath = joinStoragePath(folder, item.name);
+
+        if (item.id) {
+          files.push(itemPath);
+        } else {
+          pending.push(itemPath);
+        }
+
+        if (files.length > MAX_DELETION_FILES) {
+          throw StorageError.tooManyFiles();
+        }
+      }
     }
+
+    return files;
   }
 
   /**
-   * Get user permissions for a specific bucket and path
-   * This is used by the client to show/hide UI elements
-   * @param params - Bucket and file path
-   * @returns User permissions object
-   */
-  async getUserPermissions(params: { bucket: string; path: string }): Promise<{
-    canRead: boolean;
-    canUpdate: boolean;
-    canDelete: boolean;
-    canUpload: boolean;
-  }> {
-    return this.permissionsService.getUserStoragePermissions(
-      params.bucket,
-      params.path,
-    );
-  }
-
-  /**
-   * Create a new folder by uploading an empty placeholder file
-   * @param params - Bucket, folder name, and optional parent path
-   * @returns Success status
+   * Crea una carpeta subiendo el marcador vacío que usa Supabase. El permiso
+   * `insert` se comprueba sobre ese objeto exacto, que es lo que se escribe.
    */
   async createFolder(params: {
     bucket: string;
     folderName: string;
-    parentPath?: string;
-  }): Promise<{ success: boolean }> {
-    // SECURITY: Validate folder name for safety
-    validateFilePath(params.folderName);
+    parentPath: string;
+  }) {
+    validateBucketName(params.bucket);
+    validateFileName(params.folderName);
+    validateFolderPath(params.parentPath);
 
-    // Normalize folder name to prevent traversal attacks
-    const normalizedFolderName = normalizeFilePath(params.folderName);
+    const folderPath = joinStoragePath(params.parentPath, params.folderName);
+    const placeholderPath = joinStoragePath(folderPath, FOLDER_PLACEHOLDER);
 
-    // Construct the full folder path
-    const folderPath = params.parentPath
-      ? normalizeFilePath(`${params.parentPath}/${normalizedFolderName}`)
-      : normalizedFolderName;
-
-    // SECURITY: Validate upload permission for the target path
-    await this.permissionsService.validateStoragePermission(
+    await this.permissions.validateStoragePermission(
       params.bucket,
       'insert',
-      folderPath,
+      placeholderPath,
     );
 
     const client = getSupabaseAdminClient();
 
-    // Create folder by uploading an empty placeholder file
-    // This follows Supabase's pattern for creating folders
-    const placeholderPath = `${folderPath}/.emptyFolderPlaceholder`;
-
     const { error } = await client.storage
       .from(params.bucket)
-      .upload(placeholderPath, new Blob([''], { type: 'text/plain' }), {
-        cacheControl: '3600',
-        upsert: false, // Don't overwrite if folder already exists
+      .upload(placeholderPath, new Uint8Array(0), {
+        contentType: 'text/plain',
+        upsert: false,
       });
 
     if (error) {
-      // Check if the error is because the folder already exists
-      if (error.message.includes('already exists')) {
-        throw new Error(`Folder "${params.folderName}" already exists`);
-      }
-
-      throw new Error(`Failed to create folder: ${error.message}`);
+      throw fromStorageApiError(error, 'createFolder');
     }
 
-    return { success: true };
+    return { success: true, path: folderPath };
   }
 
   /**
-   * Determine file type based on file extension
-   * @param fileName - Name of the file
-   * @returns File type category
+   * Sube un fichero a una carpeta. No sobrescribe (`upsert: false`): para
+   * reemplazar hay que borrar antes, que exige su propio permiso.
    */
-  private getFileType(fileName: string): string {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+  async uploadFile(params: { bucket: string; folder: string; file: File }) {
+    validateBucketName(params.bucket);
+    validateFolderPath(params.folder);
+    validateFileName(params.file.name);
 
-    if (!extension) {
-      return 'unknown';
+    if (params.file.size > STORAGE_LIMITS.maxUploadBytes) {
+      throw StorageError.fileTooLarge();
     }
 
-    // SECURITY: 'svg' is intentionally excluded. SVGs can carry inline script
-    // and, when served from storage as image/svg+xml, execute it if opened as a
-    // document. Classifying SVG as a generic file avoids inline preview/URL
-    // minting and routes it through the forced-attachment download path.
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'];
+    const objectPath = joinStoragePath(params.folder, params.file.name);
 
-    const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'm4v'];
-    const audioExtensions = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'];
-    const documentExtensions = ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'];
-    const archiveExtensions = ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'];
+    validateFilePath(objectPath);
 
-    const codeExtensions = [
-      'js',
-      'ts',
-      'jsx',
-      'tsx',
-      'html',
-      'css',
-      'py',
-      'java',
-      'cpp',
-      'c',
-      'php',
-      'rb',
-      'go',
-      'rs',
-      'swift',
-    ];
+    await this.permissions.validateStoragePermission(
+      params.bucket,
+      'insert',
+      objectPath,
+    );
 
-    if (imageExtensions.includes(extension)) {
-      return 'image';
+    const bytes = new Uint8Array(await params.file.arrayBuffer());
+
+    // Se vuelve a medir el contenido real: `File.size` lo declara el cliente.
+    if (bytes.byteLength > STORAGE_LIMITS.maxUploadBytes) {
+      throw StorageError.fileTooLarge();
     }
 
-    if (videoExtensions.includes(extension)) {
-      return 'video';
+    const client = getSupabaseAdminClient();
+
+    const { error } = await client.storage
+      .from(params.bucket)
+      .upload(objectPath, bytes, {
+        contentType: getUploadContentType(params.file.name, bytes),
+        upsert: false,
+      });
+
+    if (error) {
+      throw fromStorageApiError(error, 'upload');
     }
 
-    if (audioExtensions.includes(extension)) {
-      return 'audio';
-    }
-
-    if (documentExtensions.includes(extension)) {
-      return 'document';
-    }
-
-    if (archiveExtensions.includes(extension)) {
-      return 'archive';
-    }
-
-    if (codeExtensions.includes(extension)) {
-      return 'code';
-    }
-
-    return 'file';
+    return { success: true, path: objectPath };
   }
 }
