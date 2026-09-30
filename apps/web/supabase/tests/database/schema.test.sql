@@ -26,7 +26,10 @@ select tests.rls_enabled('public', 'order_items');
 select tests.rls_enabled('public', 'roles');
 select tests.rls_enabled('public', 'role_permissions');
 
-SELECT schema_privs_are('public', 'anon', Array [NULL], 'Anon should not have access to public schema');
+-- F2.6b (ADR-017): anon recibe `usage` sobre public para leer el blog
+-- publicado; nada más (ni `create`). El resto de privilegios de anon en el
+-- esquema se comprueba en blog.test.sql.
+SELECT schema_privs_are('public', 'anon', Array ['USAGE'], 'Anon solo tiene usage sobre el esquema public');
 
 -- set the role to anonymous for verifying access tests
 set role anon;

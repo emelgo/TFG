@@ -11,6 +11,9 @@
     "auditLogs": "Audit logs",
     "dashboards": "Dashboards",
     "settings": "Settings",
+    "resourcesGroup": "Resources",
+    "resourcesToggle": "Show or hide the tables",
+    "resourcesViewAll": "View all tables (+{count})",
     "openMenu": "Open the navigation menu"
   },
   "overview": {

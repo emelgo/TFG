@@ -44,6 +44,8 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsBillingRouteRouteImport } from './routes/_authenticated/settings/billing/route'
 import { Route as AuthenticatedSettingsMembersRouteImport } from './routes/_authenticated/settings/members'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
+import { Route as MarketingBlogIndexRouteImport } from './routes/_marketing/blog/index'
+import { Route as MarketingBlogSlugRouteImport } from './routes/_marketing/blog/$slug'
 import { Route as AdminAccountsIndexRouteImport } from './routes/admin/accounts/index'
 import { Route as AdminAccountsIdRouteImport } from './routes/admin/accounts/$id'
 import { Route as AdminCmsIndexRouteImport } from './routes/admin/cms/index'
@@ -251,6 +253,16 @@ const AuthenticatedSettingsProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const MarketingBlogIndexRoute = MarketingBlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => MarketingRouteRoute,
+} as any)
+const MarketingBlogSlugRoute = MarketingBlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => MarketingRouteRoute,
+} as any)
 const AdminAccountsIndexRoute = AdminAccountsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -423,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/settings/billing': typeof AuthenticatedSettingsBillingRouteRouteWithChildren
   '/settings/members': typeof AuthenticatedSettingsMembersRouteWithChildren
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/blog/$slug': typeof MarketingBlogSlugRoute
   '/admin/accounts/$id': typeof AdminAccountsIdRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
   '/api/cms/$': typeof ApiCmsSplatRoute
@@ -430,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback/error': typeof AuthCallbackErrorRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/blog/': typeof MarketingBlogIndexRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/cms/': typeof AdminCmsIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
@@ -478,6 +492,7 @@ export interface FileRoutesByTo {
   '/join': typeof JoinIndexRoute
   '/settings/members': typeof AuthenticatedSettingsMembersRouteWithChildren
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/blog/$slug': typeof MarketingBlogSlugRoute
   '/admin/accounts/$id': typeof AdminAccountsIdRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
   '/api/cms/$': typeof ApiCmsSplatRoute
@@ -485,6 +500,7 @@ export interface FileRoutesByTo {
   '/auth/callback/error': typeof AuthCallbackErrorRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/blog': typeof MarketingBlogIndexRoute
   '/admin/accounts': typeof AdminAccountsIndexRoute
   '/admin/cms': typeof AdminCmsIndexRoute
   '/auth/callback': typeof AuthCallbackIndexRoute
@@ -542,6 +558,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRouteRouteWithChildren
   '/_authenticated/settings/members': typeof AuthenticatedSettingsMembersRouteWithChildren
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/_marketing/blog/$slug': typeof MarketingBlogSlugRoute
   '/admin/accounts/$id': typeof AdminAccountsIdRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
   '/api/cms/$': typeof ApiCmsSplatRoute
@@ -549,6 +566,7 @@ export interface FileRoutesById {
   '/auth/callback/error': typeof AuthCallbackErrorRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_marketing/blog/': typeof MarketingBlogIndexRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/cms/': typeof AdminCmsIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
@@ -605,6 +623,7 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/members'
     | '/settings/profile'
+    | '/blog/$slug'
     | '/admin/accounts/$id'
     | '/api/billing/webhook'
     | '/api/cms/$'
@@ -612,6 +631,7 @@ export interface FileRouteTypes {
     | '/auth/callback/error'
     | '/dashboard/'
     | '/settings/'
+    | '/blog/'
     | '/admin/accounts/'
     | '/admin/cms/'
     | '/auth/callback/'
@@ -660,6 +680,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/settings/members'
     | '/settings/profile'
+    | '/blog/$slug'
     | '/admin/accounts/$id'
     | '/api/billing/webhook'
     | '/api/cms/$'
@@ -667,6 +688,7 @@ export interface FileRouteTypes {
     | '/auth/callback/error'
     | '/dashboard'
     | '/settings'
+    | '/blog'
     | '/admin/accounts'
     | '/admin/cms'
     | '/auth/callback'
@@ -723,6 +745,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/billing'
     | '/_authenticated/settings/members'
     | '/_authenticated/settings/profile'
+    | '/_marketing/blog/$slug'
     | '/admin/accounts/$id'
     | '/api/billing/webhook'
     | '/api/cms/$'
@@ -730,6 +753,7 @@ export interface FileRouteTypes {
     | '/auth/callback/error'
     | '/_authenticated/dashboard/'
     | '/_authenticated/settings/'
+    | '/_marketing/blog/'
     | '/admin/accounts/'
     | '/admin/cms/'
     | '/auth/callback/'
@@ -1018,6 +1042,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_marketing/blog/': {
+      id: '/_marketing/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof MarketingBlogIndexRouteImport
+      parentRoute: typeof MarketingRouteRoute
+    }
+    '/_marketing/blog/$slug': {
+      id: '/_marketing/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof MarketingBlogSlugRouteImport
+      parentRoute: typeof MarketingRouteRoute
+    }
     '/admin/accounts/': {
       id: '/admin/accounts/'
       path: '/'
@@ -1296,6 +1334,8 @@ interface MarketingRouteRouteChildren {
   MarketingPrivacyPolicyRoute: typeof MarketingPrivacyPolicyRoute
   MarketingTermsOfServiceRoute: typeof MarketingTermsOfServiceRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
+  MarketingBlogSlugRoute: typeof MarketingBlogSlugRoute
+  MarketingBlogIndexRoute: typeof MarketingBlogIndexRoute
 }
 
 const MarketingRouteRouteChildren: MarketingRouteRouteChildren = {
@@ -1306,6 +1346,8 @@ const MarketingRouteRouteChildren: MarketingRouteRouteChildren = {
   MarketingPrivacyPolicyRoute: MarketingPrivacyPolicyRoute,
   MarketingTermsOfServiceRoute: MarketingTermsOfServiceRoute,
   MarketingIndexRoute: MarketingIndexRoute,
+  MarketingBlogSlugRoute: MarketingBlogSlugRoute,
+  MarketingBlogIndexRoute: MarketingBlogIndexRoute,
 }
 
 const MarketingRouteRouteWithChildren = MarketingRouteRoute._addFileChildren(

@@ -14,6 +14,7 @@ import { tableMetadataInCms } from '@pymekit/cms-supabase/schema';
 import { perfLogger } from '@pymekit/cms-supabase/utils/perf-logger';
 import type { ColumnMetadata } from '@pymekit/cms-types';
 
+import { isProtectedSchema } from '../lib/protected-schemas';
 import {
   type BatchGroup,
   type BatchResult,
@@ -443,7 +444,26 @@ class TableViewService {
       link: string | null | undefined;
     }>
   > {
-    const relationsConfig = getLookupRelations(table.relationsConfig);
+    // [TFG] RNF-02 · Corrección de PymeKit (F2.6b): las consultas de las
+    // etiquetas usan el cliente administrador (ignora RLS), así que solo se
+    // resuelven las relaciones hacia tablas que el usuario puede leer
+    // (`relationsMetadata` ya viene filtrado por permiso) y que no están en
+    // un esquema protegido (`auth`, `storage`…), igual que en la ficha de un
+    // registro: con el permiso comodín de Root, `auth.users` contaba como
+    // legible y se leía con `SELECT *` (hashes de contraseña incluidos),
+    // aunque el resultado se descartara después.
+    const readableTargets = new Set(
+      relationsMetadata
+        .filter((m) => !isProtectedSchema(m.schemaName))
+        .map((m) => `${m.schemaName}.${m.tableName}`),
+    );
+
+    const relationsConfig = getLookupRelations(table.relationsConfig).filter(
+      (relation) =>
+        readableTargets.has(
+          `${relation.target_schema}.${relation.target_table}`,
+        ),
+    );
 
     // Handle empty initial dataset: process filter-based lookups
     if (data.length === 0 && params.properties) {

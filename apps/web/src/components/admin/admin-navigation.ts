@@ -9,8 +9,11 @@
  *    La visibilidad se calcula con `getCmsSectionVisibility` a partir de
  *    `GET /v1/account` (permisos de sección) y `GET /v1/navigation` (tablas
  *    legibles). Ambas consultas las precarga el *loader* de `/admin`.
+ *  - **Recursos**: las tablas legibles de `GET /v1/navigation` (ya filtradas
+ *    por el RBAC del CMS), agrupadas por esquema y con un límite
+ *    (`getSidebarResourceGroups`), como acceso directo a su listado.
  *
- * [TFG] RF-08 · RF-09 · ADR-014.
+ * [TFG] RF-08 · RF-09 · ADR-014 · ADR-017.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { LinkProps } from '@tanstack/react-router';
@@ -26,7 +29,10 @@ import {
   Users,
 } from 'lucide-react';
 
-import { getVisibleResources } from '@pymekit/cms-ui-core/resources';
+import {
+  getSidebarResourceGroups,
+  getVisibleResources,
+} from '@pymekit/cms-ui-core/resources';
 import {
   CMS_SECTIONS,
   CMS_SECTION_PATHS,
@@ -116,4 +122,22 @@ export function isEntryActive(entry: NavigationEntry, pathname: string) {
   return entry.matchPrefix
     ? pathname === entry.path || pathname.startsWith(`${entry.path}/`)
     : pathname.replace(/\/$/, '') === entry.path;
+}
+
+/**
+ * Devuelve las tablas del grupo «Recursos» (agrupadas por esquema y
+ * limitadas). Comparte la consulta `GET /v1/navigation` con
+ * `useCmsNavigationEntries` (TanStack Query la pide una sola vez). Mientras
+ * no hay respuesta, o sin acceso al CMS, la lista está vacía.
+ */
+export function useCmsSidebarResources(user: JWTUserData | null) {
+  const enabled = Boolean(user?.has_cms_access);
+  const account = useQuery({ ...cmsQueries.account(), enabled });
+  const navigation = useQuery({ ...cmsQueries.navigation(), enabled });
+
+  // Si la API rechaza el acceso (MFA pendiente, cuenta inactiva) no hay
+  // `access` y no se muestra ninguna tabla, igual que las secciones.
+  return getSidebarResourceGroups(
+    account.data?.access ? (navigation.data ?? []) : [],
+  );
 }

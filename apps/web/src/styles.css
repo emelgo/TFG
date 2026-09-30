@@ -7,6 +7,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Clases `prose` para el Markdown del blog (`@pymekit/ui/markdown`) */
+@plugin '@tailwindcss/typography';
+
 /* Sans font (replaces the old next/font/google Inter, weights 300–700) */
 @import '@fontsource-variable/inter';
 

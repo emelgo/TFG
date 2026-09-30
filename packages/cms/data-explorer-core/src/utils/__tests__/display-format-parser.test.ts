@@ -279,4 +279,29 @@ describe('Integration Scenarios', () => {
       expect(columns).toEqual(['id']); // Falls back to primary key only
     });
   });
+  // Regresión F2.6b: los marcadores con alternativas (`{a || b}`) piden
+  // todas sus columnas, como las interpreta el formateador.
+  describe('Alternativas con ||', () => {
+    it('extrae cada columna de un marcador con alternativas', () => {
+      expect(parseDisplayFormatColumns('{name} ({email || slug})')).toEqual([
+        'name',
+        'email',
+        'slug',
+      ]);
+    });
+
+    it('incluye las alternativas en la lista de columnas de la consulta', () => {
+      expect(buildOptimalColumnList('{email || customer_id}')).toEqual([
+        'id',
+        'email',
+        'customer_id',
+      ]);
+    });
+
+    it('descarta las alternativas que no son nombres de columna válidos', () => {
+      expect(parseDisplayFormatColumns('{name || drop table;}')).toEqual([
+        'name',
+      ]);
+    });
+  });
 });

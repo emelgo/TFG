@@ -50,6 +50,10 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-33 | 2026-09-30 | F2.6 | seguridad | heredado | `RAISE WARNING` enviaba el texto de los errores al cliente | Baja |
 | B-34 | 2026-09-30 | F2.6 | seguridad | heredado | Un factor MFA configurado no se exigía si el MFA era opcional | Baja |
 | B-35 | 2026-09-30 | F2.6 | herramientas | entorno | `db diff` omite `security_invoker` y los permisos por columna | Media |
+| B-36 | 2026-09-30 | F2.6b | calidad | heredado | `sync_managed_tables` duplicaba las relaciones en cada ejecución | Baja |
+| B-37 | 2026-09-30 | F2.6b | calidad | heredado | Formatos de visualización y filtros de texto con forma de fecha | Baja |
+| B-38 | 2026-09-30 | F2.6b | seguridad | heredado | El listado cargaba `auth.users` completo (con hashes) en memoria | Media |
+| B-39 | 2026-09-30 | F2.6b | seguridad | entorno | Privilegios por defecto de `supabase_admin` y el acceso anónimo a `public` | Media (latente) |
 
 ---
 
@@ -267,3 +271,24 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** al generar la migración de B-31, `supabase db diff` (migra) no incluyó la opción `security_invoker` de la vista ni los `grant` por columna. Una migración generada automáticamente habría creado una vista con permisos del propietario, que **ignora RLS**, y el `db diff` posterior tampoco lo habría detectado.
 - **Solución:** esa parte de la migración se escribe a mano, y pgTAP comprueba las dos propiedades. Queda anotado en `apps/web/supabase/AGENTS.md`.
 - **Lección:** que `db diff` salga limpio no demuestra que la migración sea segura. Las propiedades de seguridad se verifican con tests, no con la herramienta de diferencias.
+
+## B-36 · `sync_managed_tables` duplicaba las relaciones en cada ejecución
+- **Qué pasó:** cada ejecución de `cms.sync_managed_tables` volvía a añadir todas las relaciones de las tablas registradas, y además borraba las relaciones virtuales configuradas a mano.
+- **Solución:** la función es ahora idempotente (se puede ejecutar varias veces sin cambios) y conserva las relaciones virtuales. Lo cubre pgTAP.
+- **Lección:** una función de sincronización debe poder ejecutarse cualquier número de veces; en producción se relanza tras cada migración.
+
+## B-37 · Formatos de visualización y filtros de texto con forma de fecha
+- **Qué pasó:** el intérprete de formatos descartaba la sintaxis `{a || b}`, así que las etiquetas salían como «nombre ()». Además, el constructor de consultas trataba un texto como `PED-2026-0001` como una fecha, y filtrar esa columna no devolvía nada.
+- **Solución:** corregir el intérprete (con tests unitarios) y tratar como fecha solo una fecha ISO completa. Queda pendiente que una columna de texto que contenga una fecha ISO sigue filtrándose como fecha.
+- **Lección:** los datos de demostración realistas (números de pedido, formatos compuestos) sacan a la luz fallos que los datos de prueba triviales no muestran.
+
+## B-38 · El listado cargaba `auth.users` completo (con hashes) en memoria
+- **Qué pasó:** al resolver las etiquetas de las relaciones en el listado, el cliente administrador ejecutaba `SELECT *` sobre `auth.users` cuando el lector era Root. Los hashes de contraseña se cargaban en la memoria del servidor, aunque no llegaban al navegador.
+- **Cómo se detectó:** en la búsqueda de fallos del propio diff de la F2.6b.
+- **Solución:** no resolver etiquetas en esquemas protegidos ni en tablas que el usuario no puede leer. Las membresías muestran el nombre y el email a través de la relación virtual con `public.accounts`.
+- **Lección:** aunque un dato sensible no salga del servidor, no debe cargarse si no hace falta: cualquier log o volcado de errores posterior lo expondría.
+
+## B-39 · Privilegios por defecto de `supabase_admin` y el acceso anónimo a `public`
+- **Qué pasó:** para el blog público, `anon` recibió `usage` sobre `public` (ADR-017). La revisión `/rls-review` confirmó que la superficie de `anon` es mínima (0 funciones ejecutables y solo el blog legible). Además encontró un riesgo **latente**: los privilegios por defecto de `supabase_admin` conceden a `anon` todos los permisos sobre lo que ese rol crea en `public`. En una prueba revertida, instalar `pg_trgm` en `public` dejaba sus 20 funciones ejecutables por `anon`.
+- **Solución:** la regla «las extensiones nunca van en `public`» pasa a las directrices de la BD. `anon-surface.test.sql` falla si aparece en `public` un objeto cuyo propietario no sea `postgres`, o si `anon` gana cualquier permiso fuera del conjunto permitido.
+- **Lección:** abrir un esquema a un rol cambia el significado de **todos** los privilegios por defecto que ya existían. Hay que auditar la superficie completa, no solo los objetos nuevos.

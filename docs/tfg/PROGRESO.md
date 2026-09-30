@@ -58,7 +58,8 @@
 - [x] F2.6 · Endurecimiento de 4 debilidades de la revisión (B-31 a B-34) + escape de comodines LIKE; pgTAP 60 ficheros / 1.652, E2E 108 ✔: W1 redacción de datos de auditoría también en BD (hoy solo en la API); W2 el tiempo máximo de `global_search` no se aplica; W3 `RAISE WARNING` filtra `SQLERRM` como aviso del protocolo; W4 un factor MFA configurado no se exige si `requires_mfa=false`
 - [ ] Pendiente (F2.7): las funciones CRUD dejan pasar la escritura si falla la auditoría (fallo en abierto, heredado); `grant/revoke_admin_access` devuelven `SQLERRM` en su resultado jsonb
 - [ ] Pendiente (F2.6): borrar a un miembro del personal borra la atribución de sus entradas de auditoría (`ON DELETE SET NULL` heredado) → decidir en F2.7a; la búsqueda global falla entera si los metadatos de una columna están desfasados; sin buscador en la navegación móvil; filtros de fecha solo en UTC
-- [ ] F2.6b · Contenido y demo (ADR-017): blog en la BD gestionado desde el CMS y rutas `/blog`; esquema `demo` de pyme; formatos legibles (texto en lugar de id); tablas bajo «Recursos» en la barra lateral
+- [x] F2.6b · Contenido y demo (ADR-017): blog en la BD (`19-blog.sql`) gestionado desde el CMS y rutas `/blog` y `/blog/$slug` con Markdown seguro; esquema `demo` de pyme (seed); formatos legibles (incluida la relación virtual de membresías con cuentas); tablas bajo «Recursos» en la barra lateral. `/rls-review`: AISLADO. pgTAP 62 / 1.730, E2E 129
+- [ ] Pendiente (F2.6b): un formato de visualización con una columna inexistente muestra ids; un texto con forma de fecha ISO se filtra como fecha
 - [ ] F2.7a · Ajustes: General, Autenticación y Miembros
 - [ ] F2.7b · Ajustes: RBAC (roles, grupos y permisos)
 - [ ] F2.7c · Ajustes: Recursos y diseñador de fichas
@@ -144,6 +145,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-09-30 | F2.6b | Blog gestionado desde el CMS y visible en la web, demo de pyme, textos legibles en relaciones y tablas en la barra lateral; superficie de `anon` auditada (AISLADO) |
 | 2026-09-30 | F2.6 | Endurecimiento tras `/rls-review`: redacción de la auditoría en BD, tiempo máximo de la búsqueda, sin `SQLERRM` en avisos y MFA exigido a quien lo tiene configurado (B-31 a B-35) |
 | 2026-09-30 | F2.6 | Auditoría del CMS y búsqueda global; auditoría no falsificable, lectura redactada por permisos y búsqueda endurecida (B-27, B-28) |
 | 2026-09-30 | F2.5 | Exploradores de usuarios y almacenamiento del CMS; corregidos fallos heredados de autorización, almacenamiento e inyección SQL (B-21 a B-25); E2E 102 |

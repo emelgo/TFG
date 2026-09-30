@@ -1,9 +1,10 @@
 /**
  * Barra lateral de la consola de administración.
  *
- * Tiene dos grupos: «Plataforma», solo para el super-admin, y «CMS», para
+ * Tiene tres grupos: «Plataforma», solo para el super-admin; «CMS», para
  * cualquiera que haya entrado en la consola (super-admin o personal del CMS),
- * con las entradas que la API del CMS le permite (ver `admin-navigation.ts`).
+ * con las entradas que la API del CMS le permite (ver `admin-navigation.ts`),
+ * y «Recursos», con las tablas que puede leer (`admin-sidebar-resources.tsx`).
  * En la cabecera, para quien tiene acceso al CMS, la búsqueda global.
  */
 import { Link, useLocation } from '@tanstack/react-router';
@@ -32,6 +33,7 @@ import {
   isEntryActive,
   useCmsNavigationEntries,
 } from './admin-navigation.ts';
+import { AdminSidebarResources } from './admin-sidebar-resources.tsx';
 import { CmsGlobalSearch } from './cms/cms-global-search.tsx';
 
 export function AdminSidebar(props: { user: JWTUserData | null }) {
@@ -69,6 +71,10 @@ export function AdminSidebar(props: { user: JWTUserData | null }) {
               <AdminSidebarMenu entries={cmsEntries} prefix="cms" />
             </SidebarGroupContent>
           </SidebarGroup>
+        ) : null}
+
+        {props.user?.has_cms_access ? (
+          <AdminSidebarResources user={props.user} />
         ) : null}
       </SidebarContent>
 

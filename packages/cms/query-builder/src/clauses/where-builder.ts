@@ -15,6 +15,10 @@ import type { FilterCondition } from '@pymekit/cms-filters-core';
 
 import type { WhereClause } from '../types/clause-types';
 
+/** Fecha ISO 8601 completa, con hora y zona horaria opcionales. */
+const ISO_DATE_PATTERN =
+  /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+
 type LogicalOperator = 'AND' | 'OR';
 
 export class WhereBuilder {
@@ -270,9 +274,15 @@ export class WhereBuilder {
    * Check if a value is likely a date string
    */
   private static isDateValue(value: string): boolean {
-    // Quick checks for common date patterns
-    if (!/\d{4}|\d{2}[-\\/]\d{2}/.test(value)) {
-      return false; // No year or date separator pattern
+    // [TFG] Corrección de PymeKit (F2.6b): el patrón heredado solo pedía
+    // «cuatro dígitos» en cualquier parte y después confiaba en `new Date()`,
+    // que en V8 acepta textos como `PED-2026-0001`. Filtrar una columna de
+    // texto por un código así se convertía en `BETWEEN <día> AND <día>` y no
+    // devolvía nada. Ahora solo cuenta como fecha una fecha ISO completa
+    // (`AAAA-MM-DD`, con hora y zona opcionales), que es lo que envía el
+    // selector de fechas de la interfaz.
+    if (!ISO_DATE_PATTERN.test(value.trim())) {
+      return false;
     }
 
     // Try to parse as date

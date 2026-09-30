@@ -30,6 +30,7 @@ DECLARE
     i                    INTEGER;
     v_relation_idx       TEXT;
     v_inverse_relations  JSONB;
+    v_existing_relations JSONB; -- relations_config guardado (para conservar ajustes)
 BEGIN
     -- Sanitize inputs for security
     p_schema_name := cms.sanitize_identifier(p_schema_name);
@@ -69,7 +70,7 @@ BEGIN
 
             -- Get existing columns_config if any
             SELECT columns_config, ui_config, relations_config
-            INTO v_existing, v_table_config, v_relations
+            INTO v_existing, v_table_config, v_existing_relations
             FROM cms.table_metadata
             WHERE schema_name = v_table_record.table_schema
               AND table_name = v_table_record.table_name;
@@ -79,9 +80,17 @@ BEGIN
                 v_table_config := '{}'::jsonb;
             END IF;
 
-            IF v_relations IS NULL THEN
-                v_relations := '[]'::jsonb;
+            -- [TFG] RF-09 · Corrección de PymeKit (F2.6b): la versión heredada
+            -- partía de las relaciones ya guardadas y les AÑADÍA las del
+            -- catálogo, así que cada sincronización duplicaba todas las
+            -- relaciones de la tabla. Ahora la lista se reconstruye desde el
+            -- catálogo y las guardadas solo se usan para conservar sus ajustes
+            -- (`inline_config`, `display_fields`…) y las relaciones virtuales.
+            IF v_existing_relations IS NULL OR jsonb_typeof(v_existing_relations) <> 'array' THEN
+                v_existing_relations := '[]'::jsonb;
             END IF;
+
+            v_relations := '[]'::jsonb;
 
             -- 1. IDENTIFY PRIMARY KEYS
             -- Query to find primary key columns
@@ -229,6 +238,18 @@ BEGIN
                   AND t.relname = v_table_record.table_name
                   AND c.contype = 'f'
                 LOOP
+                    -- Una relación virtual guardada sobre la misma columna
+                    -- sustituye a la clave foránea real (p. ej. `user_id` →
+                    -- `public.accounts` en lugar de `auth.users`, un esquema
+                    -- que el CMS no puede leer): no se vuelve a añadir.
+                    IF EXISTS (SELECT 1
+                               FROM jsonb_array_elements(v_existing_relations) AS rel(value)
+                               WHERE COALESCE((rel.value ->> 'is_virtual')::boolean, false)
+                                 AND rel.value ->> 'source_column' = v_rel_record.source_column
+                                 AND COALESCE(rel.value ->> 'relation_type', 'many_to_one') IN ('many_to_one', 'one_to_one')) THEN
+                        CONTINUE;
+                    END IF;
+
                     -- Create relation object
                     v_relation := jsonb_build_object(
                             'source_column', v_rel_record.source_column,
@@ -241,16 +262,17 @@ BEGIN
 
                     -- Check if relation already exists and preserve custom settings
                     v_existing_rel := NULL;
-                    IF jsonb_typeof(v_relations) = 'array' THEN
-                        FOR i IN 0..jsonb_array_length(v_relations) - 1
-                            LOOP
-                                IF (v_relations -> i ->> 'source_column' = v_rel_record.source_column AND
-                                    v_relations -> i ->> 'target_table' = v_rel_record.target_table) THEN
-                                    v_existing_rel := v_relations -> i;
-                                    EXIT;
-                                END IF;
-                            END LOOP;
-                    END IF;
+                    FOR i IN 0..jsonb_array_length(v_existing_relations) - 1
+                        LOOP
+                            IF (v_existing_relations -> i ->> 'source_column' = v_rel_record.source_column AND
+                                v_existing_relations -> i ->> 'target_schema' = v_rel_record.target_schema AND
+                                v_existing_relations -> i ->> 'target_table' = v_rel_record.target_table AND
+                                COALESCE(v_existing_relations -> i ->> 'relation_type', 'many_to_one') = 'many_to_one' AND
+                                NOT COALESCE((v_existing_relations -> i ->> 'is_virtual')::boolean, false)) THEN
+                                v_existing_rel := v_existing_relations -> i;
+                                EXIT;
+                            END IF;
+                        END LOOP;
 
                     -- Merge with existing relation config if found
                     IF v_existing_rel IS NOT NULL THEN
@@ -303,17 +325,17 @@ BEGIN
 
                     -- Check if relation already exists and preserve custom settings
                     v_existing_rel := NULL;
-                    IF jsonb_typeof(v_relations) = 'array' THEN
-                        FOR i IN 0..jsonb_array_length(v_relations) - 1
-                            LOOP
-                                IF (v_relations -> i ->> 'source_column' = v_rel_record.target_column AND
-                                    v_relations -> i ->> 'target_table' = v_rel_record.source_table AND
-                                    v_relations -> i ->> 'target_schema' = v_rel_record.source_schema) THEN
-                                    v_existing_rel := v_relations -> i;
-                                    EXIT;
-                                END IF;
-                            END LOOP;
-                    END IF;
+                    FOR i IN 0..jsonb_array_length(v_existing_relations) - 1
+                        LOOP
+                            IF (v_existing_relations -> i ->> 'source_column' = v_rel_record.target_column AND
+                                v_existing_relations -> i ->> 'target_table' = v_rel_record.source_table AND
+                                v_existing_relations -> i ->> 'target_schema' = v_rel_record.source_schema AND
+                                v_existing_relations -> i ->> 'target_column' = v_rel_record.source_column AND
+                                v_existing_relations -> i ->> 'relation_type' = 'one_to_many') THEN
+                                v_existing_rel := v_existing_relations -> i;
+                                EXIT;
+                            END IF;
+                        END LOOP;
 
                     -- Merge with existing relation config if found
                     IF v_existing_rel IS NOT NULL THEN
@@ -330,6 +352,14 @@ BEGIN
                             v_relation
                                    );
                 END LOOP;
+
+            -- Las relaciones virtuales (`is_virtual = true`) no salen del
+            -- catálogo: las define quien administra el CMS en el metadato y se
+            -- conservan tal cual en cada sincronización.
+            SELECT v_relations || COALESCE(jsonb_agg(rel.value), '[]'::jsonb)
+            INTO v_relations
+            FROM jsonb_array_elements(v_existing_relations) AS rel(value)
+            WHERE COALESCE((rel.value ->> 'is_virtual')::boolean, false);
 
             -- Insert or update table_metadata
             INSERT INTO cms.table_metadata (schema_name,

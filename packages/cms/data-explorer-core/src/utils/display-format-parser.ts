@@ -4,6 +4,7 @@
  * - "{name}" -> ["name"]
  * - "{name} - {email}" -> ["name", "email"]
  * - "User: {first_name} {last_name}" -> ["first_name", "last_name"]
+ * - "{name} ({email || slug})" -> ["name", "email", "slug"]
  * - "No format" -> []
  * - null/undefined -> []
  */
@@ -21,9 +22,14 @@ export function parseDisplayFormatColumns(
     return [];
   }
 
-  // Extract column names and deduplicate
+  // Extract column names and deduplicate. [TFG] Corrección de PymeKit
+  // (F2.6b): un marcador puede tener alternativas (`{email || slug}`, la
+  // primera no vacía), como admite el formateador. Antes el marcador entero
+  // se descartaba por no ser un nombre de columna válido, la consulta no
+  // pedía esas columnas y la etiqueta salía vacía («nombre ()»).
   const columns = matches
-    .map((match) => match.slice(1, -1).trim()) // Remove { } and trim whitespace
+    .flatMap((match) => match.slice(1, -1).split('||')) // Remove { } and split alternatives
+    .map((column) => column.trim())
     .filter((column) => column.length > 0) // Remove empty strings
     .filter((column) => isValidColumnName(column)); // Only keep valid column names
 

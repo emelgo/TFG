@@ -834,6 +834,69 @@ SELECT is(
 -- Clean up test schemas
 DROP SCHEMA test_empty_schema CASCADE;
 
+-- ---------------------------------------------------------------------------
+-- Regresión F2.6b: la sincronización es idempotente con las relaciones
+-- (la versión heredada las duplicaba en cada ejecución) y conserva las
+-- relaciones virtuales (`is_virtual`), que sustituyen a la clave foránea real
+-- de la misma columna (p. ej. `accounts_memberships.user_id` → `accounts`).
+-- ---------------------------------------------------------------------------
+
+CREATE SCHEMA sync_rel_schema;
+
+CREATE TABLE sync_rel_schema.parents (id uuid PRIMARY KEY, name text);
+CREATE TABLE sync_rel_schema.owners (id uuid PRIMARY KEY, name text);
+CREATE TABLE sync_rel_schema.children (
+    id uuid PRIMARY KEY,
+    parent_id uuid REFERENCES sync_rel_schema.parents (id),
+    owner_id uuid REFERENCES sync_rel_schema.parents (id)
+);
+
+SELECT cms.sync_managed_tables('sync_rel_schema');
+SELECT cms.sync_managed_tables('sync_rel_schema');
+
+SELECT is(
+    (SELECT jsonb_array_length(relations_config) FROM cms.table_metadata
+     WHERE schema_name = 'sync_rel_schema' AND table_name = 'children'),
+    2,
+    'Sincronizar dos veces no duplica las relaciones de la tabla'
+);
+
+SELECT is(
+    (SELECT jsonb_array_length(relations_config) FROM cms.table_metadata
+     WHERE schema_name = 'sync_rel_schema' AND table_name = 'parents'),
+    2,
+    'Tampoco se duplican las relaciones inversas (uno a muchos)'
+);
+
+-- Relación virtual: `owner_id` se muestra con la tabla `owners`
+UPDATE cms.table_metadata
+SET relations_config = (
+    SELECT jsonb_agg(rel.value) FROM jsonb_array_elements(relations_config) AS rel(value)
+    WHERE rel.value ->> 'source_column' <> 'owner_id'
+) || '[{"source_column": "owner_id", "target_schema": "sync_rel_schema", "target_table": "owners",
+       "target_column": "id", "relation_type": "many_to_one", "is_virtual": true}]'::jsonb
+WHERE schema_name = 'sync_rel_schema' AND table_name = 'children';
+
+SELECT cms.sync_managed_tables('sync_rel_schema');
+
+SELECT results_eq(
+    $$ SELECT rel.value ->> 'target_table'
+       FROM cms.table_metadata, jsonb_array_elements(relations_config) AS rel(value)
+       WHERE schema_name = 'sync_rel_schema' AND table_name = 'children'
+         AND rel.value ->> 'source_column' = 'owner_id' $$,
+    $$ VALUES ('owners') $$,
+    'La relación virtual se conserva y sustituye a la clave foránea real'
+);
+
+SELECT is(
+    (SELECT jsonb_array_length(relations_config) FROM cms.table_metadata
+     WHERE schema_name = 'sync_rel_schema' AND table_name = 'children'),
+    2,
+    'Con la relación virtual, la tabla sigue teniendo dos relaciones'
+);
+
+DROP SCHEMA sync_rel_schema CASCADE;
+
 SELECT finish();
 
 ROLLBACK;

@@ -831,7 +831,7 @@ set local role anon;
 select
     throws_ok(
         $$ select public.create_team_account('SecurityTeam', tests.get_supabase_uid('securitytest1')) $$,
-        'permission denied for schema public',
+        'permission denied for function create_team_account',
         'Anonymous/public role should not be able to execute create_team_account'
     );
 

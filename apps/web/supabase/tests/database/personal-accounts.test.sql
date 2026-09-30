@@ -24,9 +24,11 @@ SELECT row_eq(
 
 set local role anon;
 
+-- anon tiene `usage` sobre public desde F2.6b (blog público), así que el
+-- rechazo llega ahora en la tabla, no en el esquema
 SELECT throws_ok(
    $$ select * from public.accounts order by created_at desc limit 1 $$,
-    'permission denied for schema public'
+    'permission denied for table accounts'
 );
 
 -- the primary owner should be able to see the personal account

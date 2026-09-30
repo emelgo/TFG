@@ -30,6 +30,7 @@ Este documento registra qué partes de `../makerkit` (referencia SaaS) y `../sup
 | `packages/i18n` | `packages/i18n` | A | 📥 | Locale `es` |
 | `packages/{shared,policies,mailers,email-templates,analytics,monitoring,notifications,otp,database-webhooks}` | igual | R | 📥 | |
 | `packages/cms` (Keystatic/WordPress) | — | X | — | ADR-004 |
+| Componentes de presentación del blog (`apps/web/src/components/blog`) | `packages/ui/src/makerkit/markdown/` + rutas `_marketing/blog` | A | 🏷️ | Recuperados en F2.6b sobre datos de la BD y Markdown seguro (ADR-017) |
 | `packages/mcp-server` | — | X | — | ADR-008 |
 | `tooling/*`, `turbo/generators` | igual | R/A | 📥 | Sin script de licencia (ADR-006) ni generadores `setup`/`keystatic` (ADR-008) |
 | `docs/`, `.junie`, `.gemini`, `.codex`, `CHANGELOG.md` | — | X | — | No se copian |

@@ -230,6 +230,33 @@ describe('WhereBuilder', () => {
     });
   });
 
+  // Regresión F2.6b: un código con dígitos y guiones no es una fecha.
+  describe('detección de fechas', () => {
+    it('no convierte en rango de fechas un texto como PED-2026-0001', () => {
+      const whereClause = WhereBuilder.fromFilters([
+        { column: 'order_number', operator: 'eq', value: 'PED-2026-0001' },
+      ]);
+
+      const { sql: sqlString, params } = sqlToString(
+        whereClause!.conditions[0]!,
+      );
+
+      expect(sqlString).not.toContain('BETWEEN');
+      expect(sqlString).toContain('=');
+      expect(params).toContain('PED-2026-0001');
+    });
+
+    it('sigue tratando una fecha ISO como el día completo', () => {
+      const whereClause = WhereBuilder.fromFilters([
+        { column: 'created_at', operator: 'eq', value: '2026-01-15' },
+      ]);
+
+      const { sql: sqlString } = sqlToString(whereClause!.conditions[0]!);
+
+      expect(sqlString).toContain('BETWEEN');
+    });
+  });
+
   describe('standard filtering operations', () => {
     it('should handle IN operator with arrays', () => {
       const filters: FilterCondition[] = [

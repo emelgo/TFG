@@ -168,3 +168,9 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Alternativas consideradas:** mantener el blog fuera (el CMS solo gestionaría datos internos y se debilitaría el objetivo de gestión de contenidos); recuperar Keystatic (dos CMS distintos, en contra de ADR-004 y ADR-011); portar la demo de blog del CMS original tal cual (en inglés, sin RLS pensada para la web pública y mezclada con `public`).
 - **Consecuencias:** hay un paso nuevo, F2.6b, tras la auditoría. Hay que actualizar ADR-004, RF-01 y RF-09 y revisar las políticas del blog con `/rls-review`.
 - **Requisitos relacionados:** RF-01, RF-09, RNF-02, RNF-01 (P-01).
+
+### Anexo a ADR-017 (2026-09-30) · Acceso anónimo al esquema `public`
+- Para que la web pública lea el blog, el rol `anon` recibe `usage` sobre `public`, que hasta ahora no tenía. Antes se revocan todos sus permisos residuales. Tras el cambio, `anon` solo puede leer categorías, etiquetas, la relación entre posts y etiquetas, y 13 columnas de `blog_posts`. No puede ejecutar **ninguna** función (0 de 36).
+- El blog no lleva política MFA restrictiva: el contenido es público, y con ella un usuario con sesión aal1 vería un blog vacío mientras un anónimo lo vería entero.
+- Las etiquetas y categorías son legibles aunque solo las usen borradores. Es una exposición menor que se acepta (un tema aún no publicado podría adelantarse).
+- `/rls-review` (etapas 1–4, con refutación independiente): veredicto AISLADO. `anon-surface.test.sql` fija la superficie exacta de `anon` y falla si se amplía.

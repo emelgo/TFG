@@ -82,6 +82,7 @@ catalog:
   react-dom: ^19.3.0
   react-dropzone: ^19.1.1
   react-email: 6.11.0
+  react-markdown: ^10.1.0
   react-resizable-panels: ^4.13.3
   react-top-loading-bar: ^3.0.2
   recharts: 3.10.1
