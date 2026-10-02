@@ -32,12 +32,6 @@
     "loadErrorText": "Something went wrong while contacting the CMS. Please try again in a moment.",
     "retry": "Try again"
   },
-  "placeholder": {
-    "heading": "Coming soon",
-    "text": "This section of the CMS will be available in increment {increment}.",
-    "resourceTitle": "{schema}.{table}",
-    "recordTitle": "{schema}.{table} · record"
-  },
   "dataExplorer": {
     "loadErrorHeading": "The table could not be loaded",
     "loadErrorText": "Something went wrong while loading this table. Please try again in a moment.",
@@ -1133,6 +1127,183 @@
         "reset": "Use default layout",
         "saved": "Layout saved"
       }
+    }
+  },
+  "dashboards": {
+    "list": {
+      "searchPlaceholder": "Search dashboards…",
+      "filters": {
+        "all": "All",
+        "owned": "Mine",
+        "shared": "Shared with me"
+      },
+      "empty": "No dashboards yet. Create one to start tracking your data.",
+      "widgetCount": "{count, plural, =0 {No widgets} one {# widget} other {# widgets}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "permission": {
+      "owner": "Owner",
+      "edit": "Can edit",
+      "view": "View only"
+    },
+    "actions": {
+      "newDashboard": "New dashboard",
+      "create": "Create",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "share": "Share",
+      "rename": "Rename",
+      "back": "Back to dashboards",
+      "addWidget": "Add widget",
+      "arrange": "Arrange",
+      "saveLayout": "Save layout",
+      "editWidget": "Edit widget",
+      "duplicateWidget": "Duplicate widget",
+      "deleteWidget": "Delete widget"
+    },
+    "create": {
+      "title": "New dashboard",
+      "description": "Give your dashboard a name. You can add widgets and share it afterwards.",
+      "name": "Name"
+    },
+    "rename": {
+      "title": "Rename dashboard",
+      "description": "Choose a new name for this dashboard."
+    },
+    "delete": {
+      "title": "Delete dashboard",
+      "description": "\"{name}\" and all its widgets will be deleted for everyone it is shared with. This cannot be undone."
+    },
+    "deleteWidget": {
+      "title": "Delete widget",
+      "description": "The widget \"{title}\" will be removed from this dashboard."
+    },
+    "share": {
+      "title": "Share dashboard",
+      "description": "Roles below your own rank can see this dashboard. Each viewer only sees data from tables they can read.",
+      "none": "This dashboard is not shared yet.",
+      "role": "Role",
+      "chooseRole": "Choose a role",
+      "level": "Access",
+      "view": "View",
+      "edit": "Edit",
+      "submit": "Share",
+      "remove": "Stop sharing",
+      "noRoles": "There are no roles below your rank to share with."
+    },
+    "view": {
+      "empty": "This dashboard has no widgets yet.",
+      "emptyEditable": "This dashboard has no widgets yet. Add one to start."
+    },
+    "arrange": {
+      "left": "Move left",
+      "right": "Move right",
+      "up": "Move up",
+      "down": "Move down",
+      "wider": "Wider",
+      "narrower": "Narrower",
+      "taller": "Taller",
+      "shorter": "Shorter"
+    },
+    "widget": {
+      "noAccess": "You don't have access to the data of this widget.",
+      "loadError": "The widget data could not be loaded.",
+      "noData": "No data to display.",
+      "value": "Value",
+      "copyTitle": "{title} (copy)",
+      "page": "Page {page} of {pageCount}",
+      "previous": "Previous",
+      "next": "Next",
+      "aggregation": {
+        "COUNT": "Count",
+        "SUM": "Sum",
+        "AVG": "Average",
+        "MIN": "Minimum",
+        "MAX": "Maximum"
+      }
+    },
+    "editor": {
+      "createTitle": "Add widget",
+      "editTitle": "Edit widget",
+      "description": "Choose what to show and from which table. Only tables you can read are listed.",
+      "title": "Title",
+      "type": "Type",
+      "types": {
+        "metric": "Metric",
+        "chart": "Chart",
+        "table": "Table"
+      },
+      "table": "Table",
+      "chooseTable": "Choose a table",
+      "chooseColumn": "Choose a column",
+      "chartType": "Chart",
+      "chartTypes": {
+        "line": "Line",
+        "bar": "Bar",
+        "pie": "Pie"
+      },
+      "xAxis": "Group by",
+      "timeBucket": "Date grouping",
+      "timeBuckets": {
+        "none": "Exact value",
+        "day": "Day",
+        "week": "Week",
+        "month": "Month",
+        "year": "Year"
+      },
+      "aggregation": "Calculation",
+      "aggregations": {
+        "COUNT": "Count",
+        "SUM": "Sum",
+        "AVG": "Average",
+        "MIN": "Minimum",
+        "MAX": "Maximum"
+      },
+      "valueColumn": "Column",
+      "allRows": "All rows",
+      "columns": "Columns",
+      "filter": "Filter",
+      "noFilter": "No filter",
+      "operator": "Condition",
+      "value": "Value",
+      "operators": {
+        "eq": "equals",
+        "neq": "not equal",
+        "gt": "greater than",
+        "gte": "at least",
+        "lt": "less than",
+        "lte": "at most",
+        "contains": "contains",
+        "isNull": "is empty",
+        "notNull": "is not empty"
+      },
+      "invalid": "Complete the title, table and columns for this widget type.",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "messages": {
+      "created": "Dashboard created",
+      "renamed": "Dashboard renamed",
+      "deleted": "Dashboard deleted",
+      "shared": "Sharing updated",
+      "unshared": "The role no longer has access",
+      "widgetSaved": "Widget saved",
+      "widgetDeleted": "Widget deleted",
+      "layoutSaved": "Layout saved"
+    },
+    "errors": {
+      "notFound": "The dashboard no longer exists or you don't have access to it.",
+      "forbidden": "You don't have permission to change this dashboard.",
+      "invalidData": "The data is not valid. Review it and try again.",
+      "shareRankDenied": "You can only share with roles below your own rank.",
+      "widgetNotFound": "The widget no longer exists.",
+      "widgetNoAccess": "You can't use a table you don't have permission to read.",
+      "widgetInvalidSource": "The table or columns are not available for widgets.",
+      "createFailed": "The dashboard could not be created.",
+      "saveFailed": "The changes could not be saved.",
+      "deleteFailed": "It could not be deleted."
     }
   }
 }

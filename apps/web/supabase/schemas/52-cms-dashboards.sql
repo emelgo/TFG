@@ -184,8 +184,20 @@ WITH CHECK (
   )
 );
 
+-- [TFG] RF-11 · RNF-02 · Corrección de PymeKit (F2.8): la política heredada
+-- no tenía WITH CHECK, así que quien podía editar el panel podía apuntar un
+-- widget existente a una tabla que no puede leer (o moverlo a otro panel).
+-- Ahora la fila resultante debe cumplir lo mismo que al crearla.
 CREATE POLICY update_widgets ON cms.dashboard_widgets FOR UPDATE
-USING (cms.can_edit_dashboard(dashboard_id));
+USING (cms.can_edit_dashboard(dashboard_id))
+WITH CHECK (
+  cms.can_edit_dashboard(dashboard_id)
+  AND cms.has_data_permission(
+    'select',
+    schema_name,
+    table_name
+  )
+);
 
 CREATE POLICY delete_widgets ON cms.dashboard_widgets FOR DELETE
 USING (cms.can_edit_dashboard(dashboard_id));
@@ -531,7 +543,11 @@ $function$;
 -- SECTION: GRANTS
 -- ============================================
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON cms.dashboards TO authenticated;
+-- [TFG] RNF-02 · `UPDATE` por columnas (F2.8, BITACORA B-50): un editor de un
+-- panel compartido solo puede renombrarlo. Con el `UPDATE` de tabla completa
+-- heredado podía cambiar `created_by` y quedarse con la propiedad del panel.
+GRANT SELECT, INSERT, DELETE ON cms.dashboards TO authenticated;
+GRANT UPDATE (name, updated_at) ON cms.dashboards TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON cms.dashboard_widgets TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON cms.dashboard_role_shares TO authenticated;
 GRANT EXECUTE ON FUNCTION cms.can_access_dashboard TO authenticated;

@@ -40,6 +40,7 @@ import type { GetRolesForSharingRoute } from '@pymekit/cms-permissions/routes';
 import type { GetAccountRoute } from '@pymekit/cms-settings/routes';
 
 import { createAuditLogsApi } from './audit-logs-api';
+import { createDashboardsApi } from './dashboards-api';
 import { createPermissionsApi } from './permissions-api';
 import { createResourceSettingsApi } from './resource-settings-api';
 import { createSettingsApi } from './settings-api';
@@ -71,6 +72,8 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
     ...createPermissionsApi(clientOptions),
     // Ajustes > Recursos: tablas, columnas y distribución (F2.7c).
     ...createResourceSettingsApi(clientOptions),
+    // Paneles y widgets (F2.8).
+    ...createDashboardsApi(clientOptions),
 
     /**
      * Devuelve la cuenta del CMS del usuario y las secciones que puede usar.

@@ -223,6 +223,33 @@ export const CMS_API_ERROR_CODES = {
   GROUP_RANK_DENIED: 'GROUP_RANK_DENIED',
   /** Grupo de sistema (Super Admin): inmutable desde el CMS (403). */
   GROUP_SYSTEM_PROTECTED: 'GROUP_SYSTEM_PROTECTED',
+  // Paneles (F2.8, RF-11).
+  /** El panel no existe o el usuario no tiene acceso a él (404). */
+  DASHBOARD_NOT_FOUND: 'DASHBOARD_NOT_FOUND',
+  /**
+   * Puede ver el panel pero no editarlo (compartido solo para ver), o la
+   * acción es solo del propietario (borrar, compartir) (403).
+   */
+  DASHBOARD_FORBIDDEN: 'DASHBOARD_FORBIDDEN',
+  /** Datos de la petición no válidos (400). */
+  DASHBOARD_INVALID_DATA: 'DASHBOARD_INVALID_DATA',
+  /** Compartir con un rol de rango igual o superior al propio (403). */
+  DASHBOARD_SHARE_RANK_DENIED: 'DASHBOARD_SHARE_RANK_DENIED',
+  /** El *widget* no existe o no es visible (404). */
+  DASHBOARD_WIDGET_NOT_FOUND: 'DASHBOARD_WIDGET_NOT_FOUND',
+  /**
+   * Quien mira el panel no puede leer la tabla del *widget*
+   * (`cms.has_data_permission`), o quien lo edita intenta apuntarlo a una
+   * tabla que no puede leer (403).
+   */
+  DASHBOARD_WIDGET_NO_ACCESS: 'DASHBOARD_WIDGET_NO_ACCESS',
+  /**
+   * La tabla no está gestionada por el CMS, es de un esquema protegido o la
+   * configuración usa columnas que no existen (400).
+   */
+  DASHBOARD_WIDGET_INVALID_SOURCE: 'DASHBOARD_WIDGET_INVALID_SOURCE',
+  /** Error inesperado en los paneles (500). */
+  DASHBOARD_ACTION_FAILED: 'DASHBOARD_ACTION_FAILED',
 } as const;
 
 export type CmsApiErrorCode =

@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+import {
+  DASHBOARD_SHARE_LEVELS,
+  DashboardNameSchema,
+} from '@pymekit/cms-shared/dashboards';
+
 /** Width of the dashboard grid, in columns. */
 export const GRID_COLUMN_COUNT = 12;
 
@@ -27,38 +32,43 @@ export const WidgetPositionSchema = z.object({
 export type WidgetPositionType = z.infer<typeof WidgetPositionSchema>;
 
 /**
- * Schema for creating a dashboard
+ * Crear un panel: nombre (mismo límite que la restricción de la tabla) y,
+ * opcionalmente, con qué roles compartirlo. Esquemas estrictos (F2.8): un
+ * campo desconocido es un 400.
  */
-export const CreateDashboardSchema = z.object({
-  name: z.string().min(3).max(255), // Matches database constraint
-  roleShares: z
-    .array(
-      z.object({
-        roleId: z.uuid(),
-        permissionLevel: z.enum(['view', 'edit']).default('view'),
-      }),
-    )
-    .optional(),
-});
+export const CreateDashboardSchema = z
+  .object({
+    name: DashboardNameSchema,
+    roleShares: z
+      .array(
+        z
+          .object({
+            roleId: z.uuid(),
+            permissionLevel: z.enum(DASHBOARD_SHARE_LEVELS).default('view'),
+          })
+          .strict(),
+      )
+      .max(50)
+      .optional(),
+  })
+  .strict();
 
 export type CreateDashboardType = z.infer<typeof CreateDashboardSchema>;
 
-/**
- * Schema for updating a dashboard
- */
-export const UpdateDashboardSchema = z.object({
-  name: z.string().min(3).max(255),
-});
+/** Renombrar un panel. */
+export const UpdateDashboardSchema = z
+  .object({ name: DashboardNameSchema })
+  .strict();
 
 export type UpdateDashboardType = z.infer<typeof UpdateDashboardSchema>;
 
-/**
- * Schema for sharing dashboard with role
- */
-export const ShareDashboardSchema = z.object({
-  roleId: z.uuid(),
-  permissionLevel: z.enum(['view', 'edit']).default('view'),
-});
+/** Compartir un panel con un rol (solo ver o también editar). */
+export const ShareDashboardSchema = z
+  .object({
+    roleId: z.uuid(),
+    permissionLevel: z.enum(DASHBOARD_SHARE_LEVELS).default('view'),
+  })
+  .strict();
 
 export type ShareDashboardType = z.infer<typeof ShareDashboardSchema>;
 

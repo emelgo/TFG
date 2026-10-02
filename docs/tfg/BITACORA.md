@@ -64,6 +64,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-47 | 2026-09-30 | F2.7b | seguridad | heredado | Escape de denegaciones explícitas mediante delegación a una cuenta títere | Alta |
 | B-48 | 2026-09-30 | F2.7b | proceso | propio | Consumo de tokens excesivo por la verificación con agentes | — |
 | B-49 | 2026-10-02 | F2.7c | calidad | heredado | Configuración de recursos: errores en bruto y «éxito» sin cambios | Baja |
+| B-50 | 2026-10-02 | F2.8 | seguridad | heredado | Widgets sobre tablas no legibles y apropiación de paneles compartidos | Media |
 
 ---
 
@@ -366,3 +367,16 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** las rutas heredadas de configuración de tablas respondían 500 con el texto del error de la BD. Además, una escritura bloqueada por RLS devolvía «éxito» aunque no había cambiado ninguna fila. Se aceptaba `metadata` libre en el diseño de fichas, y la combinación de la configuración de columnas podía sobrescribir la marca de clave primaria, el tipo de dato o los valores de los enums.
 - **Solución:** comprobaciones de permiso explícitas (`table:select` / `table:update`), 404 cuando no cambia nada, Zod estricto con límites de tamaño, combinación campo a campo, esquemas protegidos (incluidos `pg_*`) rechazados con 403 y códigos de error estables.
 - **Lección:** «sin error» no es «éxito». Una escritura que RLS filtra en silencio afecta a 0 filas, y hay que comprobarlo.
+
+## B-50 · Widgets sobre tablas no legibles y apropiación de paneles compartidos
+- **Qué pasó:**
+  - La política `UPDATE` de los widgets no tenía `WITH CHECK`, así que se podía apuntar un widget a una tabla que el usuario no puede leer. Además, los datos de un panel compartido se consultaban sin comprobar el permiso de quien lo ve.
+  - La tabla `cms.dashboards` tenía `UPDATE` completo para `authenticated`, de modo que un editor de un panel compartido podía cambiar `created_by` y quedarse con su propiedad.
+  - Una ruta de vista previa aceptaba consultas libres, y las plantillas creaban widgets sobre tablas fijas sin validar.
+- **Solución:**
+  - comprobación de lectura para quien ve cada widget (si no tiene permiso, el widget muestra «sin acceso», `DASHBOARD_WIDGET_NO_ACCESS`);
+  - `WITH CHECK` y validación de tabla, esquema y columnas al crear y editar widgets;
+  - Zod estricto compartido;
+  - `UPDATE` solo sobre `name` y `updated_at` (corregido en la sesión principal, por encima de lo que había hecho el agente);
+  - eliminadas la vista previa libre y las plantillas.
+- **Evidencia:** `cms-dashboards-f28.test.sql`; E2E `cms-dashboards.spec.ts` (el personal de soporte ve «sin acceso» en el widget de una tabla que no puede leer).

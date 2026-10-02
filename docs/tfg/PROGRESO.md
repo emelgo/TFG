@@ -68,7 +68,8 @@
 - [ ] Pendiente (F2.7b): una denegación de almacenamiento sobre una subruta no bloquea el acceso por un permiso más amplio (heredado); C4/C5/C6/C8 aceptados (pares del mismo rango pueden alterar grupos compartidos sin superar sus propias capacidades)
 - [x] F2.7c · Ajustes > Recursos: tablas por esquema (visibilidad, orden, sincronizar), configuración de tabla y columnas, secciones de relaciones y diseñador de fichas (arrastrar y soltar nativo). Rutas heredadas endurecidas (Zod estricto, esquemas protegidos, códigos estables; una escritura bloqueada por RLS devolvía «éxito», B-49). Sin cambios SQL. E2E afectados 50 ✔
 - [ ] Pendiente (F2.7c): interfaz para relaciones virtuales; ajustes por tipo de formateador (moneda, fichero); el bloqueo de sincronizar esquemas protegidos solo está en la API (el seed registra `auth.users` con la misma función)
-- [ ] F2.8 · Paneles (RF-11, recortable)
+- [x] F2.8 · Paneles (RF-11): listado (míos/compartidos, crear, compartir, borrar) y panel con widgets de métrica, gráfica y tabla en cuadrícula propia (ADR-019); cada widget consulta con los permisos de quien lo ve; `WITH CHECK` en widgets y `UPDATE` por columnas en paneles (B-50). Paquete `@pymekit/cms-dashboards-ui`. pgTAP 2.060, E2E de paneles 13 ✔
+- [ ] Pendiente (F2.8): `list_dashboards` devuelve un total incorrecto (heredado)
 - [ ] F2.9 · Cierre: E2E, skills (`react-form-builder`, `service-builder`, `playwright-e2e`) y `AGENTS.md` actualizados
 
 ## F3 · Desmarcado e i18n
@@ -153,6 +154,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-10-02 | F2.8 | Paneles del CMS (modo ahorro); corregidos los widgets que podían apuntar a tablas no legibles y la apropiación de paneles compartidos (B-50) |
 | 2026-10-02 | F2.7c | Recursos y diseñador de fichas del CMS (modo ahorro: un agente, E2E acotados) |
 | 2026-09-30 | F2.7b | RBAC del CMS; brecha heredada de escape de denegaciones corregida (B-47). Se pausa el trabajo a petición del autor por el consumo de tokens: se seguirá en modo ahorro (B-48) |
 | 2026-09-30 | F2.7a | Corregida inyección SQL latente en el borrado del CMS, introducida en la F2.1 al portar (B-45) |

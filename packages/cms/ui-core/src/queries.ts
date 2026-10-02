@@ -15,6 +15,7 @@ import type {
   AuditLogsListParams,
   MemberAuditLogsParams,
 } from './audit-logs-api';
+import type { DashboardsListParams } from './dashboards-api';
 import { shouldRetryCmsQuery } from './errors';
 import type { MembersListParams } from './settings-api';
 import type { BucketContentsParams } from './storage-api';
@@ -91,6 +92,22 @@ export const cmsQueryKeys = {
       },
     ] as const,
   /** Prefijo de todo lo del registro de auditoría. */
+  /** Prefijo de todo lo de los paneles (listado, fichas y datos). */
+  dashboards: () => [...cmsQueryKeys.all, 'dashboards'] as const,
+  dashboardsList: (params: DashboardsListParams) =>
+    [
+      ...cmsQueryKeys.dashboards(),
+      'list',
+      {
+        page: params.page ?? 1,
+        search: params.search ?? '',
+        filter: params.filter ?? 'all',
+      },
+    ] as const,
+  dashboard: (id: string) =>
+    [...cmsQueryKeys.dashboards(), 'detail', id] as const,
+  widgetData: (id: string, page = 1) =>
+    [...cmsQueryKeys.dashboards(), 'widget-data', id, page] as const,
   auditLogs: () => [...cmsQueryKeys.all, 'audit-logs'] as const,
   auditLogsList: (params: AuditLogsListParams) =>
     [
@@ -401,6 +418,37 @@ export function createCmsQueries(api: CmsApi) {
         queryFn: () => api.getRbacPermission(id),
         retry: shouldRetryCmsQuery,
         staleTime: 15 * 1000,
+      }),
+
+    /** Página del listado de paneles (propios y compartidos). */
+    dashboardsList: (params: DashboardsListParams) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.dashboardsList(params),
+        queryFn: () => api.getDashboards(params),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /** Un panel con sus widgets, permisos y (propietario) comparticiones. */
+    dashboard: (id: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.dashboard(id),
+        queryFn: () => api.getDashboard(id),
+        retry: shouldRetryCmsQuery,
+        staleTime: 15 * 1000,
+      }),
+
+    /**
+     * Datos de un widget para quien mira el panel. Un 403
+     * (`DASHBOARD_WIDGET_NO_ACCESS`) no se reintenta: el widget se pinta
+     * como «sin acceso».
+     */
+    widgetData: (id: string, page = 1) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.widgetData(id, page),
+        queryFn: () => api.getWidgetData({ id, page }),
+        retry: shouldRetryCmsQuery,
+        staleTime: 30 * 1000,
       }),
 
     /** Búsqueda global (la paleta ya aplica el retardo al escribir). */

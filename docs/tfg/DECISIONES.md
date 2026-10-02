@@ -189,3 +189,11 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
   - borrado lógico de cuentas: más complejo y afecta a todas las consultas.
 - **Consecuencias:** las entradas de un miembro borrado siguen atribuidas. Las que quedan sin cuenta viva solo son legibles por el rango máximo.
 - **Requisitos relacionados:** RF-10, RNF-02.
+
+## ADR-019 · Paneles del CMS sin librería de cuadrícula
+- **Fecha:** 2026-10-02 · **Fase:** F2.8 · **Estado:** Aceptada
+- **Contexto:** el CMS original organiza los widgets de los paneles con una librería de cuadrícula que se arrastra y se redimensiona. El catálogo de dependencias de PymeKit no incluye ninguna.
+- **Decisión:** cuadrícula de 12 columnas propia. Mover y redimensionar se hace con botones en un modo «Organizar», con funciones puras probadas para calcular las posiciones. No se añade ninguna dependencia.
+- **Alternativas consideradas:** añadir una librería de cuadrícula (más dependencias que mantener y auditar; arrastrar sin teclado no es accesible).
+- **Consecuencias:** la interacción es menos fluida que arrastrar, pero accesible desde el teclado y sin dependencias nuevas. Se puede cambiar más adelante sin tocar la API.
+- **Requisitos relacionados:** RF-11, RNF-04, RNF-08.

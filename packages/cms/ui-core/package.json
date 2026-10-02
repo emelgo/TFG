@@ -25,7 +25,8 @@
     "./audit-logs-api": "./src/audit-logs-api.ts",
     "./settings-api": "./src/settings-api.ts",
     "./permissions-api": "./src/permissions-api.ts",
-    "./resource-settings-api": "./src/resource-settings-api.ts"
+    "./resource-settings-api": "./src/resource-settings-api.ts",
+    "./dashboards-api": "./src/dashboards-api.ts"
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@pymekit/cms-audit-logs": "workspace:*",
+    "@pymekit/cms-dashboards": "workspace:*",
     "@pymekit/cms-data-explorer": "workspace:*",
     "@pymekit/cms-navigation": "workspace:*",
     "@pymekit/cms-permissions": "workspace:*",

@@ -1,17 +1,19 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Context } from 'hono';
 import { z } from 'zod';
 
 import {
   createTableMetadataService,
   createTableQueryService,
-  isProtectedSchema,
 } from '@pymekit/cms-data-explorer-core';
 import type { FilterCondition } from '@pymekit/cms-filters-core';
 import {
-  dashboardWidgetsInCms,
-  tableMetadataInCms,
-} from '@pymekit/cms-supabase/schema';
+  type WidgetDefinition,
+  WidgetDefinitionSchema,
+  WidgetPositionSchema,
+} from '@pymekit/cms-shared/dashboards';
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
+import { dashboardWidgetsInCms } from '@pymekit/cms-supabase/schema';
 
 import { adaptFiltersForBackend } from '../../lib/filters/dashboard-filter-adapter';
 import { calculateMetricTrend } from '../../lib/metric-trend-calculator';
@@ -19,7 +21,6 @@ import { WidgetConfigValidator } from '../../lib/widget-config-validator';
 import {
   applySizeConstraints,
   convertWidgetsToLayout,
-  generateOverlapSQL,
   getWidgetSizeConstraints,
 } from '../../lib/widget-layout-processor';
 import { findOptimalPosition } from '../../lib/widget-positioning';
@@ -29,43 +30,35 @@ import {
 } from '../../lib/widget-query-builder';
 import type { AdvancedFilterCondition } from '../../types';
 import type { WidgetData } from '../../types';
-import { WidgetPositionSchema } from '../schemas';
+import { DashboardError } from '../dashboard-errors';
+import {
+  assertCanEditDashboard,
+  assertValidWidgetSource,
+} from './dashboard-access';
 import { createWidgetViewService } from './widget-view.service';
 
 /**
- * Schema for creating a widget
+ * Petición de crear un *widget*: la definición estricta compartida con la
+ * interfaz (`WidgetDefinitionSchema`, sin SQL libre) más el panel y la
+ * posición. [TFG] RF-11: sustituye a `config: z.record(z.unknown())`.
  */
-export const CreateWidgetSchema = z.object({
-  dashboardId: z.string().uuid(),
-  widgetType: z.enum(['chart', 'metric', 'table']),
-  title: z.string().min(1).max(255),
-  schemaName: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/),
-  tableName: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/),
-  config: z.record(z.string(), z.unknown()),
-  position: WidgetPositionSchema,
-});
+export const CreateWidgetSchema = z.intersection(
+  WidgetDefinitionSchema,
+  z.object({
+    dashboardId: z.uuid(),
+    position: WidgetPositionSchema.optional(),
+  }),
+);
 
 export type CreateWidgetType = z.infer<typeof CreateWidgetSchema>;
 
 /**
- * Schema for updating a widget
+ * Editar un *widget* reemplaza su definición completa (tipo, título, tabla y
+ * configuración). La posición se cambia aparte (`PUT /v1/widgets/positions`).
  */
-export const UpdateWidgetSchema = z.object({
-  widgetType: z.enum(['chart', 'metric', 'table']).optional(),
-  title: z.string().min(1).max(255).optional(),
-  schemaName: z
-    .string()
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
-    .optional(),
-  tableName: z
-    .string()
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
-    .optional(),
-  config: z.record(z.string(), z.unknown()).optional(),
-  position: WidgetPositionSchema.optional(),
-});
+export const UpdateWidgetSchema = WidgetDefinitionSchema;
 
-export type UpdateWidgetType = z.infer<typeof UpdateWidgetSchema>;
+export type UpdateWidgetType = WidgetDefinition;
 
 /**
  * Create a widgets service with appropriate validation context
@@ -118,33 +111,12 @@ class WidgetsService {
   async createWidget(data: CreateWidgetType) {
     const db = this.context.get('drizzle');
 
-    // The guard otherwise only runs at read time, so a widget on `auth`,
-    // `cms`, ... could be created and then fail on every read.
-    if (isProtectedSchema(data.schemaName)) {
-      throw new Error(
-        `Schema "${data.schemaName}" is managed by the CMS and cannot be used as a widget source. Use the dedicated explorer for this data instead.`,
-      );
-    }
-
-    // Verify the table exists in table_metadata (FK constraint)
-    const tableExists = await db.runTransaction(async (tx) => {
-      return tx
-        .select({ schemaName: tableMetadataInCms.schemaName })
-        .from(tableMetadataInCms)
-        .where(
-          and(
-            eq(tableMetadataInCms.schemaName, data.schemaName),
-            eq(tableMetadataInCms.tableName, data.tableName),
-          ),
-        )
-        .limit(1);
-    });
-
-    if (tableExists.length === 0) {
-      throw new Error(
-        `Table "${data.schemaName}"."${data.tableName}" is not registered in the CMS. Please add it via Settings > Tables first.`,
-      );
-    }
+    // [TFG] RF-11: editar el panel (404/403 con código) y origen válido:
+    // esquema no protegido, tabla gestionada y legible por quien edita y
+    // columnas existentes. La política `insert_widgets` vuelve a exigir
+    // `has_data_permission` en la base de datos.
+    await assertCanEditDashboard(this.context, data.dashboardId);
+    await assertValidWidgetSource(this.context, data);
 
     // Get existing widgets to check for overlaps
     const existingWidgets = await this.getWidgetsByDashboard(data.dashboardId);
@@ -203,100 +175,40 @@ class WidgetsService {
   }
 
   /**
-   * Update an existing widget
+   * Reemplaza la definición de un *widget* (no su posición).
+   *
+   * Antes la política `update_widgets` no tenía `WITH CHECK`, así que se
+   * podía apuntar un *widget* a una tabla que quien edita no puede leer. Hoy
+   * se comprueba aquí (con código de error) y en la base de datos (F2.8).
    */
   async updateWidget(id: string, data: UpdateWidgetType) {
     const db = this.context.get('drizzle');
+    const widget = await this.getWidget(id);
 
-    // If position is being updated, validate it doesn't overlap
-    const updateData = data as UpdateWidgetType & {
-      position?: { x: number; y: number; w: number; h: number };
-    };
-
-    if (updateData.position) {
-      const widget = await this.getWidget(id);
-
-      if (!widget) {
-        throw new Error('Widget not found');
-      }
-
-      // Validate position doesn't overlap with other widgets
-      const position = updateData.position;
-      const overlapSQL = generateOverlapSQL(position);
-
-      const overlappingWidgets = await db.runTransaction(async (tx) => {
-        return tx
-          .select()
-          .from(dashboardWidgetsInCms)
-          .where(
-            sql`${dashboardWidgetsInCms.dashboardId} = ${widget.dashboardId}
-            AND ${dashboardWidgetsInCms.id} != ${id}
-            AND ${sql.raw(overlapSQL)}`,
-          );
-      });
-
-      if (overlappingWidgets.length > 0) {
-        throw new Error('Widget position overlaps with existing widget');
-      }
+    if (!widget) {
+      throw new DashboardError(CMS_API_ERROR_CODES.DASHBOARD_WIDGET_NOT_FOUND);
     }
 
-    // Repointing must satisfy the same source checks as creating: the
-    // update_widgets RLS policy has no WITH CHECK, so the INSERT-time gate is
-    // not re-applied here.
-    if (updateData.schemaName || updateData.tableName) {
-      const existingWidget = await this.getWidget(id);
-
-      if (!existingWidget) {
-        throw new Error('Widget not found');
-      }
-
-      const targetSchema = updateData.schemaName ?? existingWidget.schemaName;
-
-      if (isProtectedSchema(targetSchema)) {
-        throw new Error(
-          `Schema "${targetSchema}" is managed by the CMS and cannot be used as a widget source.`,
-        );
-      }
-    }
-
-    const updateRecord: Record<string, unknown> = {
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (updateData.title) {
-      updateRecord['title'] = updateData.title;
-    }
-
-    if (updateData.widgetType) {
-      updateRecord['widgetType'] = updateData.widgetType;
-    }
-
-    if (updateData.schemaName) {
-      updateRecord['schemaName'] = updateData.schemaName;
-    }
-
-    if (updateData.tableName) {
-      updateRecord['tableName'] = updateData.tableName;
-    }
-
-    if (updateData.config) {
-      updateRecord['config'] = updateData.config; // Let Drizzle handle jsonb serialization
-    }
-
-    if (updateData.position) {
-      updateRecord['position'] = updateData.position; // Let Drizzle handle jsonb serialization
-    }
+    await assertCanEditDashboard(this.context, widget.dashboardId);
+    await assertValidWidgetSource(this.context, data);
 
     const result = await db.runTransaction(async (tx) => {
       return tx
         .update(dashboardWidgetsInCms)
-        .set(updateRecord)
+        .set({
+          title: data.title,
+          widgetType: data.widgetType,
+          schemaName: data.schemaName,
+          tableName: data.tableName,
+          config: data.config,
+          updatedAt: new Date().toISOString(),
+        })
         .where(eq(dashboardWidgetsInCms.id, id))
         .returning();
     });
 
     if (!result[0]) {
-      throw new Error('Widget not found');
+      throw new DashboardError(CMS_API_ERROR_CODES.DASHBOARD_WIDGET_NOT_FOUND);
     }
 
     return result[0];
@@ -307,16 +219,18 @@ class WidgetsService {
    */
   async deleteWidget(id: string): Promise<void> {
     const db = this.context.get('drizzle');
+    const widget = await this.getWidget(id);
+
+    if (!widget) {
+      throw new DashboardError(CMS_API_ERROR_CODES.DASHBOARD_WIDGET_NOT_FOUND);
+    }
+
+    await assertCanEditDashboard(this.context, widget.dashboardId);
 
     await db.runTransaction(async (tx) => {
-      const result = await tx
+      await tx
         .delete(dashboardWidgetsInCms)
-        .where(eq(dashboardWidgetsInCms.id, id))
-        .returning();
-
-      if (!result[0]) {
-        throw new Error('Widget not found');
-      }
+        .where(eq(dashboardWidgetsInCms.id, id));
     });
   }
 
@@ -620,9 +534,12 @@ class WidgetsService {
   }
 
   /**
-   * Update multiple widget positions (for drag and drop)
+   * Guarda las posiciones de varios *widgets* de UN panel (mover y
+   * redimensionar en la rejilla). Cada UPDATE se limita a ese panel, así
+   * que no se pueden mover *widgets* de otro panel en la misma petición.
    */
   async updateWidgetPositions(
+    dashboardId: string,
     updates: Array<{
       id: string;
       position: { x: number; y: number; w: number; h: number };
@@ -630,6 +547,8 @@ class WidgetsService {
   ) {
     const db = this.context.get('drizzle');
     const updatedAt = new Date().toISOString();
+
+    await assertCanEditDashboard(this.context, dashboardId);
 
     await db.runTransaction(async (tx) => {
       for (const update of updates) {
@@ -641,7 +560,12 @@ class WidgetsService {
             // maintains this column at the DB level.
             updatedAt,
           })
-          .where(eq(dashboardWidgetsInCms.id, update.id));
+          .where(
+            and(
+              eq(dashboardWidgetsInCms.id, update.id),
+              eq(dashboardWidgetsInCms.dashboardId, dashboardId),
+            ),
+          );
       }
     });
   }

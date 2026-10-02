@@ -195,9 +195,10 @@ SELECT ok(
   has_table_privilege('authenticated'::regrole, 'cms.dashboards'::regclass, 'INSERT'),
   'authenticated should have INSERT on dashboards'
 );
+-- B-50: el UPDATE se concede por columnas (solo el nombre), no a toda la tabla.
 SELECT ok(
-  has_table_privilege('authenticated'::regrole, 'cms.dashboards'::regclass, 'UPDATE'),
-  'authenticated should have UPDATE on dashboards'
+  has_column_privilege('authenticated'::regrole, 'cms.dashboards'::regclass, 'name', 'UPDATE'),
+  'authenticated should have UPDATE on dashboards.name'
 );
 SELECT ok(
   has_table_privilege('authenticated'::regrole, 'cms.dashboards'::regclass, 'DELETE'),

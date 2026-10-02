@@ -18,7 +18,7 @@ _Última actualización: 2026-09-30 (F2.6b cerrada)._
 | RF-08 | `packages/features/admin`, `apps/web/src/routes/admin` | E2E `admin`, `cms-ui` | Implementación > Administración | ✅ | Consola compartida con el CMS; plataforma solo para super-admin (ADR-016) |
 | RF-09 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms`, `schemas/20–53` | pgTAP `cms-*` (1.154 del CMS), unit (1.313), E2E `cms-api`, `cms-ui`, `cms-data-explorer` | Diseño > CMS | 🟨 | Explorador de datos (F2.4), usuarios y almacenamiento (F2.5), auditoría (F2.6), ajustes generales y miembros (F2.7a) hechos. Faltan RBAC y recursos: F2.7b–c |
 | RF-10 | `schemas/47-cms-audit-logs.sql`, `packages/cms/{audit-logs,audit-logs-ui}` | pgTAP `cms-audit-triggers`, `cms-audit-logs-integrity`, E2E `cms-audit-logs` | Diseño > CMS | ✅ | Listado, detalle y auditoría por miembro; entradas no falsificables y datos redactados según permisos (F2.6) |
-| RF-11 | `schemas/52-cms-dashboards.sql`, `packages/cms/dashboards` | pgTAP `cms-dashboards-*`, unit (262) | Implementación > CMS | 🟨 | BD y API listas; interfaz en F2.8 (recortable) |
+| RF-11 | `schemas/52-cms-dashboards.sql`, `packages/cms/{dashboards,dashboards-ui}` | pgTAP `cms-dashboards-*`, unit (262+16), E2E `cms-dashboards` | Implementación > CMS | ✅ | Paneles con widgets de métrica, gráfica y tabla; datos según los permisos de quien los ve (F2.8) |
 | RF-12 | `packages/features/notifications`, `packages/mailers` | — | Implementación | 🟨 | Heredado; sin prueba específica todavía |
 | RF-13 | `packages/i18n` | — | Implementación > i18n | 🟨 | Infraestructura lista y namespace `cms`; falta el locale `es` (F3) |
 | RNF-01 | `apps/web/src/config`, `turbo/generators`, `.env*` | Evaluación en F6 (P-01) | Validación > Reutilización | ⬜ | |
@@ -34,7 +34,7 @@ _Última actualización: 2026-09-30 (F2.6b cerrada)._
 ## Etiquetas `[TFG]` en el código
 
 <!-- tfg-tags:inicio -->
-_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No se edita a mano._
+_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (275 etiquetas). No se edita a mano._
 
 | Fichero:línea | Referencias | Qué ilustra |
 |---|---|---|
@@ -42,6 +42,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No 
 | `apps/e2e/tests/blog/blog.spec.ts:16` | RF-01, RF-09, RNF-02, ADR-017 | RF-01 · RF-09 · RNF-02 · ADR-017. |
 | `apps/e2e/tests/cms/cms-api.spec.ts:14` | RF-09, RNF-02 | RF-09 · RNF-02: el acceso al CMS se verifica de extremo a extremo. |
 | `apps/e2e/tests/cms/cms-audit-logs.spec.ts:22` | RF-10, RNF-02, ADR-014 | RF-10 · RNF-02 · ADR-014. |
+| `apps/e2e/tests/cms/cms-dashboards.spec.ts:29` | RF-11, RNF-02, ADR-013 | RF-11 · RNF-02 · ADR-013. |
 | `apps/e2e/tests/cms/cms-data-explorer-record.spec.ts:16` | RF-09, ADR-014 | RF-09 · ADR-014: ficha del explorador con permisos del RBAC del CMS. |
 | `apps/e2e/tests/cms/cms-data-explorer-write.spec.ts:23` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014: escrituras del CMS con permisos |
 | `apps/e2e/tests/cms/cms-data-explorer.spec.ts:16` | RF-09, ADR-014 | RF-09 · ADR-014: explorador de datos con permisos del RBAC del CMS. |
@@ -69,6 +70,8 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No 
 | `apps/web/src/routes/_marketing/blog/index.tsx:10` | RF-01, ADR-017 | RF-01 · ADR-017: el contenido gestionado desde el CMS se publica en |
 | `apps/web/src/routes/admin/cms/audit-logs/$id.tsx:11` | RF-10, ADR-011, ADR-013 | RF-10 · ADR-011 · ADR-013. |
 | `apps/web/src/routes/admin/cms/audit-logs/index.tsx:18` | RF-10, ADR-011, ADR-013 | RF-10 · ADR-011 · ADR-013: registro de auditoría como ruta de la web. |
+| `apps/web/src/routes/admin/cms/dashboards/$dashboardId.tsx:10` | RF-11, ADR-011, ADR-013 | RF-11 · ADR-011 · ADR-013. |
+| `apps/web/src/routes/admin/cms/dashboards/index.tsx:15` | RF-11, ADR-011, ADR-013 | RF-11 · ADR-011 · ADR-013: paneles como ruta de la web. |
 | `apps/web/src/routes/admin/cms/index.tsx:12` | RF-09 | RF-09: el explorador de datos solo ofrece lo que el RBAC del CMS |
 | `apps/web/src/routes/admin/cms/resources/$schema/$table/index.tsx:23` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: explorador de datos como ruta de la web. |
 | `apps/web/src/routes/admin/cms/resources/$schema/$table/new.tsx:12` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013: creación de registros como ruta de la web. |
@@ -159,7 +162,9 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No 
 | `apps/web/supabase/schemas/51-cms-admin-access.sql:250` | RNF-02 | RNF-02 · F2.7a (pendiente D, reglas de rango): nadie cambia su |
 | `apps/web/supabase/schemas/52-cms-dashboards.sql:82` | RNF-02 | RNF-02 · Corrección de PymeKit: sin acceso de administración |
 | `apps/web/supabase/schemas/52-cms-dashboards.sql:117` | RNF-02 | RNF-02 · Corrección de PymeKit: sin acceso de administración |
-| `apps/web/supabase/schemas/52-cms-dashboards.sql:323` | RNF-02 | RNF-02 · Corrección de PymeKit: listar paneles exige acceso de |
+| `apps/web/supabase/schemas/52-cms-dashboards.sql:187` | RF-11, RNF-02 | RF-11 · RNF-02 · Corrección de PymeKit (F2.8): la política heredada |
+| `apps/web/supabase/schemas/52-cms-dashboards.sql:335` | RNF-02 | RNF-02 · Corrección de PymeKit: listar paneles exige acceso de |
+| `apps/web/supabase/schemas/52-cms-dashboards.sql:546` | RNF-02 | RNF-02 · `UPDATE` por columnas (F2.8, BITACORA B-50): un editor de un |
 | `apps/web/supabase/schemas/53-cms-super-admin.sql:30` | RF-08, RF-09, ADR-014 | RF-08, RF-09 y ADR-014: el super-admin es la raíz del CMS sin |
 | `apps/web/supabase/schemas/53-cms-super-admin.sql:36` | RNF-02 | RNF-02 · Solo puede existir un rol y un grupo marcados como raíz. |
 | `apps/web/supabase/schemas/53-cms-super-admin.sql:322` | RNF-02 | RNF-02: ninguna de estas funciones debe poder invocarse desde la API. |
@@ -180,6 +185,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No 
 | `apps/web/supabase/tests/database/cms-build-where-clause.test.sql:73` | RNF-02, ADR-015 | RNF-02 · F2.7b (pendiente de ADR-015): `build_where_clause` ya no |
 | `apps/web/supabase/tests/database/cms-can-modify-account-role.test.sql:74` | — | B-47: desde que `view_account_roles` solo muestra las asignaciones |
 | `apps/web/supabase/tests/database/cms-crud-internal.test.sql:10` | RNF-02 | RNF-02. |
+| `apps/web/supabase/tests/database/cms-dashboards-f28.test.sql:1` | RF-11, RNF-02 | RF-11 · RNF-02 · F2.8: endurecimiento de los widgets de los paneles. |
 | `apps/web/supabase/tests/database/cms-dashboards-security.test.sql:253` | RNF-02 | RNF-02 · Endurecimiento de PymeKit: sin acceso de administración |
 | `apps/web/supabase/tests/database/cms-hardening-f26.test.sql:19` | RNF-02, ADR-015 | RNF-02 · ADR-015 · bitácora B-31 a B-34. |
 | `apps/web/supabase/tests/database/cms-isolation.test.sql:19` | RF-09, RNF-02, RNF-03, ADR-014, ADR-015 | RF-09, RNF-02, RNF-03 · ADR-014 y ADR-015. |
@@ -205,6 +211,24 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No 
 | `packages/cms/auth/src/api/services/__tests__/build-parameterized-statement.test.ts:9` | RNF-02 | RNF-02. |
 | `packages/cms/auth/src/api/services/authorization.service.ts:402` | RF-09, ADR-014 | RF-09 · ADR-014: la visibilidad de la interfaz se deriva del RBAC |
 | `packages/cms/auth/src/api/services/authorization.service.ts:566` | RNF-02 | RNF-02 · Corrección de seguridad de PymeKit (BITACORA B-24). |
+| `packages/cms/dashboards-ui/src/components/dashboard-dialogs.tsx:8` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/components/dashboard-view.tsx:16` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/components/dashboards-list-view.tsx:9` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/components/share-dashboard-dialog.tsx:9` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/components/widget-content.tsx:12` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/components/widget-editor-dialog.tsx:15` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/hooks/use-dashboard-mutations.ts:10` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/utils/chart-data.ts:9` | RF-11 | RF-11. |
+| `packages/cms/dashboards-ui/src/utils/dashboards-search.ts:8` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/utils/grid-layout.ts:18` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards-ui/src/utils/widget-form.ts:12` | RF-11, ADR-013 | RF-11 · ADR-013. |
+| `packages/cms/dashboards/src/api/dashboard-errors.ts:11` | RF-11, RNF-02 | RF-11 · RNF-02: los errores internos no llegan al cliente. |
+| `packages/cms/dashboards/src/api/routes/dashboards-routes.ts:16` | RF-11, RNF-02, ADR-013 | RF-11 · RNF-02 · ADR-013. |
+| `packages/cms/dashboards/src/api/routes/widgets-routes.ts:21` | RF-11, RNF-02, ADR-013 | RF-11 · RNF-02 · ADR-013. |
+| `packages/cms/dashboards/src/api/routes/widgets-routes.ts:197` | RF-11 | RF-11: permiso de lectura de la tabla para quien MIRA el |
+| `packages/cms/dashboards/src/api/services/dashboard-access.ts:22` | RF-11, RNF-02, ADR-013 | RF-11 · RNF-02 · ADR-013. |
+| `packages/cms/dashboards/src/api/services/widgets.service.ts:43` | RF-11 | RF-11: sustituye a `config: z.record(z.unknown())`. |
+| `packages/cms/dashboards/src/api/services/widgets.service.ts:114` | RF-11 | RF-11: editar el panel (404/403 con código) y origen válido: |
 | `packages/cms/dashboards/src/lib/filters/filter-item.types.ts:7` | ADR-011 | ADR-011 |
 | `packages/cms/data-explorer-core/src/lib/protected-schemas.ts:43` | RNF-02 | RNF-02 (F2.7c): igual que `cms.validate_schema_access`, cualquier |
 | `packages/cms/data-explorer-core/src/services/table-view-service.ts:447` | RNF-02 | RNF-02 · Corrección de PymeKit (F2.6b): las consultas de las |
@@ -256,6 +280,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No 
 | `packages/cms/settings/src/api/services/members.service.ts:29` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `packages/cms/settings/src/api/services/table-metadata.service.ts:23` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `packages/cms/settings/src/api/utils/settings-errors.ts:11` | RNF-02 | RNF-02 Seguridad: los errores internos no llegan al cliente |
+| `packages/cms/shared/src/utils/dashboards.ts:22` | RF-11, RNF-02, ADR-013 | RF-11 · RNF-02 · ADR-013. |
 | `packages/cms/shared/src/utils/preferences.ts:12` | RF-09 | RF-09 · F2.7a. |
 | `packages/cms/shared/src/utils/rbac.ts:13` | RF-09, RNF-02, ADR-015 | RF-09 · RNF-02 · ADR-015. |
 | `packages/cms/shared/src/utils/resource-config.ts:13` | RF-09, RNF-02 | RF-09 · RNF-02: la configuración de una tabla no admite JSON libre, |
@@ -271,6 +296,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No 
 | `packages/cms/supabase/src/clients/hono-client.ts:18` | RF-09, ADR-011 | RF-09 · ADR-011: API del CMS integrada en la web. |
 | `packages/cms/ui-core/src/api.ts:16` | RF-09, ADR-011 | RF-09 · ADR-011: interfaz y API del CMS comunicadas por RPC tipado. |
 | `packages/cms/ui-core/src/audit-logs-api.ts:14` | RF-09, RF-10, ADR-011 | RF-09 · RF-10 · ADR-011. |
+| `packages/cms/ui-core/src/dashboards-api.ts:14` | RF-11, ADR-011, ADR-013 | RF-11 · ADR-011 · ADR-013. |
 | `packages/cms/ui-core/src/permissions-api.ts:15` | RF-09, ADR-011, ADR-015 | RF-09 · ADR-011 · ADR-015. |
 | `packages/cms/ui-core/src/resource-settings-api.ts:11` | RF-09, ADR-011 | RF-09 · ADR-011. |
 | `packages/cms/ui-core/src/sections.ts:25` | RF-09, ADR-014 | RF-09 · ADR-014: la interfaz refleja el RBAC propio del CMS. |
