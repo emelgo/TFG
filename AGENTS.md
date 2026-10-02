@@ -31,11 +31,11 @@ Los requisitos completos están en `docs/tfg/REQUISITOS.md`.
 
 | Ruta | Contenido | Se reutiliza para |
 |---|---|---|
-| `../pymekit` | Kit SaaS: TanStack Start + Supabase + Stripe | `apps/web`, `apps/e2e` y la mayoría de `packages/*` |
+| `../makerkit` | Kit SaaS: TanStack Start + Supabase + Stripe | `apps/web`, `apps/e2e` y la mayoría de `packages/*` |
 | `../supamode` | CMS para Supabase: SPA + API Hono | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms` y el esquema `cms` de la BD |
 
 **Reglas:**
-- **Nunca** se modifica nada dentro de `../pymekit` ni de `../supamode`.
+- **Nunca** se modifica nada dentro de `../makerkit` ni de `../supamode`.
 - Cuando algo ya existe en la referencia, se **reutiliza** en lugar de reescribirlo. Antes de crear código nuevo, busca primero allí.
 - Todo lo que se reutiliza sigue el flujo **copiar → desmarcar → comentar en español → verificar → registrar**, descrito en `docs/tfg/GUIA-DESMARCADO.md`. La skill `/portar-modulo` lo automatiza.
 - Cada módulo portado se anota en `docs/tfg/MAPA-REFERENCIAS.md`.
