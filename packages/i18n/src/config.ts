@@ -9,18 +9,26 @@
 export const LOCALE_COOKIE = 'locale';
 
 /**
- * The default locale, used when none is chosen and as the unprefixed locale.
- * Single source of truth: the `VITE_DEFAULT_LOCALE` env var (inlined by Vite),
- * falling back to `en`.
+ * Idiomas que PymeKit trae traducidos de serie. El español es el idioma
+ * principal del producto (va primero) y el inglés el secundario. Para añadir
+ * otro idioma basta con incluirlo aquí y crear sus ficheros en `messages/`.
  */
-export const defaultLocale = import.meta.env.VITE_DEFAULT_LOCALE ?? 'en';
+export const supportedLocales = ['es', 'en'] as const;
 
-/** All supported locales. Extend this list to enable more languages. */
-export const locales: string[] = [
-  defaultLocale,
-  // 'es',
-  // 'fr',
-];
+/**
+ * Idioma por defecto: el que se usa cuando el usuario no ha elegido ninguno.
+ * La fuente de verdad es la variable `VITE_DEFAULT_LOCALE` (Vite la incrusta al
+ * compilar). Si falta, o trae un idioma no soportado, se usa el español.
+ */
+const envLocale = import.meta.env.VITE_DEFAULT_LOCALE;
+
+export const defaultLocale: string =
+  envLocale && (supportedLocales as readonly string[]).includes(envLocale)
+    ? envLocale
+    : 'es';
+
+/** Todos los idiomas disponibles en el selector de idioma. */
+export const locales: string[] = [...supportedLocales];
 
 export type Locale = string;
 

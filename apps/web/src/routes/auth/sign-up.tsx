@@ -10,7 +10,9 @@ import pathsConfig from '#/config/paths.config.ts';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/auth/sign-up')({
-  head: () => ({ meta: [{ title: getTranslator()('auth.signUp') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('auth.signUp') }],
+  }),
   component: SignUpPage,
 });
 

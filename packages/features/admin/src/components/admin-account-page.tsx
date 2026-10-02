@@ -1,5 +1,6 @@
 import { BadgeX, Ban, ShieldPlus, VenetianMask } from 'lucide-react';
 
+import { EnumLabel } from '@pymekit/i18n/enum-labels';
 import type { Database, Tables } from '@pymekit/supabase/database';
 import { AppBreadcrumbs } from '@pymekit/ui/app-breadcrumbs';
 import { Badge } from '@pymekit/ui/badge';
@@ -16,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@pymekit/ui/table';
+import { Trans } from '@pymekit/ui/trans';
 
 import { AdminBanUserDialog } from './admin-ban-user-dialog';
 import { AdminDeleteAccountDialog } from './admin-delete-account-dialog';
@@ -100,7 +102,7 @@ function PersonalAccountPage(props: {
                 data-testid={'admin-reactivate-account-button'}
               >
                 <ShieldPlus className={'mr-1 h-4'} />
-                Reactivate
+                <Trans i18nKey={'admin.reactivate'} />
               </Button>
             </AdminReactivateUserDialog>
           </If>
@@ -113,7 +115,7 @@ function PersonalAccountPage(props: {
                 data-testid={'admin-ban-account-button'}
               >
                 <Ban className={'text-destructive mr-1 h-3'} />
-                Ban
+                <Trans i18nKey={'admin.ban'} />
               </Button>
             </AdminBanUserDialog>
 
@@ -124,7 +126,7 @@ function PersonalAccountPage(props: {
                 data-testid={'admin-impersonate-button'}
               >
                 <VenetianMask className={'mr-1 h-4 text-blue-500'} />
-                Impersonate
+                <Trans i18nKey={'admin.impersonate'} />
               </Button>
             </AdminImpersonateUserDialog>
           </If>
@@ -136,7 +138,7 @@ function PersonalAccountPage(props: {
               data-testid={'admin-delete-account-button'}
             >
               <BadgeX className={'mr-1 h-4'} />
-              Delete
+              <Trans i18nKey={'admin.delete'} />
             </Button>
           </AdminDeleteUserDialog>
         </div>
@@ -155,10 +157,14 @@ function PersonalAccountPage(props: {
             </span>
           </div>
 
-          <Badge variant={'outline'}>Personal Account</Badge>
+          <Badge variant={'outline'}>
+            <Trans i18nKey={'admin.personalAccount'} />
+          </Badge>
 
           <If condition={isBanned}>
-            <Badge variant={'destructive'}>Banned</Badge>
+            <Badge variant={'destructive'}>
+              <Trans i18nKey={'admin.banned'} />
+            </Badge>
           </If>
         </div>
       </div>
@@ -167,7 +173,9 @@ function PersonalAccountPage(props: {
         <SubscriptionsTable subscription={props.subscription} />
 
         <div className={'divider-divider-x flex flex-col gap-y-2.5'}>
-          <Heading level={6}>Teams</Heading>
+          <Heading level={6}>
+            <Trans i18nKey={'admin.teams'} />
+          </Heading>
 
           <div className={'rounded-lg border p-2'}>
             <AdminMembershipsTable memberships={props.memberships} />
@@ -203,7 +211,7 @@ function TeamAccountPage(props: {
             data-testid={'admin-delete-account-button'}
           >
             <BadgeX className={'mr-1 h-4'} />
-            Delete
+            <Trans i18nKey={'admin.delete'} />
           </Button>
         </AdminDeleteAccountDialog>
       </PageHeader>
@@ -221,7 +229,9 @@ function TeamAccountPage(props: {
             </span>
           </div>
 
-          <Badge variant={'outline'}>Team Account</Badge>
+          <Badge variant={'outline'}>
+            <Trans i18nKey={'admin.teamAccount'} />
+          </Badge>
         </div>
       </div>
 
@@ -230,7 +240,9 @@ function TeamAccountPage(props: {
           <SubscriptionsTable subscription={props.subscription} />
 
           <div className={'flex flex-col gap-y-2.5'}>
-            <Heading level={6}>Team Members</Heading>
+            <Heading level={6}>
+              <Trans i18nKey={'admin.teamMembers'} />
+            </Heading>
 
             <div className={'rounded-lg border p-2'}>
               <AdminMembersTable members={props.members} />
@@ -245,13 +257,15 @@ function TeamAccountPage(props: {
 function SubscriptionsTable(props: { subscription: Subscription | null }) {
   return (
     <div className={'flex flex-col gap-y-1'}>
-      <Heading level={6}>Subscription</Heading>
+      <Heading level={6}>
+        <Trans i18nKey={'admin.subscription'} />
+      </Heading>
 
       <If
         condition={props.subscription}
         fallback={
           <span className={'text-muted-foreground text-sm'}>
-            This account does not currently have a subscription.
+            <Trans i18nKey={'admin.noSubscription'} />
           </span>
         }
       >
@@ -260,19 +274,33 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
             <div className={'flex flex-col space-y-4'}>
               <Table>
                 <TableHeader>
-                  <TableHead>Subscription ID</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.subscriptionId'} />
+                  </TableHead>
 
-                  <TableHead>Provider</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.provider'} />
+                  </TableHead>
 
-                  <TableHead>Customer ID</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.customerId'} />
+                  </TableHead>
 
-                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.status'} />
+                  </TableHead>
 
-                  <TableHead>Created At</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.createdAt'} />
+                  </TableHead>
 
-                  <TableHead>Period Starts At</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.periodStartsAt'} />
+                  </TableHead>
 
-                  <TableHead>Ends At</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.endsAt'} />
+                  </TableHead>
                 </TableHeader>
 
                 <TableBody>
@@ -282,7 +310,12 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
                     </TableCell>
 
                     <TableCell>
-                      <span>{subscription.billing_provider}</span>
+                      <span>
+                        <EnumLabel
+                          value={subscription.billing_provider}
+                          enumName="billing_provider"
+                        />
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -290,7 +323,12 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
                     </TableCell>
 
                     <TableCell>
-                      <span>{subscription.status}</span>
+                      <span>
+                        <EnumLabel
+                          value={subscription.status}
+                          enumName="subscription_status"
+                        />
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -310,17 +348,29 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
 
               <Table>
                 <TableHeader>
-                  <TableHead>Product ID</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.productId'} />
+                  </TableHead>
 
-                  <TableHead>Variant ID</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.variantId'} />
+                  </TableHead>
 
-                  <TableHead>Quantity</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.quantity'} />
+                  </TableHead>
 
-                  <TableHead>Price</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.price'} />
+                  </TableHead>
 
-                  <TableHead>Interval</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.interval'} />
+                  </TableHead>
 
-                  <TableHead>Type</TableHead>
+                  <TableHead>
+                    <Trans i18nKey={'admin.type'} />
+                  </TableHead>
                 </TableHeader>
 
                 <TableBody>
@@ -344,11 +394,18 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
                         </TableCell>
 
                         <TableCell>
-                          <span>{item.interval}</span>
+                          <span>
+                            <EnumLabel value={item.interval} />
+                          </span>
                         </TableCell>
 
                         <TableCell>
-                          <span>{item.type}</span>
+                          <span>
+                            <EnumLabel
+                              value={item.type}
+                              enumName="subscription_item_type"
+                            />
+                          </span>
                         </TableCell>
                       </TableRow>
                     );

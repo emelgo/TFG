@@ -94,7 +94,14 @@ export interface ColumnsUiConfig {
   ui_data_type?: string;
   ui_data_type_config?: Record<string, unknown>;
   is_enum?: boolean;
+  /** Nombre del tipo enumerado de PostgreSQL (lo escribe la sincronización). */
+  enum_type?: string | null;
   enum_values?: string[];
+  /**
+   * Etiquetas visibles por valor del enumerado (Ajustes → Recursos). Solo
+   * cambian lo que se muestra; el valor guardado y filtrado es el original.
+   */
+  value_labels?: Record<string, string>;
   max_length?: number;
   enum_badges?: Record<
     string,

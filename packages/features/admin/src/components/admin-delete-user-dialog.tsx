@@ -3,6 +3,7 @@
 import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
+import { useTranslations } from 'use-intl';
 
 import { Alert, AlertDescription, AlertTitle } from '@pymekit/ui/alert';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@pymekit/ui/field';
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
+import { Trans } from '@pymekit/ui/trans';
 
 import { deleteUserFunction } from '../lib/server/admin.functions';
 import { DeleteUserSchema } from '../lib/server/schema/admin-actions.schema';
@@ -43,12 +45,12 @@ export function AdminDeleteUserDialog(
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete User</AlertDialogTitle>
+          <AlertDialogTitle>
+            <Trans i18nKey={'admin.deleteUserTitle'} />
+          </AlertDialogTitle>
 
           <AlertDialogDescription>
-            Are you sure you want to delete this user? All the data associated
-            with this user will be permanently deleted. Any active subscriptions
-            will be canceled.
+            <Trans i18nKey={'admin.deleteUserDescription'} />
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -60,6 +62,8 @@ export function AdminDeleteUserDialog(
 
 function DeleteUserForm(props: { userId: string }) {
   const deleteUser = useServerFn(deleteUserFunction);
+
+  const t = useTranslations('admin');
 
   const mutation = useMutation({
     mutationFn: (data: { userId: string; confirmation: string }) =>
@@ -90,11 +94,12 @@ function DeleteUserForm(props: { userId: string }) {
     >
       <If condition={mutation.isError}>
         <Alert variant={'destructive'}>
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>
+            <Trans i18nKey={'admin.error'} />
+          </AlertTitle>
 
           <AlertDescription>
-            There was an error deleting the user. Please check the server logs
-            to see what went wrong.
+            <Trans i18nKey={'admin.deleteUserError'} />
           </AlertDescription>
         </Alert>
       </If>
@@ -107,14 +112,17 @@ function DeleteUserForm(props: { userId: string }) {
           return (
             <Field data-invalid={isInvalid}>
               <FieldLabel htmlFor={field.name}>
-                Type <b>CONFIRM</b> to confirm
+                <Trans
+                  i18nKey={'admin.confirmLabel'}
+                  components={{ b: <b /> }}
+                />
               </FieldLabel>
 
               <Input
                 id={field.name}
                 required
                 pattern={'CONFIRM'}
-                placeholder={'Type CONFIRM to confirm'}
+                placeholder={t('confirmPlaceholder')}
                 name={field.name}
                 value={field.state.value}
                 onBlur={field.handleBlur}
@@ -123,7 +131,7 @@ function DeleteUserForm(props: { userId: string }) {
               />
 
               <FieldDescription>
-                Are you sure you want to do this? This action cannot be undone.
+                <Trans i18nKey={'admin.confirmHintIrreversible'} />
               </FieldDescription>
 
               <FieldError errors={field.state.meta.errors} />
@@ -133,14 +141,20 @@ function DeleteUserForm(props: { userId: string }) {
       </form.Field>
 
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>
+          <Trans i18nKey={'admin.cancel'} />
+        </AlertDialogCancel>
 
         <Button
           disabled={mutation.isPending}
           type={'submit'}
           variant={'destructive'}
         >
-          {mutation.isPending ? 'Deleting...' : 'Delete'}
+          {mutation.isPending ? (
+            <Trans i18nKey={'admin.deleting'} />
+          ) : (
+            <Trans i18nKey={'admin.delete'} />
+          )}
         </Button>
       </AlertDialogFooter>
     </form>

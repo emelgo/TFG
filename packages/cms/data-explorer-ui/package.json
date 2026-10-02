@@ -29,6 +29,7 @@
     "@pymekit/cms-table": "workspace:*",
     "@pymekit/cms-types": "workspace:*",
     "@pymekit/cms-ui-core": "workspace:*",
+    "@pymekit/i18n": "workspace:*",
     "date-fns": "catalog:"
   },
   "devDependencies": {

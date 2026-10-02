@@ -5,8 +5,12 @@ import { SitePageHeader } from '#/components/marketing/site-page-header.tsx';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/_marketing/terms-of-service')({
-  head: () => ({
-    meta: [{ title: getTranslator()('marketing.termsOfService') }],
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)('marketing.termsOfService'),
+      },
+    ],
   }),
   component: TermsOfServicePage,
 });
@@ -22,7 +26,7 @@ function TermsOfServicePage() {
       />
 
       <div className={'container mx-auto py-8'}>
-        <div>Your terms of service content here</div>
+        <div>{t('legalPlaceholder')}</div>
       </div>
     </div>
   );

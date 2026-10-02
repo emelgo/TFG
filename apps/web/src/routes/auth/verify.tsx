@@ -27,8 +27,10 @@ export const Route = createFileRoute('/auth/verify')({
 
     return { userId };
   },
-  head: () => ({
-    meta: [{ title: getTranslator()('auth.verifyCodeHeading') }],
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('auth.verifyCodeHeading') },
+    ],
   }),
   component: VerifyPage,
 });

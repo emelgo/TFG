@@ -807,6 +807,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -939,6 +942,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
       date-fns:
         specifier: 'catalog:'
         version: 4.4.0
@@ -994,6 +1000,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1230,6 +1239,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1394,6 +1406,9 @@ importers:
       '@pymekit/cms-types':
         specifier: workspace:*
         version: link:../types
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1526,6 +1541,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1693,6 +1711,9 @@ importers:
       '@pymekit/function-middleware':
         specifier: workspace:*
         version: link:../../function-middleware
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
       '@pymekit/shared':
         specifier: workspace:*
         version: link:../../shared
@@ -1735,6 +1756,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.0(react@19.3.0)
+      use-intl:
+        specifier: 'catalog:'
+        version: 4.14.6(react@19.3.0)
       zod:
         specifier: 'catalog:'
         version: 4.6.5
@@ -1835,6 +1859,9 @@ importers:
       '@pymekit/function-middleware':
         specifier: workspace:*
         version: link:../../function-middleware
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
       '@pymekit/mailers':
         specifier: workspace:*
         version: link:../../mailers/core
@@ -1951,6 +1978,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.0(react@19.3.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.48.0))
 
   packages/mailers/core:
     devDependencies:

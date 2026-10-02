@@ -31,12 +31,12 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 
-import { toHumanReadable } from '@pymekit/cms-formatters';
 import {
   useDateFormatter,
   useNumberFormatter,
 } from '@pymekit/cms-formatters/hooks';
 import type { ColumnMetadata, EnumBadgeVariant } from '@pymekit/cms-types';
+import { type EnumValueLabels, useEnumLabel } from '@pymekit/i18n/enum-labels';
 import { Badge } from '@pymekit/ui/badge';
 import { badgeExtras } from '@pymekit/ui/badge-extras';
 import { Button } from '@pymekit/ui/button';
@@ -192,6 +192,8 @@ function RecordFieldValue(props: {
     return (
       <EnumValue
         value={String(value)}
+        enumName={uiConfig.enum_type}
+        valueLabels={uiConfig.value_labels}
         variant={uiConfig.enum_badges?.[String(value)]?.variant}
       />
     );
@@ -479,7 +481,17 @@ function ColorValue(props: { value: string }) {
  * Enumerado como insignia. Las variantes `success`, `warning` e `info` no
  * existen en la insignia base y se aplican con `badgeExtras`.
  */
-function EnumValue(props: { value: string; variant?: EnumBadgeVariant }) {
+function EnumValue(props: {
+  value: string;
+  enumName?: string | null;
+  valueLabels?: EnumValueLabels | null;
+  variant?: EnumBadgeVariant;
+}) {
+  // Etiqueta legible: configurada en la columna, traducida o humanizada.
+  const label = useEnumLabel()(props.value, {
+    enumName: props.enumName,
+    overrides: props.valueLabels,
+  });
   const variant = props.variant ?? 'secondary';
   const isExtra =
     variant === 'success' || variant === 'warning' || variant === 'info';
@@ -490,7 +502,7 @@ function EnumValue(props: { value: string; variant?: EnumBadgeVariant }) {
       variant={isExtra ? 'secondary' : variant}
       title={props.value}
     >
-      {toHumanReadable(props.value)}
+      {label}
     </Badge>
   );
 }

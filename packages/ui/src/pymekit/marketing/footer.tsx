@@ -13,6 +13,8 @@ interface FooterProps extends React.HTMLAttributes<HTMLElement> {
   description: React.ReactNode;
   copyright: React.ReactNode;
   sections: FooterSection[];
+  /** Controles extra bajo el copyright (por ejemplo, el selector de idioma). */
+  actions?: React.ReactNode;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -21,6 +23,7 @@ export const Footer: React.FC<FooterProps> = ({
   description,
   copyright,
   sections,
+  actions,
   ...props
 }) => {
   return (
@@ -45,6 +48,8 @@ export const Footer: React.FC<FooterProps> = ({
                 <div className="text-muted-foreground flex text-xs">
                   <p>{copyright}</p>
                 </div>
+
+                {actions ? <div className="w-44">{actions}</div> : null}
               </div>
             </div>
           </div>

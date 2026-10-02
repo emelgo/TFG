@@ -9,7 +9,9 @@ import { SitePageHeader } from '#/components/marketing/site-page-header.tsx';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/_marketing/contact')({
-  head: () => ({ meta: [{ title: getTranslator()('marketing.contact') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('marketing.contact') }],
+  }),
   component: ContactPage,
 });
 

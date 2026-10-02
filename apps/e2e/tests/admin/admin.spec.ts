@@ -243,9 +243,12 @@ test.describe('Admin', () => {
       // Should redirect to admin dashboard
       await page.waitForURL('/admin/accounts');
 
-      // Log out
-      await auth.signOut();
-      await page.waitForURL('/');
+      // Se «sale» borrando las cookies en vez de pulsar «Cerrar sesión»: el
+      // botón cierra TODAS las sesiones del super-admin (alcance global),
+      // incluida la del estado compartido de `auth.setup`, y desde F3b la
+      // guarda `fetchAuthGate` detecta las sesiones revocadas, así que el
+      // resto de pruebas que reutilizan ese estado acababan en el login.
+      await page.context().clearCookies();
 
       await auth.goToSignIn();
 

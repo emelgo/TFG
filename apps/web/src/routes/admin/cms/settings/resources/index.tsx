@@ -37,8 +37,14 @@ export const Route = createFileRoute('/admin/cms/settings/resources/')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({
-    meta: [{ title: getTranslator()('cms.settings.resources.title') }],
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)(
+          'cms.settings.resources.title',
+        ),
+      },
+    ],
   }),
   component: ResourcesSettingsPage,
   errorComponent: ({ reset }) => (

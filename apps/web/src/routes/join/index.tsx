@@ -47,7 +47,11 @@ export const Route = createFileRoute('/join/')({
       },
     });
   },
-  head: () => ({ meta: [{ title: getTranslator()('teams.joinTeamAccount') }] }),
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('teams.joinTeamAccount') },
+    ],
+  }),
   component: JoinTeamAccountPage,
 });
 

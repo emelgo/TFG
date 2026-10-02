@@ -131,6 +131,17 @@ const ColumnUiConfigUpdateSchema = z
       .refine((value) => Object.keys(value).length <= LIMITS.enumBadges)
       .nullable()
       .optional(),
+    // Etiqueta visible por valor de un enumerado (F3b). Clave = valor real
+    // del enumerado, valor = texto que se muestra; tamaño acotado igual que
+    // `enum_badges` para no admitir JSON arbitrario.
+    value_labels: z
+      .record(
+        z.string().min(1).max(LIMITS.displayName),
+        z.string().trim().min(1).max(LIMITS.valueLabel),
+      )
+      .refine((value) => Object.keys(value).length <= LIMITS.enumBadges)
+      .nullable()
+      .optional(),
   })
   .strict();
 

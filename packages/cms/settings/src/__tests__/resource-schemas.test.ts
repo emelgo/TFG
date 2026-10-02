@@ -41,6 +41,26 @@ describe('esquemas estrictos', () => {
     expect(UpdateTableColumnsConfigSchema.safeParse({}).success).toBe(false);
   });
 
+  it('value_labels solo admite texto acotado por valor (F3b)', () => {
+    const parse = (value_labels: unknown) =>
+      UpdateTableColumnsConfigSchema.safeParse({
+        status: { ui_config: { value_labels } },
+      }).success;
+
+    expect(parse({ in_app: 'En la aplicación' })).toBe(true);
+    expect(parse(null)).toBe(true);
+    expect(parse({ in_app: 42 })).toBe(false);
+    expect(parse({ in_app: '' })).toBe(false);
+    expect(parse({ in_app: 'x'.repeat(101) })).toBe(false);
+    expect(
+      parse(
+        Object.fromEntries(
+          Array.from({ length: 201 }, (_, i) => [`v${i}`, 'x']),
+        ),
+      ),
+    ).toBe(false);
+  });
+
   it('valida identificadores y vacía textos con cadena vacía', () => {
     expect(
       ResourceParamsSchema.safeParse({ schema: 'demo', table: 'a"b' }).success,

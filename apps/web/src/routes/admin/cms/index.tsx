@@ -45,7 +45,11 @@ export const Route = createFileRoute('/admin/cms/')({
 
     await context.queryClient.ensureQueryData(cmsQueries.navigation());
   },
-  head: () => ({ meta: [{ title: getTranslator()('cms.overview.title') }] }),
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('cms.overview.title') },
+    ],
+  }),
   component: CmsOverviewPage,
 });
 

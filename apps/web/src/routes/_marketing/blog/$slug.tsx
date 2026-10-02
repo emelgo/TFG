@@ -39,10 +39,16 @@ export const Route = createFileRoute('/_marketing/blog/$slug')({
 
     return post;
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, match }) => {
     if (!loaderData) {
       return {
-        meta: [{ title: getTranslator()('marketing.blogPostNotFound') }],
+        meta: [
+          {
+            title: getTranslator(match.context.locale)(
+              'marketing.blogPostNotFound',
+            ),
+          },
+        ],
       };
     }
 

@@ -15,6 +15,7 @@
 import { useTranslations } from 'use-intl';
 
 import type { RelationConfig } from '@pymekit/cms-types';
+import { useEnumLabel } from '@pymekit/i18n/enum-labels';
 import { Input } from '@pymekit/ui/input';
 import {
   Select,
@@ -47,8 +48,15 @@ export function RecordFieldInput(props: {
   relationLabel?: string | null;
 }) {
   const t = useTranslations('cms.dataExplorer');
+  const enumLabel = useEnumLabel();
   const { field, value, onChange } = props;
   const { column, kind } = field;
+  // El desplegable muestra la etiqueta legible pero guarda el valor real.
+  const optionLabel = (option: string) =>
+    enumLabel(option, {
+      enumName: column.ui_config.enum_type,
+      overrides: column.ui_config.value_labels,
+    });
   const text = typeof value === 'string' ? value : '';
 
   const common = {
@@ -132,7 +140,7 @@ export function RecordFieldInput(props: {
                     {t('record.empty')}
                   </span>
                 ) : (
-                  selected
+                  optionLabel(selected)
                 )
               }
             </SelectValue>
@@ -151,7 +159,7 @@ export function RecordFieldInput(props: {
                 value={option}
                 data-testid="record-field-option"
               >
-                {option}
+                {optionLabel(option)}
               </SelectItem>
             ))}
           </SelectContent>

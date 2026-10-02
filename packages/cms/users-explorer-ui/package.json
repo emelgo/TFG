@@ -22,7 +22,8 @@
   "dependencies": {
     "@pymekit/cms-formatters": "workspace:*",
     "@pymekit/cms-shared": "workspace:*",
-    "@pymekit/cms-ui-core": "workspace:*"
+    "@pymekit/cms-ui-core": "workspace:*",
+    "@pymekit/i18n": "workspace:*"
   },
   "devDependencies": {
     "@pymekit/tsconfig": "workspace:*",

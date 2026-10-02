@@ -10,7 +10,9 @@ import { SitePageHeader } from '#/components/marketing/site-page-header.tsx';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/_marketing/faq')({
-  head: () => ({ meta: [{ title: getTranslator()('marketing.faq') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('marketing.faq') }],
+  }),
   component: FAQPage,
 });
 

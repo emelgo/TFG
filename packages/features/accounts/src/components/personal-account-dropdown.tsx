@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 
 import { Link } from '@tanstack/react-router';
 import { ChevronsUpDown, Home, LogOut, Shield } from 'lucide-react';
+import { useTranslations } from 'use-intl';
 
 import type { JWTUserData } from '@pymekit/supabase/types';
 import {
@@ -52,6 +53,7 @@ export function PersonalAccountDropdown({
 
   className?: string;
 }) {
+  const t = useTranslations('common');
   const { data: personalAccountData } = usePersonalAccountData(
     user.id,
     account,
@@ -77,7 +79,7 @@ export function PersonalAccountDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="Open your profile menu"
+        aria-label={t('openProfileMenu')}
         data-testid={'account-dropdown-trigger'}
         className={cn(
           'group/trigger fade-in focus:outline-primary flex cursor-pointer items-center group-data-[collapsible=icon]:px-0',
@@ -176,7 +178,9 @@ export function PersonalAccountDropdown({
           >
             <Shield className={'h-4 w-4'} />
 
-            <span>Super Admin</span>
+            <span>
+              <Trans i18nKey={'common.superAdmin'} />
+            </span>
           </DropdownMenuItem>
         </If>
 

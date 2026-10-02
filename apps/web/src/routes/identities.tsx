@@ -37,7 +37,9 @@ export const Route = createFileRoute('/identities')({
       throw redirect({ href: pathsConfig.auth.verifyMfa });
     }
   },
-  head: () => ({ meta: [{ title: getTranslator()('auth.setupAccount') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('auth.setupAccount') }],
+  }),
   component: IdentitiesPage,
 });
 

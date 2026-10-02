@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, TriangleAlert, X } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 
+import { EnumLabel } from '@pymekit/i18n/enum-labels';
 import { useFetchAuthFactors } from '@pymekit/supabase/hooks/use-fetch-mfa-factors';
 import { useSupabase } from '@pymekit/supabase/hooks/use-supabase';
 import { useFactorsMutationKey } from '@pymekit/supabase/hooks/use-user-factors-mutation-key';
@@ -248,7 +249,7 @@ function FactorsTable({
                     factor.status === 'verified' && badgeExtras.success,
                   )}
                 >
-                  {factor.status}
+                  <EnumLabel value={factor.status} />
                 </Badge>
               </td>
 

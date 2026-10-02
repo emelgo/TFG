@@ -34,8 +34,14 @@ import { cmsQueries } from '#/lib/cms/cms-queries.ts';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/admin/cms/settings/general')({
-  head: () => ({
-    meta: [{ title: getTranslator()('cms.settings.general.title') }],
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)(
+          'cms.settings.general.title',
+        ),
+      },
+    ],
   }),
   component: GeneralSettingsPage,
 });

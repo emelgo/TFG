@@ -1,44 +1,28 @@
 import { createServerFn } from '@tanstack/react-start';
-import { getCookie, getRequestHeader } from '@tanstack/react-start/server';
+import { getCookie } from '@tanstack/react-start/server';
 
-import {
-  LOCALE_COOKIE,
-  defaultLocale,
-  isValidLocale,
-  locales,
-} from '@pymekit/i18n';
+import { LOCALE_COOKIE, defaultLocale, isValidLocale } from '@pymekit/i18n';
 
 /**
- * Resolve the active locale for the current request.
+ * Resuelve el idioma activo de la petición actual.
  *
- * Precedence: `locale` cookie → `Accept-Language` header → default. While a
- * single locale is enabled this transparently falls back to the default.
+ * Precedencia: cookie `locale` (la escribe el selector de idioma) → idioma por
+ * defecto (`VITE_DEFAULT_LOCALE`, español). No se usa la cabecera
+ * `Accept-Language` a propósito: PymeKit se dirige a pymes españolas y el
+ * producto debe abrirse siempre en español salvo que el usuario elija otro
+ * idioma de forma explícita.
  *
- * Server-only: reads the request via `@tanstack/react-start/server`. Call it
- * from the root `beforeLoad`, not from an arbitrary server function.
+ * Solo servidor: lee la petición mediante `@tanstack/react-start/server`.
+ * Se llama desde el `beforeLoad` raíz.
  */
 function resolveRequestLocale(): string {
   const cookie = getCookie(LOCALE_COOKIE);
 
-  if (isValidLocale(cookie)) {
-    return cookie;
-  }
-
-  const header = getRequestHeader('accept-language') ?? '';
-
-  for (const part of header.split(',')) {
-    const tag = part.split(';')[0]?.trim().split('-')[0];
-
-    if (tag && locales.includes(tag)) {
-      return tag;
-    }
-  }
-
-  return defaultLocale;
+  return isValidLocale(cookie) ? cookie : defaultLocale;
 }
 
 /**
- * Resolve the active locale on the server (cookie → Accept-Language → default).
+ * Resolve the active locale on the server (cookie → idioma por defecto).
  * Called from the root `beforeLoad` and threaded into the router context.
  */
 export const detectLocale = createServerFn({ method: 'GET' }).handler(() =>

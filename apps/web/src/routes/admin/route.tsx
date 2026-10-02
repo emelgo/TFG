@@ -30,16 +30,25 @@ import { AdminMobileNavigation } from '#/components/admin/admin-mobile-navigatio
 import { AdminSidebar } from '#/components/admin/admin-sidebar.tsx';
 import { AppLogo } from '#/components/app-logo.tsx';
 import pathsConfig from '#/config/paths.config.ts';
-import { fetchRequiresMfa } from '#/lib/auth/mfa.functions.ts';
+import { fetchAuthGate } from '#/lib/auth/mfa.functions.ts';
 import { cmsQueries } from '#/lib/cms/cms-queries.ts';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: async ({ context, location }) => {
+    const signInHref = `${pathsConfig.auth.signIn}?next=${encodeURIComponent(location.href)}`;
+
     if (!context.user) {
-      throw redirect({
-        href: `${pathsConfig.auth.signIn}?next=${encodeURIComponent(location.href)}`,
-      });
+      throw redirect({ href: signInHref });
+    }
+
+    // El JWT puede seguir pareciendo válido aunque la sesión ya no exista
+    // (revocada, `db reset`…). Antes eso acababa en un 404 o en un error en
+    // blanco; ahora se trata como «sin sesión» y se pide iniciarla (F3b).
+    const gate = await fetchAuthGate();
+
+    if (gate.signedOut) {
+      throw redirect({ href: signInHref });
     }
 
     if (!context.user.is_superadmin && !context.user.has_cms_access) {
@@ -55,7 +64,7 @@ export const Route = createFileRoute('/admin')({
     if (context.user.aal !== 'aal2') {
       // Tiene un factor MFA configurado pero no lo ha usado en esta sesión:
       // se le pide y, al verificarlo, vuelve a la página que intentaba abrir.
-      if (await fetchRequiresMfa()) {
+      if (gate.requiresMfa) {
         throw redirect({
           href: `${pathsConfig.auth.verifyMfa}?next=${encodeURIComponent(location.href)}`,
         });
@@ -77,7 +86,9 @@ export const Route = createFileRoute('/admin')({
       context.queryClient.prefetchQuery(cmsQueries.navigation()),
     ]);
   },
-  head: () => ({ meta: [{ title: getTranslator()('cms.consoleTitle') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('cms.consoleTitle') }],
+  }),
   component: AdminLayout,
 });
 

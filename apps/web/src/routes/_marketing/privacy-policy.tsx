@@ -5,8 +5,10 @@ import { SitePageHeader } from '#/components/marketing/site-page-header.tsx';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/_marketing/privacy-policy')({
-  head: () => ({
-    meta: [{ title: getTranslator()('marketing.privacyPolicy') }],
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('marketing.privacyPolicy') },
+    ],
   }),
   component: PrivacyPolicyPage,
 });
@@ -22,7 +24,7 @@ function PrivacyPolicyPage() {
       />
 
       <div className={'container mx-auto py-8'}>
-        <div>Your privacy policy content here</div>
+        <div>{t('legalPlaceholder')}</div>
       </div>
     </div>
   );

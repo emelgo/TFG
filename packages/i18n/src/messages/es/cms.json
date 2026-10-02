@@ -1,0 +1,1311 @@
+{
+  "consoleTitle": "Consola de administración",
+  "sidebar": {
+    "platformGroup": "Plataforma",
+    "cmsGroup": "CMS",
+    "platformDashboard": "Panel",
+    "platformAccounts": "Cuentas",
+    "resources": "Explorador de datos",
+    "users": "Usuarios",
+    "storage": "Almacenamiento",
+    "auditLogs": "Registros de auditoría",
+    "dashboards": "Paneles",
+    "settings": "Ajustes",
+    "resourcesGroup": "Recursos",
+    "resourcesToggle": "Mostrar u ocultar las tablas",
+    "resourcesViewAll": "Ver todas las tablas (+{count})",
+    "openMenu": "Abrir el menú de navegación"
+  },
+  "overview": {
+    "title": "Explorador de datos",
+    "description": "Tablas que puedes leer, agrupadas por esquema de base de datos.",
+    "tablesCount": "{count, plural, one {# tabla} other {# tablas}}",
+    "emptyHeading": "No hay tablas disponibles",
+    "emptyText": "Tu rol de CMS aún no concede acceso de lectura a ninguna tabla. Pide a un administrador que te asigne los permisos que necesitas."
+  },
+  "access": {
+    "mfaRequiredHeading": "Se requiere verificación en dos pasos o una cuenta de CMS activa",
+    "mfaRequiredText": "El CMS solo se abre para el personal con una cuenta de CMS activa cuya sesión haya superado la verificación en dos pasos. Verifica tu segundo factor para continuar. Si aún no has configurado uno, añádelo desde los ajustes de tu perfil; si el problema persiste, es posible que tu cuenta de CMS haya sido desactivada.",
+    "verifyMfa": "Verificar la autenticación en dos pasos",
+    "setupMfa": "Ir a los ajustes del perfil",
+    "loadErrorHeading": "No se ha podido cargar el CMS",
+    "loadErrorText": "Algo ha salido mal al contactar con el CMS. Inténtalo de nuevo en unos instantes.",
+    "retry": "Reintentar"
+  },
+  "dataExplorer": {
+    "loadErrorHeading": "No se ha podido cargar la tabla",
+    "loadErrorText": "Algo ha salido mal al cargar esta tabla. Inténtalo de nuevo en unos instantes.",
+    "retry": "Reintentar",
+    "table": {
+      "count": "{count, plural, one {({formatted} registro)} other {({formatted} registros)}}",
+      "noRecords": "Esta tabla aún no tiene registros.",
+      "noMatches": "Ningún registro coincide con la búsqueda o los filtros actuales.",
+      "copyToClipboard": "Copiar al portapapeles",
+      "copied": "Copiado al portapapeles",
+      "copyFailed": "No se ha podido copiar al portapapeles",
+      "createRecord": "Nuevo registro",
+      "selectPage": "Seleccionar todas las filas de esta página",
+      "selectRow": "Seleccionar fila",
+      "clearSelection": "Borrar selección",
+      "deleteSelected": "{count, plural, one {Eliminar # registro} other {Eliminar # registros}}",
+      "deleteSelectedTitle": "{count, plural, one {¿Eliminar # registro?} other {¿Eliminar # registros?}}",
+      "deleteSelectedDescription": "Los registros seleccionados se eliminarán de forma permanente. Esta acción no se puede deshacer.",
+      "andMore": "…y {count} más",
+      "editCell": "Editar {column}"
+    },
+    "record": {
+      "yes": "Sí",
+      "no": "No",
+      "empty": "Vacío",
+      "noName": "Registro sin nombre",
+      "backToList": "Volver a la tabla",
+      "openInNewTab": "Abrir en una pestaña nueva",
+      "loadErrorHeading": "No se ha podido cargar el registro",
+      "loadErrorText": "Algo ha salido mal al cargar este registro. Inténtalo de nuevo en unos instantes.",
+      "groups": {
+        "main": "Información básica",
+        "relations": "Relaciones",
+        "system": "Campos del sistema"
+      },
+      "related": {
+        "title": "Registros relacionados",
+        "empty": "No hay registros relacionados",
+        "noLinkedRecords": "No hay registros vinculados",
+        "loadError": "No se han podido cargar los registros relacionados",
+        "sectionError": "No se ha podido mostrar esta sección",
+        "openTable": "Abrir en la tabla",
+        "open": "Abrir",
+        "viewAll": "Ver todos ({count})",
+        "add": "Añadir",
+        "createTitle": "Nuevo registro en {table}",
+        "createDescription": "El nuevo registro se vinculará a este.",
+        "link": "Vincular",
+        "linkTitle": "Vincular un registro de {table}",
+        "linkDescription": "Busca el registro que quieres vincular a este.",
+        "alreadyLinked": "Vinculado",
+        "unlink": "Desvincular",
+        "unlinkLabel": "Desvincular {name}",
+        "unlinkTitle": "¿Desvincular este registro?",
+        "unlinkDescription": "\"{name}\" dejará de estar vinculado a este registro. El registro en sí no se elimina."
+      },
+      "edit": "Editar",
+      "form": {
+        "newRecord": "Nuevo registro",
+        "editRecord": "Editar",
+        "save": "Guardar",
+        "saving": "Guardando...",
+        "create": "Crear",
+        "back": "Volver",
+        "unsavedChanges": "Cambios sin guardar",
+        "unsavedTitle": "¿Descartar los cambios sin guardar?",
+        "unsavedDescription": "Tienes cambios sin guardar. Si sales de esta página se perderán.",
+        "stay": "Seguir editando",
+        "leave": "Descartar y salir",
+        "noChanges": "No hay cambios que guardar",
+        "noEditableFields": "Esta tabla no tiene columnas editables. Marca columnas como editables en los ajustes de la tabla.",
+        "pickRecord": "Selecciona un registro",
+        "clearValue": "Borrar valor",
+        "errors": {
+          "required": "Este campo es obligatorio",
+          "invalidInteger": "Introduce un número entero",
+          "invalidNumber": "Introduce un número válido",
+          "invalidUuid": "Introduce un UUID válido",
+          "invalidEmail": "Introduce una dirección de correo electrónico válida",
+          "invalidUrl": "Introduce una URL válida (http o https)",
+          "invalidColor": "Introduce un color con formato #RRGGBB",
+          "invalidJson": "Introduce un JSON válido",
+          "invalidArray": "Introduce un array JSON, p. ej. [\"a\", \"b\"]",
+          "invalidDate": "Introduce una fecha válida",
+          "invalidTime": "Introduce una hora válida (HH:MM)",
+          "invalidOption": "Selecciona una de las opciones disponibles",
+          "maxLength": "Usa como máximo {maxLength} caracteres"
+        }
+      },
+      "placeholder": {
+        "default": "Introduce {name}...",
+        "defaultValue": "Por defecto: {value}",
+        "true": "Por defecto: sí",
+        "false": "Por defecto: no",
+        "uuid": "Se genera automáticamente (UUID)",
+        "sequence": "Se genera automáticamente (secuencia)",
+        "now": "Por defecto: fecha y hora actuales",
+        "json": "Por defecto: JSON vacío",
+        "generated": "Se genera automáticamente"
+      },
+      "delete": {
+        "button": "Eliminar",
+        "title": "¿Eliminar este registro?",
+        "description": "\"{name}\" se eliminará de forma permanente. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      },
+      "toasts": {
+        "created": "Registro creado",
+        "createFailed": "No se ha podido crear el registro",
+        "updated": "Registro actualizado",
+        "updateFailed": "No se ha podido actualizar el registro",
+        "deleted": "Registro eliminado",
+        "deleteFailed": "No se ha podido eliminar el registro",
+        "batchDeleted": "{count, plural, one {# registro eliminado} other {# registros eliminados}}",
+        "batchPartiallyDeleted": "{successCount} eliminados, {failureCount} no se han podido eliminar",
+        "batchDeleteFailed": "No se han podido eliminar los registros",
+        "linked": "Registro vinculado",
+        "linkFailed": "No se ha podido vincular el registro",
+        "unlinked": "Registro desvinculado",
+        "unlinkFailed": "No se ha podido desvincular el registro"
+      },
+      "errors": {
+        "permissionDenied": "No tienes permiso para realizar esta acción",
+        "notFound": "El registro ya no existe",
+        "duplicate": "Ya existe un registro con estos valores",
+        "referenceViolation": "El cambio entra en conflicto con un registro relacionado: apunta a un registro que no existe, o hay otros registros que dependen de él",
+        "invalidData": "Algunos valores no son válidos para esta tabla",
+        "alreadyLinked": "Estos registros ya están vinculados",
+        "columnsNotEditable": "Las columnas de vinculación de la tabla intermedia no son editables. Activa su edición en los ajustes de la tabla.",
+        "ruleViolation": "Una regla de esta tabla no permite este cambio"
+      }
+    },
+    "columns": {
+      "title": "Columnas",
+      "summary": "{visible} de {total} visibles{pinned, plural, =0 {} one { · # fijada} other { · # fijadas}}",
+      "reset": "Restablecer",
+      "empty": "No hay columnas disponibles",
+      "show": "Mostrar la columna {name}",
+      "hide": "Ocultar la columna {name}",
+      "pin": "Fijar la columna {name}",
+      "unpin": "Dejar de fijar la columna {name}",
+      "moveUp": "Subir la columna {name}",
+      "moveDown": "Bajar la columna {name}",
+      "pinned": {
+        "left": "Fijada a la izquierda",
+        "right": "Fijada a la derecha"
+      }
+    },
+    "tabs": {
+      "newTab": "Pestaña nueva",
+      "closeTab": "Cerrar la pestaña {title}"
+    },
+    "emptyState": {
+      "recentTables": "Tablas recientes"
+    },
+    "filters": {
+      "searchAll": "Buscar en todo...",
+      "clearFilters": "Borrar filtros",
+      "clearSearch": "Borrar búsqueda",
+      "removeFilter": "Quitar filtro",
+      "apply": "Aplicar",
+      "sort": "Ordenar",
+      "sortBy": "Ordenar por {column}",
+      "clearSort": "Quitar orden",
+      "pickADate": "Elige una fecha",
+      "true": "Verdadero",
+      "false": "Falso",
+      "today": "Hoy",
+      "isEmpty": "{name} está vacío",
+      "isNotEmpty": "{name} no está vacío",
+      "betweenValues": "{name} {operator} {start} y {end}",
+      "pressEnterToApply": "Pulsa Intro para aplicar",
+      "provideValidFormat": "Proporciona un valor de tipo {type} válido, p. ej. {hint}",
+      "inputKinds": {
+        "number": "número",
+        "url": "URL",
+        "email": "correo electrónico",
+        "color": "color",
+        "uuid": "UUID",
+        "text": "texto"
+      },
+      "placeholders": {
+        "number": "Introduce un número...",
+        "url": "Introduce una URL...",
+        "email": "Introduce un correo electrónico...",
+        "color": "Introduce un color...",
+        "uuid": "Introduce un UUID...",
+        "text": "Introduce un valor..."
+      },
+      "selectValue": "Selecciona un valor",
+      "addFilter": "Añadir filtro",
+      "search": "Escribe para buscar...",
+      "typeFilterName": "Escribe el nombre del filtro...",
+      "noFiltersFound": "No se han encontrado filtros.",
+      "noResultsFound": "No se han encontrado resultados.",
+      "enterSearchQuery": "Escribe al menos dos caracteres para buscar.",
+      "loading": "Cargando...",
+      "noValueNeededNull": "El filtro «Está vacío» no necesita ningún valor.",
+      "noValueNeededNotNull": "El filtro «No está vacío» no necesita ningún valor.",
+      "rangeFrom": "Desde",
+      "rangeTo": "Hasta",
+      "applyRange": "Aplicar rango",
+      "relativeDateSelect": "Seleccionar fecha relativa",
+      "customDate": "Fecha personalizada",
+      "jsonModes": {
+        "simple": "Búsqueda de texto",
+        "keyValue": "Clave-valor",
+        "path": "Ruta JSON",
+        "advanced": "Avanzado"
+      },
+      "jsonPlaceholders": {
+        "simple": "Buscar en cualquier parte del JSON...",
+        "key": "Nombre de la clave (p. ej. status, email)",
+        "value": "Valor esperado (p. ej. active)",
+        "path": "$.user.profile.email"
+      },
+      "jsonErrors": {
+        "emptyValue": "El valor no puede estar vacío",
+        "invalidKey": "Clave no válida. Usa letras, números y guiones bajos, empezando por una letra o un guion bajo.",
+        "missingColon": "Usa el formato clave:valor",
+        "invalidKeyValue": "Se requieren tanto la clave como el valor",
+        "invalidPath": "La ruta JSON debe empezar por $ o $. (p. ej. $.user.name)"
+      }
+    },
+    "operators": {
+      "eq": "Es",
+      "neq": "No es",
+      "lt": "Es menor que",
+      "lte": "Es menor o igual que",
+      "gt": "Es mayor que",
+      "gte": "Es mayor o igual que",
+      "contains": "Contiene",
+      "startsWith": "Empieza por",
+      "endsWith": "Termina en",
+      "in": "Es uno de",
+      "notIn": "No es uno de",
+      "isNull": "Está vacío",
+      "notNull": "No está vacío",
+      "between": "Está entre",
+      "notBetween": "No está entre",
+      "before": "Es anterior a",
+      "beforeOrOn": "Es anterior o igual a",
+      "after": "Es posterior a",
+      "afterOrOn": "Es posterior o igual a",
+      "during": "Durante",
+      "containsText": "Contiene el texto",
+      "hasKey": "Tiene la clave",
+      "pathExists": "La ruta existe",
+      "keyEquals": "La clave es igual a"
+    },
+    "relativeDates": {
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "tomorrow": "Mañana",
+      "thisWeek": "Esta semana",
+      "lastWeek": "La semana pasada",
+      "nextWeek": "La semana que viene",
+      "thisMonth": "Este mes",
+      "lastMonth": "El mes pasado",
+      "nextMonth": "El mes que viene",
+      "last7Days": "Últimos 7 días",
+      "next7Days": "Próximos 7 días",
+      "last30Days": "Últimos 30 días",
+      "next30Days": "Próximos 30 días",
+      "thisYear": "Este año",
+      "lastYear": "El año pasado",
+      "custom": "Fecha personalizada"
+    },
+    "views": {
+      "savedViews": "Vistas guardadas",
+      "noViews": "Aún no hay vistas guardadas para esta tabla.",
+      "addFiltersFirst": "Añade filtros, una búsqueda o un orden para guardar una vista",
+      "viewName": "Nombre de la vista",
+      "viewNameDescription": "Un nombre corto para encontrar esta vista más adelante.",
+      "description": "Descripción",
+      "optional": "(opcional)",
+      "descriptionPlaceholder": "p. ej. Cuentas de equipo creadas este mes",
+      "descriptionHelp": "Ayuda a los demás a entender qué muestra esta vista.",
+      "saveCurrentView": "Guardar la vista actual",
+      "saveView": "Guardar vista",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "saveViewDescription": "Guarda los filtros, el orden y la búsqueda actuales como una vista que podrás reabrir más adelante.",
+      "shareWithRoles": "Compartir con roles",
+      "pickRoles": "Elige roles",
+      "noRolesSelected": "Ningún rol seleccionado: la vista será privada para ti.",
+      "noRolesFound": "No hay roles disponibles.",
+      "errorLoadingRoles": "No se han podido cargar los roles.",
+      "loadingRoles": "Cargando roles...",
+      "sharingWithRoles": "Compartida con {roles}",
+      "creatingView": "Guardando...",
+      "viewCreated": "Vista guardada",
+      "viewCreationFailed": "No se ha podido guardar la vista",
+      "personalViews": "Vistas personales",
+      "teamViews": "Vistas del equipo",
+      "unselectView": "Dejar de usar esta vista",
+      "deleteView": "Eliminar la vista {name}",
+      "deletingView": "Eliminando...",
+      "updateView": "Actualizar vista",
+      "updatingView": "Actualizando...",
+      "viewUpdated": "Vista actualizada",
+      "viewUpdateFailed": "No se ha podido actualizar la vista",
+      "viewDeleted": "Vista eliminada",
+      "viewDeletionFailed": "No se ha podido eliminar la vista",
+      "deleteViewDescription": "Se eliminará la vista guardada. Los roles con los que se compartía perderán el acceso a ella.",
+      "nameRequired": "Introduce un nombre para la vista",
+      "nameTooLong": "El nombre es demasiado largo",
+      "descriptionTooLong": "La descripción es demasiado larga",
+      "tooManyRoles": "Puedes compartir una vista con un máximo de 10 roles"
+    }
+  },
+  "usersExplorer": {
+    "title": "Usuarios",
+    "common": {
+      "cancel": "Cancelar",
+      "never": "Nunca"
+    },
+    "status": {
+      "active": "Activo",
+      "banned": "Bloqueado"
+    },
+    "badges": {
+      "superAdmin": "Superadministrador de la plataforma",
+      "cmsStaff": "Personal del CMS",
+      "you": "Tú"
+    },
+    "table": {
+      "email": "Correo electrónico",
+      "status": "Estado",
+      "createdAt": "Creado",
+      "lastSignIn": "Último inicio de sesión",
+      "noResults": "No se han encontrado usuarios.",
+      "searchPlaceholder": "Busca por correo electrónico o teléfono y pulsa Intro",
+      "clearSearch": "Borrar",
+      "selectPage": "Seleccionar todos los usuarios de esta página",
+      "selectRow": "Seleccionar usuario"
+    },
+    "actions": {
+      "addUser": "Añadir usuario",
+      "createUser": "Crear usuario",
+      "inviteUser": "Invitar usuario",
+      "ban": {
+        "button": "Bloquear",
+        "title": "¿Bloquear a este usuario?",
+        "description": "{email} se desconectará y no podrá iniciar sesión hasta que se levante el bloqueo.",
+        "success": "Usuario bloqueado",
+        "error": "No se ha podido bloquear al usuario"
+      },
+      "unban": {
+        "button": "Desbloquear",
+        "title": "¿Desbloquear a este usuario?",
+        "description": "{email} podrá volver a iniciar sesión.",
+        "success": "Usuario desbloqueado",
+        "error": "No se ha podido desbloquear al usuario"
+      },
+      "resetPassword": {
+        "button": "Restablecer contraseña",
+        "title": "¿Enviar un correo para restablecer la contraseña?",
+        "description": "{email} recibirá un correo electrónico con un enlace para elegir una nueva contraseña. Tú no verás el enlace.",
+        "success": "Correo de restablecimiento de contraseña enviado",
+        "error": "No se ha podido enviar el correo de restablecimiento de contraseña"
+      },
+      "magicLink": {
+        "button": "Enviar enlace de inicio de sesión",
+        "title": "¿Enviar un enlace de inicio de sesión?",
+        "description": "{email} recibirá un enlace de inicio de sesión de un solo uso en su propia bandeja de entrada. Tú no verás el enlace.",
+        "success": "Enlace de inicio de sesión enviado",
+        "error": "No se ha podido enviar el enlace de inicio de sesión"
+      },
+      "grantAdminAccess": {
+        "button": "Conceder acceso al CMS",
+        "title": "¿Conceder acceso al CMS?",
+        "description": "{email} podrá abrir el CMS. No tendrá ningún permiso hasta que se le asigne un rol de CMS en los ajustes del CMS.",
+        "success": "Acceso al CMS concedido",
+        "error": "No se ha podido conceder el acceso al CMS"
+      },
+      "revokeAdminAccess": {
+        "button": "Revocar acceso al CMS",
+        "title": "¿Revocar el acceso al CMS?",
+        "description": "{email} ya no podrá abrir el CMS. Su cuenta de CMS y sus roles se conservan para auditoría.",
+        "success": "Acceso al CMS revocado",
+        "error": "No se ha podido revocar el acceso al CMS"
+      },
+      "delete": {
+        "button": "Eliminar",
+        "title": "¿Eliminar a este usuario?",
+        "description": "{email} y su cuenta personal se eliminarán de forma permanente. Esta acción no se puede deshacer.",
+        "success": "Usuario eliminado",
+        "error": "No se ha podido eliminar al usuario"
+      },
+      "removeMfaFactor": {
+        "button": "Quitar factor",
+        "title": "¿Quitar este factor de dos pasos?",
+        "description": "El usuario tendrá que configurar de nuevo la autenticación en dos pasos.",
+        "success": "Factor quitado",
+        "error": "No se ha podido quitar el factor"
+      }
+    },
+    "confirm": {
+      "typeToConfirm": "Escribe {word} para confirmar",
+      "textDoesNotMatch": "El texto no coincide"
+    },
+    "protection": {
+      "self": "Esta es tu propia cuenta. No puedes bloquearla, eliminarla ni modificarla desde el CMS.",
+      "super_admin": "Este usuario es superadministrador de la plataforma. Los superadministradores solo se pueden gestionar desde la consola de la plataforma.",
+      "cms_staff": "Este usuario forma parte del personal del CMS. Revoca primero su acceso al CMS (solo puede hacerlo personal con un rol superior) antes de modificar su cuenta.",
+      "cms_rank": "Este usuario era personal del CMS con un rol igual o superior al tuyo (o no puedes gestionar al personal del CMS). Solo un administrador de rango superior puede modificar su cuenta."
+    },
+    "details": {
+      "account": "Cuenta",
+      "userId": "ID de usuario",
+      "emailConfirmed": "Correo electrónico confirmado",
+      "notConfirmed": "Sin confirmar",
+      "createdAt": "Creado",
+      "lastSignIn": "Último inicio de sesión",
+      "status": "Estado",
+      "identities": "Métodos de inicio de sesión",
+      "noIdentities": "No hay métodos de inicio de sesión.",
+      "mfaFactors": "Factores de dos pasos",
+      "noMfaFactors": "No hay factores de dos pasos.",
+      "appMetadata": "Metadatos de la aplicación (solo lectura)",
+      "userMetadata": "Metadatos del usuario (solo lectura)",
+      "auditLogs": "Ver registros de auditoría"
+    },
+    "form": {
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "autoConfirm": "Marcar el correo electrónico como confirmado",
+      "emailInvalid": "Introduce una dirección de correo electrónico válida",
+      "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "passwordTooLong": "La contraseña debe tener como máximo 72 caracteres",
+      "passwordUppercase": "La contraseña debe contener una letra mayúscula",
+      "passwordLowercase": "La contraseña debe contener una letra minúscula",
+      "passwordNumber": "La contraseña debe contener un número"
+    },
+    "create": {
+      "title": "Crear usuario",
+      "description": "Crea un usuario con un correo electrónico y una contraseña. El usuario podrá cambiar la contraseña después de iniciar sesión.",
+      "submit": "Crear usuario",
+      "success": "Usuario creado",
+      "error": "No se ha podido crear el usuario"
+    },
+    "invite": {
+      "title": "Invitar usuario",
+      "description": "El usuario recibirá un correo electrónico con un enlace para establecer su contraseña.",
+      "submit": "Enviar invitación",
+      "success": "Invitación enviada",
+      "error": "No se ha podido enviar la invitación"
+    },
+    "batch": {
+      "selected": "{count, plural, one {# usuario seleccionado} other {# usuarios seleccionados}}",
+      "clear": "Borrar selección",
+      "success": "{count, plural, one {# usuario actualizado} other {# usuarios actualizados}}",
+      "partial": "{processed} usuarios actualizados, {failed} no se han podido actualizar",
+      "error": "No se ha podido aplicar la acción",
+      "actions": {
+        "ban": "Bloquear",
+        "unban": "Desbloquear",
+        "resetPassword": "Restablecer contraseña",
+        "delete": "Eliminar"
+      },
+      "dialogs": {
+        "ban": {
+          "title": "{count, plural, one {¿Bloquear # usuario?} other {¿Bloquear # usuarios?}}",
+          "description": "Estos usuarios se desconectarán y no podrán iniciar sesión:"
+        },
+        "unban": {
+          "title": "{count, plural, one {¿Desbloquear # usuario?} other {¿Desbloquear # usuarios?}}",
+          "description": "Estos usuarios podrán volver a iniciar sesión:"
+        },
+        "resetPassword": {
+          "title": "{count, plural, one {¿Enviar # correo de restablecimiento de contraseña?} other {¿Enviar # correos de restablecimiento de contraseña?}}",
+          "description": "Estos usuarios recibirán un correo electrónico para elegir una nueva contraseña:"
+        },
+        "delete": {
+          "title": "{count, plural, one {¿Eliminar # usuario?} other {¿Eliminar # usuarios?}}",
+          "description": "Estos usuarios se eliminarán de forma permanente. Esta acción no se puede deshacer:"
+        }
+      }
+    },
+    "errors": {
+      "permissionDenied": "No tienes permiso para hacer esto.",
+      "notFound": "El usuario ya no existe.",
+      "selfAction": "No puedes hacer esto en tu propia cuenta.",
+      "protected": "Este usuario es superadministrador de la plataforma o personal del CMS y no se puede modificar aquí.",
+      "alreadyExists": "Ya existe un usuario con este correo electrónico.",
+      "invalidData": "Los datos no son válidos (por ejemplo, la contraseña es demasiado débil)."
+    }
+  },
+  "storageExplorer": {
+    "title": "Almacenamiento",
+    "common": {
+      "cancel": "Cancelar"
+    },
+    "buckets": {
+      "emptyHeading": "No hay buckets disponibles",
+      "emptyText": "No tienes permiso para explorar ningún bucket de almacenamiento.",
+      "public": "Público",
+      "private": "Privado"
+    },
+    "actions": {
+      "upload": "Subir",
+      "createFolder": "Nueva carpeta",
+      "download": "Descargar",
+      "rename": "Renombrar",
+      "delete": "Eliminar",
+      "menu": "Acciones para {name}"
+    },
+    "selection": {
+      "selected": "{count, plural, one {# elemento seleccionado} other {# elementos seleccionados}}",
+      "clear": "Borrar",
+      "select": "Seleccionar {name}"
+    },
+    "list": {
+      "searchPlaceholder": "Busca en esta carpeta y pulsa Intro",
+      "clearSearch": "Borrar",
+      "emptyFolder": "Esta carpeta está vacía",
+      "noResults": "Nada coincide con “{search}”",
+      "emptyFolderText": "Los archivos que subas aquí aparecerán en esta carpeta.",
+      "truncated": "Esta carpeta tiene demasiados elementos; solo se muestran los primeros 1000.",
+      "pagination": "Página {page} de {totalPages} · {total} elementos",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
+    "upload": {
+      "title": "Subir archivos",
+      "description": "Hasta 10 archivos de un máximo de {max} cada uno. Solo las imágenes PNG, JPEG, GIF y WebP se almacenan como imágenes; los demás archivos se almacenan solo para su descarga.",
+      "submit": "Subir",
+      "success": "{count, plural, one {# archivo subido} other {# archivos subidos}}",
+      "error": "No se ha podido subir un archivo",
+      "tooManyFiles": "Puedes subir como máximo {max} archivos a la vez."
+    },
+    "createFolder": {
+      "title": "Nueva carpeta",
+      "description": "Crea una carpeta dentro de la carpeta actual.",
+      "nameLabel": "Nombre de la carpeta",
+      "submit": "Crear carpeta",
+      "success": "Carpeta creada",
+      "error": "No se ha podido crear la carpeta"
+    },
+    "rename": {
+      "title": "Renombrar archivo",
+      "description": "Elige un nuevo nombre para {name}.",
+      "nameLabel": "Nuevo nombre",
+      "submit": "Renombrar",
+      "success": "Archivo renombrado",
+      "error": "No se ha podido renombrar el archivo"
+    },
+    "delete": {
+      "title": "{count, plural, one {¿Eliminar # elemento?} other {¿Eliminar # elementos?}}",
+      "description": "Estos archivos se eliminarán de forma permanente:",
+      "descriptionWithFolders": "Estos archivos y carpetas, incluido todo lo que hay dentro de las carpetas, se eliminarán de forma permanente:",
+      "confirm": "Eliminar",
+      "success": "{count, plural, one {# archivo eliminado} other {# archivos eliminados}}",
+      "error": "No se han podido eliminar los elementos"
+    },
+    "download": {
+      "error": "No se ha podido descargar el archivo"
+    },
+    "preview": {
+      "description": "Vista previa de la imagen · {size}",
+      "unavailable": "No hay vista previa disponible para este archivo."
+    },
+    "errors": {
+      "permissionDenied": "No tienes permiso para hacer esto en esta carpeta.",
+      "invalidPath": "El nombre o la ruta no son válidos.",
+      "invalidFileName": "Los nombres no pueden contener /, \\, %, ?, #, “..” ni caracteres de control, ni terminar en punto o en espacio.",
+      "notFound": "El archivo o la carpeta ya no existe.",
+      "alreadyExists": "Ya existe un archivo o una carpeta con este nombre.",
+      "fileTooLarge": "El archivo supera el tamaño máximo de subida.",
+      "tooManyFiles": "Demasiados archivos en una sola operación."
+    }
+  },
+  "auditLogs": {
+    "title": "Registros de auditoría",
+    "filters": {
+      "author": "Realizado por",
+      "authorPlaceholder": "Cuenta o ID de usuario",
+      "operations": "Operaciones",
+      "allOperations": "Todas las operaciones",
+      "selectedOperations": "{count, plural, one {# operación} other {# operaciones}}",
+      "resource": "Tabla",
+      "resourcePlaceholder": "schema.table",
+      "severity": "Gravedad",
+      "allSeverities": "Todas las gravedades",
+      "from": "Desde (UTC)",
+      "to": "Hasta (UTC)",
+      "apply": "Aplicar",
+      "clear": "Borrar filtros",
+      "invalidResource": "Usa un nombre de tabla o schema.table"
+    },
+    "severity": {
+      "info": "Información",
+      "warning": "Advertencia",
+      "error": "Error"
+    },
+    "table": {
+      "timestamp": "Fecha",
+      "performedBy": "Realizado por",
+      "operation": "Operación",
+      "resource": "Tabla",
+      "severity": "Gravedad",
+      "recordId": "ID: {id}",
+      "system": "Sistema",
+      "noResults": "No se han encontrado registros de auditoría.",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "actorDeleted": "Eliminado"
+    },
+    "details": {
+      "performedBy": "Realizado por",
+      "timestamp": "Fecha",
+      "severity": "Gravedad",
+      "record": "Registro",
+      "openRecord": "Abrir",
+      "metadata": "Metadatos",
+      "logId": "ID del registro: {id}",
+      "tabs": {
+        "diff": "Cambios",
+        "oldData": "Datos anteriores",
+        "newData": "Datos nuevos"
+      },
+      "field": "Campo",
+      "oldValue": "Valor anterior",
+      "newValue": "Valor nuevo",
+      "changesCount": "{count, plural, =0 {Ningún campo ha cambiado} one {# campo ha cambiado} other {# campos han cambiado}}",
+      "status": {
+        "added": "Añadido",
+        "removed": "Eliminado",
+        "changed": "Modificado",
+        "unchanged": "Sin cambios"
+      },
+      "noChanges": "No se registraron cambios en los datos.",
+      "noOldData": "No hay datos anteriores.",
+      "noNewData": "No hay datos nuevos.",
+      "redacted": "Los datos de la fila están ocultos porque no tienes permiso para leer {resource}.",
+      "yes": "Sí",
+      "no": "No",
+      "empty": "vacío"
+    },
+    "member": {
+      "title": "Registros de auditoría",
+      "noResults": "No hay actividad registrada.",
+      "forbidden": "No puedes leer los registros de auditoría de este miembro.",
+      "loadError": "No se han podido cargar los registros de auditoría."
+    }
+  },
+  "globalSearch": {
+    "trigger": "Buscar registros",
+    "shortcut": "Ctrl K",
+    "title": "Búsqueda global",
+    "description": "Busca en los registros de todas las tablas que puedes leer.",
+    "placeholder": "Buscar registros en todas las tablas…",
+    "minChars": "Escribe al menos 2 caracteres para buscar.",
+    "loading": "Buscando…",
+    "noResults": "No se han encontrado resultados.",
+    "error": "No se ha podido completar la búsqueda.",
+    "moreResults": "Se muestran las mejores coincidencias. Afina el texto para acotarlas.",
+    "hint": "↑ ↓ para moverte · Intro para abrir · Esc para cerrar"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "tabs": {
+      "label": "Secciones de ajustes",
+      "general": "General",
+      "authentication": "Autenticación",
+      "members": "Miembros",
+      "permissions": "Permisos",
+      "resources": "Recursos"
+    },
+    "general": {
+      "title": "General",
+      "description": "Tus preferencias personales en el CMS.",
+      "language": "Idioma",
+      "languageDescription": "Idioma de la interfaz. Solo se pueden seleccionar los idiomas disponibles en la consola.",
+      "timezone": "Zona horaria",
+      "timezoneDescription": "Las fechas y horas del CMS (tablas, registros y registros de auditoría) se muestran en esta zona horaria.",
+      "findTimezone": "Buscar zona horaria...",
+      "noTimezone": "No se ha encontrado ninguna zona horaria",
+      "save": "Guardar preferencias",
+      "saved": "Preferencias guardadas",
+      "saveError": "No se han podido guardar las preferencias",
+      "errors": {
+        "invalidLanguage": "Elige un idioma válido",
+        "invalidTimezone": "Elige una zona horaria válida"
+      }
+    },
+    "authentication": {
+      "title": "Autenticación",
+      "description": "Reglas de seguridad que se aplican a todos los miembros del personal del CMS.",
+      "warningTitle": "Este ajuste afecta a toda la consola",
+      "warningText": "Cuando no se exige la autenticación multifactor (MFA), una contraseña robada basta para abrir el CMS con los permisos de esa persona. Mantenla obligatoria salvo que tengas un motivo de peso. Solo un superadministrador de la plataforma que haya verificado su segundo factor puede desactivarla, y el cambio queda registrado en los registros de auditoría.",
+      "requireMfa": "Exigir autenticación multifactor",
+      "requireMfaDescription": "Los miembros del personal deben verificar un segundo factor (por ejemplo, una aplicación de autenticación) antes de usar el CMS.",
+      "readOnly": "Puedes ver este ajuste, pero no tienes permiso para cambiarlo.",
+      "rootOnly": "Solo un superadministrador de la plataforma puede dejar de exigir MFA.",
+      "verifyToDisable": "Verifica tu segundo factor en esta sesión antes de desactivar MFA.",
+      "save": "Guardar",
+      "enabled": "Ahora se exige MFA a todo el personal",
+      "disabled": "Ya no se exige MFA",
+      "saveError": "No se ha podido guardar el ajuste de MFA",
+      "confirmDisableTitle": "¿Dejar de exigir MFA?",
+      "confirmDisableText": "Los miembros del personal podrán iniciar sesión en el CMS solo con su contraseña. Los miembros que ya tengan un factor verificado seguirán teniendo que usarlo. Este cambio queda registrado en los registros de auditoría.",
+      "confirmDisable": "Dejar de exigir MFA",
+      "cancel": "Cancelar"
+    },
+    "members": {
+      "title": "Miembros",
+      "back": "Volver a miembros",
+      "you": "Tú",
+      "noRole": "Sin rol",
+      "platformManaged": "Superadministrador de la plataforma",
+      "selfNotice": "No puedes cambiar tu propio rol ni tu estado. Pídeselo a un miembro de rango superior.",
+      "protectedNotice": "Esta cuenta pertenece a un superadministrador de la plataforma. Su acceso se gestiona desde la plataforma, no desde el CMS.",
+      "table": {
+        "member": "Miembro",
+        "role": "Rol",
+        "status": "Estado",
+        "joined": "Alta",
+        "searchPlaceholder": "Buscar por nombre o correo electrónico",
+        "clearSearch": "Borrar",
+        "noResults": "No se han encontrado miembros"
+      },
+      "status": {
+        "active": "Activo",
+        "inactive": "Desactivado",
+        "activate": "Activar",
+        "deactivate": "Desactivar",
+        "activated": "Miembro activado",
+        "deactivated": "Miembro desactivado",
+        "saveError": "No se ha podido cambiar el estado del miembro",
+        "confirmDeactivateTitle": "¿Desactivar a este miembro?",
+        "confirmDeactivateText": "{name} perderá el acceso al CMS de inmediato. Se conservan su rol y sus registros de auditoría, y podrás volver a activar la cuenta más adelante.",
+        "confirmActivateTitle": "¿Activar a este miembro?",
+        "confirmActivateText": "{name} podrá volver a usar el CMS con su rol actual.",
+        "cancel": "Cancelar"
+      },
+      "role": {
+        "manage": "Cambiar rol",
+        "title": "Cambiar rol",
+        "description": "Un miembro tiene un único rol. Solo puedes asignar roles de rango inferior al tuyo.",
+        "label": "Rol",
+        "none": "Sin rol",
+        "option": "{name} (rango {rank})",
+        "help": "El rol decide qué datos y secciones del CMS puede usar el miembro.",
+        "save": "Guardar rol",
+        "cancel": "Cancelar",
+        "saved": "Rol actualizado",
+        "saveError": "No se ha podido cambiar el rol"
+      },
+      "cards": {
+        "status": "Estado de la cuenta",
+        "statusHelp": "Los miembros desactivados no pueden usar el CMS.",
+        "role": "Rol",
+        "roleHelp": "Decide los permisos y el rango del miembro.",
+        "accountId": "Cuenta del CMS",
+        "joined": "Alta el {date}",
+        "authUserId": "Usuario de Auth",
+        "authUserIdHelp": "Identificador del usuario en Auth."
+      }
+    },
+    "errors": {
+      "permissionDenied": "No tienes permiso para hacer esto",
+      "invalidData": "La solicitud no es válida",
+      "mfaVerificationRequired": "Verifica tu segundo factor antes de cambiar este ajuste",
+      "mfaDisableRequiresRoot": "Solo un superadministrador de la plataforma con un segundo factor verificado puede dejar de exigir MFA",
+      "memberNotFound": "El miembro ya no existe",
+      "selfAction": "No puedes cambiar tu propio rol ni tu estado",
+      "protected": "Esta cuenta la gestiona la plataforma",
+      "rankDenied": "Solo puedes gestionar miembros y roles de rango inferior al tuyo",
+      "inactive": "Activa al miembro antes de asignarle un rol",
+      "resourceNotFound": "La tabla no está registrada en el CMS",
+      "protectedSchema": "Las tablas de este esquema no se pueden gestionar desde el CMS"
+    },
+    "permissions": {
+      "title": "Roles y permisos",
+      "description": "Los roles deciden qué puede hacer cada miembro del personal del CMS. Un rol obtiene permisos directamente o mediante grupos de permisos. Solo puedes crear roles de rango inferior al tuyo y conceder capacidades que ya tengas.",
+      "system": "Sistema",
+      "back": "Volver a roles y permisos",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "remove": "Quitar",
+      "searchPlaceholder": "Filtrar por nombre o descripción",
+      "assign": "{count, plural, =0 {Asignar} other {Asignar (#)}}",
+      "tabs": {
+        "roles": "Roles",
+        "groups": "Grupos de permisos",
+        "permissions": "Permisos"
+      },
+      "create": {
+        "roles": "Nuevo rol",
+        "groups": "Nuevo grupo",
+        "permissions": "Nuevo permiso"
+      },
+      "kinds": {
+        "system": "Sistema",
+        "table": "Tabla",
+        "column": "Columna",
+        "storage": "Almacenamiento"
+      },
+      "kindHelp": {
+        "system": "Acceso a un recurso del CMS (roles, permisos, miembros, registros de auditoría…).",
+        "table": "Acceso a las filas de una tabla gestionada. Usa * para todos los esquemas o todas las tablas.",
+        "column": "Acceso a una columna de una tabla gestionada.",
+        "storage": "Acceso a los archivos de un bucket de almacenamiento. El bucket y la ruta son siempre explícitos: usa * para todos."
+      },
+      "actions": {
+        "all": "Todas las acciones",
+        "select": "Leer",
+        "insert": "Crear",
+        "update": "Actualizar",
+        "delete": "Eliminar"
+      },
+      "resources": {
+        "account": "Miembros",
+        "role": "Roles",
+        "permission": "Permisos",
+        "log": "Registros de auditoría",
+        "table": "Ajustes de tablas",
+        "auth_user": "Usuarios de Auth",
+        "system_setting": "Ajustes del sistema"
+      },
+      "table": {
+        "name": "Nombre",
+        "rank": "Rango",
+        "members": "Miembros",
+        "permissions": "Permisos",
+        "definition": "Definición",
+        "noResults": "Nada que mostrar"
+      },
+      "roles": {
+        "created": "Rol creado",
+        "updated": "Rol actualizado",
+        "deleted": "Rol eliminado",
+        "createTitle": "Nuevo rol",
+        "editTitle": "Editar rol",
+        "formDescription": "El rango ordena los roles: un miembro solo puede gestionar roles y miembros de rango inferior al suyo.",
+        "name": "Nombre",
+        "description": "Descripción",
+        "rank": "Rango",
+        "rankPlaceholder": "Elige un rango",
+        "rankHelp": "Rangos libres inferiores al tuyo ({max}). Cada rango solo puede usarlo un rol.",
+        "cancel": "Cancelar",
+        "create": "Crear rol",
+        "save": "Guardar",
+        "edit": "Editar",
+        "systemNotice": "Este es el rol de superadministrador de la plataforma. Lo gestiona la plataforma y no se puede cambiar desde el CMS.",
+        "rankCardHelp": "Los rangos superiores pueden gestionar los inferiores",
+        "rankValue": "Rango {rank}",
+        "members": "Miembros",
+        "membersHelp": "Cuentas del CMS con este rol (cámbialas en Ajustes > Miembros)",
+        "noMembers": "Ningún miembro tiene este rol",
+        "inactive": "Inactivo",
+        "groups": "Grupos de permisos",
+        "groupsHelp": "Todos los permisos de estos grupos se aplican al rol",
+        "addGroups": "Añadir grupos",
+        "noGroups": "Sin grupos de permisos",
+        "permissions": "Permisos directos",
+        "permissionsHelp": "Permisos asignados al rol sin pasar por un grupo",
+        "addPermissions": "Añadir permisos",
+        "noPermissions": "Sin permisos directos",
+        "addGroupsTitle": "Añadir grupos de permisos",
+        "addGroupsDescription": "Solo se muestran los grupos cuyos permisos puedes conceder.",
+        "noAssignableGroups": "No hay grupos que puedas añadir a este rol.",
+        "addPermissionsTitle": "Añadir permisos",
+        "addPermissionsDescription": "Solo se muestran los permisos cuya capacidad tienes.",
+        "noAssignablePermissions": "No hay permisos que puedas añadir.",
+        "deleteTitle": "Eliminar rol",
+        "deleteDescription": "El rol \"{name}\" se eliminará junto con sus asignaciones. Esta acción no se puede deshacer.",
+        "memberCount": "{count, plural, =0 {Sin miembros} one {# miembro} other {# miembros}}"
+      },
+      "groups": {
+        "created": "Grupo de permisos creado",
+        "updated": "Grupo de permisos actualizado",
+        "deleted": "Grupo de permisos eliminado",
+        "createTitle": "Nuevo grupo de permisos",
+        "editTitle": "Editar grupo de permisos",
+        "formDescription": "Los grupos agrupan permisos para poder asignarlos a varios roles a la vez.",
+        "name": "Nombre",
+        "description": "Descripción",
+        "cancel": "Cancelar",
+        "create": "Crear grupo",
+        "save": "Guardar",
+        "edit": "Editar",
+        "systemNotice": "Este es el grupo de superadministrador de la plataforma. Lo gestiona la plataforma y no se puede cambiar desde el CMS.",
+        "permissions": "Permisos",
+        "permissionsHelp": "Permisos incluidos en el grupo",
+        "addPermissions": "Añadir permisos",
+        "noPermissions": "El grupo no tiene permisos",
+        "roles": "Roles que usan este grupo",
+        "rolesHelp": "Solo se muestran los roles de tu rango o inferior",
+        "noRoles": "Ningún rol visible usa este grupo",
+        "addPermissionsTitle": "Añadir permisos al grupo",
+        "addPermissionsDescription": "Solo se muestran los permisos cuya capacidad tienes.",
+        "deleteTitle": "Eliminar grupo de permisos",
+        "deleteDescription": "El grupo \"{name}\" se eliminará y se quitará de todos los roles. Esta acción no se puede deshacer."
+      },
+      "permission": {
+        "created": "Permiso creado",
+        "updated": "Permiso actualizado",
+        "deleted": "Permiso eliminado",
+        "createTitle": "Nuevo permiso",
+        "editTitle": "Editar permiso",
+        "formDescription": "Solo puedes definir capacidades que ya tengas.",
+        "name": "Nombre",
+        "description": "Descripción",
+        "kind": "Tipo",
+        "resource": "Recurso",
+        "choose": "Elegir…",
+        "bucket": "Bucket",
+        "bucketHelp": "Nombre del bucket, o * para todos los buckets.",
+        "path": "Patrón de ruta",
+        "pathHelp": "Usa * como comodín (por ejemplo, invoices/*) y '{{user_id}}' o '{{account_id}}' como variables. Usa * solo para todas las rutas.",
+        "schema": "Esquema",
+        "table": "Tabla",
+        "column": "Columna",
+        "catalogHelp": "Solo se muestran las tablas gestionadas que puedes leer; * significa todas.",
+        "action": "Acción",
+        "create": "Crear permiso",
+        "save": "Guardar",
+        "edit": "Editar",
+        "systemNotice": "Este es un permiso de superadministrador de la plataforma. Lo gestiona la plataforma y no se puede cambiar desde el CMS.",
+        "inUseNotice": "Solo se puede eliminar cuando ningún rol, grupo o cuenta lo usa.",
+        "roles": "Roles con este permiso",
+        "rolesHelp": "Roles que lo tienen directamente (no a través de un grupo)",
+        "noRoles": "Ningún rol lo tiene directamente",
+        "groups": "Grupos con este permiso",
+        "groupsHelp": "Grupos de permisos que lo incluyen",
+        "noGroups": "Ningún grupo visible lo incluye",
+        "deleteTitle": "Eliminar permiso",
+        "deleteDescription": "El permiso \"{name}\" se eliminará. Esta acción no se puede deshacer."
+      },
+      "assignments": {
+        "saved": "Asignaciones guardadas"
+      },
+      "form": {
+        "errors": {
+          "nameRequired": "Introduce un nombre",
+          "nameTooLong": "El nombre es demasiado largo",
+          "descriptionTooLong": "La descripción es demasiado larga",
+          "rankRequired": "Elige un rango",
+          "rankNotAllowed": "El rango debe ser inferior al tuyo",
+          "resourceRequired": "Elige un recurso",
+          "bucketInvalid": "Introduce un nombre de bucket válido o *",
+          "pathInvalid": "Introduce un patrón de ruta relativa o *",
+          "schemaRequired": "Elige un esquema",
+          "tableRequired": "Elige una tabla",
+          "columnRequired": "Elige una columna"
+        }
+      },
+      "errors": {
+        "accessDenied": "No tienes permiso para hacer esto",
+        "invalidData": "La solicitud no es válida",
+        "notFound": "Ya no existe",
+        "nameTaken": "Ese nombre ya está en uso",
+        "notGrantable": "Solo puedes conceder capacidades que ya tengas",
+        "permissionRankDenied": "Este permiso lo usa un rol de tu rango o superior",
+        "permissionInUse": "El permiso sigue asignado. Quítalo primero de los roles y grupos",
+        "systemProtected": "Los roles, grupos y permisos del sistema los gestiona la plataforma",
+        "rankTaken": "Otro rol ya tiene ese rango",
+        "roleRankDenied": "Solo puedes gestionar roles de rango inferior al tuyo",
+        "roleHasMembers": "Reasigna los miembros de este rol antes de eliminarlo",
+        "groupRankDenied": "Este grupo lo usa un rol que no puedes gestionar",
+        "generic": "Algo ha salido mal. Inténtalo de nuevo"
+      }
+    },
+    "resources": {
+      "title": "Recursos",
+      "description": "Tablas gestionadas por el CMS: elige cuáles aparecen en el explorador de datos, su orden y cómo se muestran sus columnas y registros.",
+      "empty": "Todavía no hay tablas gestionadas. Sincroniza un esquema para registrar sus tablas.",
+      "columns": {
+        "table": "Tabla",
+        "displayName": "Nombre para mostrar",
+        "visible": "Visible",
+        "order": "Orden"
+      },
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "configure": "Configurar",
+      "back": "Volver",
+      "saved": "Ajustes guardados",
+      "saveError": "No se han podido guardar los ajustes",
+      "sync": {
+        "action": "Sincronizar tablas",
+        "title": "Sincronizar tablas",
+        "description": "Lee las tablas de un esquema de la base de datos y las registra o actualiza, conservando lo que hayas configurado. Los esquemas del sistema no se pueden sincronizar.",
+        "schema": "Esquema",
+        "table": "Tabla (opcional)",
+        "allTables": "Todas las tablas del esquema",
+        "invalidIdentifier": "Usa solo letras, números y guiones bajos",
+        "submit": "Sincronizar",
+        "done": "Tablas sincronizadas",
+        "error": "No se han podido sincronizar las tablas"
+      },
+      "table": {
+        "title": "Tabla",
+        "description": "Cómo se nombra y se muestra esta tabla en el explorador de datos.",
+        "displayName": "Nombre para mostrar",
+        "displayFormat": "Formato de visualización",
+        "tableDescription": "Descripción",
+        "isVisible": "Visible en el explorador de datos",
+        "isSearchable": "Incluida en la búsqueda global",
+        "save": "Guardar"
+      },
+      "column": {
+        "sectionTitle": "Columnas",
+        "sectionDescription": "Etiqueta, visibilidad, orden, edición y formateador de cada columna.",
+        "name": "Columna",
+        "label": "Etiqueta",
+        "formatter": "Formateador",
+        "formatterDefault": "Predeterminado",
+        "edit": "Editar columna",
+        "moveUp": "Subir",
+        "moveDown": "Bajar",
+        "title": "Columna {column}",
+        "description": "Tipo en la base de datos: {type}",
+        "columnDescription": "Descripción",
+        "save": "Guardar",
+        "short": {
+          "isVisibleInTable": "Lista",
+          "isVisibleInDetail": "Registro",
+          "isEditable": "Editable"
+        },
+        "flags": {
+          "isVisibleInTable": "Visible en la lista",
+          "isVisibleInDetail": "Visible en el registro",
+          "isSearchable": "Buscable",
+          "isSortable": "Ordenable",
+          "isFilterable": "Filtrable",
+          "isEditable": "Editable"
+        },
+        "formatters": {
+          "text": "Texto sin formato",
+          "longtext": "Texto largo",
+          "email": "Correo electrónico",
+          "url": "URL",
+          "color": "Color",
+          "markdown": "Markdown",
+          "html": "HTML",
+          "phone": "Teléfono",
+          "file": "Archivo",
+          "image": "Imagen",
+          "audio": "Audio",
+          "video": "Vídeo",
+          "number": "Número",
+          "currency": "Moneda",
+          "percentage": "Porcentaje",
+          "date": "Fecha",
+          "datetime": "Fecha y hora",
+          "time": "Hora",
+          "code": "Código (JSON)",
+          "switch": "Interruptor",
+          "uuid": "UUID"
+        },
+        "valueLabels": "Etiquetas de los valores",
+        "valueLabelsDescription": "Texto que se muestra para cada valor del enumerado. Déjalo vacío para usar la etiqueta por defecto; el valor guardado no cambia."
+      },
+      "relations": {
+        "title": "Registros relacionados",
+        "description": "Secciones de registros relacionados (uno a muchos) que se muestran en la página del registro.",
+        "empty": "Esta tabla no tiene relaciones uno a muchos.",
+        "enabled": "Mostrar sección",
+        "sectionLabel": "Título de la sección",
+        "save": "Guardar"
+      },
+      "layout": {
+        "open": "Diseño del registro",
+        "title": "Diseño del registro",
+        "back": "Volver a la tabla",
+        "defaultName": "Diseño del registro",
+        "defaultGroup": "Detalles",
+        "newGroup": "Nuevo grupo",
+        "descriptionSaved": "Esta tabla usa un diseño personalizado. Arrastra campos a las filas o haz clic en un campo para añadirlo.",
+        "descriptionDefault": "Esta tabla usa el diseño predeterminado. Arrastra campos a las filas o haz clic en un campo para añadirlo y después guarda.",
+        "modes": {
+          "display": "Registro",
+          "edit": "Formulario de edición"
+        },
+        "available": "Campos disponibles",
+        "allPlaced": "Todos los campos están colocados",
+        "paletteHint": "Arrastra a una fila o haz clic para añadir",
+        "groupLabel": "Título del grupo",
+        "moveUp": "Subir grupo",
+        "moveDown": "Bajar grupo",
+        "removeGroup": "Quitar grupo",
+        "removeRow": "Quitar fila",
+        "removeField": "Quitar campo",
+        "size": "Ancho",
+        "dropHere": "Suelta los campos aquí",
+        "addRow": "Añadir fila",
+        "addGroup": "Añadir grupo",
+        "save": "Guardar diseño",
+        "reset": "Usar diseño predeterminado",
+        "saved": "Diseño guardado"
+      }
+    }
+  },
+  "dashboards": {
+    "list": {
+      "searchPlaceholder": "Buscar paneles…",
+      "filters": {
+        "all": "Todos",
+        "owned": "Míos",
+        "shared": "Compartidos conmigo"
+      },
+      "empty": "Todavía no hay paneles. Crea uno para empezar a seguir tus datos.",
+      "widgetCount": "{count, plural, =0 {Sin widgets} one {# widget} other {# widgets}}",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
+    "permission": {
+      "owner": "Propietario",
+      "edit": "Puede editar",
+      "view": "Solo lectura"
+    },
+    "actions": {
+      "newDashboard": "Nuevo panel",
+      "create": "Crear",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "share": "Compartir",
+      "rename": "Renombrar",
+      "back": "Volver a paneles",
+      "addWidget": "Añadir widget",
+      "arrange": "Organizar",
+      "saveLayout": "Guardar diseño",
+      "editWidget": "Editar widget",
+      "duplicateWidget": "Duplicar widget",
+      "deleteWidget": "Eliminar widget"
+    },
+    "create": {
+      "title": "Nuevo panel",
+      "description": "Ponle un nombre a tu panel. Después podrás añadir widgets y compartirlo.",
+      "name": "Nombre"
+    },
+    "rename": {
+      "title": "Renombrar panel",
+      "description": "Elige un nuevo nombre para este panel."
+    },
+    "delete": {
+      "title": "Eliminar panel",
+      "description": "\"{name}\" y todos sus widgets se eliminarán para todas las personas con las que está compartido. Esta acción no se puede deshacer."
+    },
+    "deleteWidget": {
+      "title": "Eliminar widget",
+      "description": "El widget \"{title}\" se quitará de este panel."
+    },
+    "share": {
+      "title": "Compartir panel",
+      "description": "Los roles de rango inferior al tuyo pueden ver este panel. Cada persona solo ve los datos de las tablas que puede leer.",
+      "none": "Este panel todavía no está compartido.",
+      "role": "Rol",
+      "chooseRole": "Elige un rol",
+      "level": "Acceso",
+      "view": "Ver",
+      "edit": "Editar",
+      "submit": "Compartir",
+      "remove": "Dejar de compartir",
+      "noRoles": "No hay roles de rango inferior al tuyo con los que compartir."
+    },
+    "view": {
+      "empty": "Este panel todavía no tiene widgets.",
+      "emptyEditable": "Este panel todavía no tiene widgets. Añade uno para empezar."
+    },
+    "arrange": {
+      "left": "Mover a la izquierda",
+      "right": "Mover a la derecha",
+      "up": "Subir",
+      "down": "Bajar",
+      "wider": "Más ancho",
+      "narrower": "Más estrecho",
+      "taller": "Más alto",
+      "shorter": "Más bajo"
+    },
+    "widget": {
+      "noAccess": "No tienes acceso a los datos de este widget.",
+      "loadError": "No se han podido cargar los datos del widget.",
+      "noData": "No hay datos que mostrar.",
+      "value": "Valor",
+      "copyTitle": "{title} (copia)",
+      "page": "Página {page} de {pageCount}",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "aggregation": {
+        "COUNT": "Recuento",
+        "SUM": "Suma",
+        "AVG": "Media",
+        "MIN": "Mínimo",
+        "MAX": "Máximo"
+      }
+    },
+    "editor": {
+      "createTitle": "Añadir widget",
+      "editTitle": "Editar widget",
+      "description": "Elige qué mostrar y de qué tabla. Solo se muestran las tablas que puedes leer.",
+      "title": "Título",
+      "type": "Tipo",
+      "types": {
+        "metric": "Métrica",
+        "chart": "Gráfico",
+        "table": "Tabla"
+      },
+      "table": "Tabla",
+      "chooseTable": "Elige una tabla",
+      "chooseColumn": "Elige una columna",
+      "chartType": "Gráfico",
+      "chartTypes": {
+        "line": "Líneas",
+        "bar": "Barras",
+        "pie": "Circular"
+      },
+      "xAxis": "Agrupar por",
+      "timeBucket": "Agrupación de fechas",
+      "timeBuckets": {
+        "none": "Valor exacto",
+        "day": "Día",
+        "week": "Semana",
+        "month": "Mes",
+        "year": "Año"
+      },
+      "aggregation": "Cálculo",
+      "aggregations": {
+        "COUNT": "Recuento",
+        "SUM": "Suma",
+        "AVG": "Media",
+        "MIN": "Mínimo",
+        "MAX": "Máximo"
+      },
+      "valueColumn": "Columna",
+      "allRows": "Todas las filas",
+      "columns": "Columnas",
+      "filter": "Filtro",
+      "noFilter": "Sin filtro",
+      "operator": "Condición",
+      "value": "Valor",
+      "operators": {
+        "eq": "es igual a",
+        "neq": "no es igual a",
+        "gt": "mayor que",
+        "gte": "como mínimo",
+        "lt": "menor que",
+        "lte": "como máximo",
+        "contains": "contiene",
+        "isNull": "está vacío",
+        "notNull": "no está vacío"
+      },
+      "invalid": "Completa el título, la tabla y las columnas para este tipo de widget.",
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    },
+    "messages": {
+      "created": "Panel creado",
+      "renamed": "Panel renombrado",
+      "deleted": "Panel eliminado",
+      "shared": "Uso compartido actualizado",
+      "unshared": "El rol ya no tiene acceso",
+      "widgetSaved": "Widget guardado",
+      "widgetDeleted": "Widget eliminado",
+      "layoutSaved": "Diseño guardado"
+    },
+    "errors": {
+      "notFound": "El panel ya no existe o no tienes acceso a él.",
+      "forbidden": "No tienes permiso para cambiar este panel.",
+      "invalidData": "Los datos no son válidos. Revísalos e inténtalo de nuevo.",
+      "shareRankDenied": "Solo puedes compartir con roles de rango inferior al tuyo.",
+      "widgetNotFound": "El widget ya no existe.",
+      "widgetNoAccess": "No puedes usar una tabla que no tienes permiso para leer.",
+      "widgetInvalidSource": "La tabla o las columnas no están disponibles para widgets.",
+      "createFailed": "No se ha podido crear el panel.",
+      "saveFailed": "No se han podido guardar los cambios.",
+      "deleteFailed": "No se ha podido eliminar."
+    }
+  }
+}

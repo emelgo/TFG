@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@pymekit/cms-formatters": "workspace:*",
-    "@pymekit/cms-types": "workspace:*"
+    "@pymekit/cms-types": "workspace:*",
+    "@pymekit/i18n": "workspace:*"
   },
   "devDependencies": {
     "@pymekit/tsconfig": "workspace:*",

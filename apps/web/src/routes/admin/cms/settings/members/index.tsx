@@ -43,8 +43,14 @@ export const Route = createFileRoute('/admin/cms/settings/members/')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({
-    meta: [{ title: getTranslator()('cms.settings.members.title') }],
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)(
+          'cms.settings.members.title',
+        ),
+      },
+    ],
   }),
   component: MembersPage,
   errorComponent: ({ reset }) => (

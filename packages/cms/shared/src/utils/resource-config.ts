@@ -27,6 +27,8 @@ export const RESOURCE_CONFIG_LIMITS = {
   relationsPerUpdate: 100,
   sectionLabel: 100,
   booleanLabel: 100,
+  /** Texto visible de un valor de enumerado (`ui_config.value_labels`). */
+  valueLabel: 100,
   uiConfigEntries: 20,
   uiConfigValue: 500,
   enumBadges: 200,

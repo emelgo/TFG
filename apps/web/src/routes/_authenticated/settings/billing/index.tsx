@@ -23,7 +23,11 @@ import { fetchActiveAccountBillingData } from '#/lib/billing/billing.functions.t
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/_authenticated/settings/billing/')({
-  head: () => ({ meta: [{ title: getTranslator()('common.routes.billing') }] }),
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('common.routes.billing') },
+    ],
+  }),
   loader: () => fetchActiveAccountBillingData(),
   component: BillingPage,
   errorComponent: BillingErrorPage,

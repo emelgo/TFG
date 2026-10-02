@@ -116,5 +116,145 @@
     "dragAndDrop": "Drag and drop or",
     "select": "select files",
     "toUpload": "to upload"
+  },
+  "superAdmin": "Super Admin",
+  "openProfileMenu": "Open your profile menu",
+  "toggleTheme": "Toggle theme",
+  "demoMrrDescription": "Monthly recurring revenue",
+  "demoRevenue": "Revenue",
+  "demoRevenueDescription": "Total revenue including fees",
+  "demoFees": "Fees",
+  "demoFeesDescription": "Total fees collected",
+  "demoNewCustomers": "New Customers",
+  "demoNewCustomersDescription": "Customers who signed up this month",
+  "demoBestCustomers": "Best Customers",
+  "demoBestCustomersDescription": "Showing the top customers by MRR",
+  "demoCustomer": "Customer",
+  "demoLogins": "Logins",
+  "demoStatus": "Status",
+  "demoVisitors": "Visitors",
+  "demoVisitorsDescription": "Showing total visitors for the last 6 months",
+  "demoTrendingUp": "Trending up by 5.2% this month",
+  "demoPeriod": "January - June 2024",
+  "demoPageViews": "Page Views",
+  "demoPageViewsDescription": "Showing total visitors for the last 3 months",
+  "demoDesktop": "Desktop",
+  "demoMobile": "Mobile",
+  "demoStatusHealthy": "Healthy",
+  "demoStatusPossibleChurn": "Possible Churn",
+  "demoStatusChurn": "Churn",
+  "demoPlan": "Plan",
+  "enums": {
+    "app_permissions": {
+      "roles_manage": "Manage roles",
+      "billing_manage": "Manage billing",
+      "settings_manage": "Manage settings",
+      "members_manage": "Manage members",
+      "invites_manage": "Manage invitations"
+    },
+    "subscription_status": {
+      "active": "Active",
+      "trialing": "Trialing",
+      "past_due": "Past due",
+      "canceled": "Canceled",
+      "unpaid": "Unpaid",
+      "incomplete": "Incomplete",
+      "incomplete_expired": "Incomplete (expired)",
+      "paused": "Paused"
+    },
+    "payment_status": {
+      "pending": "Pending",
+      "succeeded": "Succeeded",
+      "failed": "Failed"
+    },
+    "billing_provider": {
+      "stripe": "Stripe"
+    },
+    "subscription_item_type": {
+      "flat": "Flat",
+      "per_seat": "Per seat",
+      "metered": "Metered"
+    },
+    "notification_channel": {
+      "in_app": "In app",
+      "email": "Email"
+    },
+    "notification_type": {
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Error"
+    },
+    "blog_post_status": {
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "account_role": {
+      "owner": "Owner",
+      "member": "Member"
+    },
+    "audit_log_severity": {
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Error"
+    },
+    "system_resource": {
+      "account": "Account",
+      "role": "Role",
+      "permission": "Permission",
+      "log": "Log",
+      "table": "Table",
+      "auth_user": "User",
+      "system_setting": "System setting"
+    },
+    "permission_type": {
+      "system": "System",
+      "data": "Data"
+    },
+    "permission_scope": {
+      "table": "Table",
+      "column": "Column",
+      "storage": "Storage"
+    },
+    "system_action": {
+      "insert": "Insert",
+      "update": "Update",
+      "delete": "Delete",
+      "select": "Select",
+      "all": "All"
+    },
+    "dashboard_permission_level": {
+      "owner": "Owner",
+      "view": "View",
+      "edit": "Edit"
+    },
+    "dashboard_widget_type": {
+      "chart": "Chart",
+      "metric": "Metric",
+      "table": "Table"
+    },
+    "customer_type": {
+      "individual": "Individual",
+      "company": "Company"
+    },
+    "order_status": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "invoice_status": {
+      "draft": "Draft",
+      "issued": "Issued",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "void": "Void"
+    },
+    "employment_type": {
+      "full_time": "Full time",
+      "part_time": "Part time",
+      "contractor": "Contractor"
+    }
   }
 }

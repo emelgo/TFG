@@ -92,6 +92,7 @@ describe('readColumnsSettings y buildColumnUpdate', () => {
       isFilterable: name.isFilterable,
       isEditable: name.isEditable,
       uiDataType: 'longtext',
+      valueLabels: {},
     };
 
     expect(buildColumnUpdate(name, values)).toEqual({
@@ -117,8 +118,52 @@ describe('readColumnsSettings y buildColumnUpdate', () => {
         isFilterable: id.isFilterable,
         isEditable: id.isEditable,
         uiDataType: id.uiDataType,
+        valueLabels: id.valueLabels,
       }),
     ).toBeNull();
+  });
+
+  it('guarda solo las etiquetas de enumerado no vacías y las borra con null', () => {
+    const [status] = readColumnsSettings({
+      status: {
+        ui_config: {
+          data_type: 'USER-DEFINED',
+          enum_type: 'order_status',
+          enum_values: ['pending', 'paid'],
+          value_labels: { pending: 'Por cobrar', bogus: 42 },
+        },
+      },
+    });
+
+    expect(status!.enumType).toBe('order_status');
+    expect(status!.valueLabels).toEqual({ pending: 'Por cobrar' });
+
+    const base = {
+      displayName: status!.displayName,
+      description: status!.description,
+      isVisibleInTable: status!.isVisibleInTable,
+      isVisibleInDetail: status!.isVisibleInDetail,
+      isSearchable: status!.isSearchable,
+      isSortable: status!.isSortable,
+      isFilterable: status!.isFilterable,
+      isEditable: status!.isEditable,
+      uiDataType: status!.uiDataType,
+    };
+
+    expect(
+      buildColumnUpdate(status!, {
+        ...base,
+        valueLabels: { pending: 'Por cobrar', paid: ' Cobrado ', ghost: 'x' },
+      }),
+    ).toEqual({
+      status: {
+        ui_config: { value_labels: { pending: 'Por cobrar', paid: 'Cobrado' } },
+      },
+    });
+
+    expect(
+      buildColumnUpdate(status!, { ...base, valueLabels: { pending: '' } }),
+    ).toEqual({ status: { ui_config: { value_labels: null } } });
   });
 
   it('moveColumn renumera todas las columnas', () => {

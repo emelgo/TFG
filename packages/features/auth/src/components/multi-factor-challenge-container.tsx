@@ -136,7 +136,12 @@ export function MultiFactorChallengeContainer({
                           }
                           data-invalid={isInvalid}
                         >
+                          {/* `Field` estira a todo el ancho sus hijos
+                              directos (`*:w-full`); sin `justify-center` las
+                              casillas quedaban a la izquierda y el texto
+                              centrado (fallo visto en /auth/verify, F3b). */}
                           <InputOTP
+                            containerClassName="justify-center"
                             value={field.state.value}
                             onChange={field.handleChange}
                             onBlur={field.handleBlur}

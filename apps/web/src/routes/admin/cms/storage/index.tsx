@@ -32,7 +32,11 @@ export const Route = createFileRoute('/admin/cms/storage/')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({ meta: [{ title: getTranslator()('cms.sidebar.storage') }] }),
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('cms.sidebar.storage') },
+    ],
+  }),
   component: StoragePage,
   errorComponent: ({ reset }) => (
     <CmsSectionError reset={reset} testId="storage-load-error" />

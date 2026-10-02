@@ -4,6 +4,7 @@ import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
+import { useTranslations } from 'use-intl';
 
 import { Alert, AlertDescription, AlertTitle } from '@pymekit/ui/alert';
 import {
@@ -26,6 +27,7 @@ import {
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
+import { Trans } from '@pymekit/ui/trans';
 
 import { banUserFunction } from '../lib/server/admin.functions';
 import { BanUserSchema } from '../lib/server/schema/admin-actions.schema';
@@ -46,11 +48,12 @@ export function AdminBanUserDialog(
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Ban User</AlertDialogTitle>
+          <AlertDialogTitle>
+            <Trans i18nKey={'admin.banTitle'} />
+          </AlertDialogTitle>
 
           <AlertDialogDescription>
-            Are you sure you want to ban this user? Please note that the user
-            will stay logged in until their session expires.
+            <Trans i18nKey={'admin.banDescription'} />
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -76,6 +79,8 @@ function BanUserForm(props: {
 }) {
   const banUser = useServerFn(banUserFunction);
   const router = useRouter();
+
+  const t = useTranslations('admin');
 
   const mutation = useMutation({
     mutationFn: (data: { userId: string; confirmation: string }) =>
@@ -112,11 +117,12 @@ function BanUserForm(props: {
     >
       <If condition={mutation.isError}>
         <Alert variant={'destructive'}>
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>
+            <Trans i18nKey={'admin.error'} />
+          </AlertTitle>
 
           <AlertDescription>
-            There was an error banning the user. Please check the server logs to
-            see what went wrong.
+            <Trans i18nKey={'admin.banError'} />
           </AlertDescription>
         </Alert>
       </If>
@@ -129,14 +135,17 @@ function BanUserForm(props: {
           return (
             <Field data-invalid={isInvalid}>
               <FieldLabel htmlFor={field.name}>
-                Type <b>CONFIRM</b> to confirm
+                <Trans
+                  i18nKey={'admin.confirmLabel'}
+                  components={{ b: <b /> }}
+                />
               </FieldLabel>
 
               <Input
                 id={field.name}
                 required
                 pattern={'CONFIRM'}
-                placeholder={'Type CONFIRM to confirm'}
+                placeholder={t('confirmPlaceholder')}
                 name={field.name}
                 value={field.state.value}
                 onBlur={field.handleBlur}
@@ -145,7 +154,7 @@ function BanUserForm(props: {
               />
 
               <FieldDescription>
-                Are you sure you want to do this?
+                <Trans i18nKey={'admin.confirmHint'} />
               </FieldDescription>
 
               <FieldError errors={field.state.meta.errors} />
@@ -155,14 +164,20 @@ function BanUserForm(props: {
       </form.Field>
 
       <AlertDialogFooter>
-        <AlertDialogCancel disabled={props.isPending}>Cancel</AlertDialogCancel>
+        <AlertDialogCancel disabled={props.isPending}>
+          <Trans i18nKey={'admin.cancel'} />
+        </AlertDialogCancel>
 
         <Button
           disabled={props.isPending}
           type={'submit'}
           variant={'destructive'}
         >
-          {props.isPending ? 'Banning...' : 'Ban User'}
+          {props.isPending ? (
+            <Trans i18nKey={'admin.banPending'} />
+          ) : (
+            <Trans i18nKey={'admin.banTitle'} />
+          )}
         </Button>
       </AlertDialogFooter>
     </form>

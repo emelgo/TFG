@@ -14,6 +14,7 @@ import {
   useDateFormatter,
   useFormatterContext,
 } from '@pymekit/cms-formatters/hooks';
+import { useEnumLabel } from '@pymekit/i18n/enum-labels';
 
 import type { FilterItem, RelativeDateOption } from '../types';
 import type { FilterLabelFormatters } from '../utils/filter-params';
@@ -69,6 +70,8 @@ export function useFilterLabelFormatters(): FilterLabelFormatters {
  */
 export function useFilterOptions(filter: FilterItem) {
   const t = useTranslations('cms.dataExplorer');
+  const enumLabel = useEnumLabel();
+  const { enum_type: enumName, value_labels: valueLabels } = filter.ui_config;
 
   return useMemo(() => {
     if (filter.ui_config.data_type === 'boolean') {
@@ -81,9 +84,21 @@ export function useFilterOptions(filter: FilterItem) {
     const enumValues = filter.ui_config.enum_values;
 
     if (enumValues && enumValues.length > 0) {
-      return enumValues.map((value) => ({ label: value, value }));
+      // Se muestra la etiqueta legible; `value` (lo que va a la URL y a la
+      // consulta) sigue siendo el valor real del enumerado.
+      return enumValues.map((value) => ({
+        label: enumLabel(value, { enumName, overrides: valueLabels }),
+        value,
+      }));
     }
 
     return [] as Array<{ label: string; value: string | boolean }>;
-  }, [filter.ui_config.data_type, filter.ui_config.enum_values, t]);
+  }, [
+    filter.ui_config.data_type,
+    filter.ui_config.enum_values,
+    enumName,
+    valueLabels,
+    enumLabel,
+    t,
+  ]);
 }

@@ -123,5 +123,29 @@
       "heading": "Your payment failed",
       "description": "Your payment failed. Please update your payment method."
     }
+  },
+  "plans": {
+    "starter": {
+      "description": "The perfect plan to get started"
+    },
+    "pro": {
+      "description": "The perfect plan for professionals"
+    },
+    "enterprise": {
+      "description": "The perfect plan for enterprises"
+    },
+    "badges": {
+      "value": "Value",
+      "popular": "Popular"
+    },
+    "features": {
+      "auth": "Secure sign-in with MFA",
+      "teams": "Team accounts and invitations",
+      "blog": "Blog and documentation",
+      "roles": "Per-member roles and permissions",
+      "cms": "CMS with data explorer",
+      "prioritySupport": "Priority support",
+      "onboarding": "Guided onboarding"
+    }
   }
 }

@@ -42,7 +42,9 @@ export const Route = createFileRoute('/admin/cms/users/$id')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({ meta: [{ title: getTranslator()('cms.sidebar.users') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('cms.sidebar.users') }],
+  }),
   component: UserPage,
   errorComponent: ({ reset }) => (
     <CmsSectionError reset={reset} testId="user-load-error" />

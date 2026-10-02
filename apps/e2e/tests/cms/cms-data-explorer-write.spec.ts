@@ -135,11 +135,12 @@ test.describe('Escrituras del explorador: super-admin con MFA', () => {
     await expect(form.fieldError('body')).toBeVisible();
     await expect(form.fieldError('account_id')).toBeVisible();
 
-    // El enumerado muestra su valor por defecto y la clave foránea se elige
-    // buscando en la tabla destino.
+    // El enumerado muestra la etiqueta legible de su valor por defecto
+    // (F3b: `info` → «Info») y la clave foránea se elige buscando en la tabla
+    // destino.
     await expect(
       form.field('type').getByTestId('record-field-select'),
-    ).toContainText('info');
+    ).toContainText('Info');
 
     await form.pickRelation('account_id', 'PymeKit', TEAM_ACCOUNT_ID);
     await form.fill('body', body);

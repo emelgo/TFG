@@ -42,8 +42,10 @@ export const Route = createFileRoute('/admin/cms/dashboards/$dashboardId')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({
-    meta: [{ title: getTranslator()('cms.sidebar.dashboards') }],
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('cms.sidebar.dashboards') },
+    ],
   }),
   component: DashboardPage,
   errorComponent: ({ reset }) => (

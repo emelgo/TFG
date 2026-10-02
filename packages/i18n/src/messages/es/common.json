@@ -1,0 +1,260 @@
+{
+  "homeTabLabel": "Inicio",
+  "homeTabDescription": "Te damos la bienvenida a tu página de inicio",
+  "accountMembers": "Miembros del equipo",
+  "membersTabDescription": "Aquí puedes gestionar los miembros de tu equipo.",
+  "billingTabLabel": "Facturación",
+  "billingTabDescription": "Gestiona tu facturación y tu suscripción",
+  "dashboardTabLabel": "Panel",
+  "settingsTabLabel": "Ajustes",
+  "profileSettingsTabLabel": "Perfil",
+  "subscriptionSettingsTabLabel": "Suscripción",
+  "dashboardTabDescription": "Un resumen de la actividad y el rendimiento de tu cuenta en todos tus proyectos.",
+  "settingsTabDescription": "Gestiona tus ajustes y preferencias.",
+  "emailAddress": "Correo electrónico",
+  "password": "Contraseña",
+  "repeatPassword": "Repite la contraseña",
+  "error": "Error",
+  "modalConfirmationQuestion": "¿Seguro que quieres continuar?",
+  "imageInputLabel": "Haz clic aquí para subir una imagen",
+  "cancel": "Cancelar",
+  "clear": "Borrar",
+  "notFound": "No encontrado",
+  "backToHomePage": "Volver al inicio",
+  "goBack": "Intentar de nuevo",
+  "genericServerError": "Lo sentimos, algo ha salido mal.",
+  "genericServerErrorHeading": "Lo sentimos, algo ha salido mal al procesar tu solicitud. Contacta con nosotros si el problema persiste.",
+  "pageNotFound": "Página no encontrada",
+  "pageNotFoundSubHeading": "La página que buscas no existe o se ha movido. Comprueba la URL o vuelve a la página de inicio.",
+  "genericError": "Algo ha salido mal",
+  "genericErrorSubHeading": "Hemos encontrado un problema inesperado. Inténtalo de nuevo y, si el problema persiste, contacta con nuestro equipo de soporte.",
+  "anonymousUser": "Anónimo",
+  "tryAgain": "Intentar de nuevo",
+  "theme": "Tema",
+  "themeDescription": "Elige tu tema preferido para la aplicación",
+  "lightTheme": "Claro",
+  "darkTheme": "Oscuro",
+  "systemTheme": "Sistema",
+  "expandSidebar": "Expandir barra lateral",
+  "collapseSidebar": "Contraer barra lateral",
+  "documentation": "Documentación",
+  "pricing": "Precios",
+  "getStarted": "Empezar",
+  "getStartedWithPlan": "Empezar con {plan}",
+  "retry": "Reintentar",
+  "contactUs": "Contacta con nosotros",
+  "loading": "Cargando. Espera un momento...",
+  "yourAccounts": "Tus cuentas",
+  "continueKey": "Continuar",
+  "skip": "Omitir",
+  "info": "Información",
+  "signedInAs": "Sesión iniciada como",
+  "pageOfPages": "Página {page} de {total}",
+  "showingRecordCount": "Mostrando {pageSize} de {totalCount} filas",
+  "noData": "No hay datos disponibles",
+  "pageNotFoundHeading": "404",
+  "errorPageHeading": "500",
+  "notifications": "Notificaciones",
+  "noNotifications": "No hay notificaciones",
+  "justNow": "Ahora mismo",
+  "newVersionAvailable": "Nueva versión disponible",
+  "newVersionAvailableDescription": "Hay una nueva versión de la aplicación disponible. Te recomendamos recargar la página para obtener las últimas novedades y evitar problemas.",
+  "newVersionSubmitButton": "Recargar y actualizar",
+  "back": "Volver",
+  "routes": {
+    "home": "Inicio",
+    "account": "Cuenta",
+    "members": "Miembros",
+    "billing": "Facturación",
+    "dashboard": "Panel",
+    "settings": "Ajustes",
+    "profile": "Perfil",
+    "application": "Aplicación",
+    "yourAccount": "Tu cuenta",
+    "backToDashboard": "Volver al panel"
+  },
+  "roles": {
+    "owner": {
+      "label": "Propietario"
+    },
+    "member": {
+      "label": "Miembro"
+    }
+  },
+  "otp": {
+    "requestVerificationCode": "Solicitar código de verificación",
+    "requestVerificationCodeDescription": "Necesitamos verificar tu identidad para continuar con esta acción. Enviaremos un código de verificación al correo electrónico {email}.",
+    "sendingCode": "Enviando código...",
+    "sendVerificationCode": "Enviar código de verificación",
+    "enterVerificationCode": "Introduce el código de verificación",
+    "codeSentToEmail": "Hemos enviado un código de verificación al correo electrónico {email}.",
+    "verificationCode": "Código de verificación",
+    "enterCodeFromEmail": "Introduce el código de 6 dígitos que te hemos enviado por correo electrónico.",
+    "verifying": "Verificando...",
+    "verifyCode": "Verificar código",
+    "requestNewCode": "Solicitar nuevo código",
+    "errorSendingCode": "Error al enviar el código. Inténtalo de nuevo."
+  },
+  "cookieBanner": {
+    "title": "Hola, usamos cookies 🍪",
+    "description": "Este sitio web utiliza cookies para garantizar que obtengas la mejor experiencia.",
+    "reject": "Rechazar",
+    "accept": "Aceptar"
+  },
+  "dropzone": {
+    "success": "{count} archivo(s) subido(s) correctamente",
+    "error": "Error al subir el archivo: {message}",
+    "errorMessageUnknown": "Se ha producido un error desconocido.",
+    "errorMessageFileUnknown": "Archivo desconocido",
+    "errorMessageFileSizeUnknown": "Tamaño de archivo desconocido",
+    "errorMessageFileSizeTooSmall": "El tamaño del archivo es demasiado pequeño",
+    "errorMessageFileSizeTooLarge": "El tamaño del archivo es demasiado grande",
+    "uploading": "Subiendo...",
+    "uploadFiles": "Subir {count} archivo(s)",
+    "maxFileSize": "Tamaño máximo del archivo: {size}",
+    "maxFiles": "Solo puedes subir hasta {count} archivos; elimina {files} archivos.",
+    "dragAndDrop": "Arrastra y suelta o",
+    "select": "selecciona archivos",
+    "toUpload": "para subirlos"
+  },
+  "superAdmin": "Superadministrador",
+  "openProfileMenu": "Abre el menú de tu perfil",
+  "toggleTheme": "Cambiar tema",
+  "demoMrrDescription": "Ingresos recurrentes mensuales",
+  "demoRevenue": "Ingresos",
+  "demoRevenueDescription": "Ingresos totales, comisiones incluidas",
+  "demoFees": "Comisiones",
+  "demoFeesDescription": "Total de comisiones cobradas",
+  "demoNewCustomers": "Nuevos clientes",
+  "demoNewCustomersDescription": "Clientes que se han registrado este mes",
+  "demoBestCustomers": "Mejores clientes",
+  "demoBestCustomersDescription": "Mostrando los mejores clientes por MRR",
+  "demoCustomer": "Cliente",
+  "demoLogins": "Inicios de sesión",
+  "demoStatus": "Estado",
+  "demoVisitors": "Visitantes",
+  "demoVisitorsDescription": "Mostrando el total de visitantes de los últimos 6 meses",
+  "demoTrendingUp": "Subida del 5,2 % este mes",
+  "demoPeriod": "Enero - junio de 2024",
+  "demoPageViews": "Visitas de página",
+  "demoPageViewsDescription": "Mostrando el total de visitantes de los últimos 3 meses",
+  "demoDesktop": "Escritorio",
+  "demoMobile": "Móvil",
+  "demoStatusHealthy": "Saludable",
+  "demoStatusPossibleChurn": "Posible baja",
+  "demoStatusChurn": "Baja",
+  "demoPlan": "Plan",
+  "enums": {
+    "app_permissions": {
+      "roles_manage": "Gestionar roles",
+      "billing_manage": "Gestionar facturación",
+      "settings_manage": "Gestionar ajustes",
+      "members_manage": "Gestionar miembros",
+      "invites_manage": "Gestionar invitaciones"
+    },
+    "subscription_status": {
+      "active": "Activa",
+      "trialing": "En periodo de prueba",
+      "past_due": "Pago vencido",
+      "canceled": "Cancelada",
+      "unpaid": "Impagada",
+      "incomplete": "Incompleta",
+      "incomplete_expired": "Incompleta (caducada)",
+      "paused": "En pausa"
+    },
+    "payment_status": {
+      "pending": "Pendiente",
+      "succeeded": "Completado",
+      "failed": "Fallido"
+    },
+    "billing_provider": {
+      "stripe": "Stripe"
+    },
+    "subscription_item_type": {
+      "flat": "Tarifa fija",
+      "per_seat": "Por usuario",
+      "metered": "Por consumo"
+    },
+    "notification_channel": {
+      "in_app": "En la aplicación",
+      "email": "Correo electrónico"
+    },
+    "notification_type": {
+      "info": "Información",
+      "warning": "Aviso",
+      "error": "Error"
+    },
+    "blog_post_status": {
+      "draft": "Borrador",
+      "published": "Publicado",
+      "archived": "Archivado"
+    },
+    "account_role": {
+      "owner": "Propietario",
+      "member": "Miembro"
+    },
+    "audit_log_severity": {
+      "info": "Información",
+      "warning": "Aviso",
+      "error": "Error"
+    },
+    "system_resource": {
+      "account": "Cuenta",
+      "role": "Rol",
+      "permission": "Permiso",
+      "log": "Registro",
+      "table": "Tabla",
+      "auth_user": "Usuario",
+      "system_setting": "Ajuste del sistema"
+    },
+    "permission_type": {
+      "system": "Sistema",
+      "data": "Datos"
+    },
+    "permission_scope": {
+      "table": "Tabla",
+      "column": "Columna",
+      "storage": "Almacenamiento"
+    },
+    "system_action": {
+      "insert": "Crear",
+      "update": "Editar",
+      "delete": "Eliminar",
+      "select": "Ver",
+      "all": "Todas"
+    },
+    "dashboard_permission_level": {
+      "owner": "Propietario",
+      "view": "Ver",
+      "edit": "Editar"
+    },
+    "dashboard_widget_type": {
+      "chart": "Gráfico",
+      "metric": "Métrica",
+      "table": "Tabla"
+    },
+    "customer_type": {
+      "individual": "Particular",
+      "company": "Empresa"
+    },
+    "order_status": {
+      "pending": "Pendiente",
+      "paid": "Pagado",
+      "shipped": "Enviado",
+      "delivered": "Entregado",
+      "cancelled": "Cancelado"
+    },
+    "invoice_status": {
+      "draft": "Borrador",
+      "issued": "Emitida",
+      "paid": "Pagada",
+      "overdue": "Vencida",
+      "void": "Anulada"
+    },
+    "employment_type": {
+      "full_time": "Jornada completa",
+      "part_time": "Media jornada",
+      "contractor": "Autónomo"
+    }
+  }
+}

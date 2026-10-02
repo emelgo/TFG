@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
+import { useTranslations } from 'use-intl';
 
 import { useSupabase } from '@pymekit/supabase/hooks/use-supabase';
 import { Alert, AlertDescription, AlertTitle } from '@pymekit/ui/alert';
@@ -28,6 +29,7 @@ import {
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
 import { LoadingOverlay } from '@pymekit/ui/loading-overlay';
+import { Trans } from '@pymekit/ui/trans';
 
 import { impersonateUserFunction } from '../lib/server/admin.functions';
 import { ImpersonateUserSchema } from '../lib/server/schema/admin-actions.schema';
@@ -63,17 +65,20 @@ export function AdminImpersonateUserDialog(
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Impersonate User</AlertDialogTitle>
+          <AlertDialogTitle>
+            <Trans i18nKey={'admin.impersonateTitle'} />
+          </AlertDialogTitle>
 
           <AlertDialogDescription className={'flex flex-col space-y-1'}>
             <span>
-              Are you sure you want to impersonate this user? You will be logged
-              in as this user. To stop impersonating, log out.
+              <Trans i18nKey={'admin.impersonateDescription'} />
             </span>
 
             <span>
-              <b>NB:</b> If the user has 2FA enabled, you will not be able to
-              impersonate them.
+              <Trans
+                i18nKey={'admin.impersonateNote'}
+                components={{ b: <b /> }}
+              />
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -89,6 +94,8 @@ function AdminImpersonateUserForm(props: {
   onSuccess: (data: Tokens) => void;
 }) {
   const impersonateUser = useServerFn(impersonateUserFunction);
+
+  const t = useTranslations('admin');
 
   const mutation = useMutation({
     mutationFn: (data: { userId: string; confirmation: string }) =>
@@ -124,11 +131,12 @@ function AdminImpersonateUserForm(props: {
     >
       <If condition={mutation.isError}>
         <Alert variant={'destructive'}>
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>
+            <Trans i18nKey={'admin.error'} />
+          </AlertTitle>
 
           <AlertDescription>
-            Failed to impersonate user. Please check the logs to understand what
-            went wrong.
+            <Trans i18nKey={'admin.impersonateError'} />
           </AlertDescription>
         </Alert>
       </If>
@@ -141,14 +149,17 @@ function AdminImpersonateUserForm(props: {
           return (
             <Field data-invalid={isInvalid}>
               <FieldLabel htmlFor={field.name}>
-                Type <b>CONFIRM</b> to confirm
+                <Trans
+                  i18nKey={'admin.confirmLabel'}
+                  components={{ b: <b /> }}
+                />
               </FieldLabel>
 
               <Input
                 id={field.name}
                 required
                 pattern={'CONFIRM'}
-                placeholder={'Type CONFIRM to confirm'}
+                placeholder={t('confirmPlaceholder')}
                 name={field.name}
                 value={field.state.value}
                 onBlur={field.handleBlur}
@@ -157,7 +168,7 @@ function AdminImpersonateUserForm(props: {
               />
 
               <FieldDescription>
-                Are you sure you want to impersonate this user?
+                <Trans i18nKey={'admin.impersonateHint'} />
               </FieldDescription>
 
               <FieldError errors={field.state.meta.errors} />
@@ -167,10 +178,16 @@ function AdminImpersonateUserForm(props: {
       </form.Field>
 
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>
+          <Trans i18nKey={'admin.cancel'} />
+        </AlertDialogCancel>
 
         <Button disabled={mutation.isPending} type={'submit'}>
-          {mutation.isPending ? 'Impersonating...' : 'Impersonate User'}
+          {mutation.isPending ? (
+            <Trans i18nKey={'admin.impersonating'} />
+          ) : (
+            <Trans i18nKey={'admin.impersonateTitle'} />
+          )}
         </Button>
       </AlertDialogFooter>
     </form>
@@ -187,7 +204,11 @@ function ImpersonateUserAuthSetter({
 }>) {
   useSetSession(tokens);
 
-  return <LoadingOverlay>Setting up your session...</LoadingOverlay>;
+  return (
+    <LoadingOverlay>
+      <Trans i18nKey={'admin.settingUpSession'} />
+    </LoadingOverlay>
+  );
 }
 
 function useSetSession(tokens: { accessToken: string; refreshToken: string }) {

@@ -46,7 +46,11 @@ export const Route = createFileRoute('/update-password')({
       });
     }
   },
-  head: () => ({ meta: [{ title: getTranslator()('auth.updatePassword') }] }),
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('auth.updatePassword') },
+    ],
+  }),
   component: UpdatePasswordPage,
 });
 

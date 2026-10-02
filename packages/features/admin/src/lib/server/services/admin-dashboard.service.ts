@@ -36,11 +36,14 @@ export class AdminDashboardService {
       .then((response) => {
         if (response.error) {
           logger.error(
-            { ...ctx, error: response.error.message },
+            { ...ctx, error: response.error },
             `Error fetching active subscriptions`,
           );
 
-          throw new Error();
+          // Mensaje no vacío: antes se lanzaba `new Error()` y la página fallaba
+          // con un error en blanco, imposible de diagnosticar (F3b). El detalle
+          // de PostgREST queda en el log; al cliente solo llega este resumen.
+          throw new Error(`Error fetching active subscriptions`);
         }
 
         return response.count;
@@ -53,11 +56,11 @@ export class AdminDashboardService {
       .then((response) => {
         if (response.error) {
           logger.error(
-            { ...ctx, error: response.error.message },
+            { ...ctx, error: response.error },
             `Error fetching trialing subscriptions`,
           );
 
-          throw new Error();
+          throw new Error(`Error fetching trialing subscriptions`);
         }
 
         return response.count;
@@ -70,11 +73,11 @@ export class AdminDashboardService {
       .then((response) => {
         if (response.error) {
           logger.error(
-            { ...ctx, error: response.error.message },
+            { ...ctx, error: response.error },
             `Error fetching personal accounts`,
           );
 
-          throw new Error();
+          throw new Error(`Error fetching personal accounts`);
         }
 
         return response.count;
@@ -87,11 +90,11 @@ export class AdminDashboardService {
       .then((response) => {
         if (response.error) {
           logger.error(
-            { ...ctx, error: response.error.message },
+            { ...ctx, error: response.error },
             `Error fetching team accounts`,
           );
 
-          throw new Error();
+          throw new Error(`Error fetching team accounts`);
         }
 
         return response.count;

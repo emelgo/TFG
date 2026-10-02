@@ -1087,7 +1087,9 @@
           "code": "Code (JSON)",
           "switch": "Switch",
           "uuid": "UUID"
-        }
+        },
+        "valueLabels": "Value labels",
+        "valueLabelsDescription": "Text shown for each enum value. Leave empty to use the default label; the stored value does not change."
       },
       "relations": {
         "title": "Related records",
