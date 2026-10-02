@@ -73,6 +73,7 @@
 - [x] F2.9 · Cierre: suite E2E completa (149: 146 ✔ + 2 inestables conocidos + 1 test desactualizado por el permiso `resourceSettings` de la F2.7c, corregido y verificado en serie), skills `react-form-builder`, `service-builder` y `playwright-e2e` reescritas para el CMS integrado, pull request de `fase-2/cms` a `main`
 
 ## F3 · Desmarcado e i18n
+- [ ] Etiquetas legibles y traducidas para valores enumerados en el CMS y la web (`in_app` → «En la app», roles, estados…): etiqueta automática por defecto, traducciones explícitas para los enums de la plataforma y la demo, y configurables por columna en Ajustes → Recursos (sugerencia del autor, 2026-10-02)
 - [ ] La caja de introducción del código MFA (`/auth/verify`) se ve descuadrada (detectado por el autor, 2026-10-02)
 - [ ] Sesión anterior a un reinicio de la BD (refresh token inexistente): el dashboard de plataforma rompe con un error vacío en lugar de redirigir al login; endurecer el manejo de sesión caducada (detectado por el autor, 2026-10-02)
 - [x] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS (adelantado a F2, B-40)
