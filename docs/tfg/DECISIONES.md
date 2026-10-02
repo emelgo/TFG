@@ -33,7 +33,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Requisitos relacionados:** RF-09, RNF-04, RNF-07.
 
 ## ADR-003 · Idiomas del proyecto
-- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada
+- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada; la parte de la interfaz la modifica ADR-021
 - **Contexto:** el código lo evaluará un tribunal hispanohablante y lo reutilizarán desarrolladores.
 - **Decisión:** comentarios y documentación en español didáctico; identificadores en inglés; UI en español por defecto y en inglés.
 - **Alternativas consideradas:** todo en español, incluidos los identificadores (choca con las API y librerías del ecosistema); todo en inglés (dificulta la evaluación del TFG).
@@ -220,3 +220,19 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
   - La organización de la consola deja de depender del esquema SQL.
   - Las pruebas ya no dependen de datos de ejemplo artificiales.
 - **Requisitos relacionados:** RF-09, RNF-01, RNF-08.
+
+## ADR-021 · Interfaz solo en español, conservando la infraestructura de traducción
+- **Fecha:** 2026-10-02 · **Fase:** F3c · **Estado:** Aceptada. Modifica la parte de la interfaz de ADR-003.
+- **Contexto:** al usar la consola, el autor ve textos en inglés y una ayuda contextual pensada para dos idiomas. Su criterio es que PymeKit se dirige a pymes españolas: la aplicación debe estar **solo en español** («no quiero nada en inglés»). Al mismo tiempo, que una pyme pueda traducirla es una funcionalidad más de la plataforma reutilizable.
+- **Decisión:**
+  - La aplicación solo ofrece el español. Se retiran el locale `en` activo, el selector de idioma y los mensajes en inglés, y desaparece cualquier texto visible en inglés.
+  - Se conserva la infraestructura i18n: claves, `Trans`/use-intl, la lista de idiomas en la configuración y el test de claves. Añadir un idioma consiste en crear su carpeta de mensajes y añadirlo a la configuración, y se documenta como punto de extensión.
+  - Los E2E pasan a ejecutarse en español.
+  - Los identificadores, el código y los nombres técnicos de tablas y columnas siguen en inglés (ADR-003).
+- **Alternativas consideradas:**
+  - Mantener `es` y `en`: duplica el mantenimiento de cada texto y el autor no lo quiere.
+  - Quitar también la infraestructura i18n y escribir los textos directamente en el código: impediría traducir sin reescribir y contradice la reutilización (RNF-01).
+- **Consecuencias:**
+  - Hay que reescribir las aserciones de texto de los E2E y retirar los mensajes `en`.
+  - La memoria presentará la traducción como un punto de extensión documentado.
+- **Requisitos relacionados:** RF-13, RNF-01, RNF-08.

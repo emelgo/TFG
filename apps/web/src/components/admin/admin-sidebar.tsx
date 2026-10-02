@@ -1,20 +1,21 @@
 /**
  * Barra lateral de la consola de administración.
  *
- * Una sola consola organizada por áreas de negocio, sin separar
- * «plataforma» y «CMS» (ver `admin-navigation.ts`):
+ * Una sola consola, sin separar «plataforma» y «CMS», con dos bloques
+ * titulados (ver `admin-navigation.ts`):
  *
- *  1. «Inicio», solo para el super-admin;
- *  2. una entrada plegable por área con sus tablas
- *     (`admin-sidebar-resources.tsx`); en el área de cuentas, el
- *     super-admin tiene además «Gestión de cuentas»;
- *  3. tras un separador, las herramientas del CMS que la API permite al
- *     usuario y el enlace discreto «Todas las tablas».
+ *  1. **Gestión**: «Inicio» y «Gestión de cuentas» (solo super-admin) y las
+ *     herramientas del CMS que la API permite al usuario.
+ *  2. **Datos**: una carpeta por área con sus tablas
+ *     (`admin-sidebar-resources.tsx`) y, al final, «Todas las tablas».
+ *
+ * Criterio visual: solo llevan icono las entradas de primer nivel (las de
+ * Gestión, las carpetas y «Todas las tablas»); las tablas de dentro de una
+ * carpeta van sin icono, así el nivel se distingue de un vistazo.
  *
  * En la cabecera, para quien tiene acceso al CMS, la búsqueda global.
  */
 import { Link, useLocation } from '@tanstack/react-router';
-import { useTranslations } from 'use-intl';
 
 import type { JWTUserData } from '@pymekit/supabase/types';
 import {
@@ -23,11 +24,11 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from '@pymekit/ui/sidebar';
 import { Trans } from '@pymekit/ui/trans';
 
@@ -35,8 +36,6 @@ import { AppLogo } from '#/components/app-logo.tsx';
 import { PersonalAccountDropdownContainer } from '#/components/home/personal-account-dropdown-container.tsx';
 
 import {
-  ACCOUNTS_AREA_NAME,
-  HOME_ENTRY,
   type NavigationEntry,
   isEntryActive,
   useAdminNavigation,
@@ -45,15 +44,7 @@ import { AdminSidebarArea, getAreaKey } from './admin-sidebar-resources.tsx';
 import { CmsGlobalSearch } from './cms/cms-global-search.tsx';
 
 export function AdminSidebar(props: { user: JWTUserData | null }) {
-  const t = useTranslations('cms.sidebar');
   const navigation = useAdminNavigation(props.user);
-
-  const topEntries = [
-    navigation.showHome ? HOME_ENTRY : null,
-    navigation.accountsManagement && !navigation.accountsManagement.inArea
-      ? navigation.accountsManagement.entry
-      : null,
-  ].filter((entry) => entry !== null);
 
   return (
     <Sidebar variant="floating" collapsible="icon">
@@ -65,63 +56,47 @@ export function AdminSidebar(props: { user: JWTUserData | null }) {
       </SidebarHeader>
 
       <SidebarContent>
-        {topEntries.length > 0 ? (
-          <SidebarGroup data-testid="admin-sidebar-home-group">
+        {navigation.management.length > 0 ? (
+          <SidebarGroup data-testid="admin-sidebar-management">
+            <SidebarGroupLabel data-testid="admin-sidebar-management-label">
+              <Trans i18nKey="cms.sidebar.managementGroup" />
+            </SidebarGroupLabel>
+
             <SidebarGroupContent>
-              <AdminSidebarMenu entries={topEntries} />
+              <AdminSidebarMenu entries={navigation.management} />
             </SidebarGroupContent>
           </SidebarGroup>
         ) : null}
 
-        {navigation.areas.length > 0 ? (
-          <SidebarGroup
-            data-testid="admin-sidebar-areas"
-            aria-label={t('areasLabel')}
-            // Con la barra plegada a iconos, una lista de tablas sin texto no
-            // sirve: se oculta y queda «Todas las tablas».
-            className="group-data-[collapsible=icon]:hidden"
-          >
+        {navigation.areas.length > 0 || navigation.allTables ? (
+          <SidebarGroup data-testid="admin-sidebar-data">
+            <SidebarGroupLabel data-testid="admin-sidebar-data-label">
+              <Trans i18nKey="cms.sidebar.dataGroup" />
+            </SidebarGroupLabel>
+
             <SidebarGroupContent>
-              <SidebarMenu>
-                {navigation.areas.map((area) => (
-                  <AdminSidebarArea
-                    key={getAreaKey(area.name)}
-                    area={area}
-                    defaultOpen={navigation.areas.length === 1}
-                    leadingEntry={
-                      area.name === ACCOUNTS_AREA_NAME &&
-                      navigation.accountsManagement?.inArea
-                        ? navigation.accountsManagement.entry
-                        : null
-                    }
-                  />
-                ))}
-              </SidebarMenu>
+              {navigation.areas.length > 0 ? (
+                <SidebarMenu
+                  data-testid="admin-sidebar-areas"
+                  // Con la barra plegada a iconos, una lista de carpetas sin
+                  // texto no sirve: se oculta y queda «Todas las tablas».
+                  className="group-data-[collapsible=icon]:hidden"
+                >
+                  {navigation.areas.map((area) => (
+                    <AdminSidebarArea
+                      key={getAreaKey(area.name)}
+                      area={area}
+                      defaultOpen={navigation.areas.length === 1}
+                    />
+                  ))}
+                </SidebarMenu>
+              ) : null}
+
+              {navigation.allTables ? (
+                <AdminSidebarMenu entries={[navigation.allTables]} />
+              ) : null}
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
-
-        {navigation.tools.length > 0 || navigation.allTables ? (
-          <>
-            <SidebarSeparator />
-
-            <SidebarGroup
-              data-testid="admin-sidebar-tools"
-              aria-label={t('toolsLabel')}
-            >
-              <SidebarGroupContent>
-                <AdminSidebarMenu entries={navigation.tools} />
-
-                {navigation.allTables ? (
-                  <AdminSidebarMenu
-                    entries={[navigation.allTables]}
-                    className="text-muted-foreground mt-2"
-                    size="sm"
-                  />
-                ) : null}
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
         ) : null}
       </SidebarContent>
 
@@ -132,19 +107,15 @@ export function AdminSidebar(props: { user: JWTUserData | null }) {
   );
 }
 
-function AdminSidebarMenu(props: {
-  entries: NavigationEntry[];
-  className?: string;
-  size?: 'sm' | 'default';
-}) {
+/** Lista de entradas de primer nivel (con icono). */
+function AdminSidebarMenu(props: { entries: NavigationEntry[] }) {
   const { pathname } = useLocation();
 
   return (
-    <SidebarMenu className={props.className}>
+    <SidebarMenu>
       {props.entries.map((entry) => (
         <SidebarMenuItem key={entry.id}>
           <SidebarMenuButton
-            size={props.size}
             isActive={isEntryActive(entry, pathname)}
             render={
               <Link

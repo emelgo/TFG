@@ -87,8 +87,10 @@
 - [x] Carpeta `packages/ui/src/makerkit/` → `src/pymekit/` (y sus exports) y `styles/makerkit.css` → `pymekit.css` (adelantado a F2 a petición del autor, B-40)
 - [x] Contenido: emails de prueba → `@pymekit.test`, equipo de prueba → «PymeKit» (`pymekit`), comentarios SQL, `.env`, manifest, landing, `config.toml`, plantillas de email, READMEs y *tooling* (eliminado `version.mjs`, que se comparaba con el repositorio original)
 - [x] F3c · Consola más clara (petición del autor, ADR-020): nombres en español para las tablas y columnas de la plataforma en el CMS, esquema `demo` retirado y pruebas trasladadas a tablas reales
-- [ ] F3c · Barra lateral única por áreas de negocio (Inicio, Blog, Cuentas, Facturación, Sistema, Otros datos + herramientas), área editable en Ajustes → Recursos
-- [ ] F3c · Ayuda contextual «?» junto a cada campo de los formularios de la consola (componente reutilizable en `@pymekit/ui` + textos es/en), petición del autor
+- [x] F3c · Barra lateral única por áreas de negocio (Inicio, Blog, Cuentas, Facturación, Sistema, Otros datos + herramientas), área editable en Ajustes → Recursos
+- [ ] F3c · Barra lateral: bloques «Gestión» y «Datos», «Gestión de cuentas» fuera de la carpeta Cuentas, iconos solo en el primer nivel y nombres sin truncar (petición del autor)
+- [ ] F3c · Solo español (ADR-021): retirar el locale `en`, el selector de idioma y los mensajes en inglés, conservar la infraestructura i18n como punto de extensión documentado y pasar los E2E a español
+- [ ] F3c · Ayuda contextual «?» (solo en español) junto a cada campo de los formularios de la consola (componente reutilizable en `@pymekit/ui` + textos es/en), petición del autor
 - [ ] Plantillas de email solo tienen locale `en`: añadir `es`; revisar `EMAIL_TEMPLATE_RENDERERS` (no tiene consumidores)
 
 ## F4 · Comentarios en español

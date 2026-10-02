@@ -31,9 +31,14 @@ export class CmsPageObject {
     return this.page.getByTestId('admin-sidebar-home');
   }
 
-  /** Bloque de herramientas (Usuarios, Archivos, Paneles…). */
-  toolsGroup() {
-    return this.page.getByTestId('admin-sidebar-tools');
+  /** Bloque «Gestión» (Inicio, Gestión de cuentas, Usuarios, Archivos…). */
+  managementGroup() {
+    return this.page.getByTestId('admin-sidebar-management');
+  }
+
+  /** Bloque «Datos» (carpetas por área y «Todas las tablas»). */
+  dataGroup() {
+    return this.page.getByTestId('admin-sidebar-data');
   }
 
   /** Área de la barra lateral por su nombre (`other` = «Otros datos»). */
@@ -79,7 +84,7 @@ export class CmsPageObject {
     return this.page.locator('[data-testid^="admin-sidebar-resource-"][href]');
   }
 
-  /** «Gestión de cuentas», dentro del área Cuentas (solo super-admin). */
+  /** «Gestión de cuentas», en el bloque Gestión (solo super-admin). */
   accountsManagementEntry() {
     return this.page.getByTestId('admin-sidebar-platform-accounts');
   }

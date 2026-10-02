@@ -14,8 +14,8 @@
     "allTables": "All tables",
     "files": "Files",
     "audit": "Audit",
-    "areasLabel": "Data areas",
-    "toolsLabel": "Tools"
+    "managementGroup": "Management",
+    "dataGroup": "Data"
   },
   "overview": {
     "title": "All tables",

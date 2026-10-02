@@ -33,7 +33,7 @@ test.describe('CMS: super-admin con MFA', () => {
     await page.goto('/admin');
 
     await expect(cms.homeEntry()).toBeVisible();
-    await expect(cms.toolsGroup()).toBeVisible();
+    await expect(cms.managementGroup()).toBeVisible();
 
     // Root tiene todos los permisos: todas las herramientas aparecen.
     await cms.expectCmsSections([
@@ -74,7 +74,7 @@ test.describe('CMS: personal de soporte con MFA', () => {
     await page.goto('/admin');
     await page.waitForURL('**/admin/cms');
 
-    await expect(cms.toolsGroup()).toBeVisible();
+    await expect(cms.managementGroup()).toBeVisible();
     await expect(cms.homeEntry()).toHaveCount(0);
 
     // El rol «Soporte» solo lee dos tablas y la auditoría: ni usuarios de

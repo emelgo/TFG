@@ -14,8 +14,8 @@
     "allTables": "Todas las tablas",
     "files": "Archivos",
     "audit": "Auditoría",
-    "areasLabel": "Áreas de datos",
-    "toolsLabel": "Herramientas"
+    "managementGroup": "Gestión",
+    "dataGroup": "Datos"
   },
   "overview": {
     "title": "Todas las tablas",

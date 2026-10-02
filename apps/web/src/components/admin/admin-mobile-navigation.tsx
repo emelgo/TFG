@@ -2,13 +2,19 @@
 
 /**
  * Menú de navegación móvil de la consola de administración: las mismas
- * entradas que la barra lateral (`admin-navigation.ts`), en un desplegable.
- * Cada área es un submenú (su disparador expone `aria-expanded`) con sus
- * tablas; detrás, las herramientas y «Todas las tablas». El desplegable
- * tiene altura máxima con desplazamiento.
+ * entradas que la barra lateral (`admin-navigation.ts`), en un desplegable
+ * con los mismos dos bloques titulados:
+ *
+ *  - **Gestión**: Inicio, Gestión de cuentas y las herramientas del CMS.
+ *  - **Datos**: cada área es un submenú (su disparador expone
+ *    `aria-expanded`) con sus tablas y, al final, «Todas las tablas».
+ *
+ * Como en escritorio, solo llevan icono las entradas de primer nivel; las
+ * tablas muestran su nombre visible y el técnico queda en el `title`. El
+ * desplegable tiene altura máxima con desplazamiento.
  */
 import { Link } from '@tanstack/react-router';
-import { Menu } from 'lucide-react';
+import { Folder, Menu } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 
 import type { JWTUserData } from '@pymekit/supabase/types';
@@ -17,6 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -26,27 +33,17 @@ import {
 import { Trans } from '@pymekit/ui/trans';
 
 import {
-  ACCOUNTS_AREA_NAME,
-  HOME_ENTRY,
   type NavigationEntry,
   useAdminNavigation,
 } from './admin-navigation.ts';
-import { getAreaKey, getTechnicalName } from './admin-sidebar-resources.tsx';
+import { getAreaKey, getQualifiedName } from './admin-sidebar-resources.tsx';
 
 export function AdminMobileNavigation(props: { user: JWTUserData | null }) {
   const t = useTranslations('cms');
   const navigation = useAdminNavigation(props.user);
-  const accounts = navigation.accountsManagement;
 
-  const topEntries = [
-    navigation.showHome ? HOME_ENTRY : null,
-    accounts && !accounts.inArea ? accounts.entry : null,
-  ].filter((entry) => entry !== null);
-
-  const toolEntries = [
-    ...navigation.tools,
-    ...(navigation.allTables ? [navigation.allTables] : []),
-  ];
+  const hasManagement = navigation.management.length > 0;
+  const hasData = navigation.areas.length > 0 || navigation.allTables;
 
   return (
     <DropdownMenu>
@@ -55,24 +52,38 @@ export function AdminMobileNavigation(props: { user: JWTUserData | null }) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent className="max-h-[80vh] overflow-y-auto">
-        {topEntries.length > 0 ? <MobileEntries entries={topEntries} /> : null}
+        {hasManagement ? (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>
+              <Trans i18nKey="cms.sidebar.managementGroup" />
+            </DropdownMenuLabel>
 
-        {navigation.areas.length > 0 ? (
-          <DropdownMenuGroup aria-label={t('sidebar.areasLabel')}>
+            {navigation.management.map((entry) => (
+              <MobileEntry key={entry.id} entry={entry} />
+            ))}
+          </DropdownMenuGroup>
+        ) : null}
+
+        {hasManagement && hasData ? <DropdownMenuSeparator /> : null}
+
+        {hasData ? (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>
+              <Trans i18nKey="cms.sidebar.dataGroup" />
+            </DropdownMenuLabel>
+
             {navigation.areas.map((area) => (
               <DropdownMenuSub key={getAreaKey(area.name)}>
                 <DropdownMenuSubTrigger>
+                  <Folder className="h-4" />
+
                   {area.name ?? <Trans i18nKey="cms.sidebar.otherArea" />}
                 </DropdownMenuSubTrigger>
 
                 <DropdownMenuSubContent className="max-h-[70vh] overflow-y-auto">
-                  {area.name === ACCOUNTS_AREA_NAME && accounts?.inArea ? (
-                    <MobileEntry entry={accounts.entry} />
-                  ) : null}
-
                   {area.items.map((resource) => (
                     <DropdownMenuItem
-                      key={`${resource.schemaName}.${resource.tableName}`}
+                      key={getQualifiedName(resource)}
                       render={
                         <Link
                           to="/admin/cms/resources/$schema/$table"
@@ -80,12 +91,9 @@ export function AdminMobileNavigation(props: { user: JWTUserData | null }) {
                             schema: resource.schemaName,
                             table: resource.tableName,
                           }}
+                          title={getQualifiedName(resource)}
                         >
                           {resource.displayName}
-
-                          <span className="text-muted-foreground ml-auto font-mono text-xs">
-                            {getTechnicalName(resource)}
-                          </span>
                         </Link>
                       }
                     />
@@ -93,39 +101,25 @@ export function AdminMobileNavigation(props: { user: JWTUserData | null }) {
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             ))}
+
+            {navigation.allTables ? (
+              <MobileEntry entry={navigation.allTables} />
+            ) : null}
           </DropdownMenuGroup>
-        ) : null}
-
-        {toolEntries.length > 0 ? (
-          <>
-            <DropdownMenuSeparator />
-
-            <MobileEntries
-              entries={toolEntries}
-              label={t('sidebar.toolsLabel')}
-            />
-          </>
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-function MobileEntries(props: { entries: NavigationEntry[]; label?: string }) {
-  return (
-    <DropdownMenuGroup aria-label={props.label}>
-      {props.entries.map((entry) => (
-        <MobileEntry key={entry.id} entry={entry} />
-      ))}
-    </DropdownMenuGroup>
-  );
-}
-
+/** Entrada de primer nivel del menú móvil, con su icono. */
 function MobileEntry(props: { entry: NavigationEntry }) {
   return (
     <DropdownMenuItem
       render={
         <Link to={props.entry.path}>
+          <props.entry.Icon className="h-4" />
+
           <Trans i18nKey={props.entry.labelKey} />
         </Link>
       }

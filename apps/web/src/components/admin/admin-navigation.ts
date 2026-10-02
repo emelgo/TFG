@@ -2,21 +2,26 @@
  * Entradas de navegación de la consola de administración.
  *
  * La consola es UNA sola herramienta para quien administra la web de la
- * pyme, organizada por áreas de negocio y no por capas técnicas. La barra
- * lateral (escritorio) y el menú móvil muestran las mismas entradas, que se
- * calculan aquí una sola vez:
+ * pyme. La barra lateral (escritorio) y el menú móvil muestran las mismas
+ * entradas, que se calculan aquí una sola vez, repartidas en dos bloques
+ * con título:
  *
- *  1. **Inicio** (`/admin`): solo el super-admin. El personal del CMS entra
- *     directamente en `/admin/cms`.
- *  2. **Áreas** («Blog», «Cuentas», «Facturación», «Sistema»…): las tablas
- *     legibles de `GET /v1/navigation` (ya filtradas por el RBAC del CMS)
- *     agrupadas con `groupResourcesByArea` según su
- *     `ui_config.navigation_group`. Las que no tienen área forman el grupo
- *     «Otros datos». En el área de cuentas, el super-admin tiene además
- *     «Gestión de cuentas» (`/admin/accounts`: bloquear, suplantar…).
- *  3. **Herramientas** (Usuarios, Archivos, Paneles, Auditoría, Ajustes):
- *     cada una con la visibilidad que da `getCmsSectionVisibility` a partir
- *     de `GET /v1/account`, y el enlace discreto «Todas las tablas».
+ *  1. **Gestión**: pantallas de trabajo, todas con icono.
+ *     - «Inicio» (`/admin`) y «Gestión de cuentas» (`/admin/accounts`:
+ *       bloquear, suplantar…), solo para el super-admin. El personal del CMS
+ *       entra directamente en `/admin/cms`.
+ *     - Las herramientas del CMS (Usuarios, Archivos, Paneles, Auditoría,
+ *       Ajustes), cada una con la visibilidad que da
+ *       `getCmsSectionVisibility` a partir de `GET /v1/account`.
+ *  2. **Datos**: una carpeta por área de negocio («Blog», «Cuentas»,
+ *     «Facturación», «Sistema»…) con las tablas legibles de
+ *     `GET /v1/navigation` (ya filtradas por el RBAC del CMS), agrupadas con
+ *     `groupResourcesByArea` según su `ui_config.navigation_group`; las que
+ *     no tienen área forman «Otros datos». Al final, «Todas las tablas».
+ *
+ * «Gestión de cuentas» va en Gestión y no dentro de la carpeta «Cuentas»:
+ * es una pantalla de la plataforma, no una tabla, y junto a la tabla
+ * «Cuentas» se confundían.
  *
  * Ambas consultas las precarga el *loader* de `/admin`. Ocultar una entrada
  * es solo ayuda visual: la API y las políticas RLS vuelven a comprobarlo.
@@ -60,7 +65,7 @@ export type NavigationEntry = {
 };
 
 /** Portada de la consola (solo super-admin). */
-export const HOME_ENTRY: NavigationEntry = {
+const HOME_ENTRY: NavigationEntry = {
   id: 'home',
   path: '/admin',
   labelKey: 'cms.sidebar.home',
@@ -69,7 +74,7 @@ export const HOME_ENTRY: NavigationEntry = {
 };
 
 /** Pantalla de gestión de cuentas de la plataforma (solo super-admin). */
-export const ACCOUNTS_MANAGEMENT_ENTRY: NavigationEntry = {
+const ACCOUNTS_MANAGEMENT_ENTRY: NavigationEntry = {
   id: 'accounts',
   path: '/admin/accounts',
   labelKey: 'cms.sidebar.accountsManagement',
@@ -77,16 +82,9 @@ export const ACCOUNTS_MANAGEMENT_ENTRY: NavigationEntry = {
   matchPrefix: true,
 };
 
-/**
- * Área en la que se coloca «Gestión de cuentas». Es el nombre que da la
- * migración `20261002140000_cms_navigation_groups.sql`; si alguien la
- * renombra, la entrada pasa a mostrarse suelta bajo «Inicio».
- */
-export const ACCOUNTS_AREA_NAME = 'Cuentas';
-
 type ToolSection = Exclude<CmsSection, 'resources'>;
 
-/** Herramientas del CMS, en el orden de la barra lateral. */
+/** Herramientas del CMS, en el orden del bloque Gestión. */
 const TOOLS: Array<{ id: ToolSection; labelKey: string; Icon: LucideIcon }> = [
   { id: 'users', labelKey: 'cms.sidebar.users', Icon: UserCog },
   { id: 'storage', labelKey: 'cms.sidebar.files', Icon: FolderOpen },
@@ -95,7 +93,7 @@ const TOOLS: Array<{ id: ToolSection; labelKey: string; Icon: LucideIcon }> = [
   { id: 'settings', labelKey: 'cms.sidebar.settings', Icon: Settings },
 ];
 
-/** Enlace a la vista general de tablas, agrupada por área. */
+/** Enlace a la vista general de tablas, al final del bloque Datos. */
 const ALL_TABLES_ENTRY: NavigationEntry = {
   id: 'resources',
   path: CMS_SECTION_PATHS.resources,
@@ -109,6 +107,9 @@ const ALL_TABLES_ENTRY: NavigationEntry = {
  * consultas no han respondido (o si la API rechaza el acceso: MFA pendiente,
  * cuenta inactiva) no hay áreas ni herramientas: nunca se muestra una
  * entrada que la API no haya confirmado.
+ *
+ * Devuelve las entradas del bloque Gestión ya ordenadas (`management`) y,
+ * para el bloque Datos, las áreas y el enlace «Todas las tablas».
  */
 export function useAdminNavigation(user: JWTUserData | null) {
   const enabled = Boolean(user?.has_cms_access);
@@ -124,29 +125,22 @@ export function useAdminNavigation(user: JWTUserData | null) {
     visibleResourcesCount: getVisibleResources(resources).length,
   });
 
-  const areas = groupResourcesByArea(resources);
   const isSuperAdmin = Boolean(user?.is_superadmin);
 
+  const tools = TOOLS.filter((tool) => visibility[tool.id]).map(
+    (tool): NavigationEntry => ({
+      ...tool,
+      path: CMS_SECTION_PATHS[tool.id],
+      matchPrefix: true,
+    }),
+  );
+
   return {
-    showHome: isSuperAdmin,
-    areas,
-    /**
-     * «Gestión de cuentas» va dentro del área de cuentas; si esa área no
-     * existe (sin acceso al CMS o renombrada) se muestra suelta.
-     */
-    accountsManagement: isSuperAdmin
-      ? {
-          entry: ACCOUNTS_MANAGEMENT_ENTRY,
-          inArea: areas.some((area) => area.name === ACCOUNTS_AREA_NAME),
-        }
-      : null,
-    tools: TOOLS.filter((tool) => visibility[tool.id]).map(
-      (tool): NavigationEntry => ({
-        ...tool,
-        path: CMS_SECTION_PATHS[tool.id],
-        matchPrefix: true,
-      }),
-    ),
+    management: [
+      ...(isSuperAdmin ? [HOME_ENTRY, ACCOUNTS_MANAGEMENT_ENTRY] : []),
+      ...tools,
+    ],
+    areas: groupResourcesByArea(resources),
     allTables: visibility.resources ? ALL_TABLES_ENTRY : null,
   };
 }
