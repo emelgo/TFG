@@ -66,6 +66,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-49 | 2026-10-02 | F2.7c | calidad | heredado | Configuración de recursos: errores en bruto y «éxito» sin cambios | Baja |
 | B-50 | 2026-10-02 | F2.8 | seguridad | heredado | Widgets sobre tablas no legibles y apropiación de paneles compartidos | Media |
 | B-51 | 2026-10-02 | F2.9 | proceso | propio | Un test de otra zona quedó desactualizado al verificar solo los E2E afectados | Baja |
+| B-52 | 2026-10-02 | F2.9 | herramientas | entorno | El servidor de desarrollo perdió las rutas del CMS tras cambiar de rama | Media |
 
 ---
 
@@ -386,3 +387,10 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** en modo ahorro (B-48), la F2.7c solo ejecutó los E2E de su zona. Añadió el permiso `resourceSettings` a la respuesta de `/v1/account`, y un test de la F2.7b que compara la lista exacta de permisos falló en la suite completa del cierre de la F2.
 - **Solución:** actualizar la aserción y verificar en serie.
 - **Lección:** el modo ahorro traslada el riesgo al cierre de fase, y es razonable siempre que la suite completa se ejecute **antes** de fusionar. Las aserciones de igualdad exacta sobre respuestas que crecen son frágiles.
+
+## B-52 · El servidor de desarrollo perdió las rutas del CMS tras cambiar de rama
+- **Qué pasó:** tras fusionar la F2 y pasar de la rama `fase-2/cms` a `main`, el autor no podía abrir ninguna ruta del panel (`/admin/cms/...` daba 404), mientras que la API del CMS respondía bien y todos los E2E pasaban contra la build de test. Además, su sesión era anterior a un reinicio de la BD, lo que confundió el primer diagnóstico.
+- **Causa:** el servidor de desarrollo de Vite se reinició solo al cambiar muchos ficheros de golpe con el cambio de rama, y se quedó con un árbol de rutas en memoria que no incluía las rutas del CMS. El 404 era el de la raíz (`root-not-found`): las rutas no existían en tiempo de ejecución y el guard del CMS ni siquiera llegaba a ejecutarse.
+- **Cómo se diagnosticó:** reproduciéndolo con un script de Playwright (inicio de sesión real con MFA) y descartando por orden la API, el guard (un log temporal no llegó a ejecutarse) y la sesión.
+- **Solución:** reiniciar el servidor de desarrollo borrando sus cachés (`node_modules/.vite`, `.tanstack`).
+- **Lección:** tras un cambio de rama o una fusión grande, hay que reiniciar el servidor de desarrollo desde cero. Y que los E2E pasen contra la build de test no garantiza que el entorno de desarrollo que usa el autor esté sano.
