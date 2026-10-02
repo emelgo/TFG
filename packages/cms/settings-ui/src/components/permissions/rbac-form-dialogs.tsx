@@ -25,8 +25,8 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
 } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
@@ -205,9 +205,12 @@ function RoleFormDialogBody(
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor="role-form-name">
+                    <FieldLabelWithHelp
+                      htmlFor="role-form-name"
+                      help={t('nameHelp')}
+                    >
                       {t('name')}
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
                     <Input
                       id="role-form-name"
                       data-testid="role-form-name"
@@ -228,9 +231,12 @@ function RoleFormDialogBody(
             <form.Field name="description">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="role-form-description">
+                  <FieldLabelWithHelp
+                    htmlFor="role-form-description"
+                    help={t('descriptionHelp')}
+                  >
                     {t('description')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Textarea
                     id="role-form-description"
                     data-testid="role-form-description"
@@ -251,9 +257,12 @@ function RoleFormDialogBody(
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor="role-form-rank">
+                    <FieldLabelWithHelp
+                      htmlFor="role-form-rank"
+                      help={t('rankFieldHelp')}
+                    >
                       {t('rank')}
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
                     <NativeSelect
                       id="role-form-rank"
                       data-testid="role-form-rank"
@@ -430,9 +439,12 @@ function GroupFormDialogBody(
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor="group-form-name">
+                    <FieldLabelWithHelp
+                      htmlFor="group-form-name"
+                      help={t('nameHelp')}
+                    >
                       {t('name')}
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
                     <Input
                       id="group-form-name"
                       data-testid="group-form-name"
@@ -453,9 +465,12 @@ function GroupFormDialogBody(
             <form.Field name="description">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="group-form-description">
+                  <FieldLabelWithHelp
+                    htmlFor="group-form-description"
+                    help={t('descriptionHelp')}
+                  >
                     {t('description')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Textarea
                     id="group-form-description"
                     data-testid="group-form-description"

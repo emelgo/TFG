@@ -21,8 +21,8 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
 } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { Spinner } from '@pymekit/ui/spinner';
 
 import { useUpdatePreferencesMutation } from '../hooks/use-settings-mutations';
@@ -70,9 +70,12 @@ export function GeneralSettingsForm(props: {
 
             return (
               <Field data-invalid={isInvalid}>
-                <FieldLabel htmlFor="cms-settings-timezone">
+                <FieldLabelWithHelp
+                  htmlFor="cms-settings-timezone"
+                  help={t('timezoneHelp')}
+                >
                   {t('timezone')}
-                </FieldLabel>
+                </FieldLabelWithHelp>
 
                 <TimezoneSelector
                   id="cms-settings-timezone"

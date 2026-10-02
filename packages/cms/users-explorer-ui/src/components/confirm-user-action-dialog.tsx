@@ -25,7 +25,8 @@ import {
   AlertDialogTrigger,
 } from '@pymekit/ui/alert-dialog';
 import { Button } from '@pymekit/ui/button';
-import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -107,11 +108,14 @@ export function ConfirmUserActionDialog(props: {
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={`${props.testId}-confirm-input`}>
+                    <FieldLabelWithHelp
+                      htmlFor={`${props.testId}-confirm-input`}
+                      help={t('confirm.typeToConfirmHelp')}
+                    >
                       {t('confirm.typeToConfirm', {
                         word: props.confirmWord ?? '',
                       })}
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
 
                     <Input
                       id={`${props.testId}-confirm-input`}

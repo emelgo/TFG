@@ -343,7 +343,10 @@
       "nameRequired": "Introduce un nombre para la vista",
       "nameTooLong": "El nombre es demasiado largo",
       "descriptionTooLong": "La descripción es demasiado larga",
-      "tooManyRoles": "Puedes compartir una vista con un máximo de 10 roles"
+      "tooManyRoles": "Puedes compartir una vista con un máximo de 10 roles",
+      "viewNameHelp": "Nombre para reconocer la vista, por ejemplo «Facturas pendientes». La vista guarda los filtros, el orden y las columnas actuales.",
+      "descriptionFieldHelp": "Texto opcional para explicar qué muestra la vista y cuándo usarla.",
+      "shareWithRolesHelp": "Las personas con estos roles verán la vista en su lista. Si no eliges ninguno, solo la verás tú."
     }
   },
   "usersExplorer": {
@@ -435,7 +438,8 @@
     },
     "confirm": {
       "typeToConfirm": "Escribe {word} para confirmar",
-      "textDoesNotMatch": "El texto no coincide"
+      "textDoesNotMatch": "El texto no coincide",
+      "typeToConfirmHelp": "Escribir la palabra evita hacer por error una acción importante o que no se puede deshacer."
     },
     "protection": {
       "self": "Esta es tu propia cuenta. No puedes bloquearla, eliminarla ni modificarla desde el CMS.",
@@ -468,7 +472,10 @@
       "passwordTooLong": "La contraseña debe tener como máximo 72 caracteres",
       "passwordUppercase": "La contraseña debe contener una letra mayúscula",
       "passwordLowercase": "La contraseña debe contener una letra minúscula",
-      "passwordNumber": "La contraseña debe contener un número"
+      "passwordNumber": "La contraseña debe contener un número",
+      "emailHelp": "Correo con el que la persona entrará en la aplicación. Le llegarán los avisos y enlaces de acceso.",
+      "passwordHelp": "Contraseña inicial. Compártela por un canal seguro y pide que la cambie al entrar.",
+      "autoConfirmHelp": "Da el correo por verificado, así la persona puede entrar sin pulsar el enlace de confirmación."
     },
     "create": {
       "title": "Crear usuario",
@@ -565,7 +572,8 @@
       "submit": "Subir",
       "success": "{count, plural, one {# archivo subido} other {# archivos subidos}}",
       "error": "No se ha podido subir un archivo",
-      "tooManyFiles": "Puedes subir como máximo {max} archivos a la vez."
+      "tooManyFiles": "Puedes subir como máximo {max} archivos a la vez.",
+      "help": "Los archivos se guardan en la carpeta que tienes abierta. Después puedes descargarlos, renombrarlos o borrarlos desde esta pantalla."
     },
     "createFolder": {
       "title": "Nueva carpeta",
@@ -573,7 +581,8 @@
       "nameLabel": "Nombre de la carpeta",
       "submit": "Crear carpeta",
       "success": "Carpeta creada",
-      "error": "No se ha podido crear la carpeta"
+      "error": "No se ha podido crear la carpeta",
+      "nameHelp": "Nombre de la nueva carpeta dentro de la que tienes abierta. Sirve para ordenar los archivos, por ejemplo «facturas-2026»."
     },
     "rename": {
       "title": "Renombrar archivo",
@@ -581,7 +590,8 @@
       "nameLabel": "Nuevo nombre",
       "submit": "Renombrar",
       "success": "Archivo renombrado",
-      "error": "No se ha podido renombrar el archivo"
+      "error": "No se ha podido renombrar el archivo",
+      "nameHelp": "Nuevo nombre del archivo o carpeta. El contenido no cambia, solo cómo se llama."
     },
     "delete": {
       "title": "{count, plural, one {¿Eliminar # elemento?} other {¿Eliminar # elementos?}}",
@@ -717,7 +727,8 @@
       "saveError": "No se han podido guardar las preferencias",
       "errors": {
         "invalidTimezone": "Elige una zona horaria válida"
-      }
+      },
+      "timezoneHelp": "Las fechas y horas de la consola se muestran en esta zona horaria. Elige la de tu negocio para que coincidan con tu reloj."
     },
     "authentication": {
       "title": "Autenticación",
@@ -736,7 +747,8 @@
       "confirmDisableTitle": "¿Dejar de exigir MFA?",
       "confirmDisableText": "Los miembros del personal podrán iniciar sesión en el CMS solo con su contraseña. Los miembros que ya tengan un factor verificado seguirán teniendo que usarlo. Este cambio queda registrado en los registros de auditoría.",
       "confirmDisable": "Dejar de exigir MFA",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "requireMfaHelp": "Si está activada, todas las personas que entran en la consola deben confirmar su identidad con un código del móvil además de la contraseña. Protege los datos aunque alguien robe una contraseña."
     },
     "members": {
       "title": "Miembros",
@@ -767,7 +779,9 @@
         "confirmDeactivateText": "{name} perderá el acceso al CMS de inmediato. Se conservan su rol y sus registros de auditoría, y podrás volver a activar la cuenta más adelante.",
         "confirmActivateTitle": "¿Activar a este miembro?",
         "confirmActivateText": "{name} podrá volver a usar el CMS con su rol actual.",
-        "cancel": "Cancelar"
+        "cancel": "Cancelar",
+        "helpLabel": "Activar o desactivar",
+        "help": "Desactivar impide que esta persona entre en la consola sin borrar su cuenta ni su historial. Puedes volver a activarla cuando quieras."
       },
       "role": {
         "manage": "Cambiar rol",
@@ -780,7 +794,8 @@
         "save": "Guardar rol",
         "cancel": "Cancelar",
         "saved": "Rol actualizado",
-        "saveError": "No se ha podido cambiar el rol"
+        "saveError": "No se ha podido cambiar el rol",
+        "labelHelp": "El rol decide qué puede ver y hacer esta persona en la consola. Solo puedes asignar roles de rango inferior al tuyo."
       },
       "cards": {
         "status": "Estado de la cuenta",
@@ -901,7 +916,10 @@
         "noAssignablePermissions": "No hay permisos que puedas añadir.",
         "deleteTitle": "Eliminar rol",
         "deleteDescription": "El rol \"{name}\" se eliminará junto con sus asignaciones. Esta acción no se puede deshacer.",
-        "memberCount": "{count, plural, =0 {Sin miembros} one {# miembro} other {# miembros}}"
+        "memberCount": "{count, plural, =0 {Sin miembros} one {# miembro} other {# miembros}}",
+        "nameHelp": "Nombre corto del puesto o función, por ejemplo «Editor del blog» o «Contabilidad».",
+        "descriptionHelp": "Explica para quién es este rol y qué puede hacer, para que otras personas lo asignen bien.",
+        "rankFieldHelp": "Número que indica la jerarquía: cuanto más alto, más autoridad. Solo puedes gestionar roles y personas con un rango menor que el tuyo."
       },
       "groups": {
         "created": "Grupo de permisos creado",
@@ -927,7 +945,9 @@
         "addPermissionsTitle": "Añadir permisos al grupo",
         "addPermissionsDescription": "Solo se muestran los permisos cuya capacidad tienes.",
         "deleteTitle": "Eliminar grupo de permisos",
-        "deleteDescription": "El grupo \"{name}\" se eliminará y se quitará de todos los roles. Esta acción no se puede deshacer."
+        "deleteDescription": "El grupo \"{name}\" se eliminará y se quitará de todos los roles. Esta acción no se puede deshacer.",
+        "nameHelp": "Nombre del conjunto de permisos, por ejemplo «Gestión del blog». Sirve para dar varios permisos de una vez.",
+        "descriptionHelp": "Explica qué permite hacer este grupo, para saber a qué roles conviene asignarlo."
       },
       "permission": {
         "created": "Permiso creado",
@@ -935,7 +955,7 @@
         "deleted": "Permiso eliminado",
         "createTitle": "Nuevo permiso",
         "editTitle": "Editar permiso",
-        "formDescription": "Solo puedes definir capacidades que ya tengas.",
+        "formDescription": "Un permiso indica qué se puede hacer (leer, crear, actualizar o eliminar) y sobre qué (una función de la consola, una tabla, una columna o unos archivos). Solo puedes definir capacidades que ya tengas.",
         "name": "Nombre",
         "description": "Descripción",
         "kind": "Tipo",
@@ -962,7 +982,17 @@
         "groupsHelp": "Grupos de permisos que lo incluyen",
         "noGroups": "Ningún grupo visible lo incluye",
         "deleteTitle": "Eliminar permiso",
-        "deleteDescription": "El permiso \"{name}\" se eliminará. Esta acción no se puede deshacer."
+        "deleteDescription": "El permiso \"{name}\" se eliminará. Esta acción no se puede deshacer.",
+        "nameHelp": "Nombre que identifica el permiso, por ejemplo «Leer facturas».",
+        "descriptionHelp": "Explica con tus palabras qué permite este permiso.",
+        "kindHelp": "A qué se aplica: a funciones de la consola (sistema), a una tabla entera, a una columna concreta o a archivos guardados.",
+        "resourceHelp": "Función de la consola a la que se da acceso, por ejemplo la gestión de usuarios o los registros de auditoría.",
+        "bucketMoreHelp": "Carpeta principal de archivos a la que se aplica el permiso.",
+        "pathMoreHelp": "Qué archivos de esa carpeta cubre el permiso. Con * los cubre todos.",
+        "schemaHelp": "Grupo de tablas de la base de datos. Las tablas de tu negocio suelen estar en «public»; * significa todos.",
+        "tableHelp": "Tabla a la que se aplica el permiso; * significa todas las del esquema.",
+        "columnHelp": "Columna concreta de la tabla. Útil para ocultar o proteger un dato sensible, como un importe o un correo.",
+        "actionHelp": "Qué se permite hacer: leer, crear, actualizar o eliminar. «Todas las acciones» incluye las cuatro."
       },
       "assignments": {
         "saved": "Asignaciones guardadas"
@@ -1024,7 +1054,9 @@
         "invalidIdentifier": "Usa solo letras, números y guiones bajos",
         "submit": "Sincronizar",
         "done": "Tablas sincronizadas",
-        "error": "No se han podido sincronizar las tablas"
+        "error": "No se han podido sincronizar las tablas",
+        "schemaHelp": "Grupo de tablas de la base de datos que quieres registrar en la consola. Las tablas de tu negocio suelen estar en «public».",
+        "tableHelp": "Escribe el nombre de una tabla concreta o déjalo vacío para registrar todas las del esquema."
       },
       "table": {
         "title": "Tabla",
@@ -1037,7 +1069,13 @@
         "tableDescription": "Descripción",
         "isVisible": "Visible en el explorador de datos",
         "isSearchable": "Incluida en la búsqueda global",
-        "save": "Guardar"
+        "save": "Guardar",
+        "displayNameHelp": "Nombre con el que verás esta tabla en el menú y en el explorador de datos, en lugar de su nombre técnico.",
+        "displayFormatHelp": "Plantilla para nombrar cada registro en enlaces y listas, con columnas entre llaves; por ejemplo {name} ({email}).",
+        "navigationGroupFieldHelp": "Sección de la barra lateral en la que aparece la tabla, para tener juntas las tablas del mismo tema (Blog, Facturación…).",
+        "tableDescriptionHelp": "Explica para qué sirve la tabla. Se muestra como ayuda a quien la consulte.",
+        "isVisibleHelp": "Si la desactivas, la tabla deja de aparecer en el menú y en el explorador de datos. Los datos no se borran.",
+        "isSearchableHelp": "Si está activada, los registros de esta tabla aparecen en el buscador general de la consola."
       },
       "column": {
         "sectionTitle": "Columnas",
@@ -1064,7 +1102,13 @@
           "isSearchable": "Buscable",
           "isSortable": "Ordenable",
           "isFilterable": "Filtrable",
-          "isEditable": "Editable"
+          "isEditable": "Editable",
+          "isVisibleInTableHelp": "Muestra la columna en el listado de la tabla. Ocultarla no borra los datos.",
+          "isVisibleInDetailHelp": "Muestra la columna en la ficha de cada registro.",
+          "isSearchableHelp": "Tiene en cuenta esta columna cuando escribes en el buscador del listado.",
+          "isSortableHelp": "Permite ordenar el listado por esta columna.",
+          "isFilterableHelp": "Permite añadir filtros sobre esta columna en el listado.",
+          "isEditableHelp": "Permite cambiar el valor desde los formularios de la consola. Si la desactivas, la columna será de solo lectura."
         },
         "formatters": {
           "text": "Texto sin formato",
@@ -1090,7 +1134,11 @@
           "uuid": "UUID"
         },
         "valueLabels": "Etiquetas de los valores",
-        "valueLabelsDescription": "Texto que se muestra para cada valor del enumerado. Déjalo vacío para usar la etiqueta por defecto; el valor guardado no cambia."
+        "valueLabelsDescription": "Texto que se muestra para cada valor del enumerado. Déjalo vacío para usar la etiqueta por defecto; el valor guardado no cambia.",
+        "labelHelp": "Nombre de la columna que verás en listas y formularios, en lugar de su nombre técnico.",
+        "columnDescriptionHelp": "Explica qué guarda esta columna. Aparece como ayuda «?» junto al campo al crear o editar registros.",
+        "formatterHelp": "Cómo se presenta el valor: como fecha, importe, correo, enlace… Con «Predeterminado» se decide según el tipo de dato.",
+        "valueLabelsHelp": "Para columnas con una lista cerrada de valores: el texto que se muestra para cada uno. El valor guardado no cambia."
       },
       "relations": {
         "title": "Registros relacionados",
@@ -1098,7 +1146,8 @@
         "empty": "Esta tabla no tiene relaciones uno a muchos.",
         "enabled": "Mostrar sección",
         "sectionLabel": "Título de la sección",
-        "save": "Guardar"
+        "save": "Guardar",
+        "enabledHelp": "Muestra, en la ficha de cada registro, una sección con los registros de otra tabla que apuntan a él (por ejemplo, las facturas de una cuenta)."
       },
       "layout": {
         "open": "Diseño del registro",
@@ -1128,7 +1177,11 @@
         "addGroup": "Añadir grupo",
         "save": "Guardar diseño",
         "reset": "Usar diseño predeterminado",
-        "saved": "Diseño guardado"
+        "saved": "Diseño guardado",
+        "availableHelp": "Campos que todavía no están en el diseño. Arrástralos a una fila o púlsalos para añadirlos al final.",
+        "modesLabel": "Modos del diseño",
+        "modesHelpShort": "Hay un diseño para ver el registro y otro para editarlo.",
+        "modesHelp": "«Ver» ordena los campos de la ficha del registro; «Editar» ordena los del formulario de creación y edición. Puedes diseñarlos por separado."
       },
       "otherArea": "Otros datos"
     }
@@ -1170,7 +1223,8 @@
     "create": {
       "title": "Nuevo panel",
       "description": "Ponle un nombre a tu panel. Después podrás añadir widgets y compartirlo.",
-      "name": "Nombre"
+      "name": "Nombre",
+      "nameHelp": "Nombre del panel, por ejemplo «Ventas del mes». Puedes cambiarlo más adelante."
     },
     "rename": {
       "title": "Renombrar panel",
@@ -1195,7 +1249,9 @@
       "edit": "Editar",
       "submit": "Compartir",
       "remove": "Dejar de compartir",
-      "noRoles": "No hay roles de rango inferior al tuyo con los que compartir."
+      "noRoles": "No hay roles de rango inferior al tuyo con los que compartir.",
+      "roleHelp": "Las personas con este rol podrán abrir el panel. Cada una solo verá los datos de las tablas que puede leer.",
+      "levelHelp": "«Ver» permite consultar el panel; «Editar» permite además cambiar sus widgets."
     },
     "view": {
       "empty": "Este panel todavía no tiene widgets.",
@@ -1286,7 +1342,19 @@
       "invalid": "Completa el título, la tabla y las columnas para este tipo de widget.",
       "save": "Guardar",
       "cancel": "Cancelar",
-      "otherArea": "Otros datos"
+      "otherArea": "Otros datos",
+      "titleHelp": "Texto que aparece en la cabecera del widget, por ejemplo «Facturas de este mes».",
+      "typeHelp": "Métrica: una sola cifra. Gráfico: barras, líneas o sectores. Tabla: una lista de registros.",
+      "tableHelp": "Tabla de la que salen los datos del widget.",
+      "chartTypeHelp": "Forma del gráfico: barras para comparar, líneas para ver la evolución y circular para ver proporciones.",
+      "xAxisHelp": "Columna con la que se agrupan los datos: cada valor distinto es una barra o un punto del gráfico.",
+      "timeBucketHelp": "Si agrupas por una fecha, elige si juntar los datos por día, semana, mes o año, o usar el valor exacto.",
+      "aggregationHelp": "Cálculo que se hace con los datos: recuento de registros, o suma, media, mínimo o máximo de una columna.",
+      "valueColumnHelp": "Columna con la que se hace el cálculo, por ejemplo el importe para sumar las ventas.",
+      "columnsHelp": "Columnas que se muestran en la tabla del widget.",
+      "filterHelp": "Columna por la que quieres limitar los datos, por ejemplo solo las facturas pagadas. Es opcional.",
+      "operatorHelp": "Cómo se compara la columna con el valor: igual, distinto, mayor, menor…",
+      "valueHelp": "Valor con el que se compara la columna del filtro."
     },
     "messages": {
       "created": "Panel creado",

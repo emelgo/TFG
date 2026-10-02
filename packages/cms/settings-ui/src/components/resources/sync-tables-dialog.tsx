@@ -18,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@pymekit/ui/dialog';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError, FieldGroup } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -85,9 +86,12 @@ export function SyncTablesDialog(props: {
 
                   return (
                     <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={`sync-tables-${name}`}>
+                      <FieldLabelWithHelp
+                        htmlFor={`sync-tables-${name}`}
+                        help={t(`${name}Help`)}
+                      >
                         {t(name)}
-                      </FieldLabel>
+                      </FieldLabelWithHelp>
                       <Input
                         id={`sync-tables-${name}`}
                         data-testid={`sync-tables-${name}`}

@@ -82,6 +82,7 @@ const form = useForm({
 | --- | --- |
 | Button, Card, Input, etc. | `@pymekit/ui/<nombre>` |
 | Campos de formulario | `Field`, `FieldLabel`, `FieldDescription`, `FieldError` de `@pymekit/ui/field` |
+| Ayuda «?» de un campo (*popover*, funciona con toque y teclado) | `FieldLabelWithHelp` (prop `help`; sin texto no pinta el «?») o `FieldHelp` suelto, de `@pymekit/ui/field-help` |
 | Traducciones | `Trans` de `@pymekit/ui/trans` |
 | Notificaciones *toast* | `toast` de `@pymekit/ui/sonner` |
 | Renderizado condicional | `If` de `@pymekit/ui/if` |

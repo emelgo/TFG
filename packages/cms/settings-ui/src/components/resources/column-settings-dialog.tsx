@@ -30,8 +30,8 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
 } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
@@ -132,9 +132,12 @@ export function ColumnSettingsDialog(props: {
             <form.Field name="displayName">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="column-settings-label">
+                  <FieldLabelWithHelp
+                    htmlFor="column-settings-label"
+                    help={t('labelHelp')}
+                  >
                     {t('label')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Input
                     id="column-settings-label"
                     data-testid="column-settings-label"
@@ -152,9 +155,12 @@ export function ColumnSettingsDialog(props: {
             <form.Field name="description">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="column-settings-description">
+                  <FieldLabelWithHelp
+                    htmlFor="column-settings-description"
+                    help={t('columnDescriptionHelp')}
+                  >
                     {t('columnDescription')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Textarea
                     id="column-settings-description"
                     value={field.state.value}
@@ -169,9 +175,12 @@ export function ColumnSettingsDialog(props: {
             <form.Field name="uiDataType">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="column-settings-formatter">
+                  <FieldLabelWithHelp
+                    htmlFor="column-settings-formatter"
+                    help={t('formatterHelp')}
+                  >
                     {t('formatter')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <NativeSelect
                     id="column-settings-formatter"
                     data-testid="column-settings-formatter"
@@ -206,9 +215,12 @@ export function ColumnSettingsDialog(props: {
                           field.handleChange(checked)
                         }
                       />
-                      <FieldLabel htmlFor={`column-settings-${flag}`}>
+                      <FieldLabelWithHelp
+                        htmlFor={`column-settings-${flag}`}
+                        help={t(`flags.${flag}Help`)}
+                      >
                         {t(`flags.${flag}`)}
-                      </FieldLabel>
+                      </FieldLabelWithHelp>
                     </Field>
                   )}
                 </form.Field>
@@ -218,7 +230,9 @@ export function ColumnSettingsDialog(props: {
               <form.Field name="valueLabels">
                 {(field) => (
                   <Field data-testid="column-settings-value-labels">
-                    <FieldLabel>{t('valueLabels')}</FieldLabel>
+                    <FieldLabelWithHelp help={t('valueLabelsHelp')}>
+                      {t('valueLabels')}
+                    </FieldLabelWithHelp>
                     <FieldDescription>
                       {t('valueLabelsDescription')}
                     </FieldDescription>

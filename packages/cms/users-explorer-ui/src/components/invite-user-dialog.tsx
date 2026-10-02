@@ -15,7 +15,8 @@ import {
   AlertDialogTitle,
 } from '@pymekit/ui/alert-dialog';
 import { Button } from '@pymekit/ui/button';
-import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -78,9 +79,12 @@ export function InviteUserDialog(props: {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor="invite-user-email">
+                  <FieldLabelWithHelp
+                    htmlFor="invite-user-email"
+                    help={t('form.emailHelp')}
+                  >
                     {t('form.email')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Input
                     id="invite-user-email"
                     data-testid="invite-user-email"

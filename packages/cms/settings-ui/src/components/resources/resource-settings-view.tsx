@@ -47,7 +47,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@pymekit/ui/card';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError, FieldGroup } from '@pymekit/ui/field';
+import { FieldHelp, FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
 import { Switch } from '@pymekit/ui/switch';
@@ -220,9 +221,12 @@ function TableSettingsForm(props: {
               <form.Field key={name} name={name}>
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid}>
-                    <FieldLabel htmlFor={`table-settings-${name}`}>
+                    <FieldLabelWithHelp
+                      htmlFor={`table-settings-${name}`}
+                      help={t(`${name}Help`)}
+                    >
                       {t(name)}
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
                     <Input
                       id={`table-settings-${name}`}
                       data-testid={`table-settings-${name}`}
@@ -248,9 +252,12 @@ function TableSettingsForm(props: {
             <form.Field name="navigationGroup">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="table-settings-navigationGroup">
+                  <FieldLabelWithHelp
+                    htmlFor="table-settings-navigationGroup"
+                    help={t('navigationGroupFieldHelp')}
+                  >
                     {t('navigationGroup')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   {/* `datalist` sugiere las áreas existentes sin impedir
                       escribir una nueva. */}
                   <Input
@@ -284,9 +291,12 @@ function TableSettingsForm(props: {
             <form.Field name="description">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="table-settings-description">
+                  <FieldLabelWithHelp
+                    htmlFor="table-settings-description"
+                    help={t('tableDescriptionHelp')}
+                  >
                     {t('tableDescription')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Textarea
                     id="table-settings-description"
                     value={field.state.value}
@@ -312,9 +322,12 @@ function TableSettingsForm(props: {
                           field.handleChange(checked)
                         }
                       />
-                      <FieldLabel htmlFor={`table-settings-${name}`}>
+                      <FieldLabelWithHelp
+                        htmlFor={`table-settings-${name}`}
+                        help={t(`${name}Help`)}
+                      >
                         {t(name)}
-                      </FieldLabel>
+                      </FieldLabelWithHelp>
                     </Field>
                   )}
                 </form.Field>
@@ -392,8 +405,13 @@ function ColumnsSettings(props: {
               <TableHead>{t('name')}</TableHead>
               <TableHead>{t('label')}</TableHead>
               {toggles.map(([key]) => (
-                <TableHead key={key} className="w-20">
-                  {t(`short.${key}`)}
+                <TableHead key={key} className="w-24">
+                  <span className="inline-flex items-center gap-1">
+                    {t(`short.${key}`)}
+                    <FieldHelp label={t(`flags.${key}`)}>
+                      {t(`flags.${key}Help`)}
+                    </FieldHelp>
+                  </span>
                 </TableHead>
               ))}
               <TableHead>{t('formatter')}</TableHead>
@@ -568,9 +586,12 @@ function RelationRow(props: {
               disabled={!props.canUpdate}
               onCheckedChange={(checked) => field.handleChange(checked)}
             />
-            <FieldLabel htmlFor={`relation-enabled-${id}`}>
+            <FieldLabelWithHelp
+              htmlFor={`relation-enabled-${id}`}
+              help={t('enabledHelp')}
+            >
               {t('enabled')}
-            </FieldLabel>
+            </FieldLabelWithHelp>
           </Field>
         )}
       </form.Field>

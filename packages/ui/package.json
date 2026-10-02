@@ -63,6 +63,7 @@
     "./input-group": "./src/shadcn/input-group.tsx",
     "./item": "./src/shadcn/item.tsx",
     "./field": "./src/pymekit/field.tsx",
+    "./field-help": "./src/pymekit/field-help.tsx",
     "./drawer": "./src/shadcn/drawer.tsx",
     "./utils": "./src/lib/utils/index.ts",
     "./if": "./src/pymekit/if.tsx",

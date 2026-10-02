@@ -33,6 +33,8 @@ Los componentes del explorador no pueden ir en `@pymekit/cms-data-explorer` (jun
 
 El código de cliente reutilizable del CMS no puede vivir en los paquetes de funcionalidad (`cms-settings`, `cms-navigation`…): sus exports arrastran Hono, Drizzle y la clave secreta, y cualquier import de valor desde un componente acabaría en el *bundle* del navegador. Tampoco encaja en `@pymekit/cms-api`, que es el punto de montaje del servidor. Un paquete propio deja la frontera explícita: `cms-ui-core` solo importa `@pymekit/cms-api/client`, `@pymekit/cms-shared/error-codes` y **tipos** de rutas (`import type`), así que es seguro en el navegador; lo que depende de TanStack Start (el `fetch` isomorfo para el SSR) se inyecta desde la web (`apps/web/src/lib/cms/`). Su lógica pura tiene tests unitarios (`src/__tests__`).
 
+Cada campo de los formularios de la consola lleva su ayuda «?» con `FieldLabelWithHelp` de `@pymekit/ui/field-help` y una clave `...Help` junto a la de su etiqueta; en los formularios de registros, la ayuda es la descripción de la columna (`columns_config.<col>.description`, rellenada para las tablas de PymeKit en `20261002160000_cms_column_descriptions.sql`).
+
 Los *logs* usan `getLogger()` de `@pymekit/shared/logger`, igual que el resto de PymeKit.
 
 ## Cómo llega una petición

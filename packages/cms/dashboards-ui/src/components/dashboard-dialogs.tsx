@@ -30,7 +30,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@pymekit/ui/dialog';
-import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -94,9 +95,12 @@ export function DashboardNameDialog(props: {
           <form.Field name="name">
             {(field) => (
               <Field>
-                <FieldLabel htmlFor="dashboard-name">
+                <FieldLabelWithHelp
+                  htmlFor="dashboard-name"
+                  help={t('create.nameHelp')}
+                >
                   {t('create.name')}
-                </FieldLabel>
+                </FieldLabelWithHelp>
                 <Input
                   id="dashboard-name"
                   data-testid="dashboard-name-input"

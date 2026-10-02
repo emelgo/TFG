@@ -18,12 +18,8 @@ import {
   AlertDialogTrigger,
 } from '@pymekit/ui/alert-dialog';
 import { Button } from '@pymekit/ui/button';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from '@pymekit/ui/field';
+import { Field, FieldDescription, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
@@ -134,12 +130,15 @@ function BanUserForm(props: {
 
           return (
             <Field data-invalid={isInvalid}>
-              <FieldLabel htmlFor={field.name}>
+              <FieldLabelWithHelp
+                htmlFor={field.name}
+                help={<Trans i18nKey={'admin.confirmLabelHelp'} />}
+              >
                 <Trans
                   i18nKey={'admin.confirmLabel'}
                   components={{ b: <b /> }}
                 />
-              </FieldLabel>
+              </FieldLabelWithHelp>
 
               <Input
                 id={field.name}

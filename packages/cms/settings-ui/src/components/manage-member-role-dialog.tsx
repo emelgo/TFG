@@ -22,12 +22,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@pymekit/ui/dialog';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from '@pymekit/ui/field';
+import { Field, FieldDescription, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -100,9 +96,12 @@ export function ManageMemberRoleDialog(props: {
           <form.Field name="roleId">
             {(field) => (
               <Field>
-                <FieldLabel htmlFor="member-role-select">
+                <FieldLabelWithHelp
+                  htmlFor="member-role-select"
+                  help={t('labelHelp')}
+                >
                   {t('label')}
-                </FieldLabel>
+                </FieldLabelWithHelp>
 
                 <NativeSelect
                   id="member-role-select"

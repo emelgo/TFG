@@ -286,7 +286,10 @@
     "providerLogo": "Logotipo de {provider}",
     "checkout": "Pago",
     "copyFailed": "No se ha podido copiar al portapapeles",
-    "skip": "Omitir"
+    "skip": "Omitir",
+    "fieldHelp": "Ayuda: {field}",
+    "fieldHelpPrefix": "Ayuda:",
+    "fieldHelpGeneric": "Ayuda sobre este campo"
   },
   "validation": {
     "invalidEmail": "Introduce un correo electrónico válido",

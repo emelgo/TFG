@@ -66,12 +66,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@pymekit/ui/dropdown-menu';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from '@pymekit/ui/field';
+import { Field, FieldDescription, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { Input } from '@pymekit/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@pymekit/ui/popover';
 import { toast } from '@pymekit/ui/sonner';
@@ -478,9 +474,12 @@ function CreateSavedViewForm(props: {
 
           return (
             <Field data-invalid={isInvalid}>
-              <FieldLabel htmlFor={field.name}>
+              <FieldLabelWithHelp
+                htmlFor={field.name}
+                help={t('views.viewNameHelp')}
+              >
                 {t('views.viewName')}
-              </FieldLabel>
+              </FieldLabelWithHelp>
 
               <Input
                 id={field.name}
@@ -509,12 +508,15 @@ function CreateSavedViewForm(props: {
 
           return (
             <Field data-invalid={isInvalid}>
-              <FieldLabel htmlFor={field.name}>
+              <FieldLabelWithHelp
+                htmlFor={field.name}
+                help={t('views.descriptionFieldHelp')}
+              >
                 <span>{t('views.description')}</span>
                 <span className="text-muted-foreground text-xs">
                   {t('views.optional')}
                 </span>
-              </FieldLabel>
+              </FieldLabelWithHelp>
 
               <Input
                 id={field.name}
@@ -537,12 +539,12 @@ function CreateSavedViewForm(props: {
       <form.Field name="roles">
         {(field) => (
           <Field>
-            <FieldLabel>
+            <FieldLabelWithHelp help={t('views.shareWithRolesHelp')}>
               <span>{t('views.shareWithRoles')}</span>
               <span className="text-muted-foreground text-xs">
                 {t('views.optional')}
               </span>
-            </FieldLabel>
+            </FieldLabelWithHelp>
 
             <RolesPicker
               value={field.state.value}

@@ -43,8 +43,8 @@ import {
   FieldContent,
   FieldDescription,
   FieldError,
-  FieldLabel,
 } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { Spinner } from '@pymekit/ui/spinner';
 import { Switch } from '@pymekit/ui/switch';
 
@@ -114,9 +114,12 @@ export function MfaRequirementForm(props: { config: CmsMfaConfiguration }) {
         {(field) => (
           <Field orientation="horizontal" className="rounded-lg border p-4">
             <FieldContent>
-              <FieldLabel htmlFor="cms-requires-mfa">
+              <FieldLabelWithHelp
+                htmlFor="cms-requires-mfa"
+                help={t('requireMfaHelp')}
+              >
                 {t('requireMfa')}
-              </FieldLabel>
+              </FieldLabelWithHelp>
               <FieldDescription>{t('requireMfaDescription')}</FieldDescription>
               <FieldError errors={field.state.meta.errors} />
             </FieldContent>

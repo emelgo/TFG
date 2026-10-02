@@ -41,8 +41,8 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
 } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
@@ -162,6 +162,8 @@ function PermissionFormBody(
     name: 'name' | 'bucketName' | 'pathPattern';
     label: string;
     help?: string;
+    /** Explicación del botón «?» junto a la etiqueta. */
+    info: string;
     testId: string;
     maxLength: number;
   }) => (
@@ -172,7 +174,9 @@ function PermissionFormBody(
 
         return (
           <Field data-invalid={isInvalid}>
-            <FieldLabel htmlFor={params.testId}>{params.label}</FieldLabel>
+            <FieldLabelWithHelp htmlFor={params.testId} help={params.info}>
+              {params.label}
+            </FieldLabelWithHelp>
             <Input
               id={params.testId}
               data-testid={params.testId}
@@ -195,6 +199,8 @@ function PermissionFormBody(
   const renderSelect = (params: {
     name: 'systemResource' | 'schemaName' | 'tableName' | 'columnName';
     label: string;
+    /** Explicación del botón «?» junto a la etiqueta. */
+    info: string;
     testId: string;
     options: Array<{ value: string; label: string }>;
     onValueChange?: () => void;
@@ -206,7 +212,9 @@ function PermissionFormBody(
 
         return (
           <Field data-invalid={isInvalid}>
-            <FieldLabel htmlFor={params.testId}>{params.label}</FieldLabel>
+            <FieldLabelWithHelp htmlFor={params.testId} help={params.info}>
+              {params.label}
+            </FieldLabelWithHelp>
             <NativeSelect
               id={params.testId}
               data-testid={params.testId}
@@ -264,6 +272,7 @@ function PermissionFormBody(
             {renderText({
               name: 'name',
               label: t('permission.name'),
+              info: t('permission.nameHelp'),
               testId: 'permission-form-name',
               maxLength: 100,
             })}
@@ -271,9 +280,12 @@ function PermissionFormBody(
             <form.Field name="description">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="permission-form-description">
+                  <FieldLabelWithHelp
+                    htmlFor="permission-form-description"
+                    help={t('permission.descriptionHelp')}
+                  >
                     {t('permission.description')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Textarea
                     id="permission-form-description"
                     data-testid="permission-form-description"
@@ -308,9 +320,12 @@ function PermissionFormBody(
             >
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="permission-form-kind">
+                  <FieldLabelWithHelp
+                    htmlFor="permission-form-kind"
+                    help={t('permission.kindHelp')}
+                  >
                     {t('permission.kind')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <NativeSelect
                     id="permission-form-kind"
                     data-testid="permission-form-kind"
@@ -348,6 +363,7 @@ function PermissionFormBody(
                   return renderSelect({
                     name: 'systemResource',
                     label: t('permission.resource'),
+                    info: t('permission.resourceHelp'),
                     testId: 'permission-form-resource',
                     options: RBAC_SYSTEM_RESOURCES.map((resource) => ({
                       value: resource,
@@ -362,6 +378,7 @@ function PermissionFormBody(
                       {renderText({
                         name: 'bucketName',
                         label: t('permission.bucket'),
+                        info: t('permission.bucketMoreHelp'),
                         help: t('permission.bucketHelp'),
                         testId: 'permission-form-bucket',
                         maxLength: 100,
@@ -369,6 +386,7 @@ function PermissionFormBody(
                       {renderText({
                         name: 'pathPattern',
                         label: t('permission.path'),
+                        info: t('permission.pathMoreHelp'),
                         help: t('permission.pathHelp'),
                         testId: 'permission-form-path',
                         maxLength: 500,
@@ -387,6 +405,7 @@ function PermissionFormBody(
                     {renderSelect({
                       name: 'schemaName',
                       label: t('permission.schema'),
+                      info: t('permission.schemaHelp'),
                       testId: 'permission-form-schema',
                       options: options.schemas,
                       onValueChange: () => {
@@ -397,6 +416,7 @@ function PermissionFormBody(
                     {renderSelect({
                       name: 'tableName',
                       label: t('permission.table'),
+                      info: t('permission.tableHelp'),
                       testId: 'permission-form-table',
                       options: options.tables,
                       onValueChange: () => form.setFieldValue('columnName', ''),
@@ -405,6 +425,7 @@ function PermissionFormBody(
                       ? renderSelect({
                           name: 'columnName',
                           label: t('permission.column'),
+                          info: t('permission.columnHelp'),
                           testId: 'permission-form-column',
                           options: options.columns,
                         })
@@ -420,9 +441,12 @@ function PermissionFormBody(
             <form.Field name="action">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="permission-form-action">
+                  <FieldLabelWithHelp
+                    htmlFor="permission-form-action"
+                    help={t('permission.actionHelp')}
+                  >
                     {t('permission.action')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <NativeSelect
                     id="permission-form-action"
                     data-testid="permission-form-action"

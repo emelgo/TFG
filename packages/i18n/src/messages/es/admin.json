@@ -98,5 +98,10 @@
   "interval": "Intervalo",
   "pageTitlePrefix": "Administración",
   "accountFallback": "Cuenta",
-  "dashboardLoadError": "No se han podido cargar las estadísticas del panel. Vuelve a intentarlo en unos minutos."
+  "dashboardLoadError": "No se han podido cargar las estadísticas del panel. Vuelve a intentarlo en unos minutos.",
+  "emailHelp": "Correo con el que la persona entrará en PymeKit. Le llegarán los avisos y enlaces de acceso.",
+  "passwordHelp": "Contraseña inicial. Compártela por un canal seguro y pide que la cambie al entrar.",
+  "autoConfirmEmailHelp": "Da el correo por verificado, así la persona puede entrar sin pulsar el enlace de confirmación.",
+  "confirmLabelHelp": "Escribir la palabra evita hacer por error una acción importante o que no se puede deshacer.",
+  "confirmationHelp": "Escribir la confirmación evita restablecer la contraseña de alguien por error."
 }

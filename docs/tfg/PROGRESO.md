@@ -90,7 +90,7 @@
 - [x] F3c · Barra lateral única por áreas de negocio (Inicio, Blog, Cuentas, Facturación, Sistema, Otros datos + herramientas), área editable en Ajustes → Recursos
 - [x] F3c · Barra lateral: bloques «Gestión» y «Datos», «Gestión de cuentas» fuera de la carpeta Cuentas, iconos solo en el primer nivel y nombres sin truncar (petición del autor)
 - [x] F3c · Solo español (ADR-021): retirar el locale `en`, el selector de idioma y los mensajes en inglés, conservar la infraestructura i18n como punto de extensión documentado y pasar los E2E a español
-- [ ] F3c · Ayuda contextual «?» (solo en español) junto a cada campo de los formularios de la consola (componente reutilizable en `@pymekit/ui` + textos es/en), petición del autor
+- [x] F3c · Ayuda contextual «?» (solo en español) junto a cada campo de los formularios de la consola (componente reutilizable en `@pymekit/ui` + textos es/en), petición del autor
 - [ ] Plantillas de email solo tienen locale `en`: añadir `es`; revisar `EMAIL_TEMPLATE_RENDERERS` (no tiene consumidores)
 
 ## F4 · Comentarios en español
