@@ -2,7 +2,7 @@
 
 <!-- El hook SessionStart lee la línea «Fase actual» y las casillas sin marcar de la fase actual. Mantén este formato. -->
 
-**Fase actual:** F3
+**Fase actual:** F4
 
 ## F0 · Harness y planificación
 - [x] Directrices (`AGENTS.md`, `CLAUDE.md`)
@@ -73,16 +73,16 @@
 - [x] F2.9 · Cierre: suite E2E completa (149: 146 ✔ + 2 inestables conocidos + 1 test desactualizado por el permiso `resourceSettings` de la F2.7c, corregido y verificado en serie), skills `react-form-builder`, `service-builder` y `playwright-e2e` reescritas para el CMS integrado, pull request de `fase-2/cms` a `main`
 
 ## F3 · Desmarcado e i18n
-- [ ] Etiquetas legibles y traducidas para valores enumerados en el CMS y la web (`in_app` → «En la app», roles, estados…): etiqueta automática por defecto, traducciones explícitas para los enums de la plataforma y la demo, y configurables por columna en Ajustes → Recursos (sugerencia del autor, 2026-10-02)
-- [ ] La caja de introducción del código MFA (`/auth/verify`) se ve descuadrada (detectado por el autor, 2026-10-02)
-- [ ] Sesión anterior a un reinicio de la BD (refresh token inexistente): el dashboard de plataforma rompe con un error vacío en lugar de redirigir al login; endurecer el manejo de sesión caducada (detectado por el autor, 2026-10-02)
+- [x] Etiquetas legibles y traducidas para enums (`@pymekit/i18n/enum-labels`): etiqueta de la columna → traducción `common.enums.*` → humanizador; configurables en Ajustes → Recursos (`ui_config.value_labels`) (sugerencia del autor)
+- [x] Caja del código MFA centrada en `/auth/verify`, el diálogo de configuración y el formulario OTP
+- [x] Sesión caducada: `fetchAuthGate` en `/_authenticated` y `/admin` limpia las cookies y redirige al login; el dashboard de admin muestra un aviso en lugar de romper; E2E `stale-session.spec.ts` (B-53)
 - [x] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS (adelantado a F2, B-40)
 - [x] `check-branding` a cero (contenido y rutas), bloqueante en la CI (adelantado a F2 a petición del autor)
 - [x] Locale `es` por defecto y `en` como segundo idioma (F3a): ~1.770 claves traducidas + 169 nuevas (namespace `admin`, landing, planes), emails y plantillas de Supabase en español, textos escritos en el código pasados a i18n, selector de idioma en ajustes de cuenta y pie de la web, test de paridad de claves. Los E2E se ejecutan en inglés (`.env.test`) y `i18n-espanol.spec.ts` verifica el español
-- [ ] Restos de F3a: fechas de la demo en en-US; nombres de planes, «MRR» y la palabra CONFIRM en inglés; las invitaciones se envían en el idioma de quien invita
-- [ ] Plantillas y `config.toml` de Supabase: marca hecha; falta traducir al español
+- [ ] Restos de F3: las celdas de fecha del CMS salen como «13 Jan» en español; el control de sesión añade una llamada `getUser` por navegación protegida; fechas de la demo en en-US; nombres de planes, «MRR» y la palabra CONFIRM en inglés; las invitaciones se envían en el idioma de quien invita
+- [x] Plantillas y `config.toml` de Supabase en español
 - [x] Marca visual: logo propio (símbolo + nombre en texto), favicons generados a partir del símbolo y capturas de la landing tomadas de la propia app (`apps/e2e/scripts/capture-marketing-screenshots.mjs`, a regenerar tras la traducción) (B-46)
-- [ ] La gráfica de demostración del panel muestra «Invalid Date» en su *tooltip* (heredado)
+- [x] Gráfica de demostración: corregido «Invalid Date» y fechas según el idioma activo
 - [x] Helpers pgTAP `pymekit.*` (adelantado a F2)
 - [x] Carpeta `packages/ui/src/makerkit/` → `src/pymekit/` (y sus exports) y `styles/makerkit.css` → `pymekit.css` (adelantado a F2 a petición del autor, B-40)
 - [x] Contenido: emails de prueba → `@pymekit.test`, equipo de prueba → «PymeKit» (`pymekit`), comentarios SQL, `.env`, manifest, landing, `config.toml`, plantillas de email, READMEs y *tooling* (eliminado `version.mjs`, que se comparaba con el repositorio original)
@@ -158,6 +158,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-10-02 | F3b | Etiquetas legibles de enums, caja MFA, sesión caducada, «Invalid Date» y capturas en español; pull request de la F3 |
 | 2026-10-02 | F3a | Español por defecto en toda la plataforma (modo ahorro: un agente) |
 | 2026-10-02 | F2.9 | Cierre de la F2: E2E completa, skills al día y pull request a `main`. Siguiente: F3 (español) |
 | 2026-10-02 | F2.8 | Paneles del CMS (modo ahorro); corregidos los widgets que podían apuntar a tablas no legibles y la apropiación de paneles compartidos (B-50) |

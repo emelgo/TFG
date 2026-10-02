@@ -67,6 +67,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-50 | 2026-10-02 | F2.8 | seguridad | heredado | Widgets sobre tablas no legibles y apropiación de paneles compartidos | Media |
 | B-51 | 2026-10-02 | F2.9 | proceso | propio | Un test de otra zona quedó desactualizado al verificar solo los E2E afectados | Baja |
 | B-52 | 2026-10-02 | F2.9 | herramientas | entorno | El servidor de desarrollo perdió las rutas del CMS tras cambiar de rama | Media |
+| B-53 | 2026-10-02 | F3b | calidad | heredado | Una sesión caducada rompía la consola en lugar de llevar al inicio de sesión | Media |
 
 ---
 
@@ -394,3 +395,9 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Cómo se diagnosticó:** reproduciéndolo con un script de Playwright (inicio de sesión real con MFA) y descartando por orden la API, el guard (un log temporal no llegó a ejecutarse) y la sesión.
 - **Solución:** reiniciar el servidor de desarrollo borrando sus cachés (`node_modules/.vite`, `.tanstack`).
 - **Lección:** tras un cambio de rama o una fusión grande, hay que reiniciar el servidor de desarrollo desde cero. Y que los E2E pasen contra la build de test no garantiza que el entorno de desarrollo que usa el autor esté sano.
+
+## B-53 · Una sesión caducada rompía la consola en lugar de llevar al inicio de sesión
+- **Qué pasó:** con las cookies de una sesión que ya no existe (por ejemplo, tras reiniciar la BD), `getClaims` daba por buena la firma del JWT, pero las consultas fallaban: el dashboard de plataforma rompía con un error vacío (`throw new Error()` sin mensaje) y `/admin` respondía 404, porque la comprobación de MFA no podía leer los factores. Lo detectó el autor (B-52).
+- **Solución:** `fetchAuthGate` en `/_authenticated` y `/admin` consulta a Auth si la sesión sigue viva. Si no lo está, limpia las cookies y redirige al inicio de sesión con `next`. El dashboard de admin muestra un aviso en lugar de romper, y los errores llevan su mensaje. Los tests que hacían un cierre de sesión global (que revoca también las sesiones compartidas) pasan a limpiar solo las cookies.
+- **Error intermedio:** una primera versión trató también `refresh_token_already_used` como sesión muerta y cerraba sesiones válidas cuando dos peticiones refrescaban a la vez. Se retiró.
+- **Lección:** verificar la firma de un JWT no demuestra que la sesión exista. Las rutas protegidas necesitan una comprobación con estado, al menos en la entrada.
