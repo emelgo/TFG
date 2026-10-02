@@ -78,7 +78,8 @@
 - [ ] Sesión anterior a un reinicio de la BD (refresh token inexistente): el dashboard de plataforma rompe con un error vacío en lugar de redirigir al login; endurecer el manejo de sesión caducada (detectado por el autor, 2026-10-02)
 - [x] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS (adelantado a F2, B-40)
 - [x] `check-branding` a cero (contenido y rutas), bloqueante en la CI (adelantado a F2 a petición del autor)
-- [ ] Locale `es` por defecto (web, emails, CMS)
+- [x] Locale `es` por defecto y `en` como segundo idioma (F3a): ~1.770 claves traducidas + 169 nuevas (namespace `admin`, landing, planes), emails y plantillas de Supabase en español, textos escritos en el código pasados a i18n, selector de idioma en ajustes de cuenta y pie de la web, test de paridad de claves. Los E2E se ejecutan en inglés (`.env.test`) y `i18n-espanol.spec.ts` verifica el español
+- [ ] Restos de F3a: fechas de la demo en en-US; nombres de planes, «MRR» y la palabra CONFIRM en inglés; las invitaciones se envían en el idioma de quien invita
 - [ ] Plantillas y `config.toml` de Supabase: marca hecha; falta traducir al español
 - [x] Marca visual: logo propio (símbolo + nombre en texto), favicons generados a partir del símbolo y capturas de la landing tomadas de la propia app (`apps/e2e/scripts/capture-marketing-screenshots.mjs`, a regenerar tras la traducción) (B-46)
 - [ ] La gráfica de demostración del panel muestra «Invalid Date» en su *tooltip* (heredado)
@@ -157,6 +158,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-10-02 | F3a | Español por defecto en toda la plataforma (modo ahorro: un agente) |
 | 2026-10-02 | F2.9 | Cierre de la F2: E2E completa, skills al día y pull request a `main`. Siguiente: F3 (español) |
 | 2026-10-02 | F2.8 | Paneles del CMS (modo ahorro); corregidos los widgets que podían apuntar a tablas no legibles y la apropiación de paneles compartidos (B-50) |
 | 2026-10-02 | F2.7c | Recursos y diseñador de fichas del CMS (modo ahorro: un agente, E2E acotados) |
