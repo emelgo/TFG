@@ -401,3 +401,9 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Solución:** `fetchAuthGate` en `/_authenticated` y `/admin` consulta a Auth si la sesión sigue viva. Si no lo está, limpia las cookies y redirige al inicio de sesión con `next`. El dashboard de admin muestra un aviso en lugar de romper, y los errores llevan su mensaje. Los tests que hacían un cierre de sesión global (que revoca también las sesiones compartidas) pasan a limpiar solo las cookies.
 - **Error intermedio:** una primera versión trató también `refresh_token_already_used` como sesión muerta y cerraba sesiones válidas cuando dos peticiones refrescaban a la vez. Se retiró.
 - **Lección:** verificar la firma de un JWT no demuestra que la sesión exista. Las rutas protegidas necesitan una comprobación con estado, al menos en la entrada.
+
+## B-54 · Un E2E del CMS esperaba el valor crudo de un enumerado
+- **Qué pasó:** la CI del PR de la F3 falló en `cms-data-explorer-write.spec.ts`. El test esperaba ver `info` en el desplegable del tipo de notificación, pero la F3b muestra las etiquetas legibles de los enumerados («Info»).
+- **Causa:** al cerrar la F3b solo se ejecutaron los E2E de la zona tocada (modo ahorro, B-48), y este test del explorador no estaba entre ellos. Es la misma situación que en B-51.
+- **Solución:** la aserción pasa a esperar la etiqueta. Antes de volver a subir se ejecutó en local la suite completa: 150 tests correctos y 4 inestables que pasan al reintentar.
+- **Lección:** un cambio de presentación transversal, como las etiquetas de los enumerados, afecta a tests de toda la aplicación. En esos casos conviene ejecutar la suite completa antes de abrir el PR, no después.
