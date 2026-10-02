@@ -1,6 +1,7 @@
 /**
  * `PUT /v1/tables/:schema/:table` (F2.7c): nombre visible, descripción,
- * formato de visualización, visibilidad, búsqueda y orden de una tabla.
+ * formato de visualización, visibilidad, búsqueda, orden y área de negocio
+ * (`ui_config.navigation_group`, F3c) de una tabla.
  * Exige `table:update` (403) y responde 404 si la tabla no existe.
  *
  * [TFG] RF-09 · RNF-02.

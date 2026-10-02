@@ -1,24 +1,25 @@
 {
   "consoleTitle": "Consola de administración",
   "sidebar": {
-    "platformGroup": "Plataforma",
-    "cmsGroup": "CMS",
-    "platformDashboard": "Panel",
     "platformAccounts": "Cuentas",
-    "resources": "Explorador de datos",
     "users": "Usuarios",
     "storage": "Almacenamiento",
     "auditLogs": "Registros de auditoría",
     "dashboards": "Paneles",
     "settings": "Ajustes",
-    "resourcesGroup": "Recursos",
-    "resourcesToggle": "Mostrar u ocultar las tablas",
-    "resourcesViewAll": "Ver todas las tablas (+{count})",
-    "openMenu": "Abrir el menú de navegación"
+    "openMenu": "Abrir el menú de navegación",
+    "home": "Inicio",
+    "accountsManagement": "Gestión de cuentas",
+    "otherArea": "Otros datos",
+    "allTables": "Todas las tablas",
+    "files": "Archivos",
+    "audit": "Auditoría",
+    "areasLabel": "Áreas de datos",
+    "toolsLabel": "Herramientas"
   },
   "overview": {
-    "title": "Explorador de datos",
-    "description": "Tablas que puedes leer, agrupadas por esquema de base de datos.",
+    "title": "Todas las tablas",
+    "description": "Tablas que puedes leer, agrupadas por área.",
     "tablesCount": "{count, plural, one {# tabla} other {# tablas}}",
     "emptyHeading": "No hay tablas disponibles",
     "emptyText": "Tu rol de CMS aún no concede acceso de lectura a ninguna tabla. Pide a un administrador que te asigne los permisos que necesitas."
@@ -1032,6 +1033,9 @@
         "title": "Tabla",
         "description": "Cómo se nombra y se muestra esta tabla en el explorador de datos.",
         "displayName": "Nombre para mostrar",
+        "navigationGroup": "Área",
+        "navigationGroupPlaceholder": "Por ejemplo: Blog",
+        "navigationGroupHelp": "Agrupa la tabla en la barra lateral. Elige un área existente o escribe una nueva; si la dejas vacía, la tabla aparece en «Otros datos».",
         "displayFormat": "Formato de visualización",
         "tableDescription": "Descripción",
         "isVisible": "Visible en el explorador de datos",
@@ -1128,7 +1132,8 @@
         "save": "Guardar diseño",
         "reset": "Usar diseño predeterminado",
         "saved": "Diseño guardado"
-      }
+      },
+      "otherArea": "Otros datos"
     }
   },
   "dashboards": {
@@ -1283,7 +1288,8 @@
       },
       "invalid": "Completa el título, la tabla y las columnas para este tipo de widget.",
       "save": "Guardar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "otherArea": "Otros datos"
     },
     "messages": {
       "created": "Panel creado",

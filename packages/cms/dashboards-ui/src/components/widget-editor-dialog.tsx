@@ -25,6 +25,11 @@ import {
   WIDGET_TYPES,
 } from '@pymekit/cms-shared/dashboards';
 import { useCmsApi } from '@pymekit/cms-ui-core/api-context';
+import {
+  getResourceArea,
+  getResourceLabel,
+  groupByArea,
+} from '@pymekit/cms-ui-core/resources';
 import { Button } from '@pymekit/ui/button';
 import { Checkbox } from '@pymekit/ui/checkbox';
 import {
@@ -38,7 +43,11 @@ import {
 import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
-import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
+import {
+  NativeSelect,
+  NativeSelectOptGroup,
+  NativeSelectOption,
+} from '@pymekit/ui/native-select';
 import { Spinner } from '@pymekit/ui/spinner';
 
 import {
@@ -120,6 +129,14 @@ export function WidgetEditorDialog(props: {
   const { data: resources = [] } = useQuery({
     ...queries.navigation(),
     enabled: props.open,
+  });
+  // Tablas agrupadas por área, igual que en la barra lateral. Se incluyen
+  // también las ocultas del explorador: un *widget* ya guardado puede usar
+  // una y su opción tiene que seguir existiendo.
+  const resourceGroups = groupByArea(resources, {
+    area: getResourceArea,
+    ordering: (resource) => resource.metadata.ordering,
+    label: getResourceLabel,
   });
   const { data: metadata, isFetching: isLoadingColumns } = useQuery({
     ...queries.tableMetadata(source?.schemaName ?? '', source?.tableName ?? ''),
@@ -225,13 +242,20 @@ export function WidgetEditorDialog(props: {
                     <NativeSelectOption value="">
                       {t('chooseTable')}
                     </NativeSelectOption>
-                    {resources.map((resource) => (
-                      <NativeSelectOption
-                        key={`${resource.schemaName}.${resource.tableName}`}
-                        value={`${resource.schemaName}.${resource.tableName}`}
+                    {resourceGroups.map((group) => (
+                      <NativeSelectOptGroup
+                        key={group.name ?? ''}
+                        label={group.name ?? t('otherArea')}
                       >
-                        {resource.displayName} ({resource.schemaName})
-                      </NativeSelectOption>
+                        {group.items.map((resource) => (
+                          <NativeSelectOption
+                            key={`${resource.schemaName}.${resource.tableName}`}
+                            value={`${resource.schemaName}.${resource.tableName}`}
+                          >
+                            {getResourceLabel(resource)} ({resource.tableName})
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelectOptGroup>
                     ))}
                   </NativeSelect>
                 </Field>

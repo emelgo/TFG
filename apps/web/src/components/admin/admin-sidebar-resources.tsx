@@ -1,146 +1,166 @@
 /**
- * Grupo «Recursos» de la barra lateral de la consola: acceso directo al
- * listado de cada tabla que el usuario puede leer en el CMS.
+ * Áreas de la barra lateral de la consola: una entrada plegable por área de
+ * negocio («Blog», «Cuentas», «Facturación»…) con las tablas que el usuario
+ * puede leer en el CMS.
  *
  * Las tablas llegan de `GET /v1/navigation`, que ya aplica el RBAC del CMS
- * (el personal de soporte solo ve las suyas). Se agrupan por esquema cuando
- * hay más de uno, se limitan a `SIDEBAR_RESOURCES_LIMIT` (el resto se ve en
- * la portada del CMS) y la lista tiene altura máxima con desplazamiento para
- * no empujar el resto de la barra. El grupo se puede plegar.
+ * (el personal de soporte solo ve las suyas, y por tanto solo sus áreas), y
+ * se agrupan en `useAdminNavigation` (ver `admin-navigation.ts`). Cada tabla
+ * muestra su nombre visible y, atenuado, el nombre técnico, para no perder
+ * la referencia a la tabla real.
  *
- * [TFG] RF-09 · ADR-017: la navegación refleja los permisos del RBAC; la API
- * vuelve a comprobarlos en cada petición.
+ * Un área se abre sola si contiene la tabla abierta (o si es la única); el
+ * usuario puede plegarla o desplegarla con su botón, que expone
+ * `aria-expanded` (lo pone el `Collapsible` accesible de `@pymekit/ui`).
+ *
+ * [TFG] RF-09 · ADR-017 · ADR-020: la navegación refleja los permisos del
+ * RBAC; la API vuelve a comprobarlos en cada petición.
  */
-import { Link, useLocation } from '@tanstack/react-router';
-import { ChevronDown, Table2 } from 'lucide-react';
+import { useState } from 'react';
 
-import { isResourcePathActive } from '@pymekit/cms-ui-core/resources';
-import type { JWTUserData } from '@pymekit/supabase/types';
+import { Link, useLocation } from '@tanstack/react-router';
+import { ChevronRight, Folder } from 'lucide-react';
+
+import {
+  type AreaGroup,
+  isResourcePathActive,
+} from '@pymekit/cms-ui-core/resources';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@pymekit/ui/collapsible';
 import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@pymekit/ui/sidebar';
 import { Trans } from '@pymekit/ui/trans';
 
-import { useCmsSidebarResources } from './admin-navigation.ts';
+import { type NavigationEntry, isEntryActive } from './admin-navigation.ts';
 
-export function AdminSidebarResources(props: { user: JWTUserData | null }) {
+/** Lo mínimo de un recurso de `GET /v1/navigation` que necesita la barra. */
+type SidebarResource = {
+  schemaName: string;
+  tableName: string;
+  displayName: string;
+};
+
+/** Identificador estable de un área para `data-testid` y `key`. */
+export function getAreaKey(name: string | null) {
+  return name ?? 'other';
+}
+
+/**
+ * Texto técnico que acompaña a una tabla: solo el nombre en `public` y
+ * `esquema.tabla` en los demás esquemas (`auth.users`).
+ */
+export function getTechnicalName(resource: SidebarResource) {
+  return resource.schemaName === 'public'
+    ? resource.tableName
+    : `${resource.schemaName}.${resource.tableName}`;
+}
+
+export function AdminSidebarArea(props: {
+  area: AreaGroup<SidebarResource>;
+  /** Entrada extra al principio del área («Gestión de cuentas»). */
+  leadingEntry?: NavigationEntry | null;
+  defaultOpen: boolean;
+}) {
   const { pathname } = useLocation();
-  const { groups, showSchemaLabels, hiddenCount } = useCmsSidebarResources(
-    props.user,
-  );
+  const key = getAreaKey(props.area.name);
 
-  if (groups.length === 0) {
-    return null;
-  }
+  const containsActive =
+    props.area.items.some((resource) =>
+      isResourcePathActive(pathname, resource.schemaName, resource.tableName),
+    ) ||
+    (props.leadingEntry ? isEntryActive(props.leadingEntry, pathname) : false);
+
+  // `null` = el usuario aún no lo ha tocado: se abre si contiene la ruta
+  // actual. Se deriva en el render en lugar de sincronizarlo con un efecto.
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
+  const open = userOpen ?? (containsActive || props.defaultOpen);
 
   return (
     <Collapsible
-      defaultOpen
-      render={
-        <SidebarGroup
-          data-testid="admin-sidebar-resources-group"
-          // Con la barra plegada a iconos, una lista de tablas sin texto no
-          // sirve: se oculta y se usa la entrada «Explorador de datos».
-          className="group-data-[collapsible=icon]:hidden"
-        />
-      }
+      open={open}
+      onOpenChange={setUserOpen}
+      render={<SidebarMenuItem data-testid={`admin-sidebar-area-${key}`} />}
     >
-      <SidebarGroupLabel
+      <CollapsibleTrigger
         render={
-          <CollapsibleTrigger
-            className="group/resources-trigger w-full"
-            data-testid="admin-sidebar-resources-toggle"
+          <SidebarMenuButton
+            className="group/area-trigger"
+            data-testid={`admin-sidebar-area-toggle-${key}`}
           />
         }
       >
-        <Trans i18nKey="cms.sidebar.resourcesGroup" />
+        <Folder className="h-4" />
 
-        <ChevronDown className="ml-auto transition-transform group-data-[panel-open]/resources-trigger:rotate-180" />
-      </SidebarGroupLabel>
+        <span className="truncate">
+          {props.area.name ?? <Trans i18nKey="cms.sidebar.otherArea" />}
+        </span>
+
+        <ChevronRight className="ml-auto transition-transform group-data-[panel-open]/area-trigger:rotate-90" />
+      </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <SidebarGroupContent className="max-h-[40vh] overflow-y-auto">
-          {groups.map((group) => (
-            <div
-              key={group.schemaName}
-              data-testid={`admin-sidebar-resources-schema-${group.schemaName}`}
-            >
-              {showSchemaLabels ? (
-                <div className="text-muted-foreground px-2 pt-2 pb-1 font-mono text-xs">
-                  {group.schemaName}
-                </div>
-              ) : null}
+        <SidebarMenuSub>
+          {props.leadingEntry ? (
+            <SidebarMenuSubItem>
+              <SidebarMenuSubButton
+                isActive={isEntryActive(props.leadingEntry, pathname)}
+                render={
+                  <Link
+                    to={props.leadingEntry.path}
+                    data-testid="admin-sidebar-platform-accounts"
+                  />
+                }
+              >
+                <props.leadingEntry.Icon />
 
-              <SidebarMenu>
-                {group.items.map((resource) => (
-                  <SidebarMenuItem
-                    key={`${resource.schemaName}.${resource.tableName}`}
-                  >
-                    <SidebarMenuButton
-                      size="sm"
-                      isActive={isResourcePathActive(
-                        pathname,
-                        resource.schemaName,
-                        resource.tableName,
-                      )}
-                      render={
-                        <Link
-                          className="flex size-full gap-2"
-                          to="/admin/cms/resources/$schema/$table"
-                          params={{
-                            schema: resource.schemaName,
-                            table: resource.tableName,
-                          }}
-                          title={resource.displayName ?? resource.tableName}
-                          data-testid={`admin-sidebar-resource-${resource.schemaName}.${resource.tableName}`}
-                        />
-                      }
-                    >
-                      <Table2 className="h-4" />
-
-                      <span className="truncate">
-                        {resource.displayName ?? resource.tableName}
-                      </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </div>
-          ))}
-
-          {hiddenCount > 0 ? (
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="sm"
-                  render={
-                    <Link
-                      to="/admin/cms"
-                      data-testid="admin-sidebar-resources-view-all"
-                    />
-                  }
-                >
-                  <span className="text-muted-foreground">
-                    <Trans
-                      i18nKey="cms.sidebar.resourcesViewAll"
-                      values={{ count: hiddenCount }}
-                    />
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+                <span>
+                  <Trans i18nKey={props.leadingEntry.labelKey} />
+                </span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
           ) : null}
-        </SidebarGroupContent>
+
+          {props.area.items.map((resource) => (
+            <SidebarMenuSubItem
+              key={`${resource.schemaName}.${resource.tableName}`}
+            >
+              <SidebarMenuSubButton
+                isActive={isResourcePathActive(
+                  pathname,
+                  resource.schemaName,
+                  resource.tableName,
+                )}
+                title={`${resource.displayName} (${getTechnicalName(resource)})`}
+                render={
+                  <Link
+                    to="/admin/cms/resources/$schema/$table"
+                    params={{
+                      schema: resource.schemaName,
+                      table: resource.tableName,
+                    }}
+                    data-testid={`admin-sidebar-resource-${resource.schemaName}.${resource.tableName}`}
+                  />
+                }
+              >
+                <span className="flex min-w-0 items-baseline gap-1.5">
+                  <span className="truncate">{resource.displayName}</span>
+
+                  <span className="text-muted-foreground truncate font-mono text-[10px]">
+                    {getTechnicalName(resource)}
+                  </span>
+                </span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
       </CollapsibleContent>
     </Collapsible>
   );

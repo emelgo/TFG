@@ -2,9 +2,10 @@
 
 /**
  * Menú de navegación móvil de la consola de administración: las mismas
- * entradas que la barra lateral (`admin-navigation.ts`), en un desplegable,
- * incluido el grupo «Recursos» (tablas legibles, agrupadas por esquema y con
- * el mismo límite; el desplegable tiene altura máxima con desplazamiento).
+ * entradas que la barra lateral (`admin-navigation.ts`), en un desplegable.
+ * Cada área es un submenú (su disparador expone `aria-expanded`) con sus
+ * tablas; detrás, las herramientas y «Todas las tablas». El desplegable
+ * tiene altura máxima con desplazamiento.
  */
 import { Link } from '@tanstack/react-router';
 import { Menu } from 'lucide-react';
@@ -16,22 +17,36 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@pymekit/ui/dropdown-menu';
 import { Trans } from '@pymekit/ui/trans';
 
 import {
+  ACCOUNTS_AREA_NAME,
+  HOME_ENTRY,
   type NavigationEntry,
-  PLATFORM_ENTRIES,
-  useCmsNavigationEntries,
-  useCmsSidebarResources,
+  useAdminNavigation,
 } from './admin-navigation.ts';
+import { getAreaKey, getTechnicalName } from './admin-sidebar-resources.tsx';
 
 export function AdminMobileNavigation(props: { user: JWTUserData | null }) {
   const t = useTranslations('cms');
-  const cmsEntries = useCmsNavigationEntries(props.user);
-  const resources = useCmsSidebarResources(props.user);
+  const navigation = useAdminNavigation(props.user);
+  const accounts = navigation.accountsManagement;
+
+  const topEntries = [
+    navigation.showHome ? HOME_ENTRY : null,
+    accounts && !accounts.inArea ? accounts.entry : null,
+  ].filter((entry) => entry !== null);
+
+  const toolEntries = [
+    ...navigation.tools,
+    ...(navigation.allTables ? [navigation.allTables] : []),
+  ];
 
   return (
     <DropdownMenu>
@@ -40,84 +55,80 @@ export function AdminMobileNavigation(props: { user: JWTUserData | null }) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent className="max-h-[80vh] overflow-y-auto">
-        {props.user?.is_superadmin ? (
-          <MobileGroup
-            labelKey="cms.sidebar.platformGroup"
-            entries={PLATFORM_ENTRIES}
-          />
-        ) : null}
+        {topEntries.length > 0 ? <MobileEntries entries={topEntries} /> : null}
 
-        {props.user?.has_cms_access ? (
-          <MobileGroup labelKey="cms.sidebar.cmsGroup" entries={cmsEntries} />
-        ) : null}
+        {navigation.areas.length > 0 ? (
+          <DropdownMenuGroup aria-label={t('sidebar.areasLabel')}>
+            {navigation.areas.map((area) => (
+              <DropdownMenuSub key={getAreaKey(area.name)}>
+                <DropdownMenuSubTrigger>
+                  {area.name ?? <Trans i18nKey="cms.sidebar.otherArea" />}
+                </DropdownMenuSubTrigger>
 
-        {resources.groups.length > 0 ? (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>
-              <Trans i18nKey="cms.sidebar.resourcesGroup" />
-            </DropdownMenuLabel>
+                <DropdownMenuSubContent className="max-h-[70vh] overflow-y-auto">
+                  {area.name === ACCOUNTS_AREA_NAME && accounts?.inArea ? (
+                    <MobileEntry entry={accounts.entry} />
+                  ) : null}
 
-            {resources.groups.map((group) =>
-              group.items.map((resource) => (
-                <DropdownMenuItem
-                  key={`${resource.schemaName}.${resource.tableName}`}
-                  render={
-                    <Link
-                      to="/admin/cms/resources/$schema/$table"
-                      params={{
-                        schema: resource.schemaName,
-                        table: resource.tableName,
-                      }}
-                    >
-                      {resources.showSchemaLabels ? (
-                        <span className="text-muted-foreground font-mono text-xs">
-                          {resource.schemaName}
-                        </span>
-                      ) : null}
+                  {area.items.map((resource) => (
+                    <DropdownMenuItem
+                      key={`${resource.schemaName}.${resource.tableName}`}
+                      render={
+                        <Link
+                          to="/admin/cms/resources/$schema/$table"
+                          params={{
+                            schema: resource.schemaName,
+                            table: resource.tableName,
+                          }}
+                        >
+                          {resource.displayName}
 
-                      {resource.displayName ?? resource.tableName}
-                    </Link>
-                  }
-                />
-              )),
-            )}
-
-            {resources.hiddenCount > 0 ? (
-              <DropdownMenuItem
-                render={
-                  <Link to="/admin/cms">
-                    <Trans
-                      i18nKey="cms.sidebar.resourcesViewAll"
-                      values={{ count: resources.hiddenCount }}
+                          <span className="text-muted-foreground ml-auto font-mono text-xs">
+                            {getTechnicalName(resource)}
+                          </span>
+                        </Link>
+                      }
                     />
-                  </Link>
-                }
-              />
-            ) : null}
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ))}
           </DropdownMenuGroup>
+        ) : null}
+
+        {toolEntries.length > 0 ? (
+          <>
+            <DropdownMenuSeparator />
+
+            <MobileEntries
+              entries={toolEntries}
+              label={t('sidebar.toolsLabel')}
+            />
+          </>
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-function MobileGroup(props: { labelKey: string; entries: NavigationEntry[] }) {
+function MobileEntries(props: { entries: NavigationEntry[]; label?: string }) {
   return (
-    <DropdownMenuGroup>
-      <DropdownMenuLabel>
-        <Trans i18nKey={props.labelKey} />
-      </DropdownMenuLabel>
-
+    <DropdownMenuGroup aria-label={props.label}>
       {props.entries.map((entry) => (
-        <DropdownMenuItem
-          key={entry.id}
-          render={
-            <Link to={entry.path}>
-              <Trans i18nKey={entry.labelKey} />
-            </Link>
-          }
-        />
+        <MobileEntry key={entry.id} entry={entry} />
       ))}
     </DropdownMenuGroup>
+  );
+}
+
+function MobileEntry(props: { entry: NavigationEntry }) {
+  return (
+    <DropdownMenuItem
+      render={
+        <Link to={props.entry.path}>
+          <Trans i18nKey={props.entry.labelKey} />
+        </Link>
+      }
+    />
   );
 }

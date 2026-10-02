@@ -4,8 +4,8 @@
  * Comprueban, con usuarios reales del *seed*, los tres perfiles del modelo de
  * acceso de ADR-014 en la consola de administración:
  *
- *  1. **Super-admin con MFA** (raíz del CMS): ve el grupo «Plataforma» y el
- *     grupo «CMS» completo, y la portada del CMS lista las tablas.
+ *  1. **Super-admin con MFA** (raíz del CMS): ve «Inicio» y todas las
+ *     herramientas, y la portada del CMS lista las tablas.
  *  2. **Personal de soporte con MFA** (rol «Soporte», acceso limitado): entra
  *     en la consola pero directamente al CMS; no ve las páginas de la
  *     plataforma y solo ve las secciones y tablas que su rol permite.
@@ -25,15 +25,17 @@ import { CmsPageObject } from './cms.po';
 test.describe('CMS: super-admin con MFA', () => {
   AuthPageObject.setupSession(AUTH_STATES.SUPER_ADMIN);
 
-  test('la consola muestra los grupos Plataforma y CMS', async ({ page }) => {
+  test('la consola muestra Inicio y todas las herramientas', async ({
+    page,
+  }) => {
     const cms = new CmsPageObject(page);
 
     await page.goto('/admin');
 
-    await expect(cms.platformGroup()).toBeVisible();
-    await expect(cms.cmsGroup()).toBeVisible();
+    await expect(cms.homeEntry()).toBeVisible();
+    await expect(cms.toolsGroup()).toBeVisible();
 
-    // Root tiene todos los permisos: todas las secciones del CMS aparecen.
+    // Root tiene todos los permisos: todas las herramientas aparecen.
     await cms.expectCmsSections([
       'resources',
       'users',
@@ -66,14 +68,14 @@ test.describe('CMS: super-admin con MFA', () => {
 test.describe('CMS: personal de soporte con MFA', () => {
   AuthPageObject.setupSession(AUTH_STATES.CMS_STAFF);
 
-  test('/admin lleva al CMS y oculta el grupo Plataforma', async ({ page }) => {
+  test('/admin lleva al CMS y oculta Inicio', async ({ page }) => {
     const cms = new CmsPageObject(page);
 
     await page.goto('/admin');
     await page.waitForURL('**/admin/cms');
 
-    await expect(cms.cmsGroup()).toBeVisible();
-    await expect(cms.platformGroup()).toHaveCount(0);
+    await expect(cms.toolsGroup()).toBeVisible();
+    await expect(cms.homeEntry()).toHaveCount(0);
 
     // El rol «Soporte» solo lee dos tablas y la auditoría: ni usuarios de
     // Auth ni almacenamiento.

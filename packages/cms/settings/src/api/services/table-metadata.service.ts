@@ -107,6 +107,9 @@ class TableMetadataService {
           isVisible: tableMetadataInCms.isVisible,
           isSearchable: tableMetadataInCms.isSearchable,
           ordering: tableMetadataInCms.ordering,
+          navigationGroup: sql<
+            string | null
+          >`${tableMetadataInCms.uiConfig} ->> 'navigation_group'`,
         })
         .from(tableMetadataInCms);
 
@@ -169,6 +172,19 @@ class TableMetadataService {
       payload.isSearchable = data.is_searchable;
     }
     if (data.ordering !== undefined) payload.ordering = data.ordering;
+
+    // El área vive dentro de `ui_config` (sin columna propia). Se fusiona en
+    // la propia sentencia con operadores `jsonb`, sin leer antes la fila: así
+    // no se pisa un cambio concurrente de otra clave (`recordLayout`). El
+    // valor viaja como parámetro enlazado, nunca interpolado en el SQL.
+    if (data.navigation_group !== undefined) {
+      const current = sql`coalesce(${tableMetadataInCms.uiConfig}, '{}'::jsonb)`;
+
+      payload.uiConfig =
+        data.navigation_group === null
+          ? sql`${current} - 'navigation_group'`
+          : sql`${current} || jsonb_build_object('navigation_group', ${data.navigation_group}::text)`;
+    }
 
     const client = this.context.get('drizzle');
 

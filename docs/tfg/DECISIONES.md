@@ -157,7 +157,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Consecuencias:** la interfaz del CMS carga los datos con un `fetch` isomorfo. En SSR llama a la app Hono en el mismo proceso, reenviando solo la cabecera `cookie`.
 - **Requisitos relacionados:** RF-08, RF-09, RNF-02.
 
-## ADR-017 · Blog en la base de datos gestionado desde el CMS, y esquema de demostración para pymes
+## ADR-017 · Blog en la base de datos gestionado desde el CMS, y esquema de demostración para pymes (el esquema de demostración se retiró en ADR-020)
 - **Fecha:** 2026-09-30 · **Fase:** F2 · **Estado:** Aceptada (sustituye en parte a ADR-004)
 - **Contexto:** ADR-004 retiró el blog heredado porque dependía de un CMS de contenidos basado en ficheros (Keystatic). Al revisar el CMS de datos, el autor señala que el blog es justo el caso de uso de **gestión de contenidos** que pide la propuesta: publicar desde el CMS contenido que muestra la web pública. Además, los listados del CMS muestran uuid en las claves ajenas, en lugar de un texto legible (nombre, email, título).
 - **Decisión:**
@@ -197,3 +197,26 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Alternativas consideradas:** añadir una librería de cuadrícula (más dependencias que mantener y auditar; arrastrar sin teclado no es accesible).
 - **Consecuencias:** la interacción es menos fluida que arrastrar, pero accesible desde el teclado y sin dependencias nuevas. Se puede cambiar más adelante sin tocar la API.
 - **Requisitos relacionados:** RF-11, RNF-04, RNF-08.
+
+## ADR-020 · Consola de administración por áreas, nombres en español y sin esquema de demostración
+- **Fecha:** 2026-10-02 · **Fase:** F3c · **Estado:** Aceptada. Sustituye el punto 2 de ADR-017.
+- **Contexto:** al revisar la consola, el autor encontró tres problemas:
+  - El explorador mostraba las tablas de la plataforma en inglés («Accounts», «Invitations», «Created At»), porque la sincronización del CMS genera los nombres a partir del identificador.
+  - La barra lateral separaba «Plataforma», «CMS» y «Recursos» y agrupaba las tablas por esquema SQL (`public`, `auth`). Es una organización técnica que no entiende quien gestiona una pyme.
+  - El esquema `demo` (clientes, pedidos, facturas…) se mezclaba con los datos reales y confundía.
+
+  Además se aclaró el enfoque del producto: PymeKit es la base de la web de **una** pyme, con landing, blog y un inicio de sesión que puede ser de super-admin, de personal o de cliente.
+- **Decisión:**
+  1. **Nombres en español como datos del CMS.** Las tablas y columnas de la plataforma reciben nombre y descripción en español en los metadatos del CMS (migración `20261002130000`), con el mismo criterio que ya seguía el blog. Junto a cada nombre se sigue mostrando el nombre técnico. Solo se sustituyen los nombres generados automáticamente, y quien administra el CMS puede cambiarlos en Ajustes → Recursos.
+  2. **Una sola consola por áreas de negocio.** La barra lateral tiene «Inicio», una entrada plegable por área (Blog, Cuentas, Facturación, Sistema y «Otros datos») con sus tablas, y después las herramientas (Usuarios, Archivos, Paneles, Auditoría y Ajustes). El área de cada tabla es un dato (`ui_config.navigation_group`), editable desde Ajustes → Recursos, de modo que la pyme puede crear áreas para sus propias tablas sin tocar código. La pantalla de plataforma «Cuentas» queda dentro del área Cuentas como «Gestión de cuentas».
+  3. **Sin esquema de demostración.** Se retira `demo` del *seed*. Las pruebas que lo usaban se trasladan a tablas reales (`accounts`, `accounts_memberships`, blog). El escenario de reutilización (P-01) se decidirá en la F5/F6.
+  4. **Se conservan los módulos SaaS:** equipos (que pueden representar, por ejemplo, varias tiendas de la pyme), invitaciones y Stripe. No se borran: la pyme los usa si los necesita.
+- **Alternativas consideradas:**
+  - Traducir los nombres con claves i18n en el cliente: bilingüe, pero los nombres son configuración de cada instalación y el CMS ya los guarda en sus metadatos.
+  - Definir las áreas fijas en un fichero de configuración: no se podrían editar desde la interfaz.
+  - Quitar Stripe y los equipos: más simple, pero la propuesta exige pasarela de pagos (RF-07) y se perdería la reutilización.
+- **Consecuencias:**
+  - Los nombres de tablas y áreas se ven igual en los dos idiomas de la interfaz, porque son datos.
+  - La organización de la consola deja de depender del esquema SQL.
+  - Las pruebas ya no dependen de datos de ejemplo artificiales.
+- **Requisitos relacionados:** RF-09, RNF-01, RNF-08.

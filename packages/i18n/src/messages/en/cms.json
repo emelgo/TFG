@@ -1,24 +1,25 @@
 {
   "consoleTitle": "Admin console",
   "sidebar": {
-    "platformGroup": "Platform",
-    "cmsGroup": "CMS",
-    "platformDashboard": "Dashboard",
     "platformAccounts": "Accounts",
-    "resources": "Data explorer",
     "users": "Users",
     "storage": "Storage",
     "auditLogs": "Audit logs",
     "dashboards": "Dashboards",
     "settings": "Settings",
-    "resourcesGroup": "Resources",
-    "resourcesToggle": "Show or hide the tables",
-    "resourcesViewAll": "View all tables (+{count})",
-    "openMenu": "Open the navigation menu"
+    "openMenu": "Open the navigation menu",
+    "home": "Home",
+    "accountsManagement": "Account management",
+    "otherArea": "Other data",
+    "allTables": "All tables",
+    "files": "Files",
+    "audit": "Audit",
+    "areasLabel": "Data areas",
+    "toolsLabel": "Tools"
   },
   "overview": {
-    "title": "Data explorer",
-    "description": "Tables you can read, grouped by database schema.",
+    "title": "All tables",
+    "description": "Tables you can read, grouped by area.",
     "tablesCount": "{count, plural, one {# table} other {# tables}}",
     "emptyHeading": "No tables available",
     "emptyText": "Your CMS role does not grant read access to any table yet. Ask an administrator to assign you the permissions you need."
@@ -1032,6 +1033,9 @@
         "title": "Table",
         "description": "How this table is named and shown in the data explorer.",
         "displayName": "Display name",
+        "navigationGroup": "Area",
+        "navigationGroupPlaceholder": "For example: Blog",
+        "navigationGroupHelp": "Groups the table in the sidebar. Pick an existing area or type a new one; if you leave it empty, the table appears under \"Other data\".",
         "displayFormat": "Display format",
         "tableDescription": "Description",
         "isVisible": "Visible in the data explorer",
@@ -1128,7 +1132,8 @@
         "save": "Save layout",
         "reset": "Use default layout",
         "saved": "Layout saved"
-      }
+      },
+      "otherArea": "Other data"
     }
   },
   "dashboards": {
@@ -1283,7 +1288,8 @@
       },
       "invalid": "Complete the title, table and columns for this widget type.",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "otherArea": "Other data"
     },
     "messages": {
       "created": "Dashboard created",

@@ -240,6 +240,47 @@ test.describe('Ajustes > Recursos: super-admin con MFA', () => {
   });
 });
 
+test.describe('Ajustes > Recursos: área de una tabla', () => {
+  AuthPageObject.setupSession(AUTH_STATES.SUPER_ADMIN);
+
+  // Se usa `blog_post_tags` para no coincidir con la prueba que edita
+  // `blog_tags` en paralelo (ambas escriben `ui_config`).
+  const TABLE_API = '/api/cms/v1/tables/public/blog_post_tags';
+  const AREA = `Área E2E ${Date.now().toString(36)}`;
+
+  test('cambiar el área mueve la tabla en la barra lateral', async ({
+    page,
+  }) => {
+    const settings = new SettingsPageObject(page);
+
+    try {
+      await page.goto('/admin/cms/settings/resources/public/blog_post_tags');
+      await settings.waitForHydration('resource-settings-view');
+
+      await page.getByTestId('table-settings-navigationGroup').fill(AREA);
+      await page.getByTestId('table-settings-submit').click();
+
+      // Al guardar se invalida la navegación: la barra muestra el área nueva.
+      await expect(
+        page.getByTestId(`admin-sidebar-area-${AREA}`),
+      ).toBeVisible();
+
+      // La API valida el área de forma estricta.
+      const tooLong = await page.request.put(TABLE_API, {
+        data: { navigation_group: 'x'.repeat(61) },
+      });
+
+      expect(tooLong.status()).toBe(400);
+    } finally {
+      const restore = await page.request.put(TABLE_API, {
+        data: { navigation_group: 'Blog' },
+      });
+
+      expect(restore.status()).toBe(200);
+    }
+  });
+});
+
 test.describe('Ajustes > Recursos: personal de soporte', () => {
   AuthPageObject.setupSession(AUTH_STATES.CMS_STAFF);
 

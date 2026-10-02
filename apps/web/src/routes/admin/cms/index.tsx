@@ -1,9 +1,12 @@
 /**
- * Portada del CMS (`/admin/cms`): tablas que el usuario puede leer.
+ * Portada del CMS (`/admin/cms`), «Todas las tablas»: tablas que el usuario
+ * puede leer.
  *
  * Lista los recursos de `GET /v1/navigation` (las tablas de
  * `cms.table_metadata` que las políticas RLS dejan ver al usuario según su
- * rol del CMS), agrupados por esquema y en el orden configurado. Cada tabla
+ * rol del CMS), agrupados por área de negocio con el mismo criterio que la
+ * barra lateral (`groupResourcesByArea`; las tablas sin área, en «Otros
+ * datos»). Cada tabla
  * enlaza con su explorador de datos (`/admin/cms/resources/$schema/$table`).
  * Encima se muestran las pestañas abiertas del explorador y las tablas
  * recientes, para retomar el trabajo. Es también la página a la que se
@@ -20,7 +23,7 @@ import {
   DataExplorerRecentTables,
   DataExplorerTabs,
 } from '@pymekit/cms-data-explorer-ui/components';
-import { groupResourcesBySchema } from '@pymekit/cms-ui-core/resources';
+import { groupResourcesByArea } from '@pymekit/cms-ui-core/resources';
 import { Badge } from '@pymekit/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@pymekit/ui/card';
 import {
@@ -55,7 +58,7 @@ export const Route = createFileRoute('/admin/cms/')({
 
 function CmsOverviewPage() {
   const { data } = useSuspenseQuery(cmsQueries.navigation());
-  const groups = groupResourcesBySchema(data);
+  const groups = groupResourcesByArea(data);
 
   return (
     <PageBody>
@@ -89,11 +92,13 @@ function CmsOverviewPage() {
         <div className="flex flex-col gap-6 pb-8" data-testid="cms-resources">
           {groups.map((group) => (
             <Card
-              key={group.schemaName}
-              data-testid={`cms-schema-${group.schemaName}`}
+              key={group.name ?? ''}
+              data-testid={`cms-area-${group.name ?? 'other'}`}
             >
               <CardHeader className="flex flex-row items-center gap-2">
-                <CardTitle className="font-mono">{group.schemaName}</CardTitle>
+                <CardTitle>
+                  {group.name ?? <Trans i18nKey="cms.sidebar.otherArea" />}
+                </CardTitle>
 
                 <Badge variant="secondary">
                   <Trans
@@ -121,7 +126,9 @@ function CmsOverviewPage() {
                         <span className="truncate">{resource.displayName}</span>
 
                         <span className="text-muted-foreground ml-auto truncate font-mono text-xs">
-                          {resource.tableName}
+                          {resource.schemaName === 'public'
+                            ? resource.tableName
+                            : `${resource.schemaName}.${resource.tableName}`}
                         </span>
                       </Link>
                     </li>

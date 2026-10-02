@@ -1,40 +1,47 @@
 /**
  * Entradas de navegación de la consola de administración.
  *
- * La barra lateral (escritorio) y el menú móvil muestran las mismas entradas,
- * así que se calculan aquí una sola vez:
+ * La consola es UNA sola herramienta para quien administra la web de la
+ * pyme, organizada por áreas de negocio y no por capas técnicas. La barra
+ * lateral (escritorio) y el menú móvil muestran las mismas entradas, que se
+ * calculan aquí una sola vez:
  *
- *  - **Plataforma** (panel y cuentas): solo para el super-admin.
- *  - **CMS**: una entrada por sección que la API del CMS permite al usuario.
- *    La visibilidad se calcula con `getCmsSectionVisibility` a partir de
- *    `GET /v1/account` (permisos de sección) y `GET /v1/navigation` (tablas
- *    legibles). Ambas consultas las precarga el *loader* de `/admin`.
- *  - **Recursos**: las tablas legibles de `GET /v1/navigation` (ya filtradas
- *    por el RBAC del CMS), agrupadas por esquema y con un límite
- *    (`getSidebarResourceGroups`), como acceso directo a su listado.
+ *  1. **Inicio** (`/admin`): solo el super-admin. El personal del CMS entra
+ *     directamente en `/admin/cms`.
+ *  2. **Áreas** («Blog», «Cuentas», «Facturación», «Sistema»…): las tablas
+ *     legibles de `GET /v1/navigation` (ya filtradas por el RBAC del CMS)
+ *     agrupadas con `groupResourcesByArea` según su
+ *     `ui_config.navigation_group`. Las que no tienen área forman el grupo
+ *     «Otros datos». En el área de cuentas, el super-admin tiene además
+ *     «Gestión de cuentas» (`/admin/accounts`: bloquear, suplantar…).
+ *  3. **Herramientas** (Usuarios, Archivos, Paneles, Auditoría, Ajustes):
+ *     cada una con la visibilidad que da `getCmsSectionVisibility` a partir
+ *     de `GET /v1/account`, y el enlace discreto «Todas las tablas».
  *
- * [TFG] RF-08 · RF-09 · ADR-014 · ADR-017.
+ * Ambas consultas las precarga el *loader* de `/admin`. Ocultar una entrada
+ * es solo ayuda visual: la API y las políticas RLS vuelven a comprobarlo.
+ *
+ * [TFG] RF-08 · RF-09 · ADR-014 · ADR-017 · ADR-020.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { LinkProps } from '@tanstack/react-router';
 import {
-  Database,
   FolderOpen,
-  LayoutDashboard,
+  House,
   LayoutGrid,
   type LucideIcon,
   ScrollText,
   Settings,
+  TableProperties,
   UserCog,
   Users,
 } from 'lucide-react';
 
 import {
-  getSidebarResourceGroups,
   getVisibleResources,
+  groupResourcesByArea,
 } from '@pymekit/cms-ui-core/resources';
 import {
-  CMS_SECTIONS,
   CMS_SECTION_PATHS,
   type CmsSection,
   getCmsSectionVisibility,
@@ -52,92 +59,111 @@ export type NavigationEntry = {
   matchPrefix: boolean;
 };
 
-/** Páginas de la plataforma (solo super-admin). */
-export const PLATFORM_ENTRIES: NavigationEntry[] = [
-  {
-    id: 'dashboard',
-    path: '/admin',
-    labelKey: 'cms.sidebar.platformDashboard',
-    Icon: LayoutDashboard,
-    matchPrefix: false,
-  },
-  {
-    id: 'accounts',
-    path: '/admin/accounts',
-    labelKey: 'cms.sidebar.platformAccounts',
-    Icon: Users,
-    matchPrefix: true,
-  },
-];
+/** Portada de la consola (solo super-admin). */
+export const HOME_ENTRY: NavigationEntry = {
+  id: 'home',
+  path: '/admin',
+  labelKey: 'cms.sidebar.home',
+  Icon: House,
+  matchPrefix: false,
+};
 
-const CMS_SECTION_ICONS: Record<CmsSection, LucideIcon> = {
-  resources: Database,
-  users: UserCog,
-  storage: FolderOpen,
-  auditLogs: ScrollText,
-  dashboards: LayoutGrid,
-  settings: Settings,
+/** Pantalla de gestión de cuentas de la plataforma (solo super-admin). */
+export const ACCOUNTS_MANAGEMENT_ENTRY: NavigationEntry = {
+  id: 'accounts',
+  path: '/admin/accounts',
+  labelKey: 'cms.sidebar.accountsManagement',
+  Icon: Users,
+  matchPrefix: true,
 };
 
 /**
- * Devuelve las entradas del grupo «CMS» que el usuario puede ver. Mientras
- * las consultas no han respondido (o si la API rechaza el acceso) la lista
- * está vacía: nunca se muestra una entrada que la API no haya confirmado.
+ * Área en la que se coloca «Gestión de cuentas». Es el nombre que da la
+ * migración `20261002140000_cms_navigation_groups.sql`; si alguien la
+ * renombra, la entrada pasa a mostrarse suelta bajo «Inicio».
  */
-export function useCmsNavigationEntries(user: JWTUserData | null) {
+export const ACCOUNTS_AREA_NAME = 'Cuentas';
+
+type ToolSection = Exclude<CmsSection, 'resources'>;
+
+/** Herramientas del CMS, en el orden de la barra lateral. */
+const TOOLS: Array<{ id: ToolSection; labelKey: string; Icon: LucideIcon }> = [
+  { id: 'users', labelKey: 'cms.sidebar.users', Icon: UserCog },
+  { id: 'storage', labelKey: 'cms.sidebar.files', Icon: FolderOpen },
+  { id: 'dashboards', labelKey: 'cms.sidebar.dashboards', Icon: LayoutGrid },
+  { id: 'auditLogs', labelKey: 'cms.sidebar.audit', Icon: ScrollText },
+  { id: 'settings', labelKey: 'cms.sidebar.settings', Icon: Settings },
+];
+
+/** Enlace a la vista general de tablas, agrupada por área. */
+const ALL_TABLES_ENTRY: NavigationEntry = {
+  id: 'resources',
+  path: CMS_SECTION_PATHS.resources,
+  labelKey: 'cms.sidebar.allTables',
+  Icon: TableProperties,
+  matchPrefix: false,
+};
+
+/**
+ * Calcula toda la navegación de la consola para el usuario. Mientras las
+ * consultas no han respondido (o si la API rechaza el acceso: MFA pendiente,
+ * cuenta inactiva) no hay áreas ni herramientas: nunca se muestra una
+ * entrada que la API no haya confirmado.
+ */
+export function useAdminNavigation(user: JWTUserData | null) {
   const enabled = Boolean(user?.has_cms_access);
 
   const account = useQuery({ ...cmsQueries.account(), enabled });
   const navigation = useQuery({ ...cmsQueries.navigation(), enabled });
 
+  const access = account.data?.access;
+  const resources = access ? (navigation.data ?? []) : [];
+
   const visibility = getCmsSectionVisibility({
-    access: account.data?.access,
-    visibleResourcesCount: getVisibleResources(navigation.data ?? []).length,
+    access,
+    visibleResourcesCount: getVisibleResources(resources).length,
   });
 
-  return CMS_SECTIONS.filter((section) => visibility[section]).map(
-    (section): NavigationEntry => ({
-      id: section,
-      path: CMS_SECTION_PATHS[section],
-      labelKey: `cms.sidebar.${section}`,
-      Icon: CMS_SECTION_ICONS[section],
-      matchPrefix: true,
-    }),
-  );
+  const areas = groupResourcesByArea(resources);
+  const isSuperAdmin = Boolean(user?.is_superadmin);
+
+  return {
+    showHome: isSuperAdmin,
+    areas,
+    /**
+     * «Gestión de cuentas» va dentro del área de cuentas; si esa área no
+     * existe (sin acceso al CMS o renombrada) se muestra suelta.
+     */
+    accountsManagement: isSuperAdmin
+      ? {
+          entry: ACCOUNTS_MANAGEMENT_ENTRY,
+          inArea: areas.some((area) => area.name === ACCOUNTS_AREA_NAME),
+        }
+      : null,
+    tools: TOOLS.filter((tool) => visibility[tool.id]).map(
+      (tool): NavigationEntry => ({
+        ...tool,
+        path: CMS_SECTION_PATHS[tool.id],
+        matchPrefix: true,
+      }),
+    ),
+    allTables: visibility.resources ? ALL_TABLES_ENTRY : null,
+  };
 }
 
 /**
- * Indica si una entrada está activa para la ruta actual. La portada del CMS
- * (`/admin/cms`) cuenta como parte del explorador de datos, porque es donde
- * se listan las tablas.
+ * Indica si una entrada está activa para la ruta actual. «Todas las tablas»
+ * cuenta como activa en la portada del CMS (`/admin/cms`), que es donde se
+ * listan, pero no dentro de una tabla: ahí se marca la propia tabla.
  */
 export function isEntryActive(entry: NavigationEntry, pathname: string) {
-  if (
-    entry.id === 'resources' &&
-    pathname.replace(/\/$/, '') === '/admin/cms'
-  ) {
-    return true;
+  const path = pathname.replace(/\/$/, '');
+
+  if (entry.id === ALL_TABLES_ENTRY.id) {
+    return path === '/admin/cms' || path === entry.path;
   }
 
   return entry.matchPrefix
-    ? pathname === entry.path || pathname.startsWith(`${entry.path}/`)
-    : pathname.replace(/\/$/, '') === entry.path;
-}
-
-/**
- * Devuelve las tablas del grupo «Recursos» (agrupadas por esquema y
- * limitadas). Comparte la consulta `GET /v1/navigation` con
- * `useCmsNavigationEntries` (TanStack Query la pide una sola vez). Mientras
- * no hay respuesta, o sin acceso al CMS, la lista está vacía.
- */
-export function useCmsSidebarResources(user: JWTUserData | null) {
-  const enabled = Boolean(user?.has_cms_access);
-  const account = useQuery({ ...cmsQueries.account(), enabled });
-  const navigation = useQuery({ ...cmsQueries.navigation(), enabled });
-
-  // Si la API rechaza el acceso (MFA pendiente, cuenta inactiva) no hay
-  // `access` y no se muestra ninguna tabla, igual que las secciones.
-  return getSidebarResourceGroups(
-    account.data?.access ? (navigation.data ?? []) : [],
-  );
+    ? path === entry.path || path.startsWith(`${entry.path}/`)
+    : path === entry.path;
 }

@@ -7,8 +7,8 @@
  *     email (relación virtual `user_id` → `public.accounts`), y el autor y la
  *     categoría de una entrada del blog. Se comprueba en el listado, en la
  *     ficha y en el selector de claves foráneas del formulario.
- *  2. **Barra lateral «Recursos»:** lista las tablas legibles, agrupadas por
- *     esquema, y marca la tabla abierta.
+ *  2. **Barra lateral:** lista las tablas legibles agrupadas por área y
+ *     marca la tabla abierta.
  *  3. **Recursos según el rol:** el super-admin ve el rol de una membresía
  *     como enlace a `public.roles`; el personal de soporte solo ve
  *     `public.accounts` y `public.accounts_memberships`, y en las membresías
@@ -37,15 +37,16 @@ function filtersQuery(filters: Record<string, string>) {
   return `?filters=${encodeURIComponent(JSON.stringify(filters))}`;
 }
 
-/** Barra lateral «Recursos» de la consola. */
+/** Tablas de la barra lateral de la consola. */
 function resourcesSidebar(page: import('@playwright/test').Page) {
+  const cms = new CmsPageObject(page);
+
   return {
-    group: () => page.getByTestId('admin-sidebar-resources-group'),
-    schema: (schema: string) =>
-      page.getByTestId(`admin-sidebar-resources-schema-${schema}`),
-    link: (qualifiedName: string) =>
-      page.getByTestId(`admin-sidebar-resource-${qualifiedName}`),
-    links: () => page.locator('[data-testid^="admin-sidebar-resource-"][href]'),
+    group: () => page.getByTestId('admin-sidebar-areas'),
+    area: (name: string) => cms.sidebarArea(name),
+    openArea: (name: string) => cms.openSidebarArea(name),
+    link: (qualifiedName: string) => cms.sidebarResource(qualifiedName),
+    links: () => cms.sidebarResources(),
   };
 }
 
@@ -141,7 +142,7 @@ test.describe('Visualización legible: super-admin con MFA', () => {
     }
   });
 
-  test('la barra lateral lista los recursos agrupados por esquema', async ({
+  test('la barra lateral lista los recursos agrupados por área', async ({
     page,
   }) => {
     const sidebar = resourcesSidebar(page);
@@ -149,7 +150,10 @@ test.describe('Visualización legible: super-admin con MFA', () => {
     await page.goto('/admin/cms');
 
     await expect(sidebar.group()).toBeVisible();
-    await expect(sidebar.schema('public')).toBeVisible();
+    await expect(sidebar.area('Blog')).toBeVisible();
+
+    await sidebar.openArea('Blog');
+    await sidebar.openArea('Cuentas');
     await expect(sidebar.link('public.blog_posts')).toBeVisible();
 
     await sidebar.link('public.accounts').click();

@@ -28,9 +28,7 @@ test.describe('Admin Auth flow with Super Admin but without MFA', () => {
     await page.goto('/admin');
 
     await expect(page.locator('[data-testid="root-not-found"]')).toBeVisible();
-    await expect(page.getByTestId('admin-sidebar-platform-group')).toHaveCount(
-      0,
-    );
+    await expect(page.getByTestId('admin-sidebar-home')).toHaveCount(0);
   });
 });
 
@@ -57,16 +55,12 @@ test.describe('Admin Auth flow with MFA configured but not verified', () => {
     await page.goto('/admin');
 
     await page.waitForURL('**/auth/verify**');
-    await expect(page.getByTestId('admin-sidebar-platform-group')).toHaveCount(
-      0,
-    );
+    await expect(page.getByTestId('admin-sidebar-home')).toHaveCount(0);
 
     await auth.submitMFAVerification(AuthPageObject.MFA_KEY);
 
     await page.waitForURL('**/admin');
-    await expect(
-      page.getByTestId('admin-sidebar-platform-group'),
-    ).toBeVisible();
+    await expect(page.getByTestId('admin-sidebar-home')).toBeVisible();
   });
 });
 

@@ -79,13 +79,9 @@ test.describe('Idioma español: consola del CMS', () => {
     await i18n.setLocale('es');
     await page.goto('/admin/cms');
 
-    await expect(new CmsPageObject(page).platformGroup()).toContainText(
-      'Plataforma',
-    );
+    await expect(new CmsPageObject(page).homeEntry()).toContainText('Inicio');
     await expect(
-      page.getByText(
-        'Tablas que puedes leer, agrupadas por esquema de base de datos.',
-      ),
+      page.getByText('Tablas que puedes leer, agrupadas por área.'),
     ).toBeVisible();
   });
 });

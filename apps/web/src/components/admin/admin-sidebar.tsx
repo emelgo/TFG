@@ -1,13 +1,20 @@
 /**
  * Barra lateral de la consola de administración.
  *
- * Tiene tres grupos: «Plataforma», solo para el super-admin; «CMS», para
- * cualquiera que haya entrado en la consola (super-admin o personal del CMS),
- * con las entradas que la API del CMS le permite (ver `admin-navigation.ts`),
- * y «Recursos», con las tablas que puede leer (`admin-sidebar-resources.tsx`).
+ * Una sola consola organizada por áreas de negocio, sin separar
+ * «plataforma» y «CMS» (ver `admin-navigation.ts`):
+ *
+ *  1. «Inicio», solo para el super-admin;
+ *  2. una entrada plegable por área con sus tablas
+ *     (`admin-sidebar-resources.tsx`); en el área de cuentas, el
+ *     super-admin tiene además «Gestión de cuentas»;
+ *  3. tras un separador, las herramientas del CMS que la API permite al
+ *     usuario y el enlace discreto «Todas las tablas».
+ *
  * En la cabecera, para quien tiene acceso al CMS, la búsqueda global.
  */
 import { Link, useLocation } from '@tanstack/react-router';
+import { useTranslations } from 'use-intl';
 
 import type { JWTUserData } from '@pymekit/supabase/types';
 import {
@@ -16,11 +23,11 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from '@pymekit/ui/sidebar';
 import { Trans } from '@pymekit/ui/trans';
 
@@ -28,16 +35,25 @@ import { AppLogo } from '#/components/app-logo.tsx';
 import { PersonalAccountDropdownContainer } from '#/components/home/personal-account-dropdown-container.tsx';
 
 import {
+  ACCOUNTS_AREA_NAME,
+  HOME_ENTRY,
   type NavigationEntry,
-  PLATFORM_ENTRIES,
   isEntryActive,
-  useCmsNavigationEntries,
+  useAdminNavigation,
 } from './admin-navigation.ts';
-import { AdminSidebarResources } from './admin-sidebar-resources.tsx';
+import { AdminSidebarArea, getAreaKey } from './admin-sidebar-resources.tsx';
 import { CmsGlobalSearch } from './cms/cms-global-search.tsx';
 
 export function AdminSidebar(props: { user: JWTUserData | null }) {
-  const cmsEntries = useCmsNavigationEntries(props.user);
+  const t = useTranslations('cms.sidebar');
+  const navigation = useAdminNavigation(props.user);
+
+  const topEntries = [
+    navigation.showHome ? HOME_ENTRY : null,
+    navigation.accountsManagement && !navigation.accountsManagement.inArea
+      ? navigation.accountsManagement.entry
+      : null,
+  ].filter((entry) => entry !== null);
 
   return (
     <Sidebar variant="floating" collapsible="icon">
@@ -49,32 +65,63 @@ export function AdminSidebar(props: { user: JWTUserData | null }) {
       </SidebarHeader>
 
       <SidebarContent>
-        {props.user?.is_superadmin ? (
-          <SidebarGroup data-testid="admin-sidebar-platform-group">
-            <SidebarGroupLabel>
-              <Trans i18nKey="cms.sidebar.platformGroup" />
-            </SidebarGroupLabel>
-
+        {topEntries.length > 0 ? (
+          <SidebarGroup data-testid="admin-sidebar-home-group">
             <SidebarGroupContent>
-              <AdminSidebarMenu entries={PLATFORM_ENTRIES} prefix="platform" />
+              <AdminSidebarMenu entries={topEntries} />
             </SidebarGroupContent>
           </SidebarGroup>
         ) : null}
 
-        {props.user?.has_cms_access ? (
-          <SidebarGroup data-testid="admin-sidebar-cms-group">
-            <SidebarGroupLabel>
-              <Trans i18nKey="cms.sidebar.cmsGroup" />
-            </SidebarGroupLabel>
-
+        {navigation.areas.length > 0 ? (
+          <SidebarGroup
+            data-testid="admin-sidebar-areas"
+            aria-label={t('areasLabel')}
+            // Con la barra plegada a iconos, una lista de tablas sin texto no
+            // sirve: se oculta y queda «Todas las tablas».
+            className="group-data-[collapsible=icon]:hidden"
+          >
             <SidebarGroupContent>
-              <AdminSidebarMenu entries={cmsEntries} prefix="cms" />
+              <SidebarMenu>
+                {navigation.areas.map((area) => (
+                  <AdminSidebarArea
+                    key={getAreaKey(area.name)}
+                    area={area}
+                    defaultOpen={navigation.areas.length === 1}
+                    leadingEntry={
+                      area.name === ACCOUNTS_AREA_NAME &&
+                      navigation.accountsManagement?.inArea
+                        ? navigation.accountsManagement.entry
+                        : null
+                    }
+                  />
+                ))}
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         ) : null}
 
-        {props.user?.has_cms_access ? (
-          <AdminSidebarResources user={props.user} />
+        {navigation.tools.length > 0 || navigation.allTables ? (
+          <>
+            <SidebarSeparator />
+
+            <SidebarGroup
+              data-testid="admin-sidebar-tools"
+              aria-label={t('toolsLabel')}
+            >
+              <SidebarGroupContent>
+                <AdminSidebarMenu entries={navigation.tools} />
+
+                {navigation.allTables ? (
+                  <AdminSidebarMenu
+                    entries={[navigation.allTables]}
+                    className="text-muted-foreground mt-2"
+                    size="sm"
+                  />
+                ) : null}
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         ) : null}
       </SidebarContent>
 
@@ -87,32 +134,45 @@ export function AdminSidebar(props: { user: JWTUserData | null }) {
 
 function AdminSidebarMenu(props: {
   entries: NavigationEntry[];
-  prefix: 'platform' | 'cms';
+  className?: string;
+  size?: 'sm' | 'default';
 }) {
   const { pathname } = useLocation();
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className={props.className}>
       {props.entries.map((entry) => (
         <SidebarMenuItem key={entry.id}>
           <SidebarMenuButton
+            size={props.size}
             isActive={isEntryActive(entry, pathname)}
             render={
               <Link
                 className={'flex size-full gap-2.5'}
                 to={entry.path}
-                data-testid={`admin-sidebar-${props.prefix}-${entry.id}`}
-              >
-                <entry.Icon className={'h-4'} />
-
-                <span>
-                  <Trans i18nKey={entry.labelKey} />
-                </span>
-              </Link>
+                data-testid={getEntryTestId(entry)}
+              />
             }
-          />
+          >
+            <entry.Icon className={'h-4'} />
+
+            <span>
+              <Trans i18nKey={entry.labelKey} />
+            </span>
+          </SidebarMenuButton>
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
   );
+}
+
+/**
+ * `data-testid` de cada entrada. Se conservan los de antes de unificar la
+ * consola (`admin-sidebar-cms-<sección>`) para no romper las pruebas E2E.
+ */
+export function getEntryTestId(entry: NavigationEntry) {
+  if (entry.id === 'home') return 'admin-sidebar-home';
+  if (entry.id === 'accounts') return 'admin-sidebar-platform-accounts';
+
+  return `admin-sidebar-cms-${entry.id}`;
 }
