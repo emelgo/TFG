@@ -31,7 +31,10 @@ export function ErrorPageContent({
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-1/2 z-0 -translate-x-1/2 -translate-y-1/2 text-[16rem] leading-none font-extrabold tracking-tighter opacity-[0.02] select-none sm:text-[22rem] lg:text-[28rem]"
         >
-          <Trans i18nKey={statusCode} />
+          {/* El código de estado (404, 500…) es un número decorativo, no un
+              texto traducible: tratarlo como clave i18n provocaba el aviso
+              MISSING_MESSAGE en la consola. */}
+          {statusCode}
         </span>
       ) : null}
 
