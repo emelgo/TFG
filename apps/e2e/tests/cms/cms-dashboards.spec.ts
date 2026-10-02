@@ -10,12 +10,13 @@ import { DashboardsPageObject } from './dashboards.po';
  * Pruebas E2E de los paneles del CMS (F2.8, RF-11).
  *
  * Con el super-admin (cuenta raíz, sesión con MFA):
- *  - crea un panel, le añade una métrica (recuento de `demo.orders`) y un
- *    gráfico de barras sobre `demo.products`;
+ *  - crea un panel, le añade una métrica (recuento de `public.accounts`) y
+ *    un gráfico de barras sobre `public.blog_posts`;
  *  - reorganiza la rejilla (mueve la métrica) y comprueba que se guarda;
  *  - lo comparte con el rol «Soporte» solo para ver.
  *
- * Con el personal de soporte (lee `demo.orders` pero no `demo.products`):
+ * Con el personal de soporte (lee `public.accounts` pero no
+ * `public.blog_posts`):
  *  - ve el panel entre los compartidos y la métrica con su valor;
  *  - el gráfico se muestra «sin acceso»: el panel compartido no filtra
  *    datos de tablas que su rol no puede leer (la API responde 403
@@ -78,22 +79,22 @@ test.describe('Paneles del CMS', () => {
     );
     await expect(page.getByTestId('dashboard-permission')).toHaveText('Owner');
 
-    // 2. Métrica: recuento de pedidos (soporte puede leer demo.orders).
+    // 2. Métrica: recuento de cuentas (soporte puede leer public.accounts).
     const metric = await dashboards.addWidget({
-      title: 'Pedidos',
+      title: 'Cuentas',
       type: 'metric',
-      table: 'demo.orders',
+      table: 'public.accounts',
     });
 
     await expect(metric.getByTestId('widget-metric-value')).toHaveText(/\d/);
 
-    // 3. Gráfico de barras: productos por categoría (soporte NO puede leer
-    //    demo.products).
+    // 3. Gráfico de barras: entradas del blog por estado (soporte NO puede
+    //    leer public.blog_posts).
     const chart = await dashboards.addWidget({
-      title: 'Productos por categoría',
+      title: 'Entradas por estado',
       type: 'chart',
-      table: 'demo.products',
-      xAxis: 'category',
+      table: 'public.blog_posts',
+      xAxis: 'status',
     });
 
     await expect(chart.getByTestId('widget-chart')).toBeVisible();
@@ -147,8 +148,8 @@ test.describe('Paneles del CMS', () => {
       );
 
       const staffDashboards = new DashboardsPageObject(staff);
-      const staffMetric = staffDashboards.widget('Pedidos');
-      const staffChart = staffDashboards.widget('Productos por categoría');
+      const staffMetric = staffDashboards.widget('Cuentas');
+      const staffChart = staffDashboards.widget('Entradas por estado');
 
       await expect(staffMetric.getByTestId('widget-metric-value')).toHaveText(
         /\d/,
@@ -169,7 +170,7 @@ test.describe('Paneles del CMS', () => {
         data: { widgets: Array<{ id: string; title: string }> };
       };
       const chartId = detail.data.widgets.find(
-        (widget) => widget.title === 'Productos por categoría',
+        (widget) => widget.title === 'Entradas por estado',
       )!.id;
 
       const chartData = await staff.request.get(
@@ -190,8 +191,8 @@ test.describe('Paneles del CMS', () => {
             dashboardId,
             widgetType: 'metric',
             title: 'Intruso',
-            schemaName: 'demo',
-            tableName: 'orders',
+            schemaName: 'public',
+            tableName: 'accounts',
             config: { aggregation: 'COUNT', metric: '*' },
           },
           headers: SAME_ORIGIN,

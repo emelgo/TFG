@@ -98,10 +98,8 @@ test.describe('CMS: personal de soporte con MFA', () => {
 
     await expect(cms.resourceLink('public.accounts')).toBeVisible();
     await expect(cms.resourceLink('public.accounts_memberships')).toBeVisible();
-    // F2.6b: el seed le da además lectura de dos tablas de la demo
-    await expect(cms.resourceLink('demo.customers')).toBeVisible();
-    await expect(cms.resourceLink('demo.orders')).toBeVisible();
-    await expect(cms.resourceLinks()).toHaveCount(4);
+    await expect(cms.resourceLink('public.blog_posts')).toHaveCount(0);
+    await expect(cms.resourceLinks()).toHaveCount(2);
   });
 
   test('una sección sin permiso responde 404 aunque se escriba la URL', async ({

@@ -1,6 +1,6 @@
 /**
- * Pruebas E2E de la visualización legible del CMS y de la demo de pyme
- * (F2.6b, ADR-017).
+ * Pruebas E2E de la visualización legible del CMS y de los recursos que ve
+ * cada perfil (F2.6b, ADR-017).
  *
  *  1. **Formatos de visualización:** las relaciones se muestran con un texto
  *     legible en lugar del uuid: el miembro de una membresía con su nombre y
@@ -9,10 +9,11 @@
  *     ficha y en el selector de claves foráneas del formulario.
  *  2. **Barra lateral «Recursos»:** lista las tablas legibles, agrupadas por
  *     esquema, y marca la tabla abierta.
- *  3. **Demo de pyme:** el super-admin ve y consulta las seis tablas de
- *     `demo`; el personal de soporte solo `demo.customers` y `demo.orders`,
- *     y en los pedidos ve el nombre del cliente pero no el del comercial
- *     (no puede leer `demo.employees`).
+ *  3. **Recursos según el rol:** el super-admin ve el rol de una membresía
+ *     como enlace a `public.roles`; el personal de soporte solo ve
+ *     `public.accounts` y `public.accounts_memberships`, y en las membresías
+ *     ve la cuenta enlazada pero el rol sin enlace (no puede leer
+ *     `public.roles`).
  *
  * [TFG] RF-09 · ADR-014 · ADR-017.
  */
@@ -31,15 +32,6 @@ const OWNER_USER_ID = '5c064f1b-78ee-4e1c-ac3b-e99aa97c99bf';
 
 const UUID_PATTERN =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
-
-const DEMO_TABLES = [
-  'customers',
-  'products',
-  'orders',
-  'order_items',
-  'invoices',
-  'employees',
-];
 
 function filtersQuery(filters: Record<string, string>) {
   return `?filters=${encodeURIComponent(JSON.stringify(filters))}`;
@@ -158,103 +150,93 @@ test.describe('Visualización legible: super-admin con MFA', () => {
 
     await expect(sidebar.group()).toBeVisible();
     await expect(sidebar.schema('public')).toBeVisible();
-    await expect(sidebar.schema('demo')).toBeVisible();
     await expect(sidebar.link('public.blog_posts')).toBeVisible();
 
-    await sidebar.link('demo.customers').click();
-    await page.waitForURL('**/admin/cms/resources/demo/customers');
+    await sidebar.link('public.accounts').click();
+    await page.waitForURL('**/admin/cms/resources/public/accounts');
 
-    await expect(sidebar.link('demo.customers')).toHaveAttribute(
+    await expect(sidebar.link('public.accounts')).toHaveAttribute(
       'data-active',
       /.*/,
     );
-    await expect(sidebar.link('demo.orders')).not.toHaveAttribute(
+    await expect(sidebar.link('public.blog_posts')).not.toHaveAttribute(
       'data-active',
       /.*/,
     );
   });
 
-  test('el super-admin ve y consulta las tablas de la demo', async ({
+  test('el super-admin ve el rol de una membresía como enlace', async ({
     page,
   }) => {
-    const cms = new CmsPageObject(page);
     const explorer = new DataExplorerPageObject(page);
 
-    await page.goto('/admin/cms');
-
-    for (const table of DEMO_TABLES) {
-      await expect(cms.resourceLink(`demo.${table}`)).toBeVisible();
-    }
-
-    // Los pedidos muestran su cliente y su comercial por el nombre
+    // `account_role` apunta a `public.roles`, que el super-admin sí puede leer
     await explorer.goto(
-      'demo',
-      'orders',
-      filtersQuery({ 'order_number.eq': 'PED-2026-0001' }),
+      'public',
+      'accounts_memberships',
+      filtersQuery({ 'account_id.eq': TEAM_ACCOUNT_ID }),
     );
 
-    await expect(explorer.rows()).toHaveCount(1);
-    await expect(page.getByTestId('cell-customer_id')).not.toBeEmpty();
-    await expect(page.getByTestId('cell-customer_id')).toHaveText(/\D{3,}/);
     await expect(
-      page.getByTestId('cell-sales_rep_id').getByTestId('relation-cell-link'),
+      page
+        .getByTestId('cell-account_role')
+        .first()
+        .getByTestId('relation-cell-link'),
     ).toHaveCount(1);
   });
 });
 
-test.describe('Demo de pyme: personal de soporte con MFA', () => {
+test.describe('Recursos visibles: personal de soporte con MFA', () => {
   AuthPageObject.setupSession(AUTH_STATES.CMS_STAFF);
 
-  test('solo ve clientes y pedidos entre las tablas de la demo', async ({
-    page,
-  }) => {
+  test('solo ve las tablas que su rol puede leer', async ({ page }) => {
     const cms = new CmsPageObject(page);
     const sidebar = resourcesSidebar(page);
 
     await page.goto('/admin/cms');
 
-    await expect(cms.resourceLink('demo.customers')).toBeVisible();
-    await expect(cms.resourceLink('demo.orders')).toBeVisible();
+    await expect(cms.resourceLink('public.accounts')).toBeVisible();
+    await expect(cms.resourceLink('public.accounts_memberships')).toBeVisible();
 
-    for (const table of ['products', 'order_items', 'invoices', 'employees']) {
-      await expect(cms.resourceLink(`demo.${table}`)).toHaveCount(0);
+    for (const table of ['roles', 'subscriptions', 'blog_posts']) {
+      await expect(cms.resourceLink(`public.${table}`)).toHaveCount(0);
     }
 
     // La barra lateral refleja los mismos permisos
-    await expect(sidebar.links()).toHaveCount(4);
-    await expect(sidebar.link('demo.customers')).toBeVisible();
+    await expect(sidebar.links()).toHaveCount(2);
+    await expect(sidebar.link('public.accounts')).toBeVisible();
     await expect(sidebar.link('public.blog_posts')).toHaveCount(0);
   });
 
-  test('una tabla de la demo sin permiso responde «no encontrado»', async ({
-    page,
-  }) => {
+  test('una tabla sin permiso responde «no encontrado»', async ({ page }) => {
     const cms = new CmsPageObject(page);
 
-    await page.goto('/admin/cms/resources/demo/employees');
+    await page.goto('/admin/cms/resources/public/subscriptions');
 
     await expect(cms.notFound()).toBeVisible();
   });
 
-  test('en los pedidos ve el nombre del cliente pero no el del comercial', async ({
+  test('en las membresías ve la cuenta enlazada, pero el rol solo como valor', async ({
     page,
   }) => {
     const explorer = new DataExplorerPageObject(page);
 
     await explorer.goto(
-      'demo',
-      'orders',
-      filtersQuery({ 'order_number.eq': 'PED-2026-0001' }),
+      'public',
+      'accounts_memberships',
+      filtersQuery({ 'account_id.eq': TEAM_ACCOUNT_ID }),
     );
 
-    await expect(explorer.rows()).toHaveCount(1);
     await expect(
-      page.getByTestId('cell-customer_id').getByTestId('relation-cell-link'),
+      page
+        .getByTestId('cell-account_id')
+        .first()
+        .getByTestId('relation-cell-link'),
     ).toHaveCount(1);
 
-    // Sin permiso sobre `demo.employees`, el comercial queda como id
+    // Sin permiso sobre `public.roles`, el rol queda como valor sin enlace
     await expect(
-      page.getByTestId('cell-sales_rep_id').getByTestId('relation-cell-link'),
+      page.getByTestId('cell-account_role').getByTestId('relation-cell-link'),
     ).toHaveCount(0);
   });
 });
