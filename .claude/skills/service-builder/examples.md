@@ -1,6 +1,6 @@
 # Ejemplos de servicios
 
-Parte A: variante **web** (Supabase + *server functions*). Parte B: variante **CMS API** (Drizzle + Hono). Parte C: patrones comunes y tests.
+Parte A: variante **web** (Supabase + *server functions*). Parte B: variante **API del CMS** (Drizzle + Hono + cliente RPC). Parte C: patrones comunes y tests.
 
 ---
 
@@ -151,152 +151,178 @@ const mutation = useMutation({
 
 ---
 
-## B. CMS API: servicio Drizzle + ruta Hono
+## B. API del CMS: servicio Drizzle + ruta Hono + cliente RPC
 
-### B.1 Servicio
+Basado en el código real de `packages/cms/settings/src/api/` (Ajustes > General). Lee antes `packages/cms/AGENTS.md`.
+
+### B.1 Servicio (`packages/cms/settings/src/api/services/account.service.ts`)
 
 ```typescript
 /**
- * Servicio de cuentas de miembros del CMS.
+ * Servicio de la cuenta del CMS del usuario de la sesión.
  *
- * Lee y modifica las cuentas del panel con Drizzle. Todas las consultas
- * pasan por `runTransaction`, que fija en la transacción los *claims* del
- * JWT del usuario y su rol: así las políticas RLS se aplican igual que si
- * la consulta viniera del cliente Supabase.
+ * Todas las consultas pasan por `runTransaction`, que fija en la transacción
+ * los *claims* del JWT y el rol `authenticated`: Postgres aplica las
+ * políticas RLS del esquema `cms` igual que si consultara el propio usuario.
  */
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
+import { mergeCmsPreferences } from '@pymekit/cms-shared/preferences';
 import type { DrizzleSupabaseClient } from '@pymekit/cms-supabase/client';
 import { accountsInCms } from '@pymekit/cms-supabase/schema';
 
-export function createMemberAccountService(db: DrizzleSupabaseClient) {
-  return new MemberAccountService(db);
+import { SettingsError } from '../utils/settings-errors';
+
+// Se inyecta solo el cliente Drizzle: el servicio se prueba sin montar Hono.
+export function createAccountService(db: DrizzleSupabaseClient) {
+  return new AccountService(db);
 }
 
-class MemberAccountService {
+class AccountService {
   constructor(private readonly db: DrizzleSupabaseClient) {}
 
   /**
-   * Actualiza el nombre visible y el email mostrado de una cuenta.
-   *
-   * Si el usuario no tiene permiso, RLS no actualiza ninguna fila y se
-   * lanza un error para que la ruta responda con un código adecuado.
+   * Combina las preferencias nuevas con las guardadas. Si RLS no deja ver
+   * la fila (sin cuenta del CMS), lanza un error con código estable.
    */
-  async updateAccount(id: string, data: { displayName: string; email: string }) {
-    const updated = await this.db.runTransaction((tx) =>
-      tx
-        .update(accountsInCms)
-        .set({ metadata: { display_name: data.displayName, email: data.email } })
-        .where(eq(accountsInCms.id, id))
-        .returning({ id: accountsInCms.id }),
-    );
+  async updatePreferences(update: { language?: string; timezone?: string }) {
+    const saved = await this.db.runTransaction(async (tx) => {
+      const [current] = await tx
+        .select({ preferences: accountsInCms.preferences })
+        .from(accountsInCms)
+        .where(eq(accountsInCms.authUserId, sql`auth.uid()`))
+        .limit(1)
+        .for('update'); // bloquea la fila: dos guardados no se pisan
 
-    if (updated.length === 0) {
-      throw new Error('Account not found or not allowed');
+      if (!current) return null;
+
+      const [row] = await tx
+        .update(accountsInCms)
+        .set({ preferences: mergeCmsPreferences(current.preferences, update) })
+        .where(eq(accountsInCms.authUserId, sql`auth.uid()`))
+        .returning({ preferences: accountsInCms.preferences });
+
+      return row ?? null;
+    });
+
+    if (!saved) {
+      throw new SettingsError(
+        CMS_API_ERROR_CODES.SETTINGS_PERMISSION_DENIED,
+        'The CMS account of the session could not be updated',
+      );
     }
+
+    return saved.preferences;
   }
 }
 ```
 
-> Los nombres `@pymekit/cms-supabase` y `accountsInCms` dependen de cómo se porten el paquete y el esquema SQL del CMS en F2 (ver `docs/tfg/DECISIONES.md`). Compruébalos antes de copiar el ejemplo.
+> El código real usa la variante `createAccountService(c: Context)` (lee `c.get('drizzle')`). Ambas son válidas; la inyección del cliente es preferible en servicios nuevos.
 
-### B.2 Adaptador: ruta Hono
+### B.2 Adaptador: ruta Hono (`routes/update-preferences-route.ts`)
 
 ```typescript
 /**
- * Ruta de actualización de la cuenta de un miembro del CMS.
+ * `POST /v1/account/preferences`: guarda las preferencias del usuario.
  *
- * Es código SOLO de servidor: se registra en `packages/cms/*` (API en `/api/cms`) y la SPA la
- * consume a través del cliente RPC tipado con `UpdateAccountRoute`.
+ * SOLO SERVIDOR. El esquema es estricto (rechaza claves desconocidas) y los
+ * errores salen como `{ success: false, error, errorCode }`: nunca el texto
+ * de PostgreSQL. La autenticación la hace antes `registerAuthMiddleware`.
  */
 import { zValidator } from '@hono/zod-validator';
 import type { Hono } from 'hono';
 import * as z from 'zod';
 
-import { createAuthorizationService } from '@pymekit/cms-auth/services';
-import { getLogger } from '@pymekit/cms-shared/logger';
-import { getErrorMessage } from '@pymekit/cms-shared/utils';
+import { isValidTimeZone } from '@pymekit/cms-shared/preferences';
 
-import { createMemberAccountService } from '../services/member-account.service';
+import { createAccountService } from '../services/account.service';
+import {
+  invalidSettingsInput,
+  respondWithSettingsError,
+} from './settings-responses';
 
-const UpdateAccountSchema = z.object({
-  displayName: z.string().max(500),
-  email: z.email(),
-});
+const UpdatePreferencesSchema = z
+  .object({ timezone: z.string().max(64).refine(isValidTimeZone) })
+  .strict();
 
-export function registerUpdateAccountRouter(router: Hono) {
-  return router.put(
-    '/v1/members/:id',
-    zValidator('json', UpdateAccountSchema),
+export function registerUpdatePreferencesRouter(router: Hono) {
+  return router.post(
+    '/v1/account/preferences',
+    // Entrada no válida → 400 con `SETTINGS_INVALID_DATA`, no el volcado de Zod.
+    zValidator('json', UpdatePreferencesSchema, invalidSettingsInput('SETTINGS')),
     async (c) => {
-      const logger = await getLogger();
-      const { id } = c.req.param();
-      const body = c.req.valid('json');
-
-      // Además de RLS, comprobamos el permiso del CMS para devolver un 403
-      // claro en lugar de un fallo genérico de la transacción.
-      const canUpdate = await createAuthorizationService(c).hasAdminPermission(
-        'account',
-        'update',
-      );
-
-      if (!canUpdate) {
-        return c.json({ error: 'Forbidden' }, 403);
-      }
-
       try {
-        await createMemberAccountService(c.get('drizzle')).updateAccount(id, body);
+        const preferences = await createAccountService(
+          c.get('drizzle'),
+        ).updatePreferences(c.req.valid('json'));
 
-        return c.json({ success: true });
+        return c.json({ success: true as const, data: { preferences } });
       } catch (error) {
-        logger.error({ id, error }, 'Error updating account');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        // Traduce el error a estado + código estable y deja el detalle en el log.
+        return respondWithSettingsError(c, error, {
+          fallback: 'SETTINGS_ACTION_FAILED',
+          logContext: { route: 'preferences' },
+        });
       }
     },
   );
 }
 
-// El tipo de la ruta alimenta al cliente RPC de la SPA.
-export type UpdateAccountRoute = ReturnType<typeof registerUpdateAccountRouter>;
+// El tipo de la ruta alimenta al cliente RPC (solo con `import type`).
+export type UpdatePreferencesRoute = ReturnType<
+  typeof registerUpdatePreferencesRouter
+>;
 ```
 
-Registro en el servidor (nunca en la SPA):
+Si la acción necesita un permiso del RBAC del CMS, compruébalo antes para responder un 403 con código (la RLS lo vuelve a impedir):
 
 ```typescript
-// apps/web/src/routes/api/cms/$.ts
-import { registerUpdateAccountRouter } from '@pymekit/cms-settings/routes';
+const canUpdate = await createAuthorizationService(c).hasAdminPermission(
+  'system_setting',
+  'update',
+);
 
-registerUpdateAccountRouter(router);
+if (!canUpdate) {
+  return c.json(
+    { success: false as const, error: 'Forbidden', errorCode: CMS_API_ERROR_CODES.SETTINGS_PERMISSION_DENIED },
+    403,
+  );
+}
 ```
 
-### B.3 Consumidor: *action* de la SPA
+Registro: exporta la ruta desde `src/api/routes/index.ts` (export `./routes` del paquete) y llama a su `register...` dentro de `registerFeatureRoutes()` en `packages/cms/api/src/server.ts`. La web la sirve en `/api/cms/v1/...` desde `apps/web/src/routes/api/cms/$.ts`.
+
+### B.3 Consumidor: cliente RPC (`packages/cms/ui-core/src/settings-api.ts`)
 
 ```typescript
 /**
- * Llama a la ruta de actualización de cuentas desde la SPA del CMS.
- *
- * Solo importa el TIPO de la ruta; el código de servidor no llega al bundle.
- * `@pymekit/cms-api` es el paquete del cliente RPC (packages/cms/api), no
- * la app `packages/cms/*` (API en `/api/cms`).
+ * Llamadas de la interfaz a Ajustes. Solo importa el TIPO de la ruta: el
+ * código de servidor no llega al navegador. El `fetch` se inyecta desde la
+ * web (`cmsFetch`, isomorfo: en el SSR llama a Hono en el mismo proceso).
  */
-import { createHonoClient, handleHonoClientResponse } from '@pymekit/cms-api';
+import {
+  createHonoClient,
+  handleHonoClientResponse,
+} from '@pymekit/cms-api/client';
+import type { UpdatePreferencesRoute } from '@pymekit/cms-settings/routes';
 
-import type { UpdateAccountRoute } from '../api/routes';
+export function createSettingsApi(clientOptions: { fetch?: typeof fetch }) {
+  return {
+    /** Lanza `ApiError` (con `status` y `errorCode`) si la API falla. */
+    async updatePreferences(data: { timezone?: string }) {
+      const client = createHonoClient<UpdatePreferencesRoute>(clientOptions);
 
-export async function updateAccountAction(
-  accountId: string,
-  data: { displayName: string; email: string },
-) {
-  const client = createHonoClient<UpdateAccountRoute>();
-
-  const response = await client['v1']['members'][':id']['$put']({
-    param: { id: accountId },
-    json: data,
-  });
-
-  return handleHonoClientResponse(response);
+      return handleHonoClientResponse(
+        await client.v1.account.preferences.$post({ json: data }),
+      );
+    },
+  };
 }
+```
+
+`createCmsApi` incorpora estas funciones; los componentes las usan con `useCmsApi().api` dentro de `useMutation` y las rutas con `cmsQueries.*` (`queryOptions`) en sus `loader`. Ver la skill `react-form-builder`.
+
 ```
 
 ---
@@ -368,7 +394,7 @@ const service = createOnboardingService({
 
 ### C.3 Lógica pura (sin E/S)
 
-Es el caso más simple: una función, sin clase ni dependencias. En el CMS va en `src/utils/`.
+Es el caso más simple: una función, sin clase ni dependencias. En el CMS va en `src/api/utils/` (servidor) o en `packages/cms/<feature>-ui/src/utils/` (cliente), siempre con tests.
 
 ```typescript
 /**
@@ -466,12 +492,14 @@ it('lista los proyectos de una cuenta', async () => {
 Como el servicio recibe `DrizzleSupabaseClient`, basta con un `runTransaction` que ejecute el *callback* con una transacción falsa:
 
 ```typescript
-it('falla si RLS no deja actualizar ninguna fila', async () => {
+it('lanza SETTINGS_PERMISSION_DENIED si RLS no deja ver la cuenta', async () => {
+  // La consulta encadenada termina en `.for('update')`, que devuelve 0 filas.
   const tx = {
-    update: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([]),
+    limit: vi.fn().mockReturnThis(),
+    for: vi.fn().mockResolvedValue([]),
   };
 
   const db = {
@@ -479,11 +507,8 @@ it('falla si RLS no deja actualizar ninguna fila', async () => {
   } as unknown as DrizzleSupabaseClient;
 
   await expect(
-    createMemberAccountService(db).updateAccount('acc-1', {
-      displayName: 'Ana',
-      email: 'ana@pymekit.test',
-    }),
-  ).rejects.toThrow();
+    createAccountService(db).updatePreferences({ timezone: 'UTC' }),
+  ).rejects.toMatchObject({ code: 'SETTINGS_PERMISSION_DENIED' });
 });
 ```
 

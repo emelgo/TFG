@@ -1,72 +1,27 @@
 # Patrones E2E de PymeKit
 
-Referencias de código real (solo lectura): `../makerkit/apps/e2e/tests/` para la web y `../supamode/apps/e2e/src/` para el CMS.
+Ejemplos reales: `apps/e2e/tests/` (web) y `apps/e2e/tests/cms/` (CMS, p. ej. `cms-settings-general.spec.ts` con `settings.po.ts`). Referencia externa (solo lectura): `../makerkit/apps/e2e/tests/`.
 
-## Estructura de `apps/e2e`
+## Estructura de `apps/e2e` (paquete `web-e2e`)
 
-Una sola configuración de Playwright con un proyecto por app. Cada proyecto tiene su propio `setup` (que genera las sesiones) y su propia `baseURL`.
+Una sola configuración de Playwright: proyecto `setup` (`tests/auth.setup.ts`, genera las sesiones en `.auth/`) y proyecto `chromium`, que depende de él. `baseURL` es `http://localhost:3100`.
 
 ```
 apps/e2e/
 ├── playwright.config.ts
-├── .env                          # TEST_* del CMS (ver .env.template)
-├── .auth/                        # storageState generados por los setup (en .gitignore)
+├── .auth/                        # storageState generados por el setup (en .gitignore)
 └── tests/
-    ├── web/
-    │   ├── auth.setup.ts
-    │   ├── authentication/       # auth.po.ts + *.spec.ts
-    │   ├── account/
-    │   ├── team-accounts/
-    │   ├── invitations/
-    │   ├── user-billing/         # *-billing.spec.ts: solo con ENABLE_BILLING_TESTS=true
-    │   ├── team-billing/
-    │   └── utils/                # auth-state.ts, server-fn.ts, mailbox.ts, otp.po.ts…
-    └── cms/
-        ├── setup/auth.setup.ts   # resetea la BD de demo y genera sesiones
-        ├── auth/                 # auth.po.ts + auth.spec.ts
-        ├── data-explorer/
-        ├── settings/             # members/, permissions/, resources/, general/
-        └── audit-logs/
+    ├── auth.setup.ts             # test, owner, super-admin (MFA) y cms-staff
+    ├── authentication/           # auth.po.ts + *.spec.ts
+    ├── account/  admin/  team-accounts/  invitations/
+    ├── user-billing/  team-billing/   # *-billing.spec.ts: solo con ENABLE_BILLING_TESTS=true
+    ├── cms/                      # cms-*.spec.ts + *.po.ts (settings, data-explorer, dashboards…)
+    └── utils/                    # auth-state.ts, server-fn.ts, mailbox.ts, otp.po.ts…
 ```
-
-```typescript
-/**
- * Configuración de Playwright para las dos apps de PymeKit.
- *
- * Cada app tiene su propio proyecto de `setup` porque las sesiones no son
- * intercambiables: la web usa cookies de TanStack Start y el CMS exige
- * además el permiso de acceso al panel en `app_metadata`.
- */
-projects: [
-  { name: 'setup-web', testMatch: /web\/.*\.setup\.ts/ },
-  {
-    name: 'web',
-    testDir: './tests/web',
-    testMatch: /.*\.spec\.ts/,
-    use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:3000' },
-    dependencies: ['setup-web'],
-  },
-  { name: 'setup-cms', testMatch: /cms\/.*\.setup\.ts/ },
-  {
-    name: 'cms',
-    testDir: './tests/cms',
-    testMatch: /.*\.spec\.ts/,
-    use: {
-      ...devices['Desktop Chrome'],
-      baseURL: 'http://localhost:5173',
-      // Las animaciones de diálogos y menús provocan clics fallidos.
-      contextOptions: { reducedMotion: 'reduce' },
-    },
-    dependencies: ['setup-cms'],
-  },
-],
-```
-
-> Puertos: en las referencias `apps/web` y la API del CMS usan ambos el `3000`. En PymeKit `apps/cms-api` debe usar otro puerto (y el *proxy* `/api` de Vite en `apps/cms` debe apuntar a él). Comprueba el valor real en `apps/cms-api` antes de fijarlo en los tests.
 
 ## Selectores
 
-Usa siempre el atributo **`data-testid`** (es el que emplean las dos apps; nunca `data-test`):
+Usa siempre el atributo **`data-testid`** (es el que se usa en toda la web y el CMS; nunca `data-test`):
 
 ```typescript
 await page.getByTestId('submit-button').click();
@@ -95,18 +50,17 @@ await page.click('[data-testid="submit-button"]');
 '[data-testid="submit-mfa-button"]'
 ```
 
-### CMS (`apps/cms`)
+### CMS (`/admin/cms`)
 
 ```typescript
-// Inicio de sesión
-'[data-testid="email-input"]'
-'[data-testid="password-input"]'
-'[data-testid="auth-submit-button"]'
+// Ajustes
+'[data-testid="general-settings-form"]'
+'[data-testid="general-settings-submit"]'
+'[data-testid="member-manage-role"]'
+'[data-testid="member-role-dialog"]'
 
-// Miembros
-'[data-testid="members-search-input"]'
-'[data-testid="member-actions"]'
-'[data-testid="member-details-edit-account-form"]'
+// Explorador de datos: una celda por columna
+'[data-testid="cell-created_at"]'
 ```
 
 En el CMS muchas vistas son tablas: combina roles y filtros en lugar de índices frágiles.
@@ -134,6 +88,8 @@ export const AUTH_STATES = {
   TEST_USER: join(cwd(), '.auth/test@pymekit.test.json'),
   OWNER_USER: join(cwd(), '.auth/owner@pymekit.test.json'),
   SUPER_ADMIN: join(cwd(), '.auth/super-admin@pymekit.test.json'),
+  // Personal de soporte del CMS con MFA verificado (ver el seed).
+  CMS_STAFF: join(cwd(), '.auth/cms-staff@pymekit.test.json'),
 } as const;
 
 // En un spec:
@@ -144,12 +100,37 @@ El superadministrador tiene MFA obligatorio: `loginAsSuperAdmin` rellena el cód
 
 ### CMS
 
-Las credenciales se leen de `apps/e2e/.env` (`TEST_ROOT_EMAIL`, `TEST_ADMIN_EMAIL`, `TEST_READONLY_EMAIL`, `TEST_PASSWORD`), con valores de ejemplo como `root@pymekit.test`. El `setup` resetea antes la base de datos de demostración.
+No hay *setup* propio: el CMS usa las sesiones de la web. `SUPER_ADMIN` (MFA verificado, acceso total) y `CMS_STAFF` (`cms-staff@pymekit.test`, rol «Soporte», MFA verificado) están en `AUTH_STATES`.
 
 ```typescript
-test.describe('Gestión de miembros', () => {
-  test.use({ storageState: '.auth/cms/root.json' });
+test.describe('Ajustes > General: personal de soporte', () => {
+  AuthPageObject.setupSession(AUTH_STATES.CMS_STAFF);
   // …
+});
+```
+
+**No cambies los usuarios de la semilla** (rol, estado, MFA): otros tests en paralelo dependen de ellos. Crea un miembro temporal con prefijo único y bórralo al final:
+
+```typescript
+// Prefijo único por ejecución: la limpieza solo borra lo de este fichero.
+const RUN_ID = `e2e-cms-members-${Date.now()}`;
+
+// Usuario de Auth con la clave de servicio LOCAL (ignora RLS).
+const { data: created } = await getAdminClient().auth.admin.createUser({
+  email: `${RUN_ID}-member@pymekit.test`,
+  password: 'Passw0rdE2E',
+  email_confirm: true,
+});
+
+// El acceso al CMS se concede por la API: así se crea su cuenta del CMS.
+const grant = await page.request.put(
+  `/api/cms/v1/admin/users/${created.user!.id}/admin-access`,
+  { data: { adminAccess: true } },
+);
+expect(grant.status()).toBe(200);
+
+test.afterAll(async () => {
+  // Borra los usuarios cuyo email empieza por RUN_ID.
 });
 ```
 
@@ -217,25 +198,13 @@ export class AuthPageObject {
 
 ### CMS
 
-```typescript
-async loginAsUser(email: string, password: string) {
-  await this.page.goto('/auth/sign-in', { waitUntil: 'commit' });
-
-  await this.page.getByTestId('email-input').fill(email);
-  await this.page.getByTestId('password-input').fill(password);
-  await this.page.getByTestId('auth-submit-button').click();
-
-  await this.page.waitForURL('/', { waitUntil: 'commit' });
-}
-```
-
-Para crear usuarios del CMS no basta con `auth.admin.createUser`: hay que marcar el acceso al panel en `app_metadata` e insertar la cuenta del CMS con el cliente Drizzle de administración (ver `../supamode/apps/e2e/src/auth/auth.po.ts`).
+El CMS no tiene inicio de sesión propio: usa la sesión de la web (`loginAsSuperAdmin`, `loginAsCmsStaff` de `AuthPageObject`). El acceso exige `app_metadata.cms_access` y MFA (aal2); para crear usuarios del CMS concede el acceso con la API (`PUT /api/cms/v1/admin/users/:id/admin-access`), nunca escribiendo `app_metadata` a mano.
 
 ## Patrones de fiabilidad
 
 ### Server functions (web)
 
-Las *server functions* de TanStack Start no se envían a la URL de la página, sino a `/_serverFn/<id>`. Usa el ayudante `tests/web/utils/server-fn.ts`:
+Las *server functions* de TanStack Start no se envían a la URL de la página, sino a `/_serverFn/<id>`. Usa el ayudante `tests/utils/server-fn.ts`:
 
 ```typescript
 const response = page.waitForResponse((res) =>
@@ -250,11 +219,43 @@ Si la función lanza `redirect()`, responde `307`: en ese caso omite `status`.
 
 ### API del CMS
 
+Al esperar una mutación desde la UI, registra la espera **antes** del clic:
+
 ```typescript
-const response = page.waitForResponse(
-  (res) => res.url().includes('/api/v1/members/') && res.request().method() === 'PUT',
+const saved = page.waitForResponse(
+  (res) =>
+    res.url().includes('/api/cms/v1/account/preferences') &&
+    res.request().method() === 'POST',
 );
+await page.getByTestId('general-settings-submit').click();
+expect((await saved).status()).toBe(200);
 ```
+
+Al probar la API directamente con `page.request` (usa las *cookies* de la sesión), comprueba el **código estable** además del estado: dos rechazos distintos pueden compartir 400/403.
+
+```typescript
+const response = await page.request.post('/api/cms/v1/account/preferences', {
+  data: { timezone: 'Mars/Olympus_Mons' },
+});
+
+expect(response.status()).toBe(400);
+expect(await response.json()).toMatchObject({
+  errorCode: 'SETTINGS_INVALID_DATA',
+});
+```
+
+Escrituras **sin cuerpo JSON** (`DELETE`, `POST` vacío) o **`multipart`**: el filtro CSRF de Hono exige `Origin`.
+
+```typescript
+// Sin cuerpo, el navegador enviaría Origin; `page.request` no lo hace.
+const SAME_ORIGIN = { origin: 'http://localhost:3100' };
+
+await page.request.delete(`/api/cms/v1/permissions/roles/${roleId}`, {
+  headers: SAME_ORIGIN,
+});
+```
+
+Si una prueba cambia algo compartido (p. ej. las preferencias del super-admin), restáuralo en `finally` y marca el `describe` como `serial`.
 
 ### Correo y OTP (Mailpit en `http://127.0.0.1:54324`)
 
@@ -280,21 +281,26 @@ await expect(async () => {
 
 ## Ejecución
 
-Requisitos: Supabase local levantado y las apps en marcha (`pnpm dev`), o `PLAYWRIGHT_SERVER_COMMAND` definido para que Playwright las arranque.
+**Siempre contra la build de test**, no contra `pnpm dev` (el *setup* de autenticación falla en desarrollo). Requisitos: Supabase local levantado.
 
 ```bash
-# Un fichero o carpeta, solo la web (forma preferida)
-pnpm --filter e2e exec playwright test --project=web authentication --workers=1
+# 1. Build y servidor de test (puerto 3100)
+pnpm --filter web build:test
+pnpm --filter web start:test          # o PLAYWRIGHT_SERVER_COMMAND para que lo arranque Playwright
 
-# Solo el CMS
-pnpm --filter e2e exec playwright test --project=cms settings/members --workers=1
+# 2. Un fichero o carpeta (forma preferida)
+pnpm --filter web-e2e exec playwright test cms/cms-settings-general --workers=1
 
 # Modo UI / depuración
-pnpm --filter e2e exec playwright test --ui
-pnpm --filter e2e exec playwright test --debug
+pnpm --filter web-e2e exec playwright test --ui
+pnpm --filter web-e2e exec playwright test --debug
 
 # Tests de facturación (desactivados por defecto)
-ENABLE_BILLING_TESTS=true pnpm --filter e2e exec playwright test --project=web billing
+ENABLE_BILLING_TESTS=true pnpm --filter web-e2e exec playwright test billing
 ```
 
-> El nombre del paquete (`e2e`) y los nombres de proyecto se fijan al crear `apps/e2e` en F1/F2. Si cambian, actualiza esta sección.
+Vuelve a hacer `build:test` tras cambiar código de la web o de `packages/*`: el servidor de test no recarga.
+
+### Inestables conocidos (*flaky*) bajo `--workers=4`
+
+Pasan en serie (`--workers=1`) y están pendientes de estabilizar (ver `docs/tfg/PROGRESO.md`): admin «ban user flow», «MFA configured but not verified», «delete team account flow», dos de autenticación y `cms-display-formats` › membresía enlazada a la cuenta. Si falla uno de ellos con carga, repítelo en serie antes de investigar.

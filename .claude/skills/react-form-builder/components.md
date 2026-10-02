@@ -1,6 +1,6 @@
 # Componentes de formulario
 
-Parte A: **web** (TanStack Form + `@pymekit/ui/field`). Parte B: **CMS** (react-hook-form + `@pymekit/cms-ui/form`). Todos los textos son claves i18n: web con `ns.clave`, CMS con `ns:clave`.
+Parte A: **web** (TanStack Form + `@pymekit/ui/field`). Parte B: lo propio del **CMS** (mismos componentes; envío con el cliente RPC y errores por código). Todos los textos son claves i18n `ns.clave` (en el CMS, `cms.*`).
 
 ---
 
@@ -240,191 +240,81 @@ export function CreateProjectDialog(
 
 ---
 
-## B. CMS
+## B. CMS (`/admin/cms`)
 
-### Imports
+El CMS usa **los mismos componentes de la parte A** (`@tanstack/react-form` + `@pymekit/ui/field`). Solo cambian el envío (API Hono en vez de *server function*) y los mensajes de error (códigos estables de la API).
 
-```typescript
-import { useFetcher } from 'react-router';
-
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
-
-import { useAsyncDialog } from '@pymekit/cms-shared/hooks';
-import { Alert, AlertDescription, AlertTitle } from '@pymekit/cms-ui/alert';
-import { Button } from '@pymekit/cms-ui/button';
-import { Checkbox } from '@pymekit/cms-ui/checkbox';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@pymekit/cms-ui/form';
-import { If } from '@pymekit/cms-ui/if';
-import { Input } from '@pymekit/cms-ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@pymekit/cms-ui/select';
-import { Switch } from '@pymekit/cms-ui/switch';
-import { Textarea } from '@pymekit/cms-ui/textarea';
-import { Trans } from '@pymekit/cms-ui/trans';
-```
-
-### Campo de texto
+### Imports propios del CMS
 
 ```tsx
-<FormField
-  control={form.control}
-  name="displayName"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>
-        <Trans i18nKey="settings:displayName" />
-      </FormLabel>
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-      <FormControl>
-        <Input {...field} data-testid="member-display-name-input" />
-      </FormControl>
+import { useCmsApi } from '@pymekit/cms-ui-core/api-context';
+import { cmsQueryKeys } from '@pymekit/cms-ui-core/queries';
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
+```
 
-      <FormDescription>
-        <Trans i18nKey="settings:member.displayNameDescription" />
-      </FormDescription>
+### Mutación (en `hooks/use-<feature>-mutations.ts`)
 
-      <FormMessage />
-    </FormItem>
+```tsx
+/** Guarda las preferencias personales del usuario del CMS. */
+export function useUpdatePreferencesMutation() {
+  const { api } = useCmsApi();
+  const queryClient = useQueryClient();
+  const t = useTranslations('cms.settings');
+
+  return useMutation({
+    // `api` es el cliente RPC tipado: misma caché y `fetch` que los loaders.
+    mutationFn: (data: { timezone?: string }) => api.updatePreferences(data),
+    onSuccess: async () => {
+      toast.success(t('general.saved'));
+      // Se invalida solo lo que ha cambiado.
+      await queryClient.invalidateQueries({ queryKey: cmsQueryKeys.account() });
+    },
+    // El mensaje sale del `errorCode` de la API, nunca de su texto.
+    onError: (error) => toast.error(t(getSettingsErrorKey(error, 'general.saveError'))),
+  });
+}
+```
+
+### Mensajes por código de error (en `utils/<feature>-errors.ts`, con test)
+
+```ts
+// Claves (relativas a `cms.settings`) por código estable de la API.
+const ERROR_KEYS: Record<string, string> = {
+  [CMS_API_ERROR_CODES.SETTINGS_PERMISSION_DENIED]: 'errors.permissionDenied',
+  [CMS_API_ERROR_CODES.SETTINGS_INVALID_DATA]: 'errors.invalidData',
+};
+
+export function getSettingsErrorKey(error: unknown, fallback: string) {
+  // `ApiError` del cliente RPC trae `errorCode` y `status`.
+  const code = (error as { errorCode?: string } | null)?.errorCode;
+
+  return (code && ERROR_KEYS[code]) || fallback;
+}
+```
+
+### Botón de envío solo con cambios
+
+```tsx
+<form.Subscribe selector={(s) => [s.isDirty, s.isSubmitting] as const}>
+  {([isDirty, isSubmitting]) => (
+    <Button type="submit" data-testid="general-settings-submit" disabled={!isDirty || isSubmitting}>
+      {isSubmitting ? <Spinner className="h-3.5 w-3.5" /> : null}
+      {t('save')}
+    </Button>
   )}
-/>
+</form.Subscribe>
 ```
 
-### Select
+### Acción visible solo con permiso
 
 ```tsx
-<FormField
-  control={form.control}
-  name="roleId"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>
-        <Trans i18nKey="settings:roles.role" />
-      </FormLabel>
-
-      <Select value={field.value} onValueChange={field.onChange}>
-        <FormControl>
-          <SelectTrigger data-testid="role-select">
-            <SelectValue />
-          </SelectTrigger>
-        </FormControl>
-
-        <SelectContent>
-          {roles.map((role) => (
-            <SelectItem key={role.id} value={role.id}>
-              {role.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+// Los permisos llegan de la API (`GET /v1/account`, `permissions` de una
+// ficha…). Ocultar el botón es comodidad: la API y la RLS vuelven a decidir.
+{permissions.canUpdate ? (
+  <Button data-testid="member-manage-role" onClick={openDialog}>{t('manageRole')}</Button>
+) : null}
 ```
 
-Los nombres de rol vienen de la base de datos, por eso no pasan por i18n.
-
-### Checkbox y Switch
-
-```tsx
-<FormField
-  control={form.control}
-  name="isActive"
-  render={({ field }) => (
-    <FormItem className="flex items-center justify-between">
-      <div>
-        <FormLabel>
-          <Trans i18nKey="settings:member.activeLabel" />
-        </FormLabel>
-        <FormDescription>
-          <Trans i18nKey="settings:member.activeDescription" />
-        </FormDescription>
-      </div>
-
-      <FormControl>
-        <Switch
-          data-testid="member-active-switch"
-          checked={field.value}
-          onCheckedChange={field.onChange}
-        />
-      </FormControl>
-    </FormItem>
-  )}
-/>
-```
-
-`Checkbox` se enlaza igual: `checked={field.value}` y `onCheckedChange={field.onChange}`.
-
-### Resultado del envío
-
-```tsx
-const fetcher = useFetcher<{ success: boolean }>();
-
-<If condition={fetcher.data?.success}>
-  <Alert variant="success">
-    <AlertTitle>
-      <Trans i18nKey="settings:member.accountUpdated" />
-    </AlertTitle>
-    <AlertDescription>
-      <Trans i18nKey="settings:member.accountUpdatedDescription" />
-    </AlertDescription>
-  </Alert>
-</If>
-
-<Button
-  type="submit"
-  data-testid="submit-button"
-  disabled={!form.formState.isDirty || fetcher.state === 'submitting'}
->
-  <Trans i18nKey={fetcher.state === 'submitting' ? 'common:saving' : 'common:save'} />
-</Button>
-```
-
-### *Action* que recibe el formulario
-
-```typescript
-/**
- * Action de React Router para la ficha de un miembro.
- *
- * Despacha por `intent` a la llamada RPC correspondiente e invalida las
- * consultas afectadas para que la tabla y la ficha se refresquen solas.
- */
-export const memberDetailsBridgeAction = createAction({
-  mutationFn: async ({ request, params }) => {
-    const formData = await request.formData();
-    const { id: accountId } = IdParamsSchema.parse(params);
-
-    switch (formData.get('intent')) {
-      case 'update-account':
-        return updateAccountAction(
-          accountId,
-          UpdateAccountSchema.parse(JSON.parse(formData.get('data') as string)),
-        );
-
-      default:
-        throw new Error('Invalid intent');
-    }
-  },
-  invalidateKeys: ({ params }) => {
-    const { id } = IdParamsSchema.parse(params);
-
-    return [settingsQueryKeys.memberDetails(id), settingsQueryKeys.members()];
-  },
-});
-```
+Ejemplo real completo: `packages/cms/settings-ui/src/components/general-settings-form.tsx` con `hooks/use-settings-mutations.ts` y `utils/settings-errors.ts`.

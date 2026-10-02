@@ -65,6 +65,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-48 | 2026-09-30 | F2.7b | proceso | propio | Consumo de tokens excesivo por la verificación con agentes | — |
 | B-49 | 2026-10-02 | F2.7c | calidad | heredado | Configuración de recursos: errores en bruto y «éxito» sin cambios | Baja |
 | B-50 | 2026-10-02 | F2.8 | seguridad | heredado | Widgets sobre tablas no legibles y apropiación de paneles compartidos | Media |
+| B-51 | 2026-10-02 | F2.9 | proceso | propio | Un test de otra zona quedó desactualizado al verificar solo los E2E afectados | Baja |
 
 ---
 
@@ -380,3 +381,8 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
   - `UPDATE` solo sobre `name` y `updated_at` (corregido en la sesión principal, por encima de lo que había hecho el agente);
   - eliminadas la vista previa libre y las plantillas.
 - **Evidencia:** `cms-dashboards-f28.test.sql`; E2E `cms-dashboards.spec.ts` (el personal de soporte ve «sin acceso» en el widget de una tabla que no puede leer).
+
+## B-51 · Un test de otra zona quedó desactualizado al verificar solo los E2E afectados
+- **Qué pasó:** en modo ahorro (B-48), la F2.7c solo ejecutó los E2E de su zona. Añadió el permiso `resourceSettings` a la respuesta de `/v1/account`, y un test de la F2.7b que compara la lista exacta de permisos falló en la suite completa del cierre de la F2.
+- **Solución:** actualizar la aserción y verificar en serie.
+- **Lección:** el modo ahorro traslada el riesgo al cierre de fase, y es razonable siempre que la suite completa se ejecute **antes** de fusionar. Las aserciones de igualdad exacta sobre respuestas que crecen son frágiles.

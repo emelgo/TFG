@@ -1,21 +1,20 @@
 ---
 name: playwright-e2e
-description: Escribe, revisa o depura tests end-to-end (E2E) con Playwright para las dos apps de PymeKit (`apps/web` y `/admin/cms`). Úsala al crear suites de tests, arreglar tests inestables (flaky), automatizar secuencias de interacción con la UI o mejorar la fiabilidad de los tests. Invócala con /playwright-e2e o cuando se mencionen tests E2E, Playwright o test automation.
+description: Escribe, revisa o depura tests end-to-end (E2E) con Playwright para PymeKit (`apps/web`, incluido el CMS en `/admin/cms` y su API `/api/cms`). Úsala al crear suites de tests, arreglar tests inestables (flaky), automatizar secuencias de interacción con la UI o mejorar la fiabilidad de los tests. Invócala con /playwright-e2e o cuando se mencionen tests E2E, Playwright o test automation.
 ---
-
-> **Aviso (F2, ADR-011 y ADR-013):** el CMS ya no es una app separada. Se integra en la web: API Hono montada en `/api/cms` desde `apps/web/src/routes/api/cms`, pantallas en `apps/web/src/routes/admin/cms` y lógica en `packages/cms/*`. En el CMS se usan TanStack Router, TanStack Form y use-intl, igual que en el resto de la web. Las indicaciones de esta skill sobre React Router, `useFetcher` o react-hook-form **están obsoletas** hasta que se reescriba en F2.9.
-
 
 # Experto en tests E2E con Playwright
 
 Actúas como ingeniero de QA especializado en Playwright y en pruebas *end-to-end*. Conoces a fondo la automatización de navegadores, la ejecución asíncrona de JavaScript y los problemas propios de probar interfaces.
 
-En PymeKit hay **una única app de tests** (`apps/e2e`) que cubre dos aplicaciones:
+En PymeKit hay **una única app de tests** (`apps/e2e`, paquete `web-e2e`) contra **una única app**: la web (TanStack Start, `http://localhost:3100`). El CMS es parte de ella (ADR-011 y ADR-013): pantallas en `/admin/cms/**` y API Hono en `/api/cms/v1/**`.
 
-| App | Tecnología | URL local | Carpeta de tests |
-|---|---|---|---|
-| `apps/web` (SaaS) | TanStack Start | `http://localhost:3000` | `apps/e2e/tests/web/` |
-| `/admin/cms` (panel de administración) | Vite + React Router 7 (SPA) que llama a `packages/cms/*` (API en `/api/cms`) (Hono) | `http://localhost:5173` | `apps/e2e/tests/cms/` |
+| Zona | Carpeta de tests | Mutaciones |
+|---|---|---|
+| Web (SaaS, `/admin`) | `apps/e2e/tests/<área>/` | *Server functions* `/_serverFn/*` |
+| CMS (`/admin/cms`) | `apps/e2e/tests/cms/` | API `/api/cms/v1/*` (JSON con `errorCode`) |
+
+**Ejecuta siempre contra la build de test** (`pnpm --filter web build:test` + `pnpm --filter web start:test`, puerto 3100). El *setup* de autenticación falla contra `pnpm dev`.
 
 Los patrones concretos (Page Objects, usuarios de prueba, selectores y comandos) están en [pymekit.md](pymekit.md). Léelo antes de escribir un test.
 
@@ -50,7 +49,9 @@ Al escribir tests:
 5. No uses `page.waitForTimeout()` salvo como último recurso justificado con un comentario.
 6. Encadena las acciones con lógica: interactuar → esperar la respuesta → comprobar → continuar.
 7. En `apps/web`, las mutaciones son *server functions* de TanStack Start: espera la respuesta con `isServerFnResponse` (URL `/_serverFn/...`), no la ruta de la página.
-8. En `/admin/cms`, las mutaciones pasan por `packages/cms/*` (API en `/api/cms`): espera la respuesta a `/api/v1/...`.
+8. En `/admin/cms`, las mutaciones van a la API Hono: espera la respuesta a `/api/cms/v1/...` y, al probar la API con `page.request`, comprueba el **`errorCode`** del cuerpo, no solo el estado HTTP.
+9. Las escrituras a la API **sin cuerpo JSON** (`DELETE`, `POST` vacío) o `multipart` necesitan la cabecera `Origin: http://localhost:3100` (filtro CSRF de Hono).
+10. **No modifiques los usuarios de la semilla** compartidos (roles, estado, MFA): crea miembros temporales con un prefijo único y bórralos en `afterAll`. Si cambias una preferencia compartida, restáurala en `finally` y usa `test.describe.configure({ mode: 'serial' })`.
 
 ## Errores habituales que evitas
 
@@ -108,8 +109,10 @@ Los tests E2E son caros de ejecutar y de mantener, así que cada uno debe aporta
 Analiza de forma sistemática:
 
 1. Capturas y ficheros de traza (`trace: 'on-first-retry'`) para ver el estado real (`pnpm --filter e2e exec playwright show-trace <zip>`).
-2. La actividad de red, para detectar peticiones fallidas o lentas (en la web, `/_serverFn/*`; en el CMS, `/api/v1/*`).
+2. La actividad de red, para detectar peticiones fallidas o lentas (en la web, `/_serverFn/*`; en el CMS, `/api/cms/v1/*`).
 3. Los errores de consola que indiquen fallos de la aplicación.
 4. Los problemas de sincronización que requieran esperas adicionales.
+
+Antes de dar por roto un test, comprueba si es uno de los **inestables conocidos bajo `--workers=4`** (lista en [pymekit.md](pymekit.md)): ejecútalo con `--workers=1`.
 
 Ten en cuenta que en CI el rendimiento es distinto al de desarrollo local. Escribe tests resistentes a esas variaciones mediante una sincronización correcta y tiempos de espera realistas.

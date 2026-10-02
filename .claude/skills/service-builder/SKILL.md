@@ -1,10 +1,7 @@
 ---
 name: service-builder
-description: Construye services puros e independientes de la interfaz, con dependencias inyectadas, para las dos variantes de PymeKit — web (cliente Supabase llamado desde server functions `createServerFn`) y cms-api (Drizzle llamado desde rutas Hono). Úsala al crear lógica de negocio que deba reutilizarse entre server functions, rutas, tests o herramientas. Invócala con /service-builder.
+description: Construye services puros e independientes de la interfaz, con dependencias inyectadas, para las dos variantes de PymeKit — web (cliente Supabase llamado desde server functions `createServerFn`) y API del CMS (Drizzle llamado desde rutas Hono en `packages/cms/<feature>`, montadas en `/api/cms` y consumidas con el cliente RPC tipado de `@pymekit/cms-ui-core`). Úsala al crear lógica de negocio que deba reutilizarse entre server functions, rutas, tests o herramientas. Invócala con /service-builder.
 ---
-
-> **Aviso (F2, ADR-011 y ADR-013):** el CMS ya no es una app separada. Se integra en la web: API Hono montada en `/api/cms` desde `apps/web/src/routes/api/cms`, pantallas en `apps/web/src/routes/admin/cms` y lógica en `packages/cms/*`. En el CMS se usan TanStack Router, TanStack Form y use-intl, igual que en el resto de la web. Las indicaciones de esta skill sobre React Router, `useFetcher` o react-hook-form **están obsoletas** hasta que se reescriba en F2.9.
-
 
 # Constructor de servicios
 
@@ -16,16 +13,17 @@ Eres experto en construir servicios puros y testeables, desacoplados de quien lo
 
 En PymeKit hay **dos variantes**. Decide primero en cuál estás; no mezcles sus patrones.
 
-| | **Web** (`apps/web`, `packages/features/*`, `packages/*`) | **CMS API** (`apps/cms-api`, `packages/cms/*`) |
+| | **Web** (`apps/web`, `packages/features/*`, `packages/*`) | **API del CMS** (`packages/cms/<feature>`, solo servidor) |
 |---|---|---|
-| Acceso a datos | Cliente Supabase (`SupabaseClient<Database>`) | Drizzle (`DrizzleSupabaseClient` → `runTransaction`) |
-| Adaptador | *Server function* (`createServerFn`) en `*.functions.ts` | Ruta Hono (`registerXRouter(router)`) |
-| Validación | `.validator(Schema)` con Zod | `zValidator('json', Schema)` de `@hono/zod-validator` |
-| Autenticación | *Middleware* de `@pymekit/function-middleware/functions` | *Middleware* global de `/v1/*` en `apps/cms-api` (inyecta `supabase` y `drizzle` en el contexto) |
-| Autorización | RLS + `withMinRole` / `withFeaturePermission` | RLS (vía `runTransaction`) + `createAuthorizationService(c).hasAdminPermission(...)` |
-| Consumidor en UI | `useServerFn` + `useMutation`, o el `loader` de la ruta | Cliente RPC `createHonoClient<Route>()` desde una *action*/*loader* de React Router |
+| Acceso a datos | Cliente Supabase (`SupabaseClient<Database>`) | Drizzle (`c.get('drizzle').runTransaction(...)`, tipo `DrizzleSupabaseClient` de `@pymekit/cms-supabase/client`) |
+| Adaptador | *Server function* (`createServerFn`) en `*.functions.ts` | Ruta Hono (`registerXRoute(router)`) exportada desde `./routes` |
+| Validación | `.validator(Schema)` con Zod | `zValidator('json', Schema.strict(), hookConCódigo)` de `@hono/zod-validator` |
+| Autenticación | *Middleware* de `@pymekit/function-middleware/functions` | `registerAuthMiddleware` (`@pymekit/cms-auth/routes`): sesión de la web, `cms_access`, no bloqueado; deja `supabase`, `drizzle` y `authorization` en el contexto |
+| Autorización | RLS + `withMinRole` / `withFeaturePermission` | RLS + `cms.verify_admin_access()` (vía `runTransaction`) y, para responder 403 claro, `createAuthorizationService(c).hasAdminPermission(recurso, acción)` |
+| Errores | `{ success: false, error: 'clave.i18n' }` | `{ success: false, error, errorCode }` con un código de `@pymekit/cms-shared/error-codes`; nunca el texto de PostgreSQL |
+| Consumidor en UI | `useServerFn` + `useMutation`, o el `loader` de la ruta | Función en `@pymekit/cms-ui-core` sobre `createHonoClient<XRoute>` (solo `import type` de la ruta) + `useMutation`/`queryOptions` |
 
-Ejemplos completos de ambas variantes en [examples.md](examples.md). Código de referencia (solo lectura): `../makerkit/packages/features/team-accounts/src/server/` y `../supamode/packages/features/settings/src/api/`.
+Ejemplos completos de ambas variantes en [examples.md](examples.md). Guía autoritativa del CMS: `packages/cms/AGENTS.md`. Ejemplo real: `packages/cms/settings/src/api/` (`services/account.service.ts`, `routes/update-preferences-route.ts`).
 
 ## Flujo de trabajo
 
@@ -51,7 +49,7 @@ export type CreateProjectInput = z.output<typeof CreateProjectSchema>;
 El servicio recibe **todas** sus dependencias. Nunca importa ni crea el cliente de base de datos por su cuenta.
 
 - **Web**: recibe el `SupabaseClient<Database>` en el constructor. Nunca llama a `getSupabaseServerClient()` dentro.
-- **CMS API**: recibe el cliente Drizzle (o, como en el código de referencia, el `Context` de Hono del que lo obtiene con `c.get('drizzle')`). Para servicios nuevos, prefiere inyectar solo el cliente: así se puede probar sin montar Hono.
+- **API del CMS**: el patrón existente es una clase con fábrica `createXService(c)` que lee `c.get('drizzle')` del `Context`. Para servicios nuevos, prefiere inyectar solo el `DrizzleSupabaseClient` (más fácil de probar sin montar Hono). Los algoritmos van a `lib/` o `utils/` como funciones puras con tests.
 
 Se exporta una **fábrica** `createXService(...)`, no la clase.
 
@@ -60,7 +58,7 @@ Se exporta una **fábrica** `createXService(...)`, no la clase.
 El adaptador resuelve dependencias, llama al servicio y se ocupa de lo propio de la interfaz:
 
 - **Web** (*server function*): autenticación con *middleware*, validación con `.validator`, logs con `getLogger()`, devolver un resultado serializable (`{ success: true }` o `{ success: false, error: 'clave.i18n' }`). La recarga de datos (`router.invalidate()`) y la navegación se hacen **en el cliente**, en el `onSuccess` de `useMutation`.
-- **CMS API** (ruta Hono): validación con `zValidator`, logs, `c.json(...)` y el código HTTP adecuado. Se registra en `apps/cms-api` (fichero de rutas) y **nunca** se importa desde la SPA.
+- **API del CMS** (ruta Hono): `zValidator` con esquema `.strict()` y *hook* que responde 400 con código estable, comprobación de permiso, logs con `getLogger()` de `@pymekit/shared/logger`, `c.json({ success, data })` o `c.json({ success: false, error, errorCode }, status)`. Exporta `export type XRoute = ReturnType<typeof registerXRoute>`, regístrala en `registerFeatureRoutes()` de `packages/cms/api/src/server.ts` y **nunca** la importes desde código de cliente.
 
 ### Paso 4: escribir tests
 
@@ -73,22 +71,23 @@ Como el servicio recibe sus dependencias, se prueba con *stubs* en Vitest: sin b
 3. **Los adaptadores son pegamento trivial.** Sin reglas de negocio en la *server function* ni en la ruta Hono.
 4. **Un servicio, muchos consumidores.** Si dos interfaces hacen lo mismo, llaman al mismo método. Duplicar la lógica es un error.
 5. **Testeable de forma aislada.** Si hace falta una base de datos para probar el servicio, refactoriza.
-6. **La seguridad se decide en el adaptador y en la BD, y se comenta.** Usa el cliente con RLS por defecto. El cliente administrador (`getSupabaseServerAdminClient` en web, `getDrizzleSupabaseAdminClient` en el CMS) **ignora RLS**: solo se usa con una comprobación previa y un comentario que lo justifique (ver `docs/tfg/GUIA-COMENTARIOS.md`).
-7. **Los servicios del CMS son ligeros.** Los algoritmos van a `src/utils/` como funciones puras; el servicio solo orquesta la E/S.
+6. **La seguridad se decide en el adaptador y en la BD, y se comenta.** Usa el cliente con RLS por defecto. El cliente administrador (`getSupabaseServerAdminClient` en web; `getDrizzleSupabaseAdminClient` o `getSupabaseAdminClient` en el CMS) **ignora RLS**: solo se usa con una comprobación previa y un comentario que lo justifique (ver `docs/tfg/GUIA-COMENTARIOS.md`).
+7. **Los servicios del CMS son ligeros.** Los algoritmos van a `src/api/utils/` o `src/lib/` como funciones puras con tests; el servicio solo orquesta la E/S.
 8. **Comentarios en español didáctico**: cabecera de fichero y JSDoc en cada método público.
+9. **Errores del CMS con código estable.** Lanza un error con código (p. ej. `SettingsError(CMS_API_ERROR_CODES.X, msg)`) o clasifica el SQLSTATE en la ruta; el cliente traduce el `errorCode` a una clave i18n. Añade los códigos nuevos a `@pymekit/cms-shared/error-codes`.
 
 ## Qué va en cada sitio
 
-| Responsabilidad | Web | CMS API |
+| Responsabilidad | Web | API del CMS |
 |---|---|---|
-| Esquema Zod | `src/schema/*.schema.ts` | `src/api/schemas.ts` o `src/schemas/` |
-| Lógica de negocio | `src/server/services/*.service.server.ts` | `src/api/services/*.service.ts` |
-| Adaptador | `src/server/functions/*.functions.ts` | `src/api/routes/*-route.ts` |
-| Autenticación | `.middleware(authFunctionMiddleware)` | *Middleware* global de `/v1/*` |
-| Permisos finos | `withMinRole` / `withFeaturePermission` | `createAuthorizationService(c).hasAdminPermission(...)` |
+| Esquema Zod | `src/schema/*.schema.ts` | En la ruta o `src/api/schemas.ts` (estricto); el de formulario, en `packages/cms/<feature>-ui/src/utils/` |
+| Lógica de negocio | `src/server/services/*.service.server.ts` | `packages/cms/<feature>/src/api/services/*.service.ts` |
+| Adaptador | `src/server/functions/*.functions.ts` | `packages/cms/<feature>/src/api/routes/*-route.ts` |
+| Autenticación | `.middleware(authFunctionMiddleware)` | `registerAuthMiddleware` (global) |
+| Permisos finos | `withMinRole` / `withFeaturePermission` | `createAuthorizationService(c).hasAdminPermission(...)` + RLS |
 | Logs | `getLogger()` en el adaptador | `getLogger()` en el adaptador |
-| Recargar datos | Cliente: `router.invalidate()` | *Action* de React Router: `invalidateKeys` |
-| Algoritmos puros | `src/lib/` o `src/utils/` | `src/utils/` (+ `__tests__/`) |
+| Cliente | `useServerFn` + `router.invalidate()` | `packages/cms/ui-core/src/<feature>-api.ts` + `cmsQueryKeys`/`invalidateQueries` |
+| Algoritmos puros | `src/lib/` o `src/utils/` | `src/api/utils/` (+ `__tests__/`) |
 
 ## Estructura de ficheros
 
@@ -103,15 +102,14 @@ src/
 │   └── functions/feature.functions.ts        # createServerFn (sufijo `Function`)
 └── components/feature-form.tsx
 
-# CMS: packages/cms/<feature>/
-src/
-├── api/                                       # SOLO SERVIDOR
-│   ├── routes/feature-route.ts                # registerFeatureRouter(router)
-│   └── services/feature.service.ts
-├── actions/feature-action.ts                  # cliente RPC (createHonoClient)
-├── schemas/index.ts                           # compartido
-├── utils/                                     # funciones puras + __tests__/
-└── components/                                # SOLO CLIENTE
+# CMS, servidor: packages/cms/<feature>/       (@pymekit/cms-<feature>, export ./routes)
+src/api/
+├── routes/feature-route.ts + index.ts         # registerFeatureRoute(router) + tipo
+├── services/feature.service.ts
+└── utils/                                     # funciones puras + __tests__/
+
+# CMS, cliente: packages/cms/ui-core/src/<feature>-api.ts   (createHonoClient<FeatureRoute>)
+#               packages/cms/<feature>-ui/                  (componentes, hooks, utils)
 ```
 
 ## Antipatrones
@@ -140,6 +138,12 @@ export const createProjectFunction = createServerFn({ method: 'POST' })
 // useMutation: el redirect rechaza la mutación y aparece como error.
 // Devuelve `{ success: true, redirectTo }` y navega en el cliente.
 
-// ❌ MAL (CMS): importar rutas o servicios del API desde la SPA
-import { registerFeatureRouter } from '@pymekit/cms-feature/routes'; // en apps/cms
+// ❌ MAL (CMS): importar valores de rutas o servicios desde código de cliente
+// (arrastra Drizzle y la clave secreta; `serverLeakGuard` rompe la build)
+import { registerFeatureRoute } from '@pymekit/cms-feature/routes';
+// ✅ BIEN: solo el tipo, para el cliente RPC
+import type { FeatureRoute } from '@pymekit/cms-feature/routes';
+
+// ❌ MAL (CMS): devolver el mensaje de PostgreSQL al cliente
+return c.json({ error: error.message }, 500);
 ```

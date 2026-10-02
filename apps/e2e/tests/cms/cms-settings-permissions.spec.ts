@@ -376,6 +376,7 @@ test.describe('Ajustes > Permisos: super-admin con MFA', () => {
         members: false,
         systemSettings: false,
         permissions: false,
+        resourceSettings: false,
       });
 
       // Tampoco gestiona el RBAC.

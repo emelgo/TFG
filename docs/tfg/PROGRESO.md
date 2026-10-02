@@ -2,7 +2,7 @@
 
 <!-- El hook SessionStart lee la línea «Fase actual» y las casillas sin marcar de la fase actual. Mantén este formato. -->
 
-**Fase actual:** F2
+**Fase actual:** F3
 
 ## F0 · Harness y planificación
 - [x] Directrices (`AGENTS.md`, `CLAUDE.md`)
@@ -70,7 +70,7 @@
 - [ ] Pendiente (F2.7c): interfaz para relaciones virtuales; ajustes por tipo de formateador (moneda, fichero); el bloqueo de sincronizar esquemas protegidos solo está en la API (el seed registra `auth.users` con la misma función)
 - [x] F2.8 · Paneles (RF-11): listado (míos/compartidos, crear, compartir, borrar) y panel con widgets de métrica, gráfica y tabla en cuadrícula propia (ADR-019); cada widget consulta con los permisos de quien lo ve; `WITH CHECK` en widgets y `UPDATE` por columnas en paneles (B-50). Paquete `@pymekit/cms-dashboards-ui`. pgTAP 2.060, E2E de paneles 13 ✔
 - [ ] Pendiente (F2.8): `list_dashboards` devuelve un total incorrecto (heredado)
-- [ ] F2.9 · Cierre: E2E, skills (`react-form-builder`, `service-builder`, `playwright-e2e`) y `AGENTS.md` actualizados
+- [x] F2.9 · Cierre: suite E2E completa (149: 146 ✔ + 2 inestables conocidos + 1 test desactualizado por el permiso `resourceSettings` de la F2.7c, corregido y verificado en serie), skills `react-form-builder`, `service-builder` y `playwright-e2e` reescritas para el CMS integrado, pull request de `fase-2/cms` a `main`
 
 ## F3 · Desmarcado e i18n
 - [x] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS (adelantado a F2, B-40)
@@ -154,6 +154,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-10-02 | F2.9 | Cierre de la F2: E2E completa, skills al día y pull request a `main`. Siguiente: F3 (español) |
 | 2026-10-02 | F2.8 | Paneles del CMS (modo ahorro); corregidos los widgets que podían apuntar a tablas no legibles y la apropiación de paneles compartidos (B-50) |
 | 2026-10-02 | F2.7c | Recursos y diseñador de fichas del CMS (modo ahorro: un agente, E2E acotados) |
 | 2026-09-30 | F2.7b | RBAC del CMS; brecha heredada de escape de denegaciones corregida (B-47). Se pausa el trabajo a petición del autor por el consumo de tokens: se seguirá en modo ahorro (B-48) |
