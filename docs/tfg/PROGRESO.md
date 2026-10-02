@@ -156,7 +156,8 @@ Se distinguen dos medidas:
 |---|---|---|---|---|
 | 2026-09-29 | 8,0 | ≈ 8,0 | F0, F1, F2.1–F2.4c, bitácora y borradores de la memoria | autor (confirma la estimación) |
 | 2026-09-30 | 9,0 | — | F2.5, F2.6, F2.6b, F2.7a, F2.7b, limpieza de la marca (F3 adelantada) e identidad visual | autor |
-| **Total** | **17,0** | | | |
+| 2026-10-02 | 6,0 | — | F2.7c, F2.8, F2.9 (cierre de F2), F3a, F3b (cierre de F3), F3c (consola por áreas, solo español, ayuda contextual) | autor |
+| **Total** | **23,0** | | | |
 
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
