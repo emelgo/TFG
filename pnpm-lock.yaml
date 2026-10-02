@@ -807,6 +807,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -939,6 +942,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
       date-fns:
         specifier: 'catalog:'
         version: 4.4.0
@@ -994,6 +1000,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1230,6 +1239,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1394,6 +1406,9 @@ importers:
       '@pymekit/cms-types':
         specifier: workspace:*
         version: link:../types
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1526,6 +1541,9 @@ importers:
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
     devDependencies:
       '@pymekit/tsconfig':
         specifier: workspace:*
@@ -1693,6 +1711,9 @@ importers:
       '@pymekit/function-middleware':
         specifier: workspace:*
         version: link:../../function-middleware
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
       '@pymekit/shared':
         specifier: workspace:*
         version: link:../../shared
@@ -1838,6 +1859,9 @@ importers:
       '@pymekit/function-middleware':
         specifier: workspace:*
         version: link:../../function-middleware
+      '@pymekit/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
       '@pymekit/mailers':
         specifier: workspace:*
         version: link:../../mailers/core

@@ -30,6 +30,7 @@
     "@pymekit/billing-gateway": "workspace:*",
     "@pymekit/email-templates": "workspace:*",
     "@pymekit/function-middleware": "workspace:*",
+    "@pymekit/i18n": "workspace:*",
     "@pymekit/mailers": "workspace:*",
     "@pymekit/monitoring": "workspace:*",
     "@pymekit/otp": "workspace:*",

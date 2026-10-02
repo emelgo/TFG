@@ -93,7 +93,21 @@ export type ColumnSettings = {
   isEditable: boolean;
   ordering: number | null;
   uiDataType: string;
+  /** Tipo enumerado de PostgreSQL y sus valores (vacío si no es enumerado). */
+  enumType: string;
+  enumValues: string[];
+  /** Etiquetas visibles configuradas por valor (`ui_config.value_labels`). */
+  valueLabels: Record<string, string>;
 };
+
+/** Lee `ui_config.value_labels` descartando lo que no sea texto. */
+function readValueLabels(value: unknown): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(asRecord(value)).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
+}
 
 function asRecord(value: unknown) {
   return value && typeof value === 'object'
@@ -126,6 +140,11 @@ export function readColumnsSettings(columnsConfig: unknown): ColumnSettings[] {
         ordering:
           typeof column['ordering'] === 'number' ? column['ordering'] : null,
         uiDataType: String(ui['ui_data_type'] ?? ''),
+        enumType: typeof ui['enum_type'] === 'string' ? ui['enum_type'] : '',
+        enumValues: Array.isArray(ui['enum_values'])
+          ? ui['enum_values'].map(String)
+          : [],
+        valueLabels: readValueLabels(ui['value_labels']),
       };
     })
     .sort(
@@ -147,6 +166,8 @@ export const ColumnSettingsFormSchema = z.object({
   isFilterable: z.boolean(),
   isEditable: z.boolean(),
   uiDataType: z.string(),
+  // Texto visible por valor del enumerado; vacío = etiqueta por defecto.
+  valueLabels: z.record(z.string(), z.string().trim().max(LIMITS.valueLabel)),
 });
 
 export type ColumnSettingsFormValues = z.infer<typeof ColumnSettingsFormSchema>;
@@ -186,11 +207,35 @@ export function buildColumnUpdate(
     }
   }
 
+  const ui: Record<string, unknown> = {};
+
   if (values.uiDataType !== original.uiDataType) {
-    update['ui_config'] = { ui_data_type: values.uiDataType || null };
+    ui['ui_data_type'] = values.uiDataType || null;
+  }
+
+  // Solo se guardan las etiquetas no vacías de valores que existen en el
+  // enumerado; si no queda ninguna se envía `null` para borrarlas.
+  const labels = Object.fromEntries(
+    original.enumValues
+      .map((value) => [value, values.valueLabels[value]?.trim() ?? ''])
+      .filter(([, label]) => label !== ''),
+  );
+
+  if (!sameLabels(labels, original.valueLabels)) {
+    ui['value_labels'] = Object.keys(labels).length > 0 ? labels : null;
+  }
+
+  if (Object.keys(ui).length > 0) {
+    update['ui_config'] = ui;
   }
 
   return Object.keys(update).length > 0 ? { [original.name]: update } : null;
+}
+
+function sameLabels(a: Record<string, string>, b: Record<string, string>) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+
+  return [...keys].every((key) => a[key] === b[key]);
 }
 
 /**

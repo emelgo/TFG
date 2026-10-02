@@ -1,5 +1,6 @@
 import { BadgeX, Ban, ShieldPlus, VenetianMask } from 'lucide-react';
 
+import { EnumLabel } from '@pymekit/i18n/enum-labels';
 import type { Database, Tables } from '@pymekit/supabase/database';
 import { AppBreadcrumbs } from '@pymekit/ui/app-breadcrumbs';
 import { Badge } from '@pymekit/ui/badge';
@@ -309,7 +310,12 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
                     </TableCell>
 
                     <TableCell>
-                      <span>{subscription.billing_provider}</span>
+                      <span>
+                        <EnumLabel
+                          value={subscription.billing_provider}
+                          enumName="billing_provider"
+                        />
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -317,7 +323,12 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
                     </TableCell>
 
                     <TableCell>
-                      <span>{subscription.status}</span>
+                      <span>
+                        <EnumLabel
+                          value={subscription.status}
+                          enumName="subscription_status"
+                        />
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -383,11 +394,18 @@ function SubscriptionsTable(props: { subscription: Subscription | null }) {
                         </TableCell>
 
                         <TableCell>
-                          <span>{item.interval}</span>
+                          <span>
+                            <EnumLabel value={item.interval} />
+                          </span>
                         </TableCell>
 
                         <TableCell>
-                          <span>{item.type}</span>
+                          <span>
+                            <EnumLabel
+                              value={item.type}
+                              enumName="subscription_item_type"
+                            />
+                          </span>
                         </TableCell>
                       </TableRow>
                     );

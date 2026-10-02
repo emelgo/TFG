@@ -1087,7 +1087,9 @@
           "code": "Código (JSON)",
           "switch": "Interruptor",
           "uuid": "UUID"
-        }
+        },
+        "valueLabels": "Etiquetas de los valores",
+        "valueLabelsDescription": "Texto que se muestra para cada valor del enumerado. Déjalo vacío para usar la etiqueta por defecto; el valor guardado no cambia."
       },
       "relations": {
         "title": "Registros relacionados",

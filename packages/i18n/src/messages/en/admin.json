@@ -97,5 +97,6 @@
   "price": "Price",
   "interval": "Interval",
   "pageTitlePrefix": "Admin",
-  "accountFallback": "Account"
+  "accountFallback": "Account",
+  "dashboardLoadError": "The dashboard statistics could not be loaded. Please try again in a few minutes."
 }

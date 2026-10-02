@@ -39,6 +39,7 @@ import type { CmsUserDetails } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
 import { cmsQueryKeys } from '@pymekit/cms-ui-core/queries';
 import { CMS_SECTION_PATHS } from '@pymekit/cms-ui-core/sections';
+import { useEnumLabel } from '@pymekit/i18n/enum-labels';
 import { Alert, AlertDescription } from '@pymekit/ui/alert';
 import { Badge } from '@pymekit/ui/badge';
 import { Button } from '@pymekit/ui/button';
@@ -54,6 +55,8 @@ import { UserBadges } from './users-table-view';
 
 export function UserDetailsView(props: { data: CmsUserDetails }) {
   const t = useTranslations('cms.usersExplorer');
+  // Estado del factor MFA («verified», «unverified») en texto legible.
+  const enumLabel = useEnumLabel();
   const hydrated = useIsHydrated();
   const formatDate = useDateFormatter();
   const { user, actions } = props.data;
@@ -169,7 +172,7 @@ export function UserDetailsView(props: { data: CmsUserDetails }) {
             user.mfa_factors.map((factor) => (
               <InfoRow
                 key={factor.id}
-                label={`${factor.friendly_name ?? factor.factor_type} · ${factor.status}`}
+                label={`${factor.friendly_name ?? factor.factor_type} · ${enumLabel(factor.status)}`}
               >
                 {actions.canUpdate ? (
                   <RemoveMfaFactorButton

@@ -204,6 +204,8 @@ export function VerifyOtpForm({
                 return (
                   <Field data-invalid={isInvalid} className="items-center">
                     <InputOTP
+                      // Centra las casillas: `Field` estira el contenedor a todo el ancho.
+                      containerClassName="justify-center"
                       maxLength={6}
                       value={field.state.value}
                       onChange={field.handleChange}

@@ -143,5 +143,118 @@
   "demoStatusHealthy": "Saludable",
   "demoStatusPossibleChurn": "Posible baja",
   "demoStatusChurn": "Baja",
-  "demoPlan": "Plan"
+  "demoPlan": "Plan",
+  "enums": {
+    "app_permissions": {
+      "roles_manage": "Gestionar roles",
+      "billing_manage": "Gestionar facturación",
+      "settings_manage": "Gestionar ajustes",
+      "members_manage": "Gestionar miembros",
+      "invites_manage": "Gestionar invitaciones"
+    },
+    "subscription_status": {
+      "active": "Activa",
+      "trialing": "En periodo de prueba",
+      "past_due": "Pago vencido",
+      "canceled": "Cancelada",
+      "unpaid": "Impagada",
+      "incomplete": "Incompleta",
+      "incomplete_expired": "Incompleta (caducada)",
+      "paused": "En pausa"
+    },
+    "payment_status": {
+      "pending": "Pendiente",
+      "succeeded": "Completado",
+      "failed": "Fallido"
+    },
+    "billing_provider": {
+      "stripe": "Stripe"
+    },
+    "subscription_item_type": {
+      "flat": "Tarifa fija",
+      "per_seat": "Por usuario",
+      "metered": "Por consumo"
+    },
+    "notification_channel": {
+      "in_app": "En la aplicación",
+      "email": "Correo electrónico"
+    },
+    "notification_type": {
+      "info": "Información",
+      "warning": "Aviso",
+      "error": "Error"
+    },
+    "blog_post_status": {
+      "draft": "Borrador",
+      "published": "Publicado",
+      "archived": "Archivado"
+    },
+    "account_role": {
+      "owner": "Propietario",
+      "member": "Miembro"
+    },
+    "audit_log_severity": {
+      "info": "Información",
+      "warning": "Aviso",
+      "error": "Error"
+    },
+    "system_resource": {
+      "account": "Cuenta",
+      "role": "Rol",
+      "permission": "Permiso",
+      "log": "Registro",
+      "table": "Tabla",
+      "auth_user": "Usuario",
+      "system_setting": "Ajuste del sistema"
+    },
+    "permission_type": {
+      "system": "Sistema",
+      "data": "Datos"
+    },
+    "permission_scope": {
+      "table": "Tabla",
+      "column": "Columna",
+      "storage": "Almacenamiento"
+    },
+    "system_action": {
+      "insert": "Crear",
+      "update": "Editar",
+      "delete": "Eliminar",
+      "select": "Ver",
+      "all": "Todas"
+    },
+    "dashboard_permission_level": {
+      "owner": "Propietario",
+      "view": "Ver",
+      "edit": "Editar"
+    },
+    "dashboard_widget_type": {
+      "chart": "Gráfico",
+      "metric": "Métrica",
+      "table": "Tabla"
+    },
+    "customer_type": {
+      "individual": "Particular",
+      "company": "Empresa"
+    },
+    "order_status": {
+      "pending": "Pendiente",
+      "paid": "Pagado",
+      "shipped": "Enviado",
+      "delivered": "Entregado",
+      "cancelled": "Cancelado"
+    },
+    "invoice_status": {
+      "draft": "Borrador",
+      "issued": "Emitida",
+      "paid": "Pagada",
+      "overdue": "Vencida",
+      "void": "Anulada"
+    },
+    "employment_type": {
+      "full_time": "Jornada completa",
+      "part_time": "Media jornada",
+      "contractor": "Autónomo"
+    }
+  }
 }

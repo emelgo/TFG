@@ -1,3 +1,4 @@
+import { humanizeEnumValue } from '@pymekit/i18n/enum-labels';
 import {
   Select,
   SelectContent,
@@ -31,7 +32,10 @@ export function MembershipRoleSelector({
         <SelectValue>
           {(value) =>
             value ? (
-              <Trans i18nKey={`common.roles.${value}.label`} defaults={value} />
+              <Trans
+                i18nKey={`common.roles.${value}.label`}
+                defaults={humanizeEnumValue(value)}
+              />
             ) : (
               ''
             )
@@ -49,7 +53,10 @@ export function MembershipRoleSelector({
               value={role}
             >
               <span className={'text-sm capitalize'}>
-                <Trans i18nKey={`common.roles.${role}.label`} defaults={role} />
+                <Trans
+                  i18nKey={`common.roles.${role}.label`}
+                  defaults={humanizeEnumValue(role)}
+                />
               </span>
             </SelectItem>
           );

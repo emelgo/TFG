@@ -32,6 +32,7 @@ import { useTranslations } from 'use-intl';
 import { useNumberFormatter } from '@pymekit/cms-formatters/hooks';
 import type { WidgetType } from '@pymekit/cms-shared/dashboards';
 import { useCmsApi } from '@pymekit/cms-ui-core/api-context';
+import { looksLikeEnumValue, useEnumLabel } from '@pymekit/i18n/enum-labels';
 import { Button } from '@pymekit/ui/button';
 import {
   type ChartConfig,
@@ -156,10 +157,17 @@ function MetricContent(props: ContentProps) {
 
 function ChartContent(props: ContentProps) {
   const t = useTranslations('cms.dashboards.widget');
+  const humanize = useEnumLabel();
+  // Las categorías que parecen valores técnicos («past_due») se muestran
+  // legibles; el panel no conoce el tipo de la columna, de ahí la heurística.
   const points = toChartPoints(props.rows, {
     xAxis: props.config['xAxis'] as string | undefined,
     timeAggregation: props.config['timeAggregation'] as string | undefined,
-  });
+  }).map((point) =>
+    looksLikeEnumValue(String(point.label))
+      ? { ...point, label: humanize(point.label) }
+      : point,
+  );
   const chartConfig = {
     value: { label: t('value'), color: 'var(--chart-1)' },
   } satisfies ChartConfig;

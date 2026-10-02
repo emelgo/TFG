@@ -5,7 +5,7 @@ import { GlobalLoader } from '@pymekit/ui/global-loader';
 import { WorkspaceContextProvider } from '#/components/workspace-context.tsx';
 import featureFlagsConfig from '#/config/feature-flags.config.ts';
 import pathsConfig from '#/config/paths.config.ts';
-import { fetchRequiresMfa } from '#/lib/auth/mfa.functions.ts';
+import { fetchAuthGate } from '#/lib/auth/mfa.functions.ts';
 import { fetchWorkspace } from '#/lib/server/active-workspace.functions.ts';
 
 // Guard shell for the authenticated area. Gates auth + MFA and loads the active
@@ -19,9 +19,17 @@ export const Route = createFileRoute('/_authenticated')({
       });
     }
 
-    const requiresMfa = await fetchRequiresMfa();
+    // Comprueba con Auth que la sesión siga existiendo (no basta el JWT):
+    // una sesión borrada se trata como «sin sesión» → inicio de sesión (F3b).
+    const gate = await fetchAuthGate();
 
-    if (requiresMfa) {
+    if (gate.signedOut) {
+      throw redirect({
+        href: `${pathsConfig.auth.signIn}?next=${encodeURIComponent(location.href)}`,
+      });
+    }
+
+    if (gate.requiresMfa) {
       throw redirect({ href: pathsConfig.auth.verifyMfa });
     }
 

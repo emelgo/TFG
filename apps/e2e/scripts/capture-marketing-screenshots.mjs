@@ -11,7 +11,9 @@
  *   node apps/e2e/scripts/capture-marketing-screenshots.mjs
  *
  * Genera PNG en `apps/web/public/images/` (`dashboard.png` y `sign-in.png`),
- * en modo oscuro y a 1600×900, iniciando sesión con el usuario propietario del
+ * en español (cookie `locale=es`, F3b: así no dependen del idioma por defecto
+ * de la build ni de `.env.test`, que fuerza el inglés para los E2E), en modo
+ * oscuro y a 1600×900, iniciando sesión con el usuario propietario del
  * *seed* (`owner@pymekit.test`, sin MFA).
  *
  * [TFG] RF-01: identidad visual propia de la landing (desmarcado, B-40).
@@ -23,6 +25,8 @@ import { fileURLToPath } from 'node:url';
 
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3100';
 const THEME_COOKIE = 'theme';
+const LOCALE_COOKIE = 'locale';
+const LOCALE = process.env.SCREENSHOT_LOCALE ?? 'es';
 const OUT_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '../../web/public/images',
@@ -34,9 +38,11 @@ const context = await browser.newContext({
   colorScheme: 'dark',
   deviceScaleFactor: 1,
 });
-// El tema lo decide la cookie de la app, no la preferencia del navegador.
+// El tema y el idioma los deciden las cookies de la app, no las
+// preferencias del navegador.
 await context.addCookies([
   { name: THEME_COOKIE, value: 'dark', url: BASE_URL },
+  { name: LOCALE_COOKIE, value: LOCALE, url: BASE_URL },
 ]);
 
 const page = await context.newPage();

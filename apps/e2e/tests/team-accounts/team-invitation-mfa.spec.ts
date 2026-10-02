@@ -47,14 +47,12 @@ test.describe('Team Invitation with MFA Flow', () => {
 
     await page.goto('/dashboard');
 
-    await expect(async () => {
-      // Sign out test@pymekit.test
-      await auth.signOut();
-
-      await page.waitForURL('/', {
-        timeout: 5_000,
-      });
-    }).toPass();
+    // Se sale de test@pymekit.test borrando las cookies: «Cerrar sesión»
+    // revoca TODAS sus sesiones (alcance global), también la del estado
+    // compartido de `auth.setup`, y desde F3b la guarda `fetchAuthGate` las
+    // detecta, así que otras pruebas acabarían en el inicio de sesión.
+    await page.context().clearCookies();
+    await page.goto('/');
 
     await auth.visitConfirmEmailLink('super-admin@pymekit.test');
 

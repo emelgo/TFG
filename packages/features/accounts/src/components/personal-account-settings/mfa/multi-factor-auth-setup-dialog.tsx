@@ -201,6 +201,8 @@ function MultiFactorAuthSetupForm({
                         data-invalid={isInvalid}
                       >
                         <InputOTP
+                          // Centra las casillas: `Field` estira el contenedor a todo el ancho.
+                          containerClassName="justify-center"
                           maxLength={6}
                           minLength={6}
                           value={field.state.value}

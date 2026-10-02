@@ -97,5 +97,6 @@
   "price": "Precio",
   "interval": "Intervalo",
   "pageTitlePrefix": "Administración",
-  "accountFallback": "Cuenta"
+  "accountFallback": "Cuenta",
+  "dashboardLoadError": "No se han podido cargar las estadísticas del panel. Vuelve a intentarlo en unos minutos."
 }

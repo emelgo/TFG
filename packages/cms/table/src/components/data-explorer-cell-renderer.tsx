@@ -30,13 +30,13 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 
-import { toHumanReadable } from '@pymekit/cms-formatters';
 import {
   useDataFormatter,
   useDateFormatter,
   useNumberFormatter,
 } from '@pymekit/cms-formatters/hooks';
 import type { EnumBadgeVariant } from '@pymekit/cms-types';
+import { type EnumValueLabels, useEnumLabel } from '@pymekit/i18n/enum-labels';
 import { Badge } from '@pymekit/ui/badge';
 import { badgeExtras } from '@pymekit/ui/badge-extras';
 import { Button } from '@pymekit/ui/button';
@@ -100,7 +100,9 @@ export function DataExplorerCellRenderer(props: CellRendererProps) {
   } else if (dataType === 'user-defined' || uiConfig.is_enum) {
     content = (
       <EnumCell
-        data={toHumanReadable(String(value))}
+        value={String(value)}
+        enumName={uiConfig.enum_type}
+        valueLabels={uiConfig.value_labels}
         variant={uiConfig.enum_badges?.[String(value)]?.variant}
       />
     );
@@ -151,7 +153,18 @@ function RelationCell(props: { label: string; link: string }) {
  * valor en los ajustes del recurso; `success`, `warning` e `info` no existen
  * en la insignia base y se aplican con las clases de `badgeExtras`.
  */
-function EnumCell(props: { data: string; variant?: EnumBadgeVariant }) {
+function EnumCell(props: {
+  value: string;
+  enumName?: string | null;
+  valueLabels?: EnumValueLabels | null;
+  variant?: EnumBadgeVariant;
+}) {
+  // Etiqueta legible (columna → traducción → humanizador); el valor real
+  // no cambia y es el que usan los filtros y la URL.
+  const label = useEnumLabel()(props.value, {
+    enumName: props.enumName,
+    overrides: props.valueLabels,
+  });
   const variant = props.variant ?? 'secondary';
   const isExtra =
     variant === 'success' || variant === 'warning' || variant === 'info';
@@ -163,9 +176,9 @@ function EnumCell(props: { data: string; variant?: EnumBadgeVariant }) {
         isExtra && badgeExtras[variant],
       )}
       variant={isExtra ? 'secondary' : variant}
-      title={props.data}
+      title={props.value}
     >
-      <span className="max-w-sm truncate font-normal">{props.data}</span>
+      <span className="max-w-sm truncate font-normal">{label}</span>
     </Badge>
   );
 }

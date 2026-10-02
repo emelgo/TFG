@@ -13,7 +13,7 @@ import {
   LineChart,
   XAxis,
 } from 'recharts';
-import { useTranslations } from 'use-intl';
+import { useLocale, useTranslations } from 'use-intl';
 
 import { Badge } from '@pymekit/ui/badge';
 import {
@@ -41,11 +41,14 @@ import {
 } from '@pymekit/ui/table';
 import { Trans } from '@pymekit/ui/trans';
 
+import { formatDemoDate } from './demo-chart-dates';
+
 export default function DashboardDemo() {
-  const mrr = useMemo(() => generateDemoData(), []);
-  const netRevenue = useMemo(() => generateDemoData(), []);
-  const fees = useMemo(() => generateDemoData(), []);
-  const newCustomers = useMemo(() => generateDemoData(), []);
+  const locale = useLocale();
+  const mrr = useMemo(() => generateDemoData(locale), [locale]);
+  const netRevenue = useMemo(() => generateDemoData(locale), [locale]);
+  const fees = useMemo(() => generateDemoData(locale), [locale]);
+  const newCustomers = useMemo(() => generateDemoData(locale), [locale]);
 
   return (
     <div
@@ -177,9 +180,9 @@ export default function DashboardDemo() {
   );
 }
 
-function generateDemoData() {
+function generateDemoData(locale: string) {
   const today = new Date();
-  const formatter = new Intl.DateTimeFormat('en-us', {
+  const formatter = new Intl.DateTimeFormat(locale, {
     month: 'long',
     year: '2-digit',
   });
@@ -539,6 +542,7 @@ function Trend(
 
 export function VisitorsChart() {
   const isMobile = useIsMobile();
+  const locale = useLocale();
 
   const chartData = useMemo(
     () => [
@@ -703,14 +707,12 @@ export function VisitorsChart() {
               axisLine={false}
               tickMargin={8}
               minTickGap={32}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-
-                return date.toLocaleDateString('en-US', {
+              tickFormatter={(value) =>
+                formatDemoDate(value, locale, {
                   month: 'short',
                   day: 'numeric',
-                });
-              }}
+                })
+              }
             />
 
             <ChartTooltip
@@ -719,12 +721,12 @@ export function VisitorsChart() {
               content={({ content: _content, ...props }) => (
                 <ChartTooltipContent
                   {...props}
-                  labelFormatter={(value) => {
-                    return new Date(Number(value)).toLocaleDateString('en-US', {
+                  labelFormatter={(value) =>
+                    formatDemoDate(value, locale, {
                       month: 'short',
                       day: 'numeric',
-                    });
-                  }}
+                    })
+                  }
                   indicator="dot"
                 />
               )}
@@ -766,6 +768,7 @@ export function VisitorsChart() {
 }
 
 export function PageViewsChart() {
+  const locale = useLocale();
   const [activeChart, setActiveChart] =
     useState<keyof typeof chartConfig>('desktop');
 
@@ -917,7 +920,7 @@ export function PageViewsChart() {
                   {chartConfig[chart].label}
                 </span>
                 <span className="text-lg leading-none font-bold sm:text-3xl">
-                  {total[key as keyof typeof total].toLocaleString()}
+                  {total[key as keyof typeof total].toLocaleString(locale)}
                 </span>
               </button>
             );
@@ -938,13 +941,12 @@ export function PageViewsChart() {
               axisLine={false}
               tickMargin={8}
               minTickGap={32}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString('en-US', {
+              tickFormatter={(value) =>
+                formatDemoDate(value, locale, {
                   month: 'short',
                   day: 'numeric',
-                });
-              }}
+                })
+              }
             />
             <ChartTooltip
               content={({ content: _content, ...props }) => (
@@ -952,13 +954,13 @@ export function PageViewsChart() {
                   {...props}
                   className="w-[150px]"
                   nameKey="views"
-                  labelFormatter={(value) => {
-                    return new Date(Number(value)).toLocaleDateString('en-US', {
+                  labelFormatter={(value) =>
+                    formatDemoDate(value, locale, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
-                    });
-                  }}
+                    })
+                  }
                 />
               )}
             />

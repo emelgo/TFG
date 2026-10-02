@@ -1,5 +1,6 @@
 import { cva } from 'class-variance-authority';
 
+import { humanizeEnumValue } from '@pymekit/i18n/enum-labels';
 import { Badge } from '@pymekit/ui/badge';
 import { Trans } from '@pymekit/ui/trans';
 
@@ -25,7 +26,10 @@ export function RoleBadge({ role }: { role: Role }) {
   return (
     <Badge className={className} variant={isCustom ? 'outline' : 'default'}>
       <span data-testid={'member-role-badge'}>
-        <Trans i18nKey={`common.roles.${role}.label`} defaults={role} />
+        <Trans
+          i18nKey={`common.roles.${role}.label`}
+          defaults={humanizeEnumValue(role)}
+        />
       </span>
     </Badge>
   );

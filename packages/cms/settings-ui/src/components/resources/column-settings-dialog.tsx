@@ -1,16 +1,21 @@
 /**
  * Diálogo de edición de una columna en Ajustes > Recursos (F2.7c): etiqueta,
  * descripción, visibilidad en el listado y en la ficha, búsqueda, orden,
- * filtro, si es editable y el formateador (`ui_data_type`).
+ * filtro, si es editable y el formateador (`ui_data_type`). En las columnas
+ * de tipo enumerado también las etiquetas visibles de cada valor
+ * (`ui_config.value_labels`, F3b).
  *
  * Solo se ofrecen los formateadores válidos para el tipo de PostgreSQL de la
  * columna (`getUiDataTypeOptions`, la misma lista que valida la API) y solo
  * se envía lo que ha cambiado (`buildColumnUpdate`).
  */
+import { Fragment } from 'react';
+
 import { useForm } from '@tanstack/react-form';
 import { useTranslations } from 'use-intl';
 
 import { getUiDataTypeOptions } from '@pymekit/cms-shared/resource-config';
+import { useEnumLabel } from '@pymekit/i18n/enum-labels';
 import { Button } from '@pymekit/ui/button';
 import {
   Dialog,
@@ -20,7 +25,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@pymekit/ui/dialog';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@pymekit/ui/field';
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@pymekit/ui/field';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
@@ -57,6 +68,9 @@ export function ColumnSettingsDialog(props: {
 
   const { column } = props;
   const uiTypes = getUiDataTypeOptions(column.dataType);
+  // Etiqueta por defecto (traducción o humanizador) que se ve si se deja
+  // vacío el campo; se muestra como `placeholder`.
+  const enumLabel = useEnumLabel();
 
   const form = useForm({
     defaultValues: {
@@ -69,6 +83,7 @@ export function ColumnSettingsDialog(props: {
       isFilterable: column.isFilterable,
       isEditable: column.isEditable,
       uiDataType: column.uiDataType,
+      valueLabels: column.valueLabels,
     },
     validators: {
       onChange: ColumnSettingsFormSchema,
@@ -199,6 +214,43 @@ export function ColumnSettingsDialog(props: {
                 </form.Field>
               ))}
             </div>
+            {column.enumValues.length > 0 ? (
+              <form.Field name="valueLabels">
+                {(field) => (
+                  <Field data-testid="column-settings-value-labels">
+                    <FieldLabel>{t('valueLabels')}</FieldLabel>
+                    <FieldDescription>
+                      {t('valueLabelsDescription')}
+                    </FieldDescription>
+                    <div className="grid max-h-56 grid-cols-[auto_1fr] items-center gap-2 overflow-y-auto">
+                      {column.enumValues.map((value) => (
+                        <Fragment key={value}>
+                          <code className="text-muted-foreground text-xs">
+                            {value}
+                          </code>
+                          <Input
+                            aria-label={value}
+                            data-testid={`column-settings-value-label-${value}`}
+                            value={field.state.value[value] ?? ''}
+                            maxLength={100}
+                            placeholder={enumLabel(value, {
+                              enumName: column.enumType,
+                            })}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange({
+                                ...field.state.value,
+                                [value]: event.target.value,
+                              })
+                            }
+                          />
+                        </Fragment>
+                      ))}
+                    </div>
+                  </Field>
+                )}
+              </form.Field>
+            ) : null}
           </FieldGroup>
 
           <DialogFooter>

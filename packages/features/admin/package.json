@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@pymekit/function-middleware": "workspace:*",
+    "@pymekit/i18n": "workspace:*",
     "@pymekit/shared": "workspace:*",
     "@pymekit/supabase": "workspace:*",
     "@pymekit/tsconfig": "workspace:*",
