@@ -97,10 +97,15 @@ export function ResourcesSettingsView(props: {
             {group.name ?? t('otherArea')}
           </h2>
 
-          <Table>
+          {/* Una tabla por área: con `table-fixed` y anchos explícitos, todas
+              las columnas quedan alineadas entre áreas (con el ancho
+              automático, cada tabla medía sus columnas según su contenido).
+              El ancho mínimo evita que en el móvil se aplasten: la tabla se
+              desplaza en horizontal. */}
+          <Table className="min-w-[640px] table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>{t('columns.table')}</TableHead>
+                <TableHead className="w-[38%]">{t('columns.table')}</TableHead>
                 <TableHead>{t('columns.displayName')}</TableHead>
                 <TableHead className="w-24">{t('columns.visible')}</TableHead>
                 <TableHead className="w-24">{t('columns.order')}</TableHead>
@@ -114,12 +119,14 @@ export function ResourcesSettingsView(props: {
 
                 return (
                   <TableRow key={id} data-testid={`resource-row-${id}`}>
-                    <TableCell className="font-mono text-xs">
+                    <TableCell className="truncate font-mono text-xs">
                       {table.schemaName === 'public'
                         ? table.tableName
                         : `${table.schemaName}.${table.tableName}`}
                     </TableCell>
-                    <TableCell>{table.displayName ?? ''}</TableCell>
+                    <TableCell className="truncate">
+                      {table.displayName ?? ''}
+                    </TableCell>
                     <TableCell>
                       <Switch
                         aria-label={t('columns.visible')}
