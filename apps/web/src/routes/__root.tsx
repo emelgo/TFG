@@ -34,8 +34,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   // server client reads the JWT via getClaims() and persists any rotated refresh
   // cookie. Child routes read `context.user` without re-fetching (avoids Set-Cookie
   // races). This is UX-only — RLS still enforces data access.
-  // `detectLocale()` resolves the request locale (cookie → Accept-Language →
-  // default); `getServerTheme()` reads the theme cookie so the `<html>` class is
+  // `detectLocale()` resolves the request locale (cookie `locale` → idioma
+  // por defecto, el español); `getServerTheme()` reads the theme cookie so the `<html>` class is
   // correct on first paint (no theme flash). Both are threaded into router
   // context for the i18n + theme providers.
   beforeLoad: async () => {

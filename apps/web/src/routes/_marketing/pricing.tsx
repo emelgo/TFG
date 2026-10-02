@@ -14,7 +14,9 @@ const paths = {
 };
 
 export const Route = createFileRoute('/_marketing/pricing')({
-  head: () => ({ meta: [{ title: getTranslator()('marketing.pricing') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('marketing.pricing') }],
+  }),
   component: PricingPage,
 });
 

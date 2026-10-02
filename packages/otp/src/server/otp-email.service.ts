@@ -41,6 +41,7 @@ class OtpEmailService {
     const { html, subject } = await renderOtpEmail({
       otp,
       productName: PRODUCT_NAME,
+      language: await getRequestEmailLanguage(),
     });
 
     try {
@@ -59,5 +60,21 @@ class OtpEmailService {
 
       throw error;
     }
+  }
+}
+
+/**
+ * Idioma del correo: el que el usuario tiene elegido en la cookie `locale` de
+ * la petición en curso. Si no hay petición (por ejemplo en un test o en un
+ * proceso en segundo plano) devuelve `undefined` y la plantilla usa el idioma
+ * por defecto del producto (español).
+ */
+async function getRequestEmailLanguage(): Promise<string | undefined> {
+  try {
+    const { getCookie } = await import('@tanstack/react-start/server');
+
+    return getCookie('locale');
+  } catch {
+    return undefined;
   }
 }

@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@pymekit/ui/card';
+import { Trans } from '@pymekit/ui/trans';
 
 export type AdminDashboardData = {
   accounts: number | null;
@@ -25,10 +26,12 @@ export function AdminDashboard(props: { data: AdminDashboardData }) {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>
+            <Trans i18nKey={'admin.dashUsers'} />
+          </CardTitle>
 
           <CardDescription>
-            The number of personal accounts that have been created.
+            <Trans i18nKey={'admin.dashUsersDescription'} />
           </CardDescription>
         </CardHeader>
 
@@ -41,10 +44,12 @@ export function AdminDashboard(props: { data: AdminDashboardData }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Team Accounts</CardTitle>
+          <CardTitle>
+            <Trans i18nKey={'admin.dashTeamAccounts'} />
+          </CardTitle>
 
           <CardDescription>
-            The number of team accounts that have been created.
+            <Trans i18nKey={'admin.dashTeamAccountsDescription'} />
           </CardDescription>
         </CardHeader>
 
@@ -57,9 +62,11 @@ export function AdminDashboard(props: { data: AdminDashboardData }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Paying Customers</CardTitle>
+          <CardTitle>
+            <Trans i18nKey={'admin.dashPayingCustomers'} />
+          </CardTitle>
           <CardDescription>
-            The number of paying customers with active subscriptions.
+            <Trans i18nKey={'admin.dashPayingCustomersDescription'} />
           </CardDescription>
         </CardHeader>
 
@@ -72,10 +79,12 @@ export function AdminDashboard(props: { data: AdminDashboardData }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Trials</CardTitle>
+          <CardTitle>
+            <Trans i18nKey={'admin.dashTrials'} />
+          </CardTitle>
 
           <CardDescription>
-            The number of trial subscriptions currently active.
+            <Trans i18nKey={'admin.dashTrialsDescription'} />
           </CardDescription>
         </CardHeader>
 
@@ -88,7 +97,7 @@ export function AdminDashboard(props: { data: AdminDashboardData }) {
 
       <div>
         <p className={'text-muted-foreground w-max text-xs'}>
-          The above data is estimated and may not be 100% accurate.
+          <Trans i18nKey={'admin.dashEstimated'} />
         </p>
       </div>
     </div>

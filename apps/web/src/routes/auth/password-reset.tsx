@@ -10,8 +10,10 @@ import pathsConfig from '#/config/paths.config.ts';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/auth/password-reset')({
-  head: () => ({
-    meta: [{ title: getTranslator()('auth.passwordResetLabel') }],
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('auth.passwordResetLabel') },
+    ],
   }),
   component: PasswordResetPage,
 });

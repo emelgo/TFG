@@ -44,8 +44,14 @@ export const Route = createFileRoute('/admin/cms/settings/authentication')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({
-    meta: [{ title: getTranslator()('cms.settings.authentication.title') }],
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)(
+          'cms.settings.authentication.title',
+        ),
+      },
+    ],
   }),
   component: AuthenticationSettingsPage,
   errorComponent: ({ reset }) => (

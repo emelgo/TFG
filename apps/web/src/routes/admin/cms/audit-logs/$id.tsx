@@ -44,7 +44,11 @@ export const Route = createFileRoute('/admin/cms/audit-logs/$id')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({ meta: [{ title: getTranslator()('cms.sidebar.auditLogs') }] }),
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('cms.sidebar.auditLogs') },
+    ],
+  }),
   component: AuditLogPage,
   errorComponent: ({ reset }) => (
     <CmsSectionError reset={reset} testId="audit-log-load-error" />

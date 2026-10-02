@@ -21,8 +21,10 @@ const teamPaths = {
 };
 
 export const Route = createFileRoute('/_authenticated/settings/')({
-  head: () => ({
-    meta: [{ title: getTranslator()('common.routes.settings') }],
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('common.routes.settings') },
+    ],
   }),
   component: SettingsPage,
 });

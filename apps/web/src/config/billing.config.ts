@@ -30,14 +30,16 @@ if (!registeredProviders.includes(provider)) {
 export default createBillingSchema({
   // also update config.billing_provider in the DB to match the selected
   provider,
-  // products configuration
+  // products configuration. Las descripciones, insignias y características son
+  // claves i18n (`billing.plans.*`): la tabla de precios las traduce con
+  // `<Trans>` y, si no existieran, mostraría el texto tal cual.
   products: [
     {
       id: 'starter',
       name: 'Starter',
-      description: 'The perfect plan to get started',
+      description: 'billing.plans.starter.description',
       currency: 'USD',
-      badge: `Value`,
+      badge: 'billing.plans.badges.value',
       plans: [
         {
           name: 'Starter Monthly',
@@ -68,14 +70,18 @@ export default createBillingSchema({
           ],
         },
       ],
-      features: ['Feature 1', 'Feature 2', 'Feature 3'],
+      features: [
+        'billing.plans.features.auth',
+        'billing.plans.features.teams',
+        'billing.plans.features.blog',
+      ],
     },
     {
       id: 'pro',
       name: 'Pro',
-      badge: `Popular`,
+      badge: 'billing.plans.badges.popular',
       highlighted: true,
-      description: 'The perfect plan for professionals',
+      description: 'billing.plans.pro.description',
       currency: 'USD',
       plans: [
         {
@@ -108,17 +114,17 @@ export default createBillingSchema({
         },
       ],
       features: [
-        'Feature 1',
-        'Feature 2',
-        'Feature 3',
-        'Feature 4',
-        'Feature 5',
+        'billing.plans.features.auth',
+        'billing.plans.features.teams',
+        'billing.plans.features.blog',
+        'billing.plans.features.roles',
+        'billing.plans.features.cms',
       ],
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
-      description: 'The perfect plan for enterprises',
+      description: 'billing.plans.enterprise.description',
       currency: 'USD',
       plans: [
         {
@@ -151,13 +157,13 @@ export default createBillingSchema({
         },
       ],
       features: [
-        'Feature 1',
-        'Feature 2',
-        'Feature 3',
-        'Feature 4',
-        'Feature 5',
-        'Feature 6',
-        'Feature 7',
+        'billing.plans.features.auth',
+        'billing.plans.features.teams',
+        'billing.plans.features.blog',
+        'billing.plans.features.roles',
+        'billing.plans.features.cms',
+        'billing.plans.features.prioritySupport',
+        'billing.plans.features.onboarding',
       ],
     },
   ],

@@ -19,7 +19,9 @@ export const Route = createFileRoute('/auth/sign-in')({
   validateSearch: (search: Record<string, unknown>): SignInSearch => ({
     next: readString(search.next),
   }),
-  head: () => ({ meta: [{ title: getTranslator()('auth.signIn') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('auth.signIn') }],
+  }),
   component: SignInPage,
 });
 

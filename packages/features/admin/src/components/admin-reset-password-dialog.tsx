@@ -3,6 +3,7 @@
 import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
+import { useTranslations } from 'use-intl';
 import * as z from 'zod';
 
 import { Alert, AlertDescription, AlertTitle } from '@pymekit/ui/alert';
@@ -26,6 +27,7 @@ import {
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
 import { toast } from '@pymekit/ui/sonner';
+import { Trans } from '@pymekit/ui/trans';
 
 import { resetPasswordFunction } from '../lib/server/admin.functions';
 
@@ -48,10 +50,12 @@ export function AdminResetPasswordDialog(props: {
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Send a Reset Password Email</AlertDialogTitle>
+          <AlertDialogTitle>
+            <Trans i18nKey={'admin.resetTitle'} />
+          </AlertDialogTitle>
 
           <AlertDialogDescription>
-            Do you want to send a reset password email to this user?
+            <Trans i18nKey={'admin.resetDescription'} />
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -75,15 +79,17 @@ function AdminResetPasswordForm({
 }) {
   const resetPassword = useServerFn(resetPasswordFunction);
 
+  const t = useTranslations('admin');
+
   const mutation = useMutation({
     mutationFn: (data: { userId: string; confirmation: string }) =>
       resetPassword({ data }),
     onSuccess: () => {
-      toast.success('Password reset email successfully sent');
+      toast.success(t('resetToastSuccess'));
       onSuccess();
     },
     onError: () => {
-      toast.error('We hit an error. Please read the logs.');
+      toast.error(t('resetToastError'));
     },
   });
 
@@ -115,10 +121,12 @@ function AdminResetPasswordForm({
 
           return (
             <Field data-invalid={isInvalid}>
-              <FieldLabel htmlFor={field.name}>Confirmation</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                <Trans i18nKey={'admin.confirmation'} />
+              </FieldLabel>
 
               <FieldDescription>
-                Type CONFIRM to execute this request.
+                <Trans i18nKey={'admin.resetConfirmHint'} />
               </FieldDescription>
 
               <Input
@@ -141,21 +149,23 @@ function AdminResetPasswordForm({
       <If condition={mutation.isError}>
         <Alert variant="destructive">
           <AlertTitle>
-            We encountered an error while sending the email
+            <Trans i18nKey={'admin.resetErrorTitle'} />
           </AlertTitle>
 
           <AlertDescription>
-            Please check the server logs for more details.
+            <Trans i18nKey={'admin.resetErrorDescription'} />
           </AlertDescription>
         </Alert>
       </If>
 
       <If condition={mutation.isSuccess}>
         <Alert>
-          <AlertTitle>Password reset email sent successfully</AlertTitle>
+          <AlertTitle>
+            <Trans i18nKey={'admin.resetSuccessTitle'} />
+          </AlertTitle>
 
           <AlertDescription>
-            The password reset email has been sent to the user.
+            <Trans i18nKey={'admin.resetSuccessDescription'} />
           </AlertDescription>
         </Alert>
       </If>
@@ -164,7 +174,7 @@ function AdminResetPasswordForm({
 
       <AlertDialogFooter>
         <AlertDialogCancel disabled={mutation.isPending}>
-          Cancel
+          <Trans i18nKey={'admin.cancel'} />
         </AlertDialogCancel>
 
         <Button
@@ -172,7 +182,11 @@ function AdminResetPasswordForm({
           disabled={mutation.isPending}
           variant="destructive"
         >
-          {mutation.isPending ? 'Sending...' : 'Send Reset Email'}
+          {mutation.isPending ? (
+            <Trans i18nKey={'admin.sending'} />
+          ) : (
+            <Trans i18nKey={'admin.sendResetEmail'} />
+          )}
         </Button>
       </AlertDialogFooter>
     </form>

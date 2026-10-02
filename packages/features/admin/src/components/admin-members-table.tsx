@@ -2,22 +2,27 @@
 
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
+import { useTranslations } from 'use-intl';
 
 import type { Database } from '@pymekit/supabase/database';
 import { DataTable } from '@pymekit/ui/enhanced-data-table';
 import { ProfileAvatar } from '@pymekit/ui/profile-avatar';
 
+type Translator = ReturnType<typeof useTranslations>;
+
 type Memberships =
   Database['public']['Functions']['get_account_members']['Returns'][number];
 
 export function AdminMembersTable(props: { members: Memberships[] }) {
-  return <DataTable data={props.members} columns={getColumns()} />;
+  const t = useTranslations('admin');
+
+  return <DataTable data={props.members} columns={getColumns(t)} />;
 }
 
-function getColumns(): ColumnDef<Memberships>[] {
+function getColumns(t: Translator): ColumnDef<Memberships>[] {
   return [
     {
-      header: 'Name',
+      header: t('name'),
       enableSorting: false,
       cell: ({ row }) => {
         const name = row.original.name ?? row.original.email;
@@ -42,19 +47,19 @@ function getColumns(): ColumnDef<Memberships>[] {
       },
     },
     {
-      header: 'Email',
+      header: t('email'),
       accessorKey: 'email',
       enableSorting: false,
     },
     {
-      header: 'Role',
+      header: t('role'),
       enableSorting: false,
       cell: ({ row }) => {
         return row.original.role;
       },
     },
     {
-      header: 'Created At',
+      header: t('createdAt'),
       accessorKey: 'created_at',
       enableSorting: false,
       cell: ({ row }) => {
@@ -62,7 +67,7 @@ function getColumns(): ColumnDef<Memberships>[] {
       },
     },
     {
-      header: 'Updated At',
+      header: t('updatedAt'),
       accessorKey: 'updated_at',
       enableSorting: false,
       cell: ({ row }) => {

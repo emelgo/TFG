@@ -6,6 +6,7 @@ import { useForm } from '@tanstack/react-form';
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { EllipsisVertical } from 'lucide-react';
+import { useTranslations } from 'use-intl';
 import * as z from 'zod';
 
 import type { Tables } from '@pymekit/supabase/database';
@@ -30,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@pymekit/ui/select';
+import { Trans } from '@pymekit/ui/trans';
 
 import { AdminDeleteAccountDialog } from './admin-delete-account-dialog';
 import { AdminDeleteUserDialog } from './admin-delete-user-dialog';
@@ -37,6 +39,7 @@ import { AdminImpersonateUserDialog } from './admin-impersonate-user-dialog';
 import { AdminResetPasswordDialog } from './admin-reset-password-dialog';
 
 type Account = Tables<'accounts'>;
+type Translator = ReturnType<typeof useTranslations>;
 
 const FiltersSchema = z.object({
   type: z.enum(['all', 'team', 'personal']),
@@ -55,6 +58,8 @@ export function AdminAccountsTable(
     };
   }>,
 ) {
+  const t = useTranslations('admin');
+
   return (
     <div className={'flex flex-col space-y-4'}>
       <div className={'flex justify-end'}>
@@ -67,7 +72,7 @@ export function AdminAccountsTable(
           pageIndex={props.page - 1}
           pageCount={props.pageCount}
           data={props.data}
-          columns={getColumns()}
+          columns={getColumns(t)}
         />
       </div>
     </div>
@@ -77,6 +82,7 @@ export function AdminAccountsTable(
 function AccountsTableFilters(props: {
   filters: z.output<typeof FiltersSchema>;
 }) {
+  const t = useTranslations('admin');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -102,9 +108,9 @@ function AccountsTableFilters(props: {
   });
 
   const options = {
-    all: 'All Accounts',
-    team: 'Team',
-    personal: 'Personal',
+    all: t('allAccounts'),
+    team: t('team'),
+    personal: t('personal'),
   };
 
   return (
@@ -129,14 +135,16 @@ function AccountsTableFilters(props: {
             }}
           >
             <SelectTrigger>
-              <SelectValue placeholder={'Account Type'}>
+              <SelectValue placeholder={t('accountType')}>
                 {(value: keyof typeof options) => options[value]}
               </SelectValue>
             </SelectTrigger>
 
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Account Type</SelectLabel>
+                <SelectLabel>
+                  <Trans i18nKey={'admin.accountType'} />
+                </SelectLabel>
 
                 {Object.entries(options).map(([key, value]) => (
                   <SelectItem key={key} value={key}>
@@ -155,7 +163,7 @@ function AccountsTableFilters(props: {
             <Input
               data-testid={'admin-accounts-table-filter-input'}
               className={'w-full'}
-              placeholder={`Search account...`}
+              placeholder={t('searchAccount')}
               name={field.name}
               value={field.state.value}
               onBlur={field.handleBlur}
@@ -170,11 +178,11 @@ function AccountsTableFilters(props: {
   );
 }
 
-function getColumns(): ColumnDef<Account>[] {
+function getColumns(t: Translator): ColumnDef<Account>[] {
   return [
     {
       id: 'name',
-      header: 'Name',
+      header: t('name'),
       cell: ({ row }) => {
         return (
           <Link
@@ -188,19 +196,19 @@ function getColumns(): ColumnDef<Account>[] {
     },
     {
       id: 'email',
-      header: 'Email',
+      header: t('email'),
       accessorKey: 'email',
     },
     {
       id: 'type',
-      header: 'Type',
+      header: t('type'),
       cell: ({ row }) => {
-        return row.original.is_personal_account ? 'Personal' : 'Team';
+        return row.original.is_personal_account ? t('personal') : t('team');
       },
     },
     {
       id: 'created_at',
-      header: 'Created At',
+      header: t('createdAt'),
       cell: ({ row }) => {
         return new Date(row.original.created_at!).toLocaleDateString(
           undefined,
@@ -216,7 +224,7 @@ function getColumns(): ColumnDef<Account>[] {
     },
     {
       id: 'updated_at',
-      header: 'Updated At',
+      header: t('updatedAt'),
       cell: ({ row }) => {
         return row.original.updated_at
           ? new Date(row.original.updated_at).toLocaleDateString(undefined, {
@@ -261,7 +269,9 @@ function ActionsCell({ account }: { account: Account }) {
 
         <DropdownMenuContent className="min-w-52">
           <DropdownMenuGroup>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              <Trans i18nKey={'admin.actions'} />
+            </DropdownMenuLabel>
 
             <DropdownMenuItem
               render={
@@ -269,7 +279,7 @@ function ActionsCell({ account }: { account: Account }) {
                   className={'h-full w-full'}
                   to={`/admin/accounts/${account.id}` as string}
                 >
-                  View
+                  <Trans i18nKey={'admin.view'} />
                 </Link>
               }
             />
@@ -279,20 +289,20 @@ function ActionsCell({ account }: { account: Account }) {
                 <DropdownMenuItem
                   onClick={() => setActiveDialog('reset-password')}
                 >
-                  Send Reset Password link
+                  <Trans i18nKey={'admin.sendResetLink'} />
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   onClick={() => setActiveDialog('impersonate')}
                 >
-                  Impersonate User
+                  <Trans i18nKey={'admin.impersonateTitle'} />
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => setActiveDialog('delete-user')}
                 >
-                  Delete Personal Account
+                  <Trans i18nKey={'admin.deletePersonalAccount'} />
                 </DropdownMenuItem>
               </>
             )}
@@ -302,7 +312,7 @@ function ActionsCell({ account }: { account: Account }) {
                 variant="destructive"
                 onClick={() => setActiveDialog('delete-account')}
               >
-                Delete Team Account
+                <Trans i18nKey={'admin.deleteTeamAccount'} />
               </DropdownMenuItem>
             )}
           </DropdownMenuGroup>

@@ -4,6 +4,7 @@ import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
+import { useTranslations } from 'use-intl';
 import type { z } from 'zod';
 
 import { Alert, AlertDescription, AlertTitle } from '@pymekit/ui/alert';
@@ -29,12 +30,15 @@ import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
 import { toast } from '@pymekit/ui/sonner';
+import { Trans } from '@pymekit/ui/trans';
 
 import { createUserFunction } from '../lib/server/admin.functions';
 import { CreateUserSchema } from '../lib/server/schema/create-user.schema';
 
 export function AdminCreateUserDialog(props: React.PropsWithChildren) {
   const { dialogProps, isPending, setIsPending, setOpen } = useAsyncDialog();
+
+  const t = useTranslations('admin');
 
   const createUser = useServerFn(createUserFunction);
   const router = useRouter();
@@ -47,7 +51,7 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
     }) => createUser({ data }),
     onMutate: () => setIsPending(true),
     onSuccess: async () => {
-      toast.success('User created successfully');
+      toast.success(t('createToastSuccess'));
       form.reset();
       await router.invalidate();
       setOpen(false);
@@ -69,7 +73,7 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
   });
 
   const error = mutation.isError
-    ? ((mutation.error as Error)?.message ?? 'Error creating user')
+    ? ((mutation.error as Error)?.message ?? t('createError'))
     : null;
 
   return (
@@ -81,10 +85,12 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Create New User</AlertDialogTitle>
+          <AlertDialogTitle>
+            <Trans i18nKey={'admin.createTitle'} />
+          </AlertDialogTitle>
 
           <AlertDialogDescription>
-            Complete the form below to create a new user.
+            <Trans i18nKey={'admin.createDescription'} />
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -99,7 +105,9 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
         >
           <If condition={!!error}>
             <Alert variant={'destructive'}>
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>
+                <Trans i18nKey={'admin.error'} />
+              </AlertTitle>
 
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -112,7 +120,9 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    <Trans i18nKey={'admin.email'} />
+                  </FieldLabel>
 
                   <Input
                     id={field.name}
@@ -139,13 +149,15 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    <Trans i18nKey={'admin.password'} />
+                  </FieldLabel>
 
                   <Input
                     id={field.name}
                     required
                     type="password"
-                    placeholder={'Password'}
+                    placeholder={t('password')}
                     name={field.name}
                     value={field.state.value}
                     onBlur={field.handleBlur}
@@ -154,7 +166,7 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
                   />
 
                   <FieldDescription>
-                    Password must be at least 8 characters long.
+                    <Trans i18nKey={'admin.passwordHint'} />
                   </FieldDescription>
 
                   <FieldError errors={field.state.meta.errors} />
@@ -182,12 +194,11 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
 
                   <div className="flex flex-col space-y-1">
                     <FieldLabel htmlFor={field.name}>
-                      Auto-confirm email
+                      <Trans i18nKey={'admin.autoConfirmEmail'} />
                     </FieldLabel>
 
                     <FieldDescription>
-                      If checked, the user&apos;s email will be automatically
-                      confirmed.
+                      <Trans i18nKey={'admin.autoConfirmEmailHint'} />
                     </FieldDescription>
                   </div>
                 </Field>
@@ -196,10 +207,16 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
           </form.Field>
 
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>
+              <Trans i18nKey={'admin.cancel'} />
+            </AlertDialogCancel>
 
             <Button disabled={isPending} type={'submit'}>
-              {isPending ? 'Creating...' : 'Create User'}
+              {isPending ? (
+                <Trans i18nKey={'admin.creating'} />
+              ) : (
+                <Trans i18nKey={'admin.createUser'} />
+              )}
             </Button>
           </AlertDialogFooter>
         </form>

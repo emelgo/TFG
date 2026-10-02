@@ -5,8 +5,10 @@ import { AdminCreateUserDialog } from '@pymekit/admin/components/admin-create-us
 import { AppBreadcrumbs } from '@pymekit/ui/app-breadcrumbs';
 import { Button } from '@pymekit/ui/button';
 import { PageBody, PageHeader } from '@pymekit/ui/page';
+import { Trans } from '@pymekit/ui/trans';
 
 import { readString } from '#/lib/auth/search-params.ts';
+import { getTranslator } from '#/lib/i18n/translator.ts';
 import { fetchAdminAccounts } from '#/lib/server/admin.functions.ts';
 
 // Search params are optional so links to `/admin/accounts` (sidebar, mobile
@@ -32,7 +34,15 @@ export const Route = createFileRoute('/admin/accounts/')({
   }),
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => fetchAdminAccounts({ data: deps }),
-  head: () => ({ meta: [{ title: 'Accounts' }] }),
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)(
+          'cms.sidebar.platformAccounts',
+        ),
+      },
+    ],
+  }),
   component: AdminAccountsPage,
 });
 
@@ -44,7 +54,9 @@ function AdminAccountsPage() {
       <PageHeader description={<AppBreadcrumbs />}>
         <div className="flex justify-end">
           <AdminCreateUserDialog>
-            <Button data-testid="admin-create-user-button">Create User</Button>
+            <Button data-testid="admin-create-user-button">
+              <Trans i18nKey={'admin.createUser'} />
+            </Button>
           </AdminCreateUserDialog>
         </div>
       </PageHeader>

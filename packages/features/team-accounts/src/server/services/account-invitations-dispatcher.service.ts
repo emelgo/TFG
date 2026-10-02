@@ -212,6 +212,9 @@ class AccountInvitationsDispatchService {
       inviter: inviter.name ?? inviter.email ?? '',
       productName: env.productName,
       teamName: team.name,
+      // El invitado aún no tiene preferencia guardada: se usa el idioma de
+      // quien invita (cookie de su petición) o, en su defecto, el español.
+      language: await getRequestEmailLanguage(),
     });
 
     return mailer
@@ -274,5 +277,21 @@ class AccountInvitationsDispatchService {
       .select('name')
       .eq('id', accountId)
       .single();
+  }
+}
+
+/**
+ * Idioma del correo: el que el usuario tiene elegido en la cookie `locale` de
+ * la petición en curso. Si no hay petición (por ejemplo en un test o en un
+ * proceso en segundo plano) devuelve `undefined` y la plantilla usa el idioma
+ * por defecto del producto (español).
+ */
+async function getRequestEmailLanguage(): Promise<string | undefined> {
+  try {
+    const { getCookie } = await import('@tanstack/react-start/server');
+
+    return getCookie('locale');
+  } catch {
+    return undefined;
   }
 }

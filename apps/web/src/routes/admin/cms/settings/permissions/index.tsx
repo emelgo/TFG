@@ -40,8 +40,14 @@ export const Route = createFileRoute('/admin/cms/settings/permissions/')({
       rethrowCmsSectionError(error);
     }
   },
-  head: () => ({
-    meta: [{ title: getTranslator()('cms.settings.permissions.title') }],
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)(
+          'cms.settings.permissions.title',
+        ),
+      },
+    ],
   }),
   component: PermissionsPage,
   errorComponent: ({ reset }) => (

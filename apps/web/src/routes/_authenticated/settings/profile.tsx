@@ -17,8 +17,10 @@ export const Route = createFileRoute('/_authenticated/settings/profile')({
       throw redirect({ to: pathsConfig.app.settings });
     }
   },
-  head: () => ({
-    meta: [{ title: getTranslator()('common.routes.profile') }],
+  head: ({ match }) => ({
+    meta: [
+      { title: getTranslator(match.context.locale)('common.routes.profile') },
+    ],
   }),
   component: PersonalAccountSettingsPanel,
 });

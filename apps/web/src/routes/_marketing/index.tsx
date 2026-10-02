@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { ArrowRightIcon, LayoutDashboard } from 'lucide-react';
+import { useTranslations } from 'use-intl';
 
 import { PricingTable } from '@pymekit/billing-gateway/marketing';
 import {
@@ -23,14 +24,24 @@ export const Route = createFileRoute('/_marketing/')({
   component: Home,
 });
 
+/**
+ * Página de inicio pública (landing) de PymeKit.
+ *
+ * Todo el texto sale del catálogo `marketing.home.*` para que la landing se
+ * muestre en el idioma activo (español por defecto, inglés como segundo
+ * idioma). El contenido describe solo lo que PymeKit hace de verdad: no hay
+ * clientes, testimonios ni cifras inventadas.
+ */
 function Home() {
+  const t = useTranslations('marketing.home');
+
   return (
     <div className={'mt-4 flex flex-col space-y-24 py-14'}>
       <div className={'container mx-auto'}>
         <Hero
           pill={
-            <Pill label={'New'}>
-              <span>The SaaS Starter Kit for ambitious developers</span>
+            <Pill label={t('pillLabel')}>
+              <span>{t('pillText')}</span>
               <PillActionButton
                 render={
                   <Link to={'/auth/sign-up'}>
@@ -42,16 +53,10 @@ function Home() {
           }
           title={
             <span className="text-secondary-foreground">
-              <span>Ship a SaaS faster than ever.</span>
+              <span>{t('heroTitle')}</span>
             </span>
           }
-          subtitle={
-            <span>
-              PymeKit gives you a production-ready boilerplate to build your
-              SaaS faster than ever before with the next-gen SaaS Starter Kit.
-              Get started in minutes.
-            </span>
-          }
+          subtitle={<span>{t('heroSubtitle')}</span>}
           cta={<MainCallToActionButton />}
           image={
             <img
@@ -61,7 +66,7 @@ function Home() {
               width={3558}
               height={2222}
               src={`/images/dashboard.png`}
-              alt={`App Image`}
+              alt={t('heroImageAlt')}
             />
           }
         />
@@ -73,58 +78,30 @@ function Home() {
             heading={
               <>
                 <b className="font-medium tracking-tight dark:text-white">
-                  The ultimate SaaS Starter Kit
+                  {t('featuresHeading')}
                 </b>
                 .{' '}
                 <span className="text-secondary-foreground/70 block font-normal tracking-tight">
-                  Unleash your creativity and build your SaaS faster than ever
-                  with PymeKit.
+                  {t('featuresSubheading')}
                 </span>
               </>
             }
             icon={
               <FeatureShowcaseIconContainer>
                 <LayoutDashboard className="h-4 w-4" />
-                <span>All-in-one solution</span>
+                <span>{t('featuresBadge')}</span>
               </FeatureShowcaseIconContainer>
             }
           >
             <FeatureGrid>
-              <FeatureCard
-                className={'relative col-span-1 overflow-hidden'}
-                label={'Beautiful Dashboard'}
-                description={`PymeKit provides a beautiful dashboard to manage your SaaS business.`}
-              />
-
-              <FeatureCard
-                className={'relative col-span-1 w-full overflow-hidden'}
-                label={'Authentication'}
-                description={`PymeKit provides a variety of providers to allow your users to sign in.`}
-              />
-
-              <FeatureCard
-                className={'relative col-span-1 overflow-hidden'}
-                label={'Multi Tenancy'}
-                description={`Multi tenant memberships for your SaaS business.`}
-              />
-
-              <FeatureCard
-                className={'relative col-span-1 overflow-hidden'}
-                label={'Billing'}
-                description={`PymeKit supports multiple payment gateways to charge your customers.`}
-              />
-
-              <FeatureCard
-                className={'relative col-span-1 overflow-hidden'}
-                label={'Plugins'}
-                description={`Extend your SaaS with plugins that you can install using the CLI.`}
-              />
-
-              <FeatureCard
-                className={'relative col-span-1 overflow-hidden'}
-                label={'Documentation'}
-                description={`PymeKit provides a comprehensive documentation to help you get started.`}
-              />
+              {FEATURES.map((feature) => (
+                <FeatureCard
+                  key={feature}
+                  className={'relative col-span-1 overflow-hidden'}
+                  label={t(`${feature}Title`)}
+                  description={t(`${feature}Description`)}
+                />
+              ))}
             </FeatureGrid>
           </FeatureShowcase>
         </div>
@@ -132,13 +109,13 @@ function Home() {
 
       <div className={'container mx-auto'}>
         <EcosystemShowcase
-          heading="The ultimate SaaS Starter Kit for founders."
-          description="Unleash your creativity and build your SaaS faster than ever with PymeKit. Get started in minutes and ship your SaaS in no time."
+          heading={t('showcaseHeading')}
+          description={t('showcaseDescription')}
         >
           <img
             className="rounded-md"
             src={'/images/sign-in.png'}
-            alt="Sign in"
+            alt={t('showcaseImageAlt')}
             width={1000}
             height={1000}
           />
@@ -152,9 +129,9 @@ function Home() {
           }
         >
           <SecondaryHero
-            pill={<Pill label="Start for free">No credit card required.</Pill>}
-            heading="Fair pricing for all types of businesses"
-            subheading="Get started on our free plan and upgrade when you are ready."
+            pill={<Pill label={t('pricingPill')}>{t('pricingPillText')}</Pill>}
+            heading={t('pricingHeading')}
+            subheading={t('pricingSubheading')}
           />
 
           <div className={'w-full'}>
@@ -171,6 +148,19 @@ function Home() {
     </div>
   );
 }
+
+/**
+ * Prefijos de las tarjetas de funcionalidades: cada uno tiene su pareja de
+ * claves `<prefijo>Title` y `<prefijo>Description` en `marketing.home`.
+ */
+const FEATURES = [
+  'featureAuth',
+  'featureTeams',
+  'featureBilling',
+  'featureCms',
+  'featureBlog',
+  'featureSecurity',
+] as const;
 
 function MainCallToActionButton() {
   return (

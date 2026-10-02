@@ -26,8 +26,14 @@ export const Route = createFileRoute(
   beforeLoad: ({ context }) =>
     requireCmsSettingsTab(context.cmsAccess, 'resources'),
   loader: ({ context, params }) => loadResourceSettings(context, params),
-  head: () => ({
-    meta: [{ title: getTranslator()('cms.settings.resources.layout.title') }],
+  head: ({ match }) => ({
+    meta: [
+      {
+        title: getTranslator(match.context.locale)(
+          'cms.settings.resources.layout.title',
+        ),
+      },
+    ],
   }),
   component: RecordLayoutPage,
   errorComponent: ({ reset }) => (

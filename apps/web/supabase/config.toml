@@ -85,23 +85,23 @@ url = ""
 email_sent = 1000
 
 [auth.email.template.invite]
-subject = "You are invited to PymeKit"
+subject = "Te han invitado a PymeKit"
 content_path = "./supabase/templates/invite-user.html"
 
 [auth.email.template.confirmation]
-subject = "Confirm your email"
+subject = "Confirma tu correo electrónico"
 content_path = "./supabase/templates/confirm-email.html"
 
 [auth.email.template.recovery]
-subject = "Reset your password"
+subject = "Restablece tu contraseña"
 content_path = "./supabase/templates/reset-password.html"
 
 [auth.email.template.email_change]
-subject = "Confirm your email change"
+subject = "Confirma el cambio de correo electrónico"
 content_path = "./supabase/templates/change-email-address.html"
 
 [auth.email.template.magic_link]
-subject = "Sign in to PymeKit"
+subject = "Inicia sesión en PymeKit"
 content_path = "./supabase/templates/magic-link.html"
 
 [auth.passkey]

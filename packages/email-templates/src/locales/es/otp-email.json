@@ -1,0 +1,7 @@
+{
+  "subject": "Código de un solo uso para {productName}",
+  "heading": "Código de un solo uso para {productName}",
+  "otpText": "Tu código de un solo uso es: {otp}",
+  "footerText": "Introduce el código de un solo uso en la aplicación para continuar.",
+  "mainText": "Recibes este correo porque necesitas verificar tu identidad con un código de un solo uso."
+}

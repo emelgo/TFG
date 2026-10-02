@@ -311,7 +311,9 @@ export function WorkspaceDropdown({
                 >
                   <Shield className="size-4" />
 
-                  <span>Super Admin</span>
+                  <span>
+                    <Trans i18nKey={'common.superAdmin'} />
+                  </span>
                 </a>
               }
             />

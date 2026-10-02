@@ -1,0 +1,9 @@
+{
+  "subject": "Hemos eliminado tu cuenta de {productName}",
+  "previewText": "Hemos eliminado tu cuenta de {productName}",
+  "hello": "Hola {displayName}:",
+  "paragraph1": "Te confirmamos que hemos procesado tu solicitud para eliminar tu cuenta de {productName}.",
+  "paragraph2": "Lamentamos que te vayas. Ten en cuenta que esta acción es irreversible y nos aseguraremos de eliminar todos tus datos de nuestros sistemas.",
+  "paragraph3": "Te agradecemos de nuevo que hayas usado {productName}.",
+  "paragraph4": "El equipo de {productName}"
+}

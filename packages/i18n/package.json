@@ -19,7 +19,8 @@
   },
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@pymekit/shared": "workspace:*",
@@ -30,6 +31,7 @@
     "@pymekit/tsconfig": "workspace:*",
     "@types/react": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "vitest": "catalog:"
   }
 }

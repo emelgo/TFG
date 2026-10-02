@@ -13,6 +13,7 @@ import {
   LineChart,
   XAxis,
 } from 'recharts';
+import { useTranslations } from 'use-intl';
 
 import { Badge } from '@pymekit/ui/badge';
 import {
@@ -38,6 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from '@pymekit/ui/table';
+import { Trans } from '@pymekit/ui/trans';
 
 export default function DashboardDemo() {
   const mrr = useMemo(() => generateDemoData(), []);
@@ -60,7 +62,9 @@ export default function DashboardDemo() {
             </CardTitle>
 
             <CardDescription>
-              <span>Monthly recurring revenue</span>
+              <span>
+                <Trans i18nKey={'common.demoMrrDescription'} />
+              </span>
             </CardDescription>
 
             <div>
@@ -76,12 +80,16 @@ export default function DashboardDemo() {
         <Card>
           <CardHeader>
             <CardTitle className={'flex items-center gap-2.5'}>
-              <span>Revenue</span>
+              <span>
+                <Trans i18nKey={'common.demoRevenue'} />
+              </span>
               <Trend trend={'up'}>12%</Trend>
             </CardTitle>
 
             <CardDescription>
-              <span>Total revenue including fees</span>
+              <span>
+                <Trans i18nKey={'common.demoRevenueDescription'} />
+              </span>
             </CardDescription>
 
             <div>
@@ -97,12 +105,16 @@ export default function DashboardDemo() {
         <Card>
           <CardHeader>
             <CardTitle className={'flex items-center gap-2.5'}>
-              <span>Fees</span>
+              <span>
+                <Trans i18nKey={'common.demoFees'} />
+              </span>
               <Trend trend={'up'}>9%</Trend>
             </CardTitle>
 
             <CardDescription>
-              <span>Total fees collected</span>
+              <span>
+                <Trans i18nKey={'common.demoFeesDescription'} />
+              </span>
             </CardDescription>
 
             <div>
@@ -118,12 +130,16 @@ export default function DashboardDemo() {
         <Card>
           <CardHeader>
             <CardTitle className={'flex items-center gap-2.5'}>
-              <span>New Customers</span>
+              <span>
+                <Trans i18nKey={'common.demoNewCustomers'} />
+              </span>
               <Trend trend={'down'}>-25%</Trend>
             </CardTitle>
 
             <CardDescription>
-              <span>Customers who signed up this month</span>
+              <span>
+                <Trans i18nKey={'common.demoNewCustomersDescription'} />
+              </span>
             </CardDescription>
 
             <div>
@@ -144,8 +160,12 @@ export default function DashboardDemo() {
       <div>
         <Card>
           <CardHeader>
-            <CardTitle>Best Customers</CardTitle>
-            <CardDescription>Showing the top customers by MRR</CardDescription>
+            <CardTitle>
+              <Trans i18nKey={'common.demoBestCustomers'} />
+            </CardTitle>
+            <CardDescription>
+              <Trans i18nKey={'common.demoBestCustomersDescription'} />
+            </CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -183,13 +203,15 @@ function generateDemoData() {
 function Chart(
   props: React.PropsWithChildren<{ data: { value: string; name: string }[] }>,
 ) {
+  const t = useTranslations('common');
+
   const chartConfig = {
     desktop: {
-      label: 'Desktop',
+      label: t('demoDesktop'),
       color: 'var(--chart-1)',
     },
     mobile: {
-      label: 'Mobile',
+      label: t('demoMobile'),
       color: 'var(--chart-2)',
     },
   } satisfies ChartConfig;
@@ -223,6 +245,14 @@ function Chart(
 }
 
 function CustomersTable() {
+  const t = useTranslations('common');
+
+  const statusLabels: Record<string, string> = {
+    healthy: t('demoStatusHealthy'),
+    possibleChurn: t('demoStatusPossibleChurn'),
+    churn: t('demoStatusChurn'),
+  };
+
   const customers = [
     {
       name: 'John Doe',
@@ -230,7 +260,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$120.5',
       logins: 1020,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -239,7 +269,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$65.4',
       logins: 570,
-      status: 'Possible Churn',
+      status: 'possibleChurn',
       trend: 'stale',
     },
     {
@@ -248,7 +278,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$500.1',
       logins: 2050,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -257,7 +287,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$10',
       logins: 50,
-      status: 'Churn',
+      status: 'churn',
       trend: 'down',
     },
     {
@@ -266,7 +296,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$300.2',
       logins: 1520,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -275,7 +305,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$75.7',
       logins: 780,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -284,7 +314,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$50',
       logins: 320,
-      status: 'Possible Churn',
+      status: 'possibleChurn',
       trend: 'stale',
     },
     {
@@ -293,7 +323,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$90.8',
       logins: 1260,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -302,7 +332,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$0',
       logins: 20,
-      status: 'Churn',
+      status: 'churn',
       trend: 'down',
     },
     {
@@ -311,7 +341,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$145.3',
       logins: 1380,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -320,7 +350,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$120.5',
       logins: 940,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -329,7 +359,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$80.6',
       logins: 460,
-      status: 'Possible Churn',
+      status: 'possibleChurn',
       trend: 'stale',
     },
     {
@@ -338,7 +368,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$210.3',
       logins: 1850,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -347,7 +377,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$10',
       logins: 35,
-      status: 'Churn',
+      status: 'churn',
       trend: 'down',
     },
     {
@@ -356,7 +386,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$350.2',
       logins: 1760,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -365,7 +395,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$145.6',
       logins: 1350,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -374,7 +404,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$60.3',
       logins: 425,
-      status: 'Possible Churn',
+      status: 'possibleChurn',
       trend: 'stale',
     },
     {
@@ -383,7 +413,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$175.8',
       logins: 1600,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
     {
@@ -392,7 +422,7 @@ function CustomersTable() {
       plan: 'Basic',
       mrr: '$0',
       logins: 18,
-      status: 'Churn',
+      status: 'churn',
       trend: 'down',
     },
     {
@@ -401,7 +431,7 @@ function CustomersTable() {
       plan: 'Pro',
       mrr: '$255.9',
       logins: 1785,
-      status: 'Healthy',
+      status: 'healthy',
       trend: 'up',
     },
   ];
@@ -410,11 +440,19 @@ function CustomersTable() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Customer</TableHead>
-          <TableHead>Plan</TableHead>
+          <TableHead>
+            <Trans i18nKey={'common.demoCustomer'} />
+          </TableHead>
+          <TableHead>
+            <Trans i18nKey={'common.demoPlan'} />
+          </TableHead>
           <TableHead>MRR</TableHead>
-          <TableHead>Logins</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead>
+            <Trans i18nKey={'common.demoLogins'} />
+          </TableHead>
+          <TableHead>
+            <Trans i18nKey={'common.demoStatus'} />
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -431,7 +469,7 @@ function CustomersTable() {
             <TableCell>{customer.logins}</TableCell>
             <TableCell>
               <BadgeWithTrend trend={customer.trend}>
-                {customer.status}
+                {statusLabels[customer.status]}
               </BadgeWithTrend>
             </TableCell>
           </TableRow>
@@ -599,16 +637,18 @@ export function VisitorsChart() {
     [],
   );
 
+  const t = useTranslations('common');
+
   const chartConfig = {
     visitors: {
-      label: 'Visitors',
+      label: t('demoVisitors'),
     },
     desktop: {
-      label: 'Desktop',
+      label: t('demoDesktop'),
       color: 'var(--chart-1)',
     },
     mobile: {
-      label: 'Mobile',
+      label: t('demoMobile'),
       color: 'var(--chart-2)',
     },
   } satisfies ChartConfig;
@@ -616,9 +656,11 @@ export function VisitorsChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Visitors</CardTitle>
+        <CardTitle>
+          <Trans i18nKey={'common.demoVisitors'} />
+        </CardTitle>
         <CardDescription>
-          Showing total visitors for the last 6 months
+          <Trans i18nKey={'common.demoVisitorsDescription'} />
         </CardDescription>
       </CardHeader>
 
@@ -710,10 +752,11 @@ export function VisitorsChart() {
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 leading-none font-medium">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+              <Trans i18nKey={'common.demoTrendingUp'} />{' '}
+              <TrendingUp className="h-4 w-4" />
             </div>
             <div className="text-muted-foreground flex items-center gap-2 leading-none">
-              January - June 2024
+              <Trans i18nKey={'common.demoPeriod'} />
             </div>
           </div>
         </div>
@@ -823,16 +866,18 @@ export function PageViewsChart() {
     [],
   );
 
+  const t = useTranslations('common');
+
   const chartConfig = {
     views: {
-      label: 'Page Views',
+      label: t('demoPageViews'),
     },
     desktop: {
-      label: 'Desktop',
+      label: t('demoDesktop'),
       color: 'var(--chart-1)',
     },
     mobile: {
-      label: 'Mobile',
+      label: t('demoMobile'),
       color: 'var(--chart-2)',
     },
   } satisfies ChartConfig;
@@ -849,10 +894,12 @@ export function PageViewsChart() {
     <Card>
       <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
-          <CardTitle>Page Views</CardTitle>
+          <CardTitle>
+            <Trans i18nKey={'common.demoPageViews'} />
+          </CardTitle>
 
           <CardDescription>
-            Showing total visitors for the last 3 months
+            <Trans i18nKey={'common.demoPageViewsDescription'} />
           </CardDescription>
         </div>
 

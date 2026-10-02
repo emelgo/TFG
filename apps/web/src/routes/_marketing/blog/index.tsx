@@ -43,8 +43,8 @@ export const Route = createFileRoute('/_marketing/blog/')({
 
     return data;
   },
-  head: ({ loaderData }) => {
-    const t = getTranslator();
+  head: ({ loaderData, match }) => {
+    const t = getTranslator(match.context.locale);
     const title = `${t('marketing.blog')} | ${appConfig.name}`;
     const description = t('marketing.blogSubtitle');
 

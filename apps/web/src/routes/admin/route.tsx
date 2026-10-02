@@ -77,7 +77,9 @@ export const Route = createFileRoute('/admin')({
       context.queryClient.prefetchQuery(cmsQueries.navigation()),
     ]);
   },
-  head: () => ({ meta: [{ title: getTranslator()('cms.consoleTitle') }] }),
+  head: ({ match }) => ({
+    meta: [{ title: getTranslator(match.context.locale)('cms.consoleTitle') }],
+  }),
   component: AdminLayout,
 });
 

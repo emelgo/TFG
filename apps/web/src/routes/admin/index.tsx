@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useTranslations } from 'use-intl';
 
 import { AdminDashboard } from '@pymekit/admin/components/admin-dashboard';
 import { PageBody, PageHeader } from '@pymekit/ui/page';
@@ -15,11 +16,12 @@ export const Route = createFileRoute('/admin/')({
 });
 
 function AdminDashboardPage() {
+  const t = useTranslations('common');
   const data = Route.useLoaderData();
 
   return (
     <PageBody>
-      <PageHeader description={`Super Admin`} />
+      <PageHeader description={t('superAdmin')} />
 
       <AdminDashboard data={data} />
     </PageBody>

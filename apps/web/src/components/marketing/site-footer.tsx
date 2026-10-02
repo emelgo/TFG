@@ -1,3 +1,5 @@
+import { locales } from '@pymekit/i18n';
+import { LanguageSelector } from '@pymekit/ui/language-selector';
 import { Footer } from '@pymekit/ui/marketing';
 import { Trans } from '@pymekit/ui/trans';
 
@@ -17,6 +19,13 @@ export function SiteFooter() {
             year: new Date().getFullYear(),
           }}
         />
+      }
+      // Selector de idioma visible también para visitantes sin sesión: guarda
+      // la elección en la cookie `locale` y recarga la página.
+      actions={
+        <div data-testid="footer-language-selector">
+          <LanguageSelector locales={locales} />
+        </div>
       }
       sections={[
         {
