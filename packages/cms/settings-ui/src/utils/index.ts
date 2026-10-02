@@ -35,3 +35,22 @@ export {
   toNullableDescription,
   toPermissionInput,
 } from './rbac-forms';
+export {
+  ColumnSettingsFormSchema,
+  type ColumnSettings,
+  type ColumnSettingsFormValues,
+  type InlineRelation,
+  type ManagedTable,
+  SyncTablesFormSchema,
+  type SyncTablesFormValues,
+  TableSettingsFormSchema,
+  type TableSettingsFormValues,
+  buildColumnUpdate,
+  groupTablesBySchema,
+  moveColumn,
+  moveTable,
+  readColumnsSettings,
+  readRelationsSettings,
+} from './resource-settings';
+export * from './layout-designer';
+export { isValidPgIdentifier } from '@pymekit/cms-shared/resource-config';

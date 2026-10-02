@@ -141,6 +141,16 @@ export const cmsQueryKeys = {
   rbacGroup: (id: string) => [...cmsQueryKeys.rbac(), 'group', id] as const,
   rbacPermission: (id: string) =>
     [...cmsQueryKeys.rbac(), 'permission', id] as const,
+  /**
+   * Prefijo de Ajustes > Recursos (F2.7c). Tras un cambio se invalida junto
+   * con `tables()` y `navigation()`: el explorador y la barra lateral leen
+   * el mismo metadato.
+   */
+  resourceSettings: () => [...cmsQueryKeys.all, 'resource-settings'] as const,
+  resourceSettingsList: () =>
+    [...cmsQueryKeys.resourceSettings(), 'list'] as const,
+  resourceSettingsTable: (schema: string, table: string) =>
+    [...cmsQueryKeys.resourceSettings(), 'table', schema, table] as const,
   /** Resultados de la búsqueda global para un texto ya normalizado. */
   globalSearch: (query: string) =>
     [...cmsQueryKeys.all, 'global-search', query] as const,
@@ -330,6 +340,22 @@ export function createCmsQueries(api: CmsApi) {
         queryFn: () => api.getMember(id),
         retry: shouldRetryCmsQuery,
         staleTime: 15 * 1000,
+      }),
+
+    /** Tablas gestionadas de Ajustes > Recursos y permisos. */
+    resourceSettingsList: () =>
+      queryOptions({
+        queryKey: cmsQueryKeys.resourceSettingsList(),
+        queryFn: () => api.getResourceSettingsList(),
+        retry: shouldRetryCmsQuery,
+      }),
+
+    /** Metadato completo de una tabla en Ajustes > Recursos. */
+    resourceSettingsTable: (schema: string, table: string) =>
+      queryOptions({
+        queryKey: cmsQueryKeys.resourceSettingsTable(schema, table),
+        queryFn: () => api.getResourceSettings({ schema, table }),
+        retry: shouldRetryCmsQuery,
       }),
 
     /** Resumen de Ajustes > Permisos (roles, grupos y permisos). */

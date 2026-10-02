@@ -10,3 +10,6 @@ export { PermissionsSettingsView } from './permissions/permissions-settings-view
 export { RoleDetailsView } from './permissions/role-details-view';
 export { GroupDetailsView } from './permissions/group-details-view';
 export { PermissionDetailsView } from './permissions/permission-details-view';
+export { ResourcesSettingsView } from './resources/resources-settings-view';
+export { ResourceSettingsView } from './resources/resource-settings-view';
+export { RecordLayoutDesigner } from './resources/record-layout-designer';

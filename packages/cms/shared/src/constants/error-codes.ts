@@ -131,6 +131,16 @@ export const CMS_API_ERROR_CODES = {
   SETTINGS_MFA_DISABLE_REQUIRES_ROOT: 'SETTINGS_MFA_DISABLE_REQUIRES_ROOT',
   /** Error inesperado al leer o guardar los ajustes (500). */
   SETTINGS_ACTION_FAILED: 'SETTINGS_ACTION_FAILED',
+  /**
+   * Ajustes > Recursos (F2.7c): la tabla no está registrada en
+   * `cms.table_metadata` o el usuario no puede leer su metadato (404).
+   */
+  SETTINGS_RESOURCE_NOT_FOUND: 'SETTINGS_RESOURCE_NOT_FOUND',
+  /**
+   * Ajustes > Recursos (F2.7c): esquema protegido (`auth`, `vault`, `cms`,
+   * `storage`, `pg_*`…), que no se puede registrar ni configurar (403).
+   */
+  SETTINGS_RESOURCE_PROTECTED_SCHEMA: 'SETTINGS_RESOURCE_PROTECTED_SCHEMA',
 
   // Ajustes > Miembros (F2.7a). Las reglas de rango las aplica la base de
   // datos (`can_action_account`, `can_modify_account_role`,

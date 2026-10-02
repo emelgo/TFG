@@ -1123,6 +1123,9 @@ importers:
       '@pymekit/cms-auth':
         specifier: workspace:*
         version: link:../auth
+      '@pymekit/cms-data-explorer-core':
+        specifier: workspace:*
+        version: link:../data-explorer-core
       '@pymekit/cms-permissions':
         specifier: workspace:*
         version: link:../permissions
@@ -1166,6 +1169,9 @@ importers:
       '@pymekit/cms-shared':
         specifier: workspace:*
         version: link:../shared
+      '@pymekit/cms-types':
+        specifier: workspace:*
+        version: link:../types
       '@pymekit/cms-ui-core':
         specifier: workspace:*
         version: link:../ui-core

@@ -43,6 +43,14 @@ const RESPONSES: Record<
     status: 403,
     message: 'Only a platform super admin can stop requiring MFA',
   },
+  SETTINGS_RESOURCE_NOT_FOUND: {
+    status: 404,
+    message: 'The resource was not found',
+  },
+  SETTINGS_RESOURCE_PROTECTED_SCHEMA: {
+    status: 403,
+    message: 'Tables in this schema cannot be managed from the CMS',
+  },
   SETTINGS_ACTION_FAILED: {
     status: 500,
     message: 'The settings could not be saved. Please try again later',

@@ -1,67 +1,50 @@
+/**
+ * `PUT /v1/tables/:schema/:table/columns` (F2.7c): cambios de presentación
+ * de columnas existentes (etiqueta, visibilidad, orden, editable y
+ * formateador). Exige `table:update`; una columna desconocida es 400.
+ *
+ * [TFG] RF-09 · RNF-02.
+ */
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
-import { getErrorMessage } from '@pymekit/cms-shared/utils';
-import { getLogger } from '@pymekit/shared/logger';
-
-import { UpdateTableColumnsConfigSchema } from '../schemas';
+import {
+  ResourceParamsSchema,
+  UpdateTableColumnsConfigSchema,
+} from '../schemas';
 import { createTableMetadataService } from '../services/table-metadata.service';
+import {
+  invalidSettingsInput,
+  respondWithSettingsError,
+} from './settings-responses';
 
-/**
- * Register the table columns config update router
- * @param router
- */
 export function registerUpdateTableColumnsConfigRouter(router: Hono) {
   return router.put(
     '/v1/tables/:schema/:table/columns',
-    zValidator('param', z.object({ schema: z.string(), table: z.string() })),
-    zValidator('json', UpdateTableColumnsConfigSchema),
+    zValidator('param', ResourceParamsSchema, invalidSettingsInput('SETTINGS')),
+    zValidator(
+      'json',
+      UpdateTableColumnsConfigSchema,
+      invalidSettingsInput('SETTINGS'),
+    ),
     async (c) => {
-      const logger = await getLogger();
-      const service = createTableMetadataService(c);
       const data = c.req.valid('json');
       const { schema, table } = c.req.valid('param');
 
-      logger.info(
-        {
-          schema,
-          table,
-        },
-        'Updating table columns config...',
-      );
-
       try {
-        const results = await service.updateTableColumnsConfig({
-          table,
+        const service = createTableMetadataService(c);
+        const result = await service.updateTableColumnsConfig({
           schema,
+          table,
           data,
         });
 
-        logger.info(
-          {
-            schema,
-            table,
-          },
-          'Table columns config updated',
-        );
-
-        return c.json({
-          success: true,
-          message: 'Tables columns config updated successfully',
-          data: results.flat(),
-        });
+        return c.json({ success: true as const, ...result });
       } catch (error) {
-        logger.error(
-          {
-            schema,
-            table,
-            error,
-          },
-          'Error updating tables metadata',
-        );
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithSettingsError(c, error, {
+          fallback: 'SETTINGS_ACTION_FAILED',
+          logContext: { schema, table },
+        });
       }
     },
   );

@@ -42,7 +42,8 @@ export type CmsSection = (typeof CMS_SECTIONS)[number];
  * `GET /v1/account`. `members` y `systemSettings` son pestañas de Ajustes
  * (F2.7a): `account:select` y `system_setting` (lectura o escritura);
  * `permissions` (F2.7b), la pestaña Permisos: `role:select` o
- * `permission:select`.
+ * `permission:select`; `resourceSettings` (F2.7c), la pestaña Recursos:
+ * permiso de sistema `table` (`select` o `update`).
  */
 export type CmsSectionAccess = {
   users: boolean;
@@ -51,6 +52,7 @@ export type CmsSectionAccess = {
   members: boolean;
   systemSettings: boolean;
   permissions: boolean;
+  resourceSettings: boolean;
 };
 
 /** Ruta de la consola de administración de cada sección. */
@@ -108,6 +110,8 @@ export function getCmsSectionVisibility(params: {
  * | `members`        | `access.members` (permiso `account:select`)          |
  * | `permissions`    | `access.permissions` (`role:select` o                |
  * |                  | `permission:select`, F2.7b)                          |
+ * | `resources`      | `access.resourceSettings` (permiso de sistema        |
+ * |                  | `table`, F2.7c)                                      |
  *
  * Igual que con las secciones, ocultar una pestaña es solo ayuda visual: la
  * ruta la vuelve a comprobar (404) y la API responde 403 sin el permiso.
@@ -119,6 +123,7 @@ export const CMS_SETTINGS_TABS = [
   'authentication',
   'members',
   'permissions',
+  'resources',
 ] as const;
 
 export type CmsSettingsTab = (typeof CMS_SETTINGS_TABS)[number];
@@ -129,6 +134,7 @@ export const CMS_SETTINGS_TAB_PATHS = {
   authentication: '/admin/cms/settings/authentication',
   members: '/admin/cms/settings/members',
   permissions: '/admin/cms/settings/permissions',
+  resources: '/admin/cms/settings/resources',
 } as const satisfies Record<CmsSettingsTab, string>;
 
 /** Calcula qué pestañas de Ajustes puede ver el usuario. */
@@ -140,5 +146,6 @@ export function getCmsSettingsTabVisibility(
     authentication: access?.systemSettings === true,
     members: access?.members === true,
     permissions: access?.permissions === true,
+    resources: access?.resourceSettings === true,
   };
 }

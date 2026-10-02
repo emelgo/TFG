@@ -1,59 +1,40 @@
+/**
+ * `PUT /v1/tables` (F2.7c): visibilidad y orden de varias tablas a la vez
+ * (listado de Ajustes > Recursos). Todo o nada; exige `table:update`.
+ *
+ * [TFG] RF-09 · RNF-02.
+ */
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 
-import { getErrorMessage } from '@pymekit/cms-shared/utils';
-import { getLogger } from '@pymekit/shared/logger';
-
 import { UpdateTablesMetadataSchema } from '../schemas';
 import { createTableMetadataService } from '../services/table-metadata.service';
+import {
+  invalidSettingsInput,
+  respondWithSettingsError,
+} from './settings-responses';
 
-/**
- * Register the tables metadata update router
- * @param router
- */
 export function registerUpdateTablesRouter(router: Hono) {
   return router.put(
     '/v1/tables',
-    zValidator('json', UpdateTablesMetadataSchema),
+    zValidator(
+      'json',
+      UpdateTablesMetadataSchema,
+      invalidSettingsInput('SETTINGS'),
+    ),
     async (c) => {
-      const logger = await getLogger();
       const data = c.req.valid('json');
-
-      logger.info(
-        {
-          data,
-        },
-        'Updating tables metadata...',
-      );
 
       try {
         const service = createTableMetadataService(c);
+        const result = await service.updateTablesMetadata(data);
 
-        // update the resources
-        const results = await service.updateTablesMetadata(data);
-
-        logger.info(
-          {
-            data,
-          },
-          'Tables metadata updated',
-        );
-
-        return c.json({
-          success: true,
-          message: 'Tables metadata updated successfully',
-          data: results.flat(),
-        });
+        return c.json({ success: true as const, ...result });
       } catch (error) {
-        logger.error(
-          {
-            data,
-            error,
-          },
-          'Error updating tables metadata',
-        );
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithSettingsError(c, error, {
+          fallback: 'SETTINGS_ACTION_FAILED',
+          logContext: { tables: data.length },
+        });
       }
     },
   );

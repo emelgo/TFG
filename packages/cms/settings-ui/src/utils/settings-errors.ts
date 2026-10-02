@@ -15,6 +15,9 @@ const SETTINGS_ERROR_KEYS: Record<string, string> = {
     'errors.mfaVerificationRequired',
   [CMS_API_ERROR_CODES.SETTINGS_MFA_DISABLE_REQUIRES_ROOT]:
     'errors.mfaDisableRequiresRoot',
+  [CMS_API_ERROR_CODES.SETTINGS_RESOURCE_NOT_FOUND]: 'errors.resourceNotFound',
+  [CMS_API_ERROR_CODES.SETTINGS_RESOURCE_PROTECTED_SCHEMA]:
+    'errors.protectedSchema',
   [CMS_API_ERROR_CODES.MEMBER_PERMISSION_DENIED]: 'errors.permissionDenied',
   [CMS_API_ERROR_CODES.MEMBER_NOT_FOUND]: 'errors.memberNotFound',
   [CMS_API_ERROR_CODES.MEMBER_SELF_ACTION]: 'errors.selfAction',

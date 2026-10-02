@@ -1,139 +1,213 @@
+/**
+ * Servicio de Ajustes > Recursos del CMS (F2.7c): metadato de las tablas
+ * gestionadas (`cms.table_metadata`), configuración de columnas y
+ * relaciones, distribución de la ficha y sincronización con el catálogo.
+ *
+ * Seguridad (cambios respecto al código de partida):
+ *
+ *  - **Permiso explícito.** Toda operación comprueba antes el permiso de
+ *    sistema `table` (`select` o `update` para leer, `update` para escribir)
+ *    con `cms.has_admin_permission` dentro de la transacción del usuario. La
+ *    política RLS `update_table_metadata` lo vuelve a exigir, pero un
+ *    `UPDATE` rechazado por RLS no falla, solo no cambia filas: sin esta
+ *    comprobación la API respondía «éxito» sin hacer nada.
+ *  - **Esquemas protegidos.** Ni se listan, ni se configuran ni se
+ *    sincronizan tablas de `auth`, `vault`, `cms`, `storage`, `pg_*`…
+ *    (`isProtectedSchema`, la misma lista que `cms.validate_schema_access`).
+ *  - **Solo presentación.** Las columnas se fusionan campo a campo
+ *    (`mergeColumnsConfig`) en lugar de reemplazarse, y solo las que ya
+ *    existen; la distribución solo puede usar columnas de la tabla.
+ *  - **Errores estables.** Los fallos se lanzan como `SettingsError`
+ *    (`SETTINGS_*`); la ruta nunca devuelve el texto de PostgreSQL.
+ *
+ * [TFG] RF-09 · RNF-02 · ADR-014.
+ */
 import { and, eq, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
-import { z } from 'zod';
 
-import { getDrizzleSupabaseAdminClient } from '@pymekit/cms-supabase/client';
+import { isProtectedSchema } from '@pymekit/cms-data-explorer-core/protected-schemas';
+import { CMS_API_ERROR_CODES } from '@pymekit/cms-shared/error-codes';
+import {
+  type DrizzleSupabaseClient,
+  getDrizzleSupabaseAdminClient,
+} from '@pymekit/cms-supabase/client';
 import { tableMetadataInCms } from '@pymekit/cms-supabase/schema';
 import type {
   ColumnsConfig,
-  RecordLayoutConfig,
+  InlineRelationConfig,
   RelationConfig,
   TableUiConfig,
 } from '@pymekit/cms-types';
-import type { InlineRelationConfig } from '@pymekit/cms-types';
 
 import {
+  type SaveLayoutSchemaType,
   type TableMetadataSchemaType,
-  UpdateTableColumnsConfigSchema,
+  type UpdateTableColumnsConfigSchemaType,
   type UpdateTablesMetadataSchemaType,
+  getLayoutFieldNames,
+  mergeColumnsConfig,
 } from '../schemas';
+import { SettingsError } from '../utils/settings-errors';
 
-/**
- * Creates a ResourcesService instance.
- * @param c
- */
+/** Transacción de Drizzle con los *claims* del usuario. */
+type Tx = Parameters<Parameters<DrizzleSupabaseClient['runTransaction']>[0]>[0];
+
+/** Crea el servicio con el contexto de la petición. */
 export function createTableMetadataService(c: Context) {
   return new TableMetadataService(c);
 }
 
-/**
- * @name TableMetadataService
- * @description Service for managing table metadata
- */
+/** Lanza 403 si el esquema es protegido. */
+export function assertManageableSchema(schema: string) {
+  if (isProtectedSchema(schema)) {
+    throw new SettingsError(
+      CMS_API_ERROR_CODES.SETTINGS_RESOURCE_PROTECTED_SCHEMA,
+      `Protected schema: ${schema}`,
+    );
+  }
+}
+
+function notFound(schema: string, table: string) {
+  return new SettingsError(
+    CMS_API_ERROR_CODES.SETTINGS_RESOURCE_NOT_FOUND,
+    `Table metadata not found: ${schema}.${table}`,
+  );
+}
+
+function byTable(schema: string, table: string) {
+  return and(
+    eq(tableMetadataInCms.schemaName, schema),
+    eq(tableMetadataInCms.tableName, table),
+  );
+}
+
 class TableMetadataService {
   constructor(private readonly context: Context) {}
 
-  /**
-   * Update the columns config for a table
-   * @param params - The parameters for the update
-   * @param params.table - The table name
-   * @param params.schema - The schema name
-   * @param params.data - The data to update
-   * @returns The updated columns config
-   */
-  async updateTableColumnsConfig(params: {
-    table: string;
-    schema: string;
-    data: z.infer<typeof UpdateTableColumnsConfigSchema>;
-  }) {
+  /** Lo que el usuario puede hacer en Ajustes > Recursos. */
+  async getPermissions() {
     const client = this.context.get('drizzle');
 
-    return client.runTransaction(async (tx) => {
-      return tx
-        .update(tableMetadataInCms)
-        .set({
-          columnsConfig: sql`${tableMetadataInCms.columnsConfig} || ${JSON.stringify(params.data)}`,
-          updatedAt: new Date().toISOString(),
+    return client.runTransaction((tx: Tx) => this.readPermissions(tx));
+  }
+
+  /** Tablas gestionadas (sin las de esquemas protegidos) y permisos. */
+  async getTables() {
+    const client = this.context.get('drizzle');
+
+    return client.runTransaction(async (tx: Tx) => {
+      const permissions = await this.requirePermission(tx, 'read');
+
+      const rows = await tx
+        .select({
+          schemaName: tableMetadataInCms.schemaName,
+          tableName: tableMetadataInCms.tableName,
+          displayName: tableMetadataInCms.displayName,
+          description: tableMetadataInCms.description,
+          isVisible: tableMetadataInCms.isVisible,
+          isSearchable: tableMetadataInCms.isSearchable,
+          ordering: tableMetadataInCms.ordering,
         })
-        .where(
-          and(
-            eq(tableMetadataInCms.tableName, params.table),
-            eq(tableMetadataInCms.schemaName, params.schema),
-          ),
-        )
-        .returning();
+        .from(tableMetadataInCms);
+
+      const tables = rows.filter((row) => !isProtectedSchema(row.schemaName));
+
+      return { tables, permissions };
     });
   }
 
-  /**
-   * Update the metadata for a table
-   * @param params - The parameters for the update
-   * @param params.table - The table name
-   * @param params.schema - The schema name
-   * @param params.data - The data to update
-   * @returns The updated metadata
-   */
+  /** Metadato completo de una tabla. */
+  async getTableMetadata(params: { schema: string; table: string }) {
+    assertManageableSchema(params.schema);
+
+    const client = this.context.get('drizzle');
+
+    return client.runTransaction(async (tx: Tx) => {
+      const permissions = await this.requirePermission(tx, 'read');
+
+      const [row] = await tx
+        .select()
+        .from(tableMetadataInCms)
+        .where(byTable(params.schema, params.table))
+        .limit(1);
+
+      if (!row) {
+        throw notFound(params.schema, params.table);
+      }
+
+      const data = row as typeof row & {
+        columnsConfig: ColumnsConfig;
+        relationsConfig: RelationConfig[];
+        uiConfig: TableUiConfig;
+      };
+
+      return { data, permissions };
+    });
+  }
+
+  /** Cambia el metadato propio de una tabla. */
   async updateTableMetadata(params: {
-    table: string;
     schema: string;
+    table: string;
     data: TableMetadataSchemaType;
   }) {
+    assertManageableSchema(params.schema);
+
+    const { data } = params;
+    const payload: Partial<typeof tableMetadataInCms.$inferInsert> = {
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (data.display_name !== undefined)
+      payload.displayName = data.display_name;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.display_format !== undefined) {
+      payload.displayFormat = data.display_format;
+    }
+    if (data.is_visible !== undefined) payload.isVisible = data.is_visible;
+    if (data.is_searchable !== undefined) {
+      payload.isSearchable = data.is_searchable;
+    }
+    if (data.ordering !== undefined) payload.ordering = data.ordering;
+
     const client = this.context.get('drizzle');
 
-    const payload: Partial<typeof tableMetadataInCms.$inferInsert> = {};
+    return client.runTransaction(async (tx: Tx) => {
+      await this.requirePermission(tx, 'update');
 
-    if (params.data.is_visible !== undefined) {
-      payload.isVisible = params.data.is_visible;
-    }
-
-    if (params.data.is_searchable !== undefined) {
-      payload.isSearchable = params.data.is_searchable;
-    }
-
-    if (params.data.display_name !== undefined) {
-      payload.displayName = params.data.display_name;
-    }
-
-    if (params.data.description !== undefined) {
-      payload.description = params.data.description;
-    }
-
-    if (params.data.display_format) {
-      payload.displayFormat = params.data.display_format;
-    }
-
-    if (params.data.ordering !== undefined) {
-      payload.ordering = params.data.ordering;
-    }
-
-    return client.runTransaction(async (tx) => {
-      return tx
+      const rows = await tx
         .update(tableMetadataInCms)
-        .set({
-          ...payload,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(tableMetadataInCms.tableName, params.table),
-            eq(tableMetadataInCms.schemaName, params.schema),
-          ),
-        )
-        .returning();
+        .set(payload)
+        .where(byTable(params.schema, params.table))
+        .returning({ schemaName: tableMetadataInCms.schemaName });
+
+      if (rows.length === 0) {
+        throw notFound(params.schema, params.table);
+      }
+
+      return rows;
     });
   }
 
   /**
-   * Update the metadata for a table
-   * @param resources - The resources to update
-   * @returns The updated metadata
+   * Visibilidad y orden de varias tablas. Es todo o nada: si alguna no
+   * existe (o el usuario no la ve) se deshace la transacción.
    */
   async updateTablesMetadata(resources: UpdateTablesMetadataSchemaType) {
+    for (const resource of resources) {
+      assertManageableSchema(resource.schema);
+    }
+
     const client = this.context.get('drizzle');
 
-    // Update each resource in the database
-    return client.runTransaction(async (tx) => {
-      const commands = resources.map((resource) => {
+    return client.runTransaction(async (tx: Tx) => {
+      await this.requirePermission(tx, 'update');
+
+      let updated = 0;
+
+      // En serie: una transacción de Postgres no admite consultas en
+      // paralelo por la misma conexión.
+      for (const resource of resources) {
         const payload: Partial<typeof tableMetadataInCms.$inferInsert> = {
           updatedAt: new Date().toISOString(),
         };
@@ -146,213 +220,159 @@ class TableMetadataService {
           payload.ordering = resource.ordering;
         }
 
-        return tx
+        const rows = await tx
           .update(tableMetadataInCms)
           .set(payload)
-          .where(
-            and(
-              eq(tableMetadataInCms.tableName, resource.table),
-              eq(tableMetadataInCms.schemaName, resource.schema),
-            ),
-          )
-          .returning();
-      });
+          .where(byTable(resource.schema, resource.table))
+          .returning({ tableName: tableMetadataInCms.tableName });
 
-      return await Promise.all(commands);
+        if (rows.length === 0) {
+          throw notFound(resource.schema, resource.table);
+        }
+
+        updated += rows.length;
+      }
+
+      return { updated };
     });
   }
 
-  /**
-   * Handler for GET /api/tables
-   * Returns a list of all tables that the user has permission to see
-   * @returns The tables
-   */
-  async getTables() {
-    const client = this.context.get('drizzle');
-
-    return client.runTransaction((tx) => {
-      return tx
-        .select({
-          schemaName: tableMetadataInCms.schemaName,
-          tableName: tableMetadataInCms.tableName,
-          displayName: tableMetadataInCms.displayName,
-          isVisible: tableMetadataInCms.isVisible,
-          ordering: tableMetadataInCms.ordering,
-        })
-        .from(tableMetadataInCms);
-    });
-  }
-
-  /**
-   * Handler for GET /api/tables/:schema/:table
-   * Returns columns and table data for a table
-   *
-   * @param params - The parameters for the query
-   * @param params.schema - The schema name
-   * @param params.table - The table name
-   * @returns The table and columns
-   *
-   * @example
-   * ```ts
-   * const { table, columns } = await getTableMetadata({ schema: 'public', table: 'users' });
-   * ```
-   */
-  async getTableMetadata(params: { schema: string; table: string }) {
-    const client = this.context.get('drizzle');
-
-    return client.runTransaction(async (tx) => {
-      return tx
-        .select()
-        .from(tableMetadataInCms)
-        .where(
-          and(
-            eq(tableMetadataInCms.schemaName, params.schema),
-            eq(tableMetadataInCms.tableName, params.table),
-          ),
-        )
-        .limit(1)
-        .then((data) => {
-          const table = data[0];
-
-          if (!table) {
-            throw new Error(`Table ${params.table} not found`);
-          }
-
-          return table as typeof tableMetadataInCms.$inferSelect & {
-            columnsConfig: ColumnsConfig;
-            relations: RelationConfig[];
-            uiConfig: TableUiConfig;
-          };
-        });
-    });
-  }
-
-  /**
-   * Sync managed tables metadata by invoking the database function.
-   * @param params - Optional schema and table to sync
-   * @returns The updated tables metadata
-   */
-  async syncManagedTables(params: {
+  /** Aplica cambios de presentación a columnas existentes. */
+  async updateTableColumnsConfig(params: {
     schema: string;
-    table: string | undefined;
+    table: string;
+    data: UpdateTableColumnsConfigSchemaType;
   }) {
+    assertManageableSchema(params.schema);
+
     const client = this.context.get('drizzle');
+
+    return client.runTransaction(async (tx: Tx) => {
+      await this.requirePermission(tx, 'update');
+
+      const [current] = await tx
+        .select({ columnsConfig: tableMetadataInCms.columnsConfig })
+        .from(tableMetadataInCms)
+        .where(byTable(params.schema, params.table))
+        .limit(1);
+
+      if (!current) {
+        throw notFound(params.schema, params.table);
+      }
+
+      const merged = mergeColumnsConfig(
+        (current.columnsConfig ?? {}) as Record<
+          string,
+          Record<string, unknown>
+        >,
+        params.data,
+      );
+
+      if (!merged) {
+        throw new SettingsError(
+          CMS_API_ERROR_CODES.SETTINGS_INVALID_DATA,
+          'Unknown column in columns config update',
+        );
+      }
+
+      await tx
+        .update(tableMetadataInCms)
+        .set({ columnsConfig: merged, updatedAt: new Date().toISOString() })
+        .where(byTable(params.schema, params.table));
+
+      return { columns: Object.keys(params.data) };
+    });
+  }
+
+  /**
+   * Sincroniza el metadato de un esquema (o de una tabla) con el catálogo
+   * de PostgreSQL. `cms.sync_managed_tables` solo la puede ejecutar el rol
+   * de servicio (lee `information_schema` de cualquier esquema), así que se
+   * usa el cliente administrador, pero **solo después** de comprobar el
+   * permiso `table:update` del usuario y que el esquema no sea protegido.
+   * (La función SQL no los rechaza por sí misma: el *seed* la usa con el rol
+   * `postgres` para registrar `auth.users` para el explorador de usuarios.)
+   */
+  async syncManagedTables(params: { schema: string; table?: string }) {
+    assertManageableSchema(params.schema);
+
+    const client = this.context.get('drizzle');
+
+    await client.runTransaction((tx: Tx) =>
+      this.requirePermission(tx, 'update'),
+    );
+
     const adminClient = getDrizzleSupabaseAdminClient();
 
-    return client.runTransaction(async (tx) => {
-      // check permissions using the authed client
-      const hasPermission = await tx
-        .execute(
-          sql`select cms.has_admin_permission (
-          'table'::cms.system_resource,
-          'update'::cms.system_action
-          )`,
-        )
-        .then((data) => {
-          return (data[0]?.['has_admin_permission'] as boolean) ?? false;
-        });
+    if (params.table) {
+      await adminClient.execute(
+        sql`select cms.sync_managed_tables(${params.schema}, ${params.table})`,
+      );
+    } else {
+      await adminClient.execute(
+        sql`select cms.sync_managed_tables(${params.schema})`,
+      );
+    }
 
-      // if the user does not have permission, throw an error
-      if (!hasPermission) {
-        throw new Error('You do not have permission to sync managed tables');
-      }
-
-      if (params.table) {
-        // invoke the database function using the admin client (service role)
-        return adminClient.execute(
-          sql`select cms.sync_managed_tables(${params?.schema}, ${params?.table})`,
-        );
-      } else {
-        // invoke the database function using the admin client (service role)
-        return adminClient.execute(
-          sql`select cms.sync_managed_tables(${params?.schema})`,
-        );
-      }
-    });
+    return { schema: params.schema, table: params.table ?? null };
   }
 
-  /**
-   * Save layout configuration for a table
-   * @param params - The parameters for saving the layout
-   * @param params.schema - The schema name
-   * @param params.table - The table name
-   * @param params.layout - The layout configuration
-   * @returns The updated ui config
-   */
+  /** Guarda (o borra, con `null`) la distribución de la ficha. */
   async saveLayout(params: {
     schema: string;
     table: string;
-    layout: RecordLayoutConfig | null | undefined;
+    layout: SaveLayoutSchemaType['layout'];
   }) {
+    assertManageableSchema(params.schema);
+
     const client = this.context.get('drizzle');
 
-    return client.runTransaction(async (tx) => {
-      // First get the current uiConfig
-      const current = await tx
-        .select({ uiConfig: tableMetadataInCms.uiConfig })
+    return client.runTransaction(async (tx: Tx) => {
+      await this.requirePermission(tx, 'update');
+
+      const [current] = await tx
+        .select({
+          uiConfig: tableMetadataInCms.uiConfig,
+          columnsConfig: tableMetadataInCms.columnsConfig,
+        })
         .from(tableMetadataInCms)
-        .where(
-          and(
-            eq(tableMetadataInCms.tableName, params.table),
-            eq(tableMetadataInCms.schemaName, params.schema),
-          ),
-        )
+        .where(byTable(params.schema, params.table))
         .limit(1);
 
-      const currentConfig = current[0]?.uiConfig || {};
+      if (!current) {
+        throw notFound(params.schema, params.table);
+      }
 
-      // Update the uiConfig with the new layout
-      const updatedConfig = {
-        ...currentConfig,
-        recordLayout: params.layout || null,
+      const columns = new Set(
+        Object.keys((current.columnsConfig ?? {}) as Record<string, unknown>),
+      );
+
+      for (const field of getLayoutFieldNames(params.layout)) {
+        if (!columns.has(field)) {
+          throw new SettingsError(
+            CMS_API_ERROR_CODES.SETTINGS_INVALID_DATA,
+            'Layout references an unknown column',
+          );
+        }
+      }
+
+      const uiConfig = {
+        ...((current.uiConfig ?? {}) as Record<string, unknown>),
+        recordLayout: params.layout,
       };
 
-      return tx
+      await tx
         .update(tableMetadataInCms)
-        .set({
-          uiConfig: updatedConfig,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(tableMetadataInCms.tableName, params.table),
-            eq(tableMetadataInCms.schemaName, params.schema),
-          ),
-        )
-        .returning();
-    });
-  }
+        .set({ uiConfig, updatedAt: new Date().toISOString() })
+        .where(byTable(params.schema, params.table));
 
-  async getPermissions(): Promise<{
-    canUpdate: boolean;
-  }> {
-    const client = this.context.get('drizzle');
-
-    return client.runTransaction(async (tx) => {
-      return tx
-        .execute(
-          sql`select cms.has_admin_permission (
-      'table'::cms.system_resource,
-      'update'::cms.system_action
-      )`,
-        )
-        .then((data) => {
-          return {
-            canUpdate: (data[0]?.['has_admin_permission'] as boolean) ?? false,
-          };
-        });
+      return { saved: params.layout !== null };
     });
   }
 
   /**
-   * Update inline_config for specific relations in relations_config.
-   * Merges inline_config into existing relations without replacing other fields.
-   *
-   * @param params - The parameters for the update
-   * @param params.schema - The schema name
-   * @param params.table - The table name
-   * @param params.updates - Array of relation updates with inline_config
-   * @returns The updated table metadata
+   * Activa o etiqueta secciones de relaciones existentes
+   * (`relations_config[].inline_config`), conservando el resto de campos.
    */
   async updateRelationsConfig(params: {
     schema: string;
@@ -365,27 +385,27 @@ class TableMetadataService {
       inline_config: InlineRelationConfig;
     }>;
   }) {
+    assertManageableSchema(params.schema);
+
     const client = this.context.get('drizzle');
 
-    return client.runTransaction(async (tx) => {
-      // 1. Get current relations_config
-      const current = await tx
+    return client.runTransaction(async (tx: Tx) => {
+      await this.requirePermission(tx, 'update');
+
+      const [current] = await tx
         .select({ relationsConfig: tableMetadataInCms.relationsConfig })
         .from(tableMetadataInCms)
-        .where(
-          and(
-            eq(tableMetadataInCms.schemaName, params.schema),
-            eq(tableMetadataInCms.tableName, params.table),
-          ),
-        )
+        .where(byTable(params.schema, params.table))
         .limit(1);
 
-      const currentRelations = (current[0]?.relationsConfig ??
-        []) as RelationConfig[];
+      if (!current) {
+        throw notFound(params.schema, params.table);
+      }
 
-      // 2. Merge inline_config updates into matching relations
+      const relations = (current.relationsConfig ?? []) as RelationConfig[];
       let matchedCount = 0;
-      const updatedRelations = currentRelations.map((relation) => {
+
+      const updated = relations.map((relation) => {
         const update = params.updates.find(
           (u) =>
             u.source_column === relation.source_column &&
@@ -394,41 +414,64 @@ class TableMetadataService {
             u.target_column === relation.target_column,
         );
 
-        if (update) {
-          matchedCount += 1;
-          // Merge inline_config to preserve existing fields (e.g., permissions, max_visible_rows)
-          return {
-            ...relation,
-            inline_config: {
-              ...relation.inline_config,
-              ...update.inline_config,
-            },
-          };
+        if (!update) {
+          return relation;
         }
 
-        return relation;
+        matchedCount += 1;
+
+        return {
+          ...relation,
+          inline_config: { ...relation.inline_config, ...update.inline_config },
+        };
       });
 
-      if (matchedCount === 0) {
-        return { matchedCount, data: [] };
+      if (matchedCount !== params.updates.length) {
+        throw new SettingsError(
+          CMS_API_ERROR_CODES.SETTINGS_INVALID_DATA,
+          'Relations update does not match the table relations',
+        );
       }
 
-      // 3. Update relations_config
-      const data = await tx
+      await tx
         .update(tableMetadataInCms)
-        .set({
-          relationsConfig: updatedRelations,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(tableMetadataInCms.tableName, params.table),
-            eq(tableMetadataInCms.schemaName, params.schema),
-          ),
-        )
-        .returning();
+        .set({ relationsConfig: updated, updatedAt: new Date().toISOString() })
+        .where(byTable(params.schema, params.table));
 
-      return { matchedCount, data };
+      return { matchedCount };
     });
+  }
+
+  private async readPermissions(tx: Tx) {
+    const rows = await tx.execute(
+      sql`select
+            cms.has_admin_permission('table'::cms.system_resource, 'select'::cms.system_action) as can_select,
+            cms.has_admin_permission('table'::cms.system_resource, 'update'::cms.system_action) as can_update`,
+    );
+
+    const row = rows[0] as
+      | { can_select?: boolean | null; can_update?: boolean | null }
+      | undefined;
+
+    const canUpdate = row?.can_update === true;
+
+    return { canRead: canUpdate || row?.can_select === true, canUpdate };
+  }
+
+  /** Exige el permiso de sistema `table` para leer o para escribir. */
+  private async requirePermission(tx: Tx, need: 'read' | 'update') {
+    const permissions = await this.readPermissions(tx);
+
+    const allowed =
+      need === 'read' ? permissions.canRead : permissions.canUpdate;
+
+    if (!allowed) {
+      throw new SettingsError(
+        CMS_API_ERROR_CODES.SETTINGS_PERMISSION_DENIED,
+        `Missing table:${need === 'read' ? 'select' : 'update'} permission`,
+      );
+    }
+
+    return permissions;
   }
 }

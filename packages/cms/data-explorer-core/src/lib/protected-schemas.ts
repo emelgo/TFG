@@ -38,5 +38,9 @@ export const PROTECTED_SCHEMAS = new Set([
  * table reads/writes.
  */
 export function isProtectedSchema(schema: string): boolean {
-  return PROTECTED_SCHEMAS.has(schema.toLowerCase().trim());
+  const normalized = schema.toLowerCase().trim();
+
+  // [TFG] RNF-02 (F2.7c): igual que `cms.validate_schema_access`, cualquier
+  // esquema `pg_*` (catálogos de PostgreSQL) también es protegido.
+  return PROTECTED_SCHEMAS.has(normalized) || normalized.startsWith('pg_');
 }

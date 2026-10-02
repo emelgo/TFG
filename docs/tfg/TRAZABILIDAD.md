@@ -34,7 +34,7 @@ _Última actualización: 2026-09-30 (F2.6b cerrada)._
 ## Etiquetas `[TFG]` en el código
 
 <!-- tfg-tags:inicio -->
-_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No se edita a mano._
+_Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (249 etiquetas). No se edita a mano._
 
 | Fichero:línea | Referencias | Qué ilustra |
 |---|---|---|
@@ -51,6 +51,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No 
 | `apps/e2e/tests/cms/cms-settings-general.spec.ts:12` | RF-09, ADR-013 | RF-09 · ADR-013. |
 | `apps/e2e/tests/cms/cms-settings-members.spec.ts:22` | RF-09, RF-10, RNF-02, ADR-014 | RF-09 · RF-10 · RNF-02 · ADR-014. |
 | `apps/e2e/tests/cms/cms-settings-permissions.spec.ts:24` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. |
+| `apps/e2e/tests/cms/cms-settings-resources.spec.ts:18` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `apps/e2e/tests/cms/cms-storage-explorer.spec.ts:24` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `apps/e2e/tests/cms/cms-ui.spec.ts:17` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014. |
 | `apps/e2e/tests/cms/cms-users-explorer.spec.ts:24` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
@@ -63,6 +64,7 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No 
 | `apps/web/src/lib/blog/blog.service.server.ts:17` | RF-01, RNF-02, ADR-017 | RF-01 · RNF-02 · ADR-017: la web lee el contenido gestionado desde el |
 | `apps/web/src/lib/cms/cms-access.ts:17` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014: defensa en profundidad; la interfaz nunca es |
 | `apps/web/src/lib/cms/cms-fetch.ts:28` | RF-09, ADR-011 | RF-09 · ADR-011: una sola aplicación sirve la interfaz y la API del |
+| `apps/web/src/lib/cms/cms-resource-settings.ts:11` | RF-09, ADR-013 | RF-09 · ADR-013. |
 | `apps/web/src/routes/_marketing/blog/$slug.tsx:13` | RF-01, RNF-02, ADR-017 | RF-01 · RNF-02 · ADR-017. |
 | `apps/web/src/routes/_marketing/blog/index.tsx:10` | RF-01, ADR-017 | RF-01 · ADR-017: el contenido gestionado desde el CMS se publica en |
 | `apps/web/src/routes/admin/cms/audit-logs/$id.tsx:11` | RF-10, ADR-011, ADR-013 | RF-10 · ADR-011 · ADR-013. |
@@ -83,6 +85,9 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No 
 | `apps/web/src/routes/admin/cms/settings/permissions/groups/$id.tsx:10` | RF-09, ADR-014, ADR-015 | RF-09 · ADR-014 · ADR-015. |
 | `apps/web/src/routes/admin/cms/settings/permissions/index.tsx:11` | RF-09, ADR-013, ADR-014 | RF-09 · ADR-013 · ADR-014. |
 | `apps/web/src/routes/admin/cms/settings/permissions/roles/$id.tsx:10` | RF-09, ADR-014, ADR-015 | RF-09 · ADR-014 · ADR-015. |
+| `apps/web/src/routes/admin/cms/settings/resources/$schema/$table/index.tsx:12` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013. |
+| `apps/web/src/routes/admin/cms/settings/resources/$schema/$table/layout.tsx:10` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013. |
+| `apps/web/src/routes/admin/cms/settings/resources/index.tsx:11` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013. |
 | `apps/web/src/routes/admin/cms/settings/route.tsx:11` | RF-09, ADR-014, ADR-016 | RF-09 · ADR-014 · ADR-016: interfaz filtrada por el RBAC del CMS |
 | `apps/web/src/routes/admin/cms/storage/$bucket.tsx:12` | RF-09, RNF-02, ADR-011, ADR-013 | RF-09 · RNF-02 · ADR-011 · ADR-013. |
 | `apps/web/src/routes/admin/cms/storage/index.tsx:8` | RF-09, ADR-011, ADR-013 | RF-09 · ADR-011 · ADR-013. |
@@ -198,9 +203,10 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No 
 | `packages/cms/auth/src/api/routes/index.ts:26` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014: acceso al CMS integrado en la consola de |
 | `packages/cms/auth/src/api/routes/index.ts:153` | RNF-02 | RNF-02 · Falla en cerrado (BITACORA B-23): si no se puede comprobar el |
 | `packages/cms/auth/src/api/services/__tests__/build-parameterized-statement.test.ts:9` | RNF-02 | RNF-02. |
-| `packages/cms/auth/src/api/services/authorization.service.ts:399` | RF-09, ADR-014 | RF-09 · ADR-014: la visibilidad de la interfaz se deriva del RBAC |
-| `packages/cms/auth/src/api/services/authorization.service.ts:557` | RNF-02 | RNF-02 · Corrección de seguridad de PymeKit (BITACORA B-24). |
+| `packages/cms/auth/src/api/services/authorization.service.ts:402` | RF-09, ADR-014 | RF-09 · ADR-014: la visibilidad de la interfaz se deriva del RBAC |
+| `packages/cms/auth/src/api/services/authorization.service.ts:566` | RNF-02 | RNF-02 · Corrección de seguridad de PymeKit (BITACORA B-24). |
 | `packages/cms/dashboards/src/lib/filters/filter-item.types.ts:7` | ADR-011 | ADR-011 |
+| `packages/cms/data-explorer-core/src/lib/protected-schemas.ts:43` | RNF-02 | RNF-02 (F2.7c): igual que `cms.validate_schema_access`, cualquier |
 | `packages/cms/data-explorer-core/src/services/table-view-service.ts:447` | RNF-02 | RNF-02 · Corrección de PymeKit (F2.6b): las consultas de las |
 | `packages/cms/data-explorer-core/src/utils/display-format-parser.ts:25` | — | Corrección de PymeKit |
 | `packages/cms/data-explorer-core/src/utils/record-identity.ts:15` | RNF-02 | RNF-02: una edición o un borrado nunca afecta a más de un registro. |
@@ -226,18 +232,33 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No 
 | `packages/cms/resources/src/api/services/global-search.service.ts:18` | RF-09, RNF-02 | RF-09 · RNF-02 (bitácora B-32). |
 | `packages/cms/resources/src/api/utils/global-search.ts:15` | RNF-02, RF-09 | RNF-02 · RF-09. |
 | `packages/cms/settings-ui/src/components/permissions/permissions-settings-view.tsx:12` | RF-09, ADR-013, ADR-014 | RF-09 · ADR-013 · ADR-014: pantalla portada y reescrita con la pila |
+| `packages/cms/settings-ui/src/components/resources/record-layout-designer.tsx:19` | RF-09, ADR-013 | RF-09 · ADR-013. |
+| `packages/cms/settings-ui/src/components/resources/resource-settings-view.tsx:16` | RF-09, ADR-013, ADR-014 | RF-09 · ADR-013 · ADR-014. |
+| `packages/cms/settings-ui/src/components/resources/resources-settings-view.tsx:11` | RF-09, ADR-013, ADR-014 | RF-09 · ADR-013 · ADR-014. |
+| `packages/cms/settings-ui/src/utils/layout-designer.ts:17` | RF-09, ADR-013 | RF-09 · ADR-013. |
 | `packages/cms/settings-ui/src/utils/rbac-forms.ts:12` | RF-09, RNF-02, ADR-013, ADR-015 | RF-09 · RNF-02 · ADR-013 · ADR-015. Tests en |
+| `packages/cms/settings-ui/src/utils/resource-settings.ts:11` | RF-09, ADR-013 | RF-09 · ADR-013. |
 | `packages/cms/settings/src/api/routes/get-account-route.ts:23` | RF-09, ADR-014 | RF-09 · ADR-014. |
 | `packages/cms/settings/src/api/routes/get-members-route.ts:20` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
+| `packages/cms/settings/src/api/routes/get-tables-metadata-route.ts:10` | RF-09, RNF-02 | RF-09 · RNF-02. |
 | `packages/cms/settings/src/api/routes/mfa-configuration.ts:20` | RNF-02, ADR-014, ADR-016 | RNF-02 · ADR-014 · ADR-016. |
+| `packages/cms/settings/src/api/routes/save-layout-route.ts:8` | RF-09, RNF-02 | RF-09 · RNF-02. |
 | `packages/cms/settings/src/api/routes/settings-responses.ts:8` | RNF-02 | RNF-02 (bitácora B-20). |
+| `packages/cms/settings/src/api/routes/sync-managed-tables-route.ts:7` | RF-09, RNF-02 | RF-09 · RNF-02. |
 | `packages/cms/settings/src/api/routes/update-preferences-route.ts:12` | RF-09, RNF-02 | RF-09 · RNF-02. |
+| `packages/cms/settings/src/api/routes/update-relations-config-route.ts:6` | RF-09, RNF-02 | RF-09 · RNF-02. |
+| `packages/cms/settings/src/api/routes/update-table-columns-config.ts:6` | RF-09, RNF-02 | RF-09 · RNF-02. |
+| `packages/cms/settings/src/api/routes/update-table-metadata-route.ts:6` | RF-09, RNF-02 | RF-09 · RNF-02. |
+| `packages/cms/settings/src/api/routes/update-tables-metadata-route.ts:5` | RF-09, RNF-02 | RF-09 · RNF-02. |
+| `packages/cms/settings/src/api/schemas.ts:15` | RF-09, RNF-02 | RF-09 · RNF-02 (bitácora: endurecimiento de F2.7c). |
 | `packages/cms/settings/src/api/services/account.service.ts:10` | RF-09 | RF-09 · F2.7a. |
 | `packages/cms/settings/src/api/services/configuration.service.ts:9` | RF-09, RNF-02 | RF-09 · RNF-02. |
 | `packages/cms/settings/src/api/services/members.service.ts:29` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
+| `packages/cms/settings/src/api/services/table-metadata.service.ts:23` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `packages/cms/settings/src/api/utils/settings-errors.ts:11` | RNF-02 | RNF-02 Seguridad: los errores internos no llegan al cliente |
 | `packages/cms/shared/src/utils/preferences.ts:12` | RF-09 | RF-09 · F2.7a. |
 | `packages/cms/shared/src/utils/rbac.ts:13` | RF-09, RNF-02, ADR-015 | RF-09 · RNF-02 · ADR-015. |
+| `packages/cms/shared/src/utils/resource-config.ts:13` | RF-09, RNF-02 | RF-09 · RNF-02: la configuración de una tabla no admite JSON libre, |
 | `packages/cms/shared/src/utils/storage-paths.ts:17` | RNF-02 | RNF-02 Seguridad: validación de rutas antes de usar el cliente de |
 | `packages/cms/storage-explorer/src/api/routes/file-operations-route.ts:16` | RF-09, RNF-02 | RF-09 · RNF-02. |
 | `packages/cms/storage-explorer/src/api/routes/get-bucket-contents-route.ts:11` | RF-09, RNF-02 | RF-09 · RNF-02. |
@@ -251,8 +272,9 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (227 etiquetas). No 
 | `packages/cms/ui-core/src/api.ts:16` | RF-09, ADR-011 | RF-09 · ADR-011: interfaz y API del CMS comunicadas por RPC tipado. |
 | `packages/cms/ui-core/src/audit-logs-api.ts:14` | RF-09, RF-10, ADR-011 | RF-09 · RF-10 · ADR-011. |
 | `packages/cms/ui-core/src/permissions-api.ts:15` | RF-09, ADR-011, ADR-015 | RF-09 · ADR-011 · ADR-015. |
+| `packages/cms/ui-core/src/resource-settings-api.ts:11` | RF-09, ADR-011 | RF-09 · ADR-011. |
 | `packages/cms/ui-core/src/sections.ts:25` | RF-09, ADR-014 | RF-09 · ADR-014: la interfaz refleja el RBAC propio del CMS. |
-| `packages/cms/ui-core/src/sections.ts:115` | RF-09, ADR-014, ADR-016 | RF-09 · ADR-014 · ADR-016. |
+| `packages/cms/ui-core/src/sections.ts:119` | RF-09, ADR-014, ADR-016 | RF-09 · ADR-014 · ADR-016. |
 | `packages/cms/ui-core/src/settings-api.ts:14` | RF-09, ADR-011 | RF-09 · ADR-011. |
 | `packages/cms/ui-core/src/storage-api.ts:10` | RF-09, ADR-011 | RF-09 · ADR-011. |
 | `packages/cms/ui-core/src/users-api.ts:12` | RF-09, ADR-011 | RF-09 · ADR-011. |

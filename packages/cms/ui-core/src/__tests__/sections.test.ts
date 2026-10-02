@@ -28,6 +28,7 @@ describe('getCmsSectionVisibility', () => {
         members: false,
         systemSettings: false,
         permissions: false,
+        resourceSettings: false,
       },
       visibleResourcesCount: 2,
     });
@@ -51,6 +52,7 @@ describe('getCmsSectionVisibility', () => {
         members: true,
         systemSettings: true,
         permissions: true,
+        resourceSettings: true,
       },
       visibleResourcesCount: 0,
     });
@@ -68,6 +70,7 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
     members: false,
     systemSettings: false,
     permissions: false,
+    resourceSettings: false,
   };
 
   it('sin acceso al CMS no muestra ninguna pestaña', () => {
@@ -76,6 +79,7 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
       authentication: false,
       members: false,
       permissions: false,
+      resources: false,
     });
   });
 
@@ -85,6 +89,7 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
       authentication: false,
       members: false,
       permissions: false,
+      resources: false,
     });
   });
 
@@ -95,6 +100,11 @@ describe('getCmsSettingsTabVisibility (F2.7a)', () => {
     expect(
       getCmsSettingsTabVisibility({ ...base, systemSettings: true })
         .authentication,
+    ).toBe(true);
+    // F2.7c: Recursos con el permiso de sistema `table`.
+    expect(
+      getCmsSettingsTabVisibility({ ...base, resourceSettings: true })
+        .resources,
     ).toBe(true);
     // F2.7b: Permisos con `role:select` o `permission:select`.
     expect(

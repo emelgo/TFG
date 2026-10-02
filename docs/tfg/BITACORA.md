@@ -63,6 +63,7 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-46 | 2026-09-30 | F3 (adelantada) | calidad | heredado | Marca visual en imágenes que ningún control automático puede leer | Media |
 | B-47 | 2026-09-30 | F2.7b | seguridad | heredado | Escape de denegaciones explícitas mediante delegación a una cuenta títere | Alta |
 | B-48 | 2026-09-30 | F2.7b | proceso | propio | Consumo de tokens excesivo por la verificación con agentes | — |
+| B-49 | 2026-10-02 | F2.7c | calidad | heredado | Configuración de recursos: errores en bruto y «éxito» sin cambios | Baja |
 
 ---
 
@@ -360,3 +361,8 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Qué pasó:** para cada paso se lanzaba un agente implementador (400.000–650.000 tokens), otro de revisión de seguridad y a veces un refutador, y en cada paso se ejecutaba la suite E2E completa. El autor lo consideró excesivo y pidió parar.
 - **Solución:** pausa del desarrollo y paso a un «modo ahorro»: un solo agente por paso, E2E completos solo al cerrar cada fase, `/rls-review` solo en cambios importantes de permisos y sin refutador, y cambios pequeños hechos directamente.
 - **Lección:** la verificación exhaustiva encontró brechas reales (B-45, B-47), pero su coste debe ajustarse al proyecto. El nivel de revisión se decide por riesgo, no por defecto. Es un dato útil para la memoria: coste frente a beneficio de desarrollar asistido por agentes.
+
+## B-49 · Configuración de recursos: errores en bruto y «éxito» sin cambios
+- **Qué pasó:** las rutas heredadas de configuración de tablas respondían 500 con el texto del error de la BD. Además, una escritura bloqueada por RLS devolvía «éxito» aunque no había cambiado ninguna fila. Se aceptaba `metadata` libre en el diseño de fichas, y la combinación de la configuración de columnas podía sobrescribir la marca de clave primaria, el tipo de dato o los valores de los enums.
+- **Solución:** comprobaciones de permiso explícitas (`table:select` / `table:update`), 404 cuando no cambia nada, Zod estricto con límites de tamaño, combinación campo a campo, esquemas protegidos (incluidos `pg_*`) rechazados con 403 y códigos de error estables.
+- **Lección:** «sin error» no es «éxito». Una escritura que RLS filtra en silencio afecta a 0 filas, y hay que comprobarlo.

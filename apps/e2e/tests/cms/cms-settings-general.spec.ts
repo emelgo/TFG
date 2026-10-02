@@ -48,6 +48,7 @@ test.describe('Ajustes > General: super-admin con MFA', () => {
       'authentication',
       'members',
       'permissions',
+      'resources',
     ]);
   });
 

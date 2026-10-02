@@ -1,37 +1,38 @@
+/**
+ * `POST /v1/tables/sync` (F2.7c): vuelve a leer del catálogo las tablas de
+ * un esquema (o una sola) y actualiza su metadato. Exige `table:update`;
+ * los esquemas protegidos responden 403
+ * `SETTINGS_RESOURCE_PROTECTED_SCHEMA` sin llegar a la base de datos.
+ *
+ * [TFG] RF-09 · RNF-02.
+ */
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 
-import { getErrorMessage } from '@pymekit/cms-shared/utils';
-import { getLogger } from '@pymekit/shared/logger';
-
 import { SyncTablesSchema } from '../schemas';
 import { createTableMetadataService } from '../services/table-metadata.service';
+import {
+  invalidSettingsInput,
+  respondWithSettingsError,
+} from './settings-responses';
 
-/**
- * Register the sync managed tables route
- */
 export function registerSyncManagedTablesRouter(router: Hono) {
   return router.post(
     '/v1/tables/sync',
-    zValidator('json', SyncTablesSchema),
+    zValidator('json', SyncTablesSchema, invalidSettingsInput('SETTINGS')),
     async (c) => {
-      const logger = await getLogger();
       const { schema, table } = c.req.valid('json');
 
       try {
         const service = createTableMetadataService(c);
-
         const data = await service.syncManagedTables({ schema, table });
 
-        return c.json({
-          success: true,
-          message: 'Tables synced successfully',
-          data,
-        });
+        return c.json({ success: true as const, data });
       } catch (error) {
-        logger.error({ schema, table, error }, 'Error syncing tables');
-
-        return c.json({ error: getErrorMessage(error) }, 500);
+        return respondWithSettingsError(c, error, {
+          fallback: 'SETTINGS_ACTION_FAILED',
+          logContext: { schema, table },
+        });
       }
     },
   );

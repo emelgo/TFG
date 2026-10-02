@@ -73,12 +73,15 @@ import { Route as AdminCmsSettingsMembersIndexRouteImport } from './routes/admin
 import { Route as AdminCmsSettingsMembersIdRouteImport } from './routes/admin/cms/settings/members/$id'
 import { Route as AdminCmsSettingsPermissionsIndexRouteImport } from './routes/admin/cms/settings/permissions/index'
 import { Route as AdminCmsSettingsPermissionsIdRouteImport } from './routes/admin/cms/settings/permissions/$id'
+import { Route as AdminCmsSettingsResourcesIndexRouteImport } from './routes/admin/cms/settings/resources/index'
 import { Route as AdminCmsResourcesSchemaTableIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/index'
 import { Route as AdminCmsResourcesSchemaTableNewRouteImport } from './routes/admin/cms/resources/$schema/$table/new'
 import { Route as AdminCmsSettingsPermissionsGroupsIdRouteImport } from './routes/admin/cms/settings/permissions/groups/$id'
 import { Route as AdminCmsSettingsPermissionsRolesIdRouteImport } from './routes/admin/cms/settings/permissions/roles/$id'
 import { Route as AdminCmsResourcesSchemaTableRecordIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/record/index'
 import { Route as AdminCmsResourcesSchemaTableRecordEditRouteImport } from './routes/admin/cms/resources/$schema/$table/record/edit'
+import { Route as AdminCmsSettingsResourcesSchemaTableIndexRouteImport } from './routes/admin/cms/settings/resources/$schema/$table/index'
+import { Route as AdminCmsSettingsResourcesSchemaTableLayoutRouteImport } from './routes/admin/cms/settings/resources/$schema/$table/layout'
 import { Route as AdminCmsResourcesSchemaTableRecordIdIndexRouteImport } from './routes/admin/cms/resources/$schema/$table/record/$id/index'
 import { Route as AdminCmsResourcesSchemaTableRecordIdEditRouteImport } from './routes/admin/cms/resources/$schema/$table/record/$id/edit'
 
@@ -415,6 +418,12 @@ const AdminCmsSettingsPermissionsIdRoute =
     path: '/permissions/$id',
     getParentRoute: () => AdminCmsSettingsRouteRoute,
   } as any)
+const AdminCmsSettingsResourcesIndexRoute =
+  AdminCmsSettingsResourcesIndexRouteImport.update({
+    id: '/resources/',
+    path: '/resources/',
+    getParentRoute: () => AdminCmsSettingsRouteRoute,
+  } as any)
 const AdminCmsResourcesSchemaTableIndexRoute =
   AdminCmsResourcesSchemaTableIndexRouteImport.update({
     id: '/resources/$schema/$table/',
@@ -450,6 +459,18 @@ const AdminCmsResourcesSchemaTableRecordEditRoute =
     id: '/resources/$schema/$table/record/edit',
     path: '/resources/$schema/$table/record/edit',
     getParentRoute: () => AdminCmsRouteRoute,
+  } as any)
+const AdminCmsSettingsResourcesSchemaTableIndexRoute =
+  AdminCmsSettingsResourcesSchemaTableIndexRouteImport.update({
+    id: '/resources/$schema/$table/',
+    path: '/resources/$schema/$table/',
+    getParentRoute: () => AdminCmsSettingsRouteRoute,
+  } as any)
+const AdminCmsSettingsResourcesSchemaTableLayoutRoute =
+  AdminCmsSettingsResourcesSchemaTableLayoutRouteImport.update({
+    id: '/resources/$schema/$table/layout',
+    path: '/resources/$schema/$table/layout',
+    getParentRoute: () => AdminCmsSettingsRouteRoute,
   } as any)
 const AdminCmsResourcesSchemaTableRecordIdIndexRoute =
   AdminCmsResourcesSchemaTableRecordIdIndexRouteImport.update({
@@ -527,12 +548,15 @@ export interface FileRoutesByFullPath {
   '/admin/cms/settings/permissions/$id': typeof AdminCmsSettingsPermissionsIdRoute
   '/admin/cms/settings/members/': typeof AdminCmsSettingsMembersIndexRoute
   '/admin/cms/settings/permissions/': typeof AdminCmsSettingsPermissionsIndexRoute
+  '/admin/cms/settings/resources/': typeof AdminCmsSettingsResourcesIndexRoute
   '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/settings/permissions/groups/$id': typeof AdminCmsSettingsPermissionsGroupsIdRoute
   '/admin/cms/settings/permissions/roles/$id': typeof AdminCmsSettingsPermissionsRolesIdRoute
   '/admin/cms/resources/$schema/$table/': typeof AdminCmsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
+  '/admin/cms/settings/resources/$schema/$table/layout': typeof AdminCmsSettingsResourcesSchemaTableLayoutRoute
   '/admin/cms/resources/$schema/$table/record/': typeof AdminCmsResourcesSchemaTableRecordIndexRoute
+  '/admin/cms/settings/resources/$schema/$table/': typeof AdminCmsSettingsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/$id/edit': typeof AdminCmsResourcesSchemaTableRecordIdEditRoute
   '/admin/cms/resources/$schema/$table/record/$id/': typeof AdminCmsResourcesSchemaTableRecordIdIndexRoute
 }
@@ -592,12 +616,15 @@ export interface FileRoutesByTo {
   '/admin/cms/settings/permissions/$id': typeof AdminCmsSettingsPermissionsIdRoute
   '/admin/cms/settings/members': typeof AdminCmsSettingsMembersIndexRoute
   '/admin/cms/settings/permissions': typeof AdminCmsSettingsPermissionsIndexRoute
+  '/admin/cms/settings/resources': typeof AdminCmsSettingsResourcesIndexRoute
   '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/settings/permissions/groups/$id': typeof AdminCmsSettingsPermissionsGroupsIdRoute
   '/admin/cms/settings/permissions/roles/$id': typeof AdminCmsSettingsPermissionsRolesIdRoute
   '/admin/cms/resources/$schema/$table': typeof AdminCmsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
+  '/admin/cms/settings/resources/$schema/$table/layout': typeof AdminCmsSettingsResourcesSchemaTableLayoutRoute
   '/admin/cms/resources/$schema/$table/record': typeof AdminCmsResourcesSchemaTableRecordIndexRoute
+  '/admin/cms/settings/resources/$schema/$table': typeof AdminCmsSettingsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/$id/edit': typeof AdminCmsResourcesSchemaTableRecordIdEditRoute
   '/admin/cms/resources/$schema/$table/record/$id': typeof AdminCmsResourcesSchemaTableRecordIdIndexRoute
 }
@@ -667,12 +694,15 @@ export interface FileRoutesById {
   '/admin/cms/settings/permissions/$id': typeof AdminCmsSettingsPermissionsIdRoute
   '/admin/cms/settings/members/': typeof AdminCmsSettingsMembersIndexRoute
   '/admin/cms/settings/permissions/': typeof AdminCmsSettingsPermissionsIndexRoute
+  '/admin/cms/settings/resources/': typeof AdminCmsSettingsResourcesIndexRoute
   '/admin/cms/resources/$schema/$table/new': typeof AdminCmsResourcesSchemaTableNewRoute
   '/admin/cms/settings/permissions/groups/$id': typeof AdminCmsSettingsPermissionsGroupsIdRoute
   '/admin/cms/settings/permissions/roles/$id': typeof AdminCmsSettingsPermissionsRolesIdRoute
   '/admin/cms/resources/$schema/$table/': typeof AdminCmsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/edit': typeof AdminCmsResourcesSchemaTableRecordEditRoute
+  '/admin/cms/settings/resources/$schema/$table/layout': typeof AdminCmsSettingsResourcesSchemaTableLayoutRoute
   '/admin/cms/resources/$schema/$table/record/': typeof AdminCmsResourcesSchemaTableRecordIndexRoute
+  '/admin/cms/settings/resources/$schema/$table/': typeof AdminCmsSettingsResourcesSchemaTableIndexRoute
   '/admin/cms/resources/$schema/$table/record/$id/edit': typeof AdminCmsResourcesSchemaTableRecordIdEditRoute
   '/admin/cms/resources/$schema/$table/record/$id/': typeof AdminCmsResourcesSchemaTableRecordIdIndexRoute
 }
@@ -741,12 +771,15 @@ export interface FileRouteTypes {
     | '/admin/cms/settings/permissions/$id'
     | '/admin/cms/settings/members/'
     | '/admin/cms/settings/permissions/'
+    | '/admin/cms/settings/resources/'
     | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/settings/permissions/groups/$id'
     | '/admin/cms/settings/permissions/roles/$id'
     | '/admin/cms/resources/$schema/$table/'
     | '/admin/cms/resources/$schema/$table/record/edit'
+    | '/admin/cms/settings/resources/$schema/$table/layout'
     | '/admin/cms/resources/$schema/$table/record/'
+    | '/admin/cms/settings/resources/$schema/$table/'
     | '/admin/cms/resources/$schema/$table/record/$id/edit'
     | '/admin/cms/resources/$schema/$table/record/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -806,12 +839,15 @@ export interface FileRouteTypes {
     | '/admin/cms/settings/permissions/$id'
     | '/admin/cms/settings/members'
     | '/admin/cms/settings/permissions'
+    | '/admin/cms/settings/resources'
     | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/settings/permissions/groups/$id'
     | '/admin/cms/settings/permissions/roles/$id'
     | '/admin/cms/resources/$schema/$table'
     | '/admin/cms/resources/$schema/$table/record/edit'
+    | '/admin/cms/settings/resources/$schema/$table/layout'
     | '/admin/cms/resources/$schema/$table/record'
+    | '/admin/cms/settings/resources/$schema/$table'
     | '/admin/cms/resources/$schema/$table/record/$id/edit'
     | '/admin/cms/resources/$schema/$table/record/$id'
   id:
@@ -880,12 +916,15 @@ export interface FileRouteTypes {
     | '/admin/cms/settings/permissions/$id'
     | '/admin/cms/settings/members/'
     | '/admin/cms/settings/permissions/'
+    | '/admin/cms/settings/resources/'
     | '/admin/cms/resources/$schema/$table/new'
     | '/admin/cms/settings/permissions/groups/$id'
     | '/admin/cms/settings/permissions/roles/$id'
     | '/admin/cms/resources/$schema/$table/'
     | '/admin/cms/resources/$schema/$table/record/edit'
+    | '/admin/cms/settings/resources/$schema/$table/layout'
     | '/admin/cms/resources/$schema/$table/record/'
+    | '/admin/cms/settings/resources/$schema/$table/'
     | '/admin/cms/resources/$schema/$table/record/$id/edit'
     | '/admin/cms/resources/$schema/$table/record/$id/'
   fileRoutesById: FileRoutesById
@@ -1358,6 +1397,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCmsSettingsPermissionsIdRouteImport
       parentRoute: typeof AdminCmsSettingsRouteRoute
     }
+    '/admin/cms/settings/resources/': {
+      id: '/admin/cms/settings/resources/'
+      path: '/resources'
+      fullPath: '/admin/cms/settings/resources/'
+      preLoaderRoute: typeof AdminCmsSettingsResourcesIndexRouteImport
+      parentRoute: typeof AdminCmsSettingsRouteRoute
+    }
     '/admin/cms/resources/$schema/$table/': {
       id: '/admin/cms/resources/$schema/$table/'
       path: '/resources/$schema/$table'
@@ -1399,6 +1445,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/cms/resources/$schema/$table/record/edit'
       preLoaderRoute: typeof AdminCmsResourcesSchemaTableRecordEditRouteImport
       parentRoute: typeof AdminCmsRouteRoute
+    }
+    '/admin/cms/settings/resources/$schema/$table/': {
+      id: '/admin/cms/settings/resources/$schema/$table/'
+      path: '/resources/$schema/$table'
+      fullPath: '/admin/cms/settings/resources/$schema/$table/'
+      preLoaderRoute: typeof AdminCmsSettingsResourcesSchemaTableIndexRouteImport
+      parentRoute: typeof AdminCmsSettingsRouteRoute
+    }
+    '/admin/cms/settings/resources/$schema/$table/layout': {
+      id: '/admin/cms/settings/resources/$schema/$table/layout'
+      path: '/resources/$schema/$table/layout'
+      fullPath: '/admin/cms/settings/resources/$schema/$table/layout'
+      preLoaderRoute: typeof AdminCmsSettingsResourcesSchemaTableLayoutRouteImport
+      parentRoute: typeof AdminCmsSettingsRouteRoute
     }
     '/admin/cms/resources/$schema/$table/record/$id/': {
       id: '/admin/cms/resources/$schema/$table/record/$id/'
@@ -1551,8 +1611,11 @@ interface AdminCmsSettingsRouteRouteChildren {
   AdminCmsSettingsPermissionsIdRoute: typeof AdminCmsSettingsPermissionsIdRoute
   AdminCmsSettingsMembersIndexRoute: typeof AdminCmsSettingsMembersIndexRoute
   AdminCmsSettingsPermissionsIndexRoute: typeof AdminCmsSettingsPermissionsIndexRoute
+  AdminCmsSettingsResourcesIndexRoute: typeof AdminCmsSettingsResourcesIndexRoute
   AdminCmsSettingsPermissionsGroupsIdRoute: typeof AdminCmsSettingsPermissionsGroupsIdRoute
   AdminCmsSettingsPermissionsRolesIdRoute: typeof AdminCmsSettingsPermissionsRolesIdRoute
+  AdminCmsSettingsResourcesSchemaTableLayoutRoute: typeof AdminCmsSettingsResourcesSchemaTableLayoutRoute
+  AdminCmsSettingsResourcesSchemaTableIndexRoute: typeof AdminCmsSettingsResourcesSchemaTableIndexRoute
 }
 
 const AdminCmsSettingsRouteRouteChildren: AdminCmsSettingsRouteRouteChildren = {
@@ -1563,10 +1626,15 @@ const AdminCmsSettingsRouteRouteChildren: AdminCmsSettingsRouteRouteChildren = {
   AdminCmsSettingsPermissionsIdRoute: AdminCmsSettingsPermissionsIdRoute,
   AdminCmsSettingsMembersIndexRoute: AdminCmsSettingsMembersIndexRoute,
   AdminCmsSettingsPermissionsIndexRoute: AdminCmsSettingsPermissionsIndexRoute,
+  AdminCmsSettingsResourcesIndexRoute: AdminCmsSettingsResourcesIndexRoute,
   AdminCmsSettingsPermissionsGroupsIdRoute:
     AdminCmsSettingsPermissionsGroupsIdRoute,
   AdminCmsSettingsPermissionsRolesIdRoute:
     AdminCmsSettingsPermissionsRolesIdRoute,
+  AdminCmsSettingsResourcesSchemaTableLayoutRoute:
+    AdminCmsSettingsResourcesSchemaTableLayoutRoute,
+  AdminCmsSettingsResourcesSchemaTableIndexRoute:
+    AdminCmsSettingsResourcesSchemaTableIndexRoute,
 }
 
 const AdminCmsSettingsRouteRouteWithChildren =

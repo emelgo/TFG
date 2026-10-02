@@ -707,7 +707,8 @@
       "general": "General",
       "authentication": "Authentication",
       "members": "Members",
-      "permissions": "Permissions"
+      "permissions": "Permissions",
+      "resources": "Resources"
     },
     "general": {
       "title": "General",
@@ -809,7 +810,9 @@
       "selfAction": "You cannot change your own role or status",
       "protected": "This account is managed by the platform",
       "rankDenied": "You can only manage members and roles below your own rank",
-      "inactive": "Activate the member before assigning a role"
+      "inactive": "Activate the member before assigning a role",
+      "resourceNotFound": "The table is not registered in the CMS",
+      "protectedSchema": "Tables in this schema cannot be managed from the CMS"
     },
     "permissions": {
       "title": "Roles and permissions",
@@ -1001,6 +1004,134 @@
         "roleHasMembers": "Reassign the members of this role before deleting it",
         "groupRankDenied": "This group is used by a role you cannot manage",
         "generic": "Something went wrong. Please try again"
+      }
+    },
+    "resources": {
+      "title": "Resources",
+      "description": "Tables managed by the CMS: choose which ones appear in the data explorer, their order and how their columns and records are shown.",
+      "empty": "There are no managed tables yet. Sync a schema to register its tables.",
+      "columns": {
+        "table": "Table",
+        "displayName": "Display name",
+        "visible": "Visible",
+        "order": "Order"
+      },
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "configure": "Configure",
+      "back": "Back",
+      "saved": "Settings saved",
+      "saveError": "The settings could not be saved",
+      "sync": {
+        "action": "Sync tables",
+        "title": "Sync tables",
+        "description": "Reads the tables of a schema from the database and registers or updates them, keeping what you have configured. System schemas cannot be synced.",
+        "schema": "Schema",
+        "table": "Table (optional)",
+        "allTables": "All tables in the schema",
+        "invalidIdentifier": "Use letters, numbers and underscores only",
+        "submit": "Sync",
+        "done": "Tables synced",
+        "error": "The tables could not be synced"
+      },
+      "table": {
+        "title": "Table",
+        "description": "How this table is named and shown in the data explorer.",
+        "displayName": "Display name",
+        "displayFormat": "Display format",
+        "tableDescription": "Description",
+        "isVisible": "Visible in the data explorer",
+        "isSearchable": "Included in the global search",
+        "save": "Save"
+      },
+      "column": {
+        "sectionTitle": "Columns",
+        "sectionDescription": "Label, visibility, order, editing and formatter of each column.",
+        "name": "Column",
+        "label": "Label",
+        "formatter": "Formatter",
+        "formatterDefault": "Default",
+        "edit": "Edit column",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "title": "Column {column}",
+        "description": "Database type: {type}",
+        "columnDescription": "Description",
+        "save": "Save",
+        "short": {
+          "isVisibleInTable": "List",
+          "isVisibleInDetail": "Record",
+          "isEditable": "Editable"
+        },
+        "flags": {
+          "isVisibleInTable": "Visible in the list",
+          "isVisibleInDetail": "Visible in the record",
+          "isSearchable": "Searchable",
+          "isSortable": "Sortable",
+          "isFilterable": "Filterable",
+          "isEditable": "Editable"
+        },
+        "formatters": {
+          "text": "Plain text",
+          "longtext": "Long text",
+          "email": "Email",
+          "url": "URL",
+          "color": "Color",
+          "markdown": "Markdown",
+          "html": "HTML",
+          "phone": "Phone",
+          "file": "File",
+          "image": "Image",
+          "audio": "Audio",
+          "video": "Video",
+          "number": "Number",
+          "currency": "Currency",
+          "percentage": "Percentage",
+          "date": "Date",
+          "datetime": "Date and time",
+          "time": "Time",
+          "code": "Code (JSON)",
+          "switch": "Switch",
+          "uuid": "UUID"
+        }
+      },
+      "relations": {
+        "title": "Related records",
+        "description": "Sections of related records (one to many) shown on the record page.",
+        "empty": "This table has no one-to-many relations.",
+        "enabled": "Show section",
+        "sectionLabel": "Section title",
+        "save": "Save"
+      },
+      "layout": {
+        "open": "Record layout",
+        "title": "Record layout",
+        "back": "Back to the table",
+        "defaultName": "Record layout",
+        "defaultGroup": "Details",
+        "newGroup": "New group",
+        "descriptionSaved": "This table uses a custom layout. Drag fields into the rows or click a field to add it.",
+        "descriptionDefault": "This table uses the default layout. Drag fields into the rows or click a field to add it, then save.",
+        "modes": {
+          "display": "Record",
+          "edit": "Edit form"
+        },
+        "available": "Available fields",
+        "allPlaced": "All fields are placed",
+        "paletteHint": "Drag into a row or click to add",
+        "groupLabel": "Group title",
+        "moveUp": "Move group up",
+        "moveDown": "Move group down",
+        "removeGroup": "Remove group",
+        "removeRow": "Remove row",
+        "removeField": "Remove field",
+        "size": "Width",
+        "dropHere": "Drop fields here",
+        "addRow": "Add row",
+        "addGroup": "Add group",
+        "save": "Save layout",
+        "reset": "Use default layout",
+        "saved": "Layout saved"
       }
     }
   }

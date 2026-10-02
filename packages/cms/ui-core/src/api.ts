@@ -41,6 +41,7 @@ import type { GetAccountRoute } from '@pymekit/cms-settings/routes';
 
 import { createAuditLogsApi } from './audit-logs-api';
 import { createPermissionsApi } from './permissions-api';
+import { createResourceSettingsApi } from './resource-settings-api';
 import { createSettingsApi } from './settings-api';
 import { createStorageApi } from './storage-api';
 import { createUsersApi } from './users-api';
@@ -68,6 +69,8 @@ export function createCmsApi(options: { fetch?: CmsFetch } = {}) {
     ...createSettingsApi(clientOptions),
     // Ajustes > Permisos: roles, grupos y permisos (F2.7b).
     ...createPermissionsApi(clientOptions),
+    // Ajustes > Recursos: tablas, columnas y distribución (F2.7c).
+    ...createResourceSettingsApi(clientOptions),
 
     /**
      * Devuelve la cuenta del CMS del usuario y las secciones que puede usar.
@@ -567,4 +570,14 @@ export type CmsRbacGroupDetails = Awaited<ReturnType<CmsApi['getRbacGroup']>>;
 /** Ficha de un permiso. */
 export type CmsRbacPermissionDetails = Awaited<
   ReturnType<CmsApi['getRbacPermission']>
+>;
+
+/** Tablas gestionadas de Ajustes > Recursos (F2.7c). */
+export type CmsResourceSettingsList = Awaited<
+  ReturnType<CmsApi['getResourceSettingsList']>
+>;
+
+/** Metadato completo de una tabla en Ajustes > Recursos (F2.7c). */
+export type CmsResourceSettings = Awaited<
+  ReturnType<CmsApi['getResourceSettings']>
 >;

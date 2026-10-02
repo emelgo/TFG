@@ -1,0 +1,276 @@
+/**
+ * Utilidades puras de Ajustes > Recursos (F2.7c): agrupar y reordenar las
+ * tablas gestionadas, leer la configuración de columnas guardada y calcular
+ * qué ha cambiado para enviar a la API solo eso.
+ *
+ * Son funciones sin React ni red para probarlas con Vitest
+ * (`__tests__/resource-settings.test.ts`). Los límites y los tipos de
+ * interfaz válidos vienen de `@pymekit/cms-shared/resource-config`, los
+ * mismos que aplica el esquema Zod de la API.
+ *
+ * [TFG] RF-09 · ADR-013.
+ */
+import * as z from 'zod';
+
+import { RESOURCE_CONFIG_LIMITS as LIMITS } from '@pymekit/cms-shared/resource-config';
+
+/** Fila del listado de tablas gestionadas. */
+export type ManagedTable = {
+  schemaName: string;
+  tableName: string;
+  displayName: string | null;
+  isVisible: boolean | null;
+  ordering: number | null;
+};
+
+/**
+ * Agrupa las tablas por esquema y las ordena por `ordering` (las que no lo
+ * tienen, al final) y después por nombre. Los esquemas salen en orden
+ * alfabético con `public` primero.
+ */
+export function groupTablesBySchema<T extends ManagedTable>(tables: T[]) {
+  const groups = new Map<string, T[]>();
+
+  for (const table of tables) {
+    const list = groups.get(table.schemaName) ?? [];
+    list.push(table);
+    groups.set(table.schemaName, list);
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) =>
+      a === 'public' ? -1 : b === 'public' ? 1 : a.localeCompare(b),
+    )
+    .map(([schema, list]) => ({
+      schema,
+      tables: [...list].sort(
+        (a, b) =>
+          (a.ordering ?? Number.MAX_SAFE_INTEGER) -
+            (b.ordering ?? Number.MAX_SAFE_INTEGER) ||
+          a.tableName.localeCompare(b.tableName),
+      ),
+    }));
+}
+
+/**
+ * Mueve una tabla una posición arriba (`-1`) o abajo (`1`) dentro de su
+ * esquema y devuelve el nuevo orden de todo el esquema (0, 1, 2…), listo
+ * para `PUT /v1/tables`. Devuelve `null` si el movimiento no es posible.
+ */
+export function moveTable<T extends ManagedTable>(
+  ordered: T[],
+  index: number,
+  direction: -1 | 1,
+) {
+  const target = index + direction;
+
+  if (index < 0 || index >= ordered.length) return null;
+  if (target < 0 || target >= ordered.length) return null;
+
+  const next = [...ordered];
+  const [moved] = next.splice(index, 1);
+  next.splice(target, 0, moved!);
+
+  return next.map((table, position) => ({
+    schema: table.schemaName,
+    table: table.tableName,
+    ordering: position,
+  }));
+}
+
+/** Configuración de presentación de una columna, tal como la edita la UI. */
+export type ColumnSettings = {
+  name: string;
+  dataType: string;
+  isPrimaryKey: boolean;
+  displayName: string;
+  description: string;
+  isVisibleInTable: boolean;
+  isVisibleInDetail: boolean;
+  isSearchable: boolean;
+  isSortable: boolean;
+  isFilterable: boolean;
+  isEditable: boolean;
+  ordering: number | null;
+  uiDataType: string;
+};
+
+function asRecord(value: unknown) {
+  return value && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+/**
+ * Lee `columns_config` (JSON guardado por la sincronización y los ajustes)
+ * y devuelve las columnas ordenadas por `ordering` y después por nombre.
+ */
+export function readColumnsSettings(columnsConfig: unknown): ColumnSettings[] {
+  return Object.entries(asRecord(columnsConfig))
+    .map(([name, raw]) => {
+      const column = asRecord(raw);
+      const ui = asRecord(column['ui_config']);
+
+      return {
+        name,
+        dataType: String(ui['data_type'] ?? ''),
+        isPrimaryKey: column['is_primary_key'] === true,
+        displayName: String(column['display_name'] ?? ''),
+        description: String(column['description'] ?? ''),
+        isVisibleInTable: column['is_visible_in_table'] !== false,
+        isVisibleInDetail: column['is_visible_in_detail'] !== false,
+        isSearchable: column['is_searchable'] === true,
+        isSortable: column['is_sortable'] === true,
+        isFilterable: column['is_filterable'] === true,
+        isEditable: column['is_editable'] === true,
+        ordering:
+          typeof column['ordering'] === 'number' ? column['ordering'] : null,
+        uiDataType: String(ui['ui_data_type'] ?? ''),
+      };
+    })
+    .sort(
+      (a, b) =>
+        (a.ordering ?? Number.MAX_SAFE_INTEGER) -
+          (b.ordering ?? Number.MAX_SAFE_INTEGER) ||
+        a.name.localeCompare(b.name),
+    );
+}
+
+/** Formulario de una columna (diálogo de edición). */
+export const ColumnSettingsFormSchema = z.object({
+  displayName: z.string().trim().max(LIMITS.displayName),
+  description: z.string().trim().max(LIMITS.description),
+  isVisibleInTable: z.boolean(),
+  isVisibleInDetail: z.boolean(),
+  isSearchable: z.boolean(),
+  isSortable: z.boolean(),
+  isFilterable: z.boolean(),
+  isEditable: z.boolean(),
+  uiDataType: z.string(),
+});
+
+export type ColumnSettingsFormValues = z.infer<typeof ColumnSettingsFormSchema>;
+
+/**
+ * Cuerpo de `PUT /v1/tables/:schema/:table/columns` para una columna con
+ * solo los campos que han cambiado (`null` si no cambia nada).
+ */
+export function buildColumnUpdate(
+  original: ColumnSettings,
+  values: ColumnSettingsFormValues,
+) {
+  const update: Record<string, unknown> = {};
+
+  const text = (value: string) => value.trim();
+
+  if (text(values.displayName) !== original.displayName) {
+    update['display_name'] = text(values.displayName);
+  }
+
+  if (text(values.description) !== original.description) {
+    update['description'] = text(values.description);
+  }
+
+  const flags = [
+    ['isVisibleInTable', 'is_visible_in_table'],
+    ['isVisibleInDetail', 'is_visible_in_detail'],
+    ['isSearchable', 'is_searchable'],
+    ['isSortable', 'is_sortable'],
+    ['isFilterable', 'is_filterable'],
+    ['isEditable', 'is_editable'],
+  ] as const;
+
+  for (const [key, apiKey] of flags) {
+    if (values[key] !== original[key]) {
+      update[apiKey] = values[key];
+    }
+  }
+
+  if (values.uiDataType !== original.uiDataType) {
+    update['ui_config'] = { ui_data_type: values.uiDataType || null };
+  }
+
+  return Object.keys(update).length > 0 ? { [original.name]: update } : null;
+}
+
+/**
+ * Nuevo orden de las columnas tras mover una arriba o abajo: devuelve el
+ * cuerpo para la API con `ordering` de todas las columnas (0, 1, 2…), o
+ * `null` si el movimiento no es posible.
+ */
+export function moveColumn(
+  ordered: ColumnSettings[],
+  index: number,
+  direction: -1 | 1,
+) {
+  const target = index + direction;
+
+  if (index < 0 || index >= ordered.length) return null;
+  if (target < 0 || target >= ordered.length) return null;
+
+  const next = [...ordered];
+  const [moved] = next.splice(index, 1);
+  next.splice(target, 0, moved!);
+
+  return Object.fromEntries(
+    next.map((column, position) => [column.name, { ordering: position }]),
+  );
+}
+
+/** Formulario del metadato propio de una tabla. */
+export const TableSettingsFormSchema = z.object({
+  displayName: z.string().trim().max(LIMITS.displayName),
+  description: z.string().trim().max(LIMITS.description),
+  displayFormat: z.string().trim().max(LIMITS.displayFormat),
+  isVisible: z.boolean(),
+  isSearchable: z.boolean(),
+});
+
+export type TableSettingsFormValues = z.infer<typeof TableSettingsFormSchema>;
+
+/** Formulario de sincronización (esquema y, opcionalmente, una tabla). */
+export const SyncTablesFormSchema = z.object({
+  schema: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z_][A-Za-z0-9_$]{0,62}$/),
+  table: z
+    .string()
+    .trim()
+    .regex(/^([A-Za-z_][A-Za-z0-9_$]{0,62})?$/),
+});
+
+export type SyncTablesFormValues = z.infer<typeof SyncTablesFormSchema>;
+
+/** Relación con sección configurable en la ficha (uno a muchos). */
+export type InlineRelation = {
+  source_column: string;
+  target_schema: string;
+  target_table: string;
+  target_column: string;
+  type: string;
+  enabled: boolean;
+  sectionLabel: string;
+};
+
+/** Lee las relaciones de `relations_config` para su configuración. */
+export function readRelationsSettings(relationsConfig: unknown) {
+  if (!Array.isArray(relationsConfig)) {
+    return [] as InlineRelation[];
+  }
+
+  return relationsConfig.map((raw) => {
+    const relation = asRecord(raw);
+    const inline = asRecord(relation['inline_config']);
+
+    return {
+      source_column: String(relation['source_column'] ?? ''),
+      target_schema: String(relation['target_schema'] ?? ''),
+      target_table: String(relation['target_table'] ?? ''),
+      target_column: String(relation['target_column'] ?? ''),
+      type: String(relation['type'] ?? ''),
+      enabled: inline['enabled'] !== false,
+      sectionLabel: String(inline['section_label'] ?? ''),
+    };
+  });
+}

@@ -8,6 +8,7 @@
  */
 import { Link } from '@tanstack/react-router';
 import {
+  DatabaseIcon,
   KeyRoundIcon,
   SettingsIcon,
   ShieldIcon,
@@ -27,6 +28,7 @@ const TAB_ICONS = {
   authentication: ShieldIcon,
   members: UsersIcon,
   permissions: KeyRoundIcon,
+  resources: DatabaseIcon,
 } satisfies Record<CmsSettingsTab, unknown>;
 
 export function SettingsNav(props: {

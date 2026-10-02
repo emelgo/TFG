@@ -23,6 +23,7 @@
     "@pymekit/cms-audit-logs-ui": "workspace:*",
     "@pymekit/cms-formatters": "workspace:*",
     "@pymekit/cms-shared": "workspace:*",
+    "@pymekit/cms-types": "workspace:*",
     "@pymekit/cms-ui-core": "workspace:*"
   },
   "devDependencies": {

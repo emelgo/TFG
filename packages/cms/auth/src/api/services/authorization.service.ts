@@ -387,6 +387,9 @@ export class AuthorizationService {
    *    además `update` (y, para desactivar el MFA, ser cuenta raíz con aal2).
    *  - `permissions` (pestaña Ajustes > Permisos, F2.7b): `role:select` o
    *    `permission:select`, lo mismo que exige `GET /v1/permissions`.
+   *  - `resourceSettings` (pestaña Ajustes > Recursos, F2.7c): permiso de
+   *    sistema `table` (`select` o `update`), lo mismo que exige
+   *    `GET /v1/settings/resources`.
    *
    * `storage` se calcula con `cms.current_account_has_storage_access()`
    * (F2.7b): antes esta consulta llamaba a `cms.has_permission` con la
@@ -410,6 +413,7 @@ export class AuthorizationService {
         members: boolean | null;
         system_settings: boolean | null;
         permissions: boolean | null;
+        resource_settings: boolean | null;
       }>(
         sql`SELECT
               cms.has_admin_permission('auth_user'::cms.system_resource, 'select'::cms.system_action) as users,
@@ -423,6 +427,10 @@ export class AuthorizationService {
                 cms.has_admin_permission('role'::cms.system_resource, 'select'::cms.system_action)
                 or cms.has_admin_permission('permission'::cms.system_resource, 'select'::cms.system_action)
               ) as permissions,
+              (
+                cms.has_admin_permission('table'::cms.system_resource, 'select'::cms.system_action)
+                or cms.has_admin_permission('table'::cms.system_resource, 'update'::cms.system_action)
+              ) as resource_settings,
               cms.current_account_has_storage_access() as storage`,
       );
     });
@@ -436,6 +444,7 @@ export class AuthorizationService {
       members: row?.members === true,
       systemSettings: row?.system_settings === true,
       permissions: row?.permissions === true,
+      resourceSettings: row?.resource_settings === true,
     };
   }
 
