@@ -1,0 +1,605 @@
+% =====================================================================
+% Capítulo 5 · Diseño (borrador PARCIAL: solo lo decidido e implementado)
+% Fuentes: código de apps/web, packages/cms y apps/web/supabase/schemas;
+% docs/tfg/DECISIONES.md (ADR-001…016), BITACORA.md (B-04…B-09, B-14),
+% TRAZABILIDAD.md, PROGRESO.md; packages/cms/AGENTS.md;
+% .claude/skills/rls-review.
+% Estado de las fuentes: 2026-09-29 (F2.4b cerrada).
+% Paquetes necesarios: booktabs, tabularx, todonotes, tikz
+%   (bibliotecas: positioning, arrows.meta, fit, backgrounds, calc).
+% Alternativas en PlantUML: diagramas/arquitectura.puml,
+%   diagramas/flujo-peticion-cms.puml
+% =====================================================================
+
+\chapter{Diseño}
+\label{cap:diseno}
+
+% PENDIENTE: borrador parcial. Faltan el modelo de datos completo, pagos
+% (RF-07, F5), roles orientados a pymes (F5), configurabilidad (F5) y el
+% diseño de las pantallas del CMS que aún no están hechas (F2.4c–F2.8).
+
+Este capítulo describe el diseño de PymeKit en lo que ya está decidido e
+implementado: la arquitectura general, el modelo multi-tenant y de control de
+acceso, la estrategia de seguridad en profundidad y el proceso con el que se
+ha verificado esa seguridad. Cada decisión remite al ADR en que se justifica.
+
+% PENDIENTE (P-06): este capítulo presenta el diseño resultante. La plataforma
+% se construyó partiendo de una base de código SaaS existente, con licencia, y
+% de un CMS para el mismo tipo de base de datos (ADR-001). Acordar con el
+% tutor cómo se indica aquí qué partes del diseño son heredadas y cuáles
+% propias; como orientación (docs/tfg/MAPA-REFERENCIAS.md): el modelo de
+% cuentas y el RBAC de equipos y del CMS son heredados; la integración del CMS
+% en la web (ADR-011), el pegamento super-admin/CMS (ADR-014), el acceso a la
+% consola (ADR-016) y las correcciones de seguridad (ADR-015) son propios.
+
+% ---------------------------------------------------------------------
+\section{Arquitectura general}
+\label{sec:arquitectura}
+
+\subsection{Monorepo de paquetes}
+
+El código se organiza en un único \textit{monorepo} (un repositorio con
+varias aplicaciones y paquetes que se versionan juntos) gestionado con
+Turborepo~\cite{turborepo} y pnpm (ADR-002). Contiene:
+
+\begin{itemize}
+  \item \texttt{apps/web}: la aplicación web, que incluye tanto la
+        aplicación SaaS como la consola de administración y el CMS;
+  \item \texttt{apps/web/supabase}: los esquemas, migraciones, datos de
+        prueba y pruebas pgTAP de \emph{toda} la base de datos;
+  \item \texttt{apps/e2e}: las pruebas E2E con Playwright;
+  \item \texttt{packages/*}: los paquetes reutilizables de la plataforma
+        (\texttt{@pymekit/*}: interfaz, autenticación, cuentas, equipos,
+        facturación, administración, i18n\ldots) y, en
+        \texttt{packages/cms/*}, los del CMS (\texttt{@pymekit/cms-*}).
+\end{itemize}
+
+En la fecha de este borrador el monorepo tiene 47 paquetes, sin ciclos de
+dependencias (RNF-04). Los paquetes declaran sus dependencias de forma
+explícita y separan las exportaciones de cliente y de servidor: por ejemplo,
+los paquetes del CMS con rutas y servicios son solo de servidor, y el código
+de la interfaz del CMS vive en paquetes cliente aparte
+(\texttt{@pymekit/cms-ui-core}, \texttt{@pymekit/cms-data-explorer-ui}\ldots).
+Esta separación no es solo una cuestión de orden: evita que código con
+credenciales de servidor acabe en el navegador y, como se comprobó en la
+incidencia B-16, también evita ciclos entre paquetes. La \textit{build} de la
+web incluye además un control que falla si el cliente de base de datos del
+servidor aparece en un fragmento (\textit{chunk}) destinado al navegador.
+% PENDIENTE: el nº de paquetes (47) procede de TRAZABILIDAD (RNF-04); volver a
+% contarlo al cerrar F2.
+
+\subsection{Pila tecnológica}
+
+\begin{itemize}
+  \item \textbf{Aplicación web:} TanStack Start~\cite{tanstack-start} con
+        React 19. Proporciona enrutado por ficheros (TanStack
+        Router~\cite{tanstack-router}), renderizado en el servidor
+        (\textit{Server-Side Rendering}, SSR), cargadores de datos por ruta
+        (\textit{loaders}) y \textit{server functions}: funciones que se
+        ejecutan en el servidor y se invocan desde el cliente con tipos
+        compartidos (RF-02). Las cachés de datos del cliente usan TanStack
+        Query~\cite{tanstack-query}.
+  \item \textbf{Datos, autenticación y almacenamiento:}
+        Supabase~\cite{supabase-docs}, que ofrece PostgreSQL, un servicio de
+        autenticación basado en JWT y almacenamiento de ficheros.
+  \item \textbf{API del CMS:} Hono~\cite{hono} (\textit{framework} HTTP
+        ligero basado en el estándar \texttt{Request}/\texttt{Response}) y
+        Drizzle ORM~\cite{drizzle} para el acceso a la base de datos.
+  \item \textbf{Pagos:} Stripe (RF-07). % PENDIENTE: diseño de pagos en F5.
+  \item \textbf{Interfaz:} Tailwind CSS 4 y componentes accesibles propios
+        del paquete \texttt{@pymekit/ui} (RNF-08).
+\end{itemize}
+
+Para que el conjunto se mantenga coherente se decidió usar una sola pila de
+librerías en toda la web, CMS incluido: un único sistema de formularios, uno
+de internacionalización y una sola biblioteca de componentes (ADR-013). Así
+cada cosa se hace de una única forma (RNF-05) y el idioma español solo hay que
+añadirlo en un sistema (RF-13).
+
+\subsection{Una única base de datos}
+
+La aplicación y el CMS comparten \textbf{una sola instancia} de PostgreSQL
+(ADR-002). Los datos de la plataforma viven en el esquema \texttt{public} y
+los del CMS (su RBAC, sus preferencias, las vistas guardadas, la auditoría y
+los paneles) en un esquema propio llamado \texttt{cms} (ADR-012). Compartir la
+base de datos es lo que permite que el CMS administre los datos de la propia
+plataforma (RF-09) y que las mismas políticas de seguridad protejan ambas
+partes.
+
+\subsection{CMS integrado en la consola de administración}
+
+La decisión de mayor calado del diseño es cómo integrar el CMS (ADR-011). Se
+evaluaron tres opciones:
+
+\begin{enumerate}[label=(\alph*)]
+  \item \textbf{aplicaciones separadas} (la web, la interfaz del CMS y su
+        API como tres servicios): la de menor esfuerzo, pero con tres
+        despliegues, dos inicios de sesión y las \textit{cookies} de sesión
+        duplicadas;
+  \item \textbf{integración híbrida} (la API dentro de la web y la interfaz
+        del CMS servida como aplicación estática): convivirían dos
+        enrutadores y dos formas de programar;
+  \item \textbf{integración total}: la API se monta dentro del servidor de
+        la web y las pantallas se reescriben como rutas de la web.
+\end{enumerate}
+
+Se eligió la opción (c), a pesar de ser la de mayor esfuerzo estimado, porque
+da un único servicio, un único inicio de sesión y un único estilo de código.
+En concreto:
+
+\begin{itemize}
+  \item La aplicación Hono del CMS se monta en \texttt{/api/cms/*} mediante
+        una ruta de servidor de TanStack Start (\texttt{routes/api/cms/\$.ts})
+        que le reenvía la petición tal cual. El CMS comparte así proceso,
+        dominio y \textit{cookies} con la web: un super-administrador que ya
+        ha iniciado sesión en la consola lo usa sin volver a identificarse.
+  \item Las pantallas del CMS son rutas de la web bajo
+        \texttt{/admin/cms/*}, con \textit{loaders} y TanStack Query sobre un
+        cliente RPC tipado de la API.
+  \item Durante el SSR, los \textit{loaders} no hacen una petición de red a
+        la propia API: llaman a la aplicación Hono dentro del mismo proceso,
+        reenviando solo la cabecera \texttt{cookie} de la petición entrante
+        (ADR-016).
+\end{itemize}
+
+La figura~\ref{fig:arquitectura} resume la arquitectura resultante.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      font=\footnotesize,
+      box/.style={draw, rounded corners, align=center, minimum height=0.9cm,
+                  inner sep=4pt},
+      group/.style={draw, dashed, rounded corners, inner sep=8pt},
+      arr/.style={-{Stealth[length=2mm]}}
+    ]
+    % Cliente
+    \node[box, minimum width=10cm] (browser) at (0, 5.2)
+      {Navegador (React 19): área privada, consola \texttt{/admin} y CMS \texttt{/admin/cms}};
+
+    % Servidor web
+    \node[box, minimum width=3.0cm] (ssr) at (-3.6, 3.3)
+      {Rutas y \textit{loaders}\\(SSR, TanStack Router)};
+    \node[box, minimum width=3.0cm] (sfn) at (0, 3.3)
+      {\textit{Server functions}\\+ \textit{middleware}};
+    \node[box, minimum width=3.0cm] (hono) at (3.6, 3.3)
+      {Ruta \texttt{/api/cms/*}\\$\rightarrow$ aplicación Hono};
+
+    \node[box, minimum width=3.0cm] (sbclient) at (-1.8, 1.7)
+      {Cliente Supabase\\(sesión del usuario)};
+    \node[box, minimum width=3.0cm] (drizzle) at (3.6, 1.7)
+      {Servicios Drizzle\\(\textit{claims} del usuario)};
+
+    \begin{scope}[on background layer]
+      \node[group, fit=(ssr)(sfn)(hono)(sbclient)(drizzle),
+            label={[font=\small\bfseries]left:\rotatebox{90}{apps/web (TanStack Start)}}] (web) {};
+    \end{scope}
+
+    % Supabase
+    \node[box, minimum width=2.6cm] (auth) at (-3.6, -0.4) {Auth\\(JWT, MFA)};
+    \node[box, minimum width=4.4cm] (pg) at (0.4, -0.4)
+      {PostgreSQL + RLS\\esquemas \texttt{public} y \texttt{cms}};
+    \node[box, minimum width=2.2cm] (st) at (4.2, -0.4) {Storage};
+    \begin{scope}[on background layer]
+      \node[group, fit=(auth)(pg)(st),
+            label={[font=\small\bfseries]below:Supabase (una única instancia)}] (sb) {};
+    \end{scope}
+
+    % Externo
+    \node[box] (stripe) at (-7.6, 1.7) {Stripe};
+
+    \draw[arr] (browser) -- (ssr);
+    \draw[arr] (browser) -- (sfn);
+    \draw[arr] (browser) -- node[right, font=\scriptsize]{RPC} (hono);
+    \draw[arr] (ssr) -- (sfn);
+    \draw[arr, dashed] (ssr.east) ++(0,-0.25) -- node[below, font=\scriptsize]{SSR en proceso} ([yshift=-0.25cm]hono.west);
+    \draw[arr] (sfn) -- (sbclient);
+    \draw[arr] (hono) -- (drizzle);
+    \draw[arr] (sbclient) -- (pg);
+    \draw[arr] (sbclient) -- (auth);
+    \draw[arr] (drizzle) -- (pg);
+    \draw[arr] (stripe.east) -- node[above, font=\scriptsize]{\textit{webhooks}} (stripe.east -| web.west);
+  \end{tikzpicture}
+  \caption{Arquitectura general de PymeKit: una única aplicación web con el
+    CMS integrado y una única instancia de Supabase.}
+  \label{fig:arquitectura}
+  % Texto alternativo: el navegador se comunica con la aplicación web
+  % (TanStack Start), que contiene las rutas con SSR, las server functions y
+  % la ruta /api/cms que monta la aplicación Hono del CMS. Las server
+  % functions usan el cliente Supabase con la sesión del usuario; la API del
+  % CMS usa servicios Drizzle con los claims del usuario. Ambos acceden a una
+  % única instancia de Supabase (Auth, PostgreSQL con RLS en los esquemas
+  % public y cms, y Storage). Stripe notifica a la web mediante webhooks.
+\end{figure}
+% PENDIENTE: revisar el ajuste fino de posiciones al compilar (no se ha
+% podido compilar en el entorno donde se generó el borrador). Versión
+% alternativa en diagramas/arquitectura.puml.
+% Nota: los webhooks de Stripe entran por la ruta de servidor
+% /api/billing/webhook de la web (apps/web/src/routes/api/billing/webhook.ts);
+% el diseño de pagos se completa en F5.
+
+% ---------------------------------------------------------------------
+\section{Modelo multi-tenant y control de acceso}
+\label{sec:multitenant-rbac}
+
+\subsection{Cuentas personales y de equipo}
+
+El \textit{tenant} de PymeKit es la \textbf{cuenta}. La tabla
+\texttt{accounts} contiene dos clases de cuenta, distinguidas por el campo
+\texttt{is\_personal\_account}:
+
+\begin{itemize}
+  \item la \textbf{cuenta personal}, una por usuario, cuyo identificador
+        coincide con el del usuario en el servicio de autenticación;
+  \item la \textbf{cuenta de equipo}, pensada para representar a una pyme
+        cliente (RF-06), con un propietario principal, miembros
+        (\texttt{accounts\_memberships}) e invitaciones.
+\end{itemize}
+
+Los datos de negocio se enlazan a una cuenta mediante una columna
+\texttt{account\_id}, y las políticas de seguridad a nivel de fila deciden el
+acceso en función de la relación del usuario con esa cuenta. Cada miembro
+tiene un rol con un nivel jerárquico, y cada rol tiene un conjunto de
+permisos por funcionalidad (\texttt{roles.manage}, \texttt{billing.manage},
+\texttt{settings.manage}, \texttt{members.manage}, \texttt{invites.manage}).
+Las políticas se apoyan en funciones auxiliares como
+\texttt{has\_role\_on\_account} (pertenencia) y \texttt{has\_permission}
+(permiso concreto). Las escrituras destructivas se condicionan al permiso, no
+a la mera pertenencia.
+\todo{Añadir el diagrama entidad-relación del esquema \texttt{public} y, tras
+F5, los roles orientados a pymes.}
+
+\subsection{Control de acceso del CMS}
+
+El CMS tiene su propio control de acceso basado en roles
+(\textit{Role-Based Access Control}, RBAC) en el esquema \texttt{cms}: cuentas
+del CMS, roles con rango, grupos de permisos y permisos por tabla o por
+almacenamiento. Conviven así dos modelos de autorización en la misma base de
+datos: el de la plataforma (el super-administrador y los equipos) y el del
+CMS. La decisión de diseño (ADR-014) fue conectarlos en lugar de sustituir
+uno por otro:
+
+\begin{itemize}
+  \item \textbf{El super-administrador es la raíz del CMS.} Unos
+        \textit{triggers} sobre los usuarios mantienen sincronizados a los
+        super-administradores con un rol de sistema \emph{Root}, el de mayor
+        rango, que concede todos los permisos. Al promocionar a un usuario
+        recibe el acceso al CMS, una cuenta activa y ese rol; al retirarle la
+        condición pierde el acceso, y su cuenta del CMS se desactiva pero se
+        conserva para la auditoría. Un índice único garantiza que solo exista
+        un rol raíz.
+  \item \textbf{El RBAC del CMS da acceso limitado a otro personal}
+        (soporte, gestión de contenidos). Se descartó dejar solo al
+        super-administrador porque incumpliría RF-09 («con permisos propios»).
+\end{itemize}
+
+Ambos grupos comparten la consola de administración, pero con límites
+distintos (ADR-016): la consola admite a quien es super-administrador
+\emph{o} tiene acceso al CMS; las páginas de gestión de la plataforma exigen
+super-administrador, y el personal del CMS que intente abrirlas se redirige
+al CMS. La barra lateral solo muestra las secciones que la API permite, pero
+esa ocultación es solo de interfaz: cada ruta y cada \textit{endpoint} vuelven
+a comprobar el permiso.
+
+% ---------------------------------------------------------------------
+\section{Seguridad en profundidad}
+\label{sec:seguridad}
+
+El principio que guía el diseño de la seguridad es que \textbf{la base de
+datos es la frontera de autorización} (RNF-02): toda comprobación en la
+interfaz o en el servidor de aplicación se considera una primera barrera, útil
+para dar una buena experiencia, pero nunca suficiente. Si una capa superior
+falla, las políticas de la base de datos siguen impidiendo el acceso. Este
+enfoque de defensa en profundidad es coherente con las recomendaciones de
+verificación de seguridad de aplicaciones de OWASP~\cite{owasp-asvs}.
+% VERIFICAR: si se cita ASVS, referenciar los requisitos concretos (control
+% de acceso, V4 en la versión 4.0.3) tras comprobar la versión vigente.
+
+\subsection{RLS como frontera}
+
+PostgreSQL permite asociar a cada tabla políticas de seguridad a nivel de
+fila (\textit{Row-Level Security}, RLS)~\cite{postgresql-rls}: predicados que
+el propio motor añade a cada consulta según el usuario que la ejecuta.
+Supabase~\cite{supabase-rls} expone la base de datos a clientes
+autenticados y traslada la identidad del usuario (su JWT) a la sesión de
+PostgreSQL, de modo que las políticas pueden decidir con ella. En PymeKit:
+
+\begin{itemize}
+  \item toda tabla tiene RLS activado; se revocan todos los privilegios por
+        defecto a los roles de la API y se conceden solo los verbos que la
+        funcionalidad usa (y el \texttt{UPDATE}, por columnas, para que no se
+        pueda mover una fila a otra cuenta);
+  \item las políticas de \texttt{UPDATE} repiten en su cláusula
+        \texttt{WITH CHECK} las comprobaciones del \texttt{INSERT}, porque sin
+        ella PostgreSQL solo valida la fila antigua~\cite{postgresql-createpolicy}
+        (véase B-05);
+  \item las funciones \texttt{security definer}, que se ejecutan con
+        privilegios elevados y se saltan RLS, deben aplicar sus propias
+        comprobaciones de acceso y justificarlas en un comentario;
+  \item el cliente de servidor que ignora RLS se reserva para casos
+        excepcionales, tras validar a mano los permisos.
+\end{itemize}
+
+\subsection{MFA obligatorio en la consola y en el CMS}
+
+El servicio de autenticación distingue el nivel de garantía de la sesión
+(\textit{Authenticator Assurance Level}, AAL)~\cite{supabase-mfa}:
+\texttt{aal1} tras la contraseña y \texttt{aal2} tras completar el segundo
+factor. El diseño exige \texttt{aal2} en todas las capas que dan acceso a la
+administración:
+
+\begin{itemize}
+  \item en la base de datos, la función que identifica al super-administrador
+        devuelve falso si la sesión no es \texttt{aal2}; unas políticas
+        restrictivas exigen \texttt{aal2} a quien tiene un factor configurado;
+        y el acceso al CMS lo decide la función
+        \texttt{cms.verify\_admin\_access()}, que comprueba la cuenta activa
+        del CMS y el MFA;
+  \item en la interfaz, la consola \texttt{/admin} exige siempre
+        \texttt{aal2}: con un factor configurado redirige a la verificación y
+        vuelve después a la página pedida; sin factor responde 404 (ADR-016).
+\end{itemize}
+
+En PymeKit el MFA es \textbf{obligatorio por defecto} en el CMS: una opción
+de configuración ausente o no válida se interpreta como «obligatorio».
+
+\subsection{Middleware más comprobación en la base de datos}
+
+La figura~\ref{fig:flujo-cms} muestra el recorrido de una petición a la API
+del CMS y las comprobaciones que encuentra en cada capa:
+
+\begin{enumerate}
+  \item \textbf{Guardas de ruta} de la consola (\texttt{/admin} y
+        \texttt{/admin/cms}): sesión \texttt{aal2} y acceso de administración.
+  \item \textbf{Ruta \texttt{/api/cms/\$}} de TanStack Start: reenvía la
+        petición a Hono. El código del CMS se importa dinámicamente dentro
+        del manejador para que nunca llegue al navegador.
+  \item \textbf{Hono}: cabeceras de seguridad, protección CSRF propia (la
+        global de la web solo cubre las \textit{server functions}) y
+        \textit{middleware} de autenticación, que verifica el JWT (401 sin
+        sesión), exige el \textit{claim} de acceso al CMS (403) y que el
+        usuario no esté bloqueado.
+  \item \textbf{Servicio Drizzle}: cada transacción fija los
+        \textit{claims} del usuario y el rol \texttt{authenticated} en la
+        sesión de PostgreSQL mediante parámetros enlazados (nunca se
+        interpola un valor del JWT en el SQL), de modo que las políticas RLS
+        del esquema \texttt{cms} se aplican igual que a cualquier cliente.
+  \item \textbf{PostgreSQL}: \texttt{cms.verify\_admin\_access()} y las
+        políticas RLS toman la decisión final. Un super-administrador con
+        sesión \texttt{aal1} supera el \textit{middleware}, pero no ve datos.
+\end{enumerate}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      font=\footnotesize,
+      step/.style={draw, rounded corners, align=center, minimum width=3.3cm,
+                   minimum height=1.0cm, inner sep=3pt},
+      check/.style={align=left, font=\scriptsize, text width=6.4cm},
+      arr/.style={-{Stealth[length=2mm]}}
+    ]
+    \node[step] (s1) at (0, 0)     {Navegador\\(consola \texttt{/admin/cms})};
+    \node[step] (s2) at (0, -1.6)  {Ruta de servidor\\\texttt{/api/cms/\$}};
+    \node[step] (s3) at (0, -3.2)  {Aplicación Hono\\(\textit{middleware})};
+    \node[step] (s4) at (0, -4.8)  {Servicio Drizzle\\(transacción)};
+    \node[step] (s5) at (0, -6.4)  {PostgreSQL\\(esquema \texttt{cms})};
+
+    \draw[arr] (s1) -- (s2);
+    \draw[arr] (s2) -- (s3);
+    \draw[arr] (s3) -- (s4);
+    \draw[arr] (s4) -- (s5);
+
+    \node[check, right=0.6cm of s1] {Guarda de ruta: sesión \texttt{aal2} y
+      acceso de administración (si no: verificación MFA o 404)};
+    \node[check, right=0.6cm of s2] {Reenvío a Hono; código del CMS importado
+      solo en el servidor};
+    \node[check, right=0.6cm of s3] {Cabeceras de seguridad, CSRF; JWT válido
+      (401), \textit{claim} de acceso al CMS (403), usuario no bloqueado};
+    \node[check, right=0.6cm of s4] {\textit{Claims} del usuario y rol
+      \texttt{authenticated} fijados con parámetros enlazados};
+    \node[check, right=0.6cm of s5] {\texttt{cms.verify\_admin\_access()}
+      (cuenta activa, MFA) y políticas RLS: \textbf{decisión final}};
+  \end{tikzpicture}
+  \caption{Flujo de una petición a la API del CMS y comprobaciones de
+    seguridad en cada capa.}
+  \label{fig:flujo-cms}
+  % Texto alternativo: diagrama vertical de cinco pasos (navegador, ruta de
+  % servidor /api/cms/$, aplicación Hono, servicio Drizzle, PostgreSQL). A la
+  % derecha de cada paso se indican sus comprobaciones; la última, las
+  % políticas RLS y cms.verify_admin_access(), es la que toma la decisión.
+\end{figure}
+% Versión alternativa como diagrama de secuencia: diagramas/flujo-peticion-cms.puml
+
+Las \textit{server functions} de la aplicación siguen el mismo patrón: una
+cadena de \textit{middleware} tipado (autenticación, pertenencia al equipo,
+super-administrador) valida la petición y después el cliente de Supabase con
+la sesión del usuario deja que RLS decida.
+
+\subsection{Fallo en cerrado}
+
+Todas las comprobaciones de seguridad deben \textbf{fallar en cerrado}
+(\textit{fail closed}): ante un dato ausente, ilegible o no válido, se
+deniega. El diseño lo aplica, por ejemplo, a la opción que indica si el CMS
+exige MFA, que se lee con una función de privilegios elevados precisamente
+para que RLS no pueda ocultársela a quien tiene que decidir. Esta regla se
+incorporó tras la incidencia B-06 (sección~\ref{sec:verificacion-seguridad}).
+
+\subsection{Seguridad del entorno de desarrollo}
+
+La seguridad también alcanza al entorno de trabajo. Los servicios locales de
+la base de datos se aíslan de Internet con una regla de cortafuegos
+específica para contenedores y se accede a la aplicación mediante un túnel
+SSH (ADR-010, tras la incidencia B-04). Cualquier servicio nuevo en
+contenedores se revisa con ese mismo criterio.
+
+% ---------------------------------------------------------------------
+\section{Decisiones de diseño principales}
+\label{sec:decisiones}
+
+La tabla~\ref{tab:decisiones} resume las decisiones de diseño que se han
+tomado hasta la fecha, con las alternativas descartadas.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Resumen de decisiones de diseño (ADR) y alternativas descartadas.}
+  \label{tab:decisiones}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}Xl@{}}
+    \toprule
+    \textbf{ADR} & \textbf{Decisión} & \textbf{Alternativas descartadas (motivo)} & \textbf{Req.} \\
+    \midrule
+    001 & Partir de una base de código SaaS existente con licencia % PENDIENTE (P-06)
+      & Desarrollo propio completo (inviable en plazo); otros \textit{boilerplates} abiertos (menos completos en multi-tenant y RLS); CMS genéricos como Strapi o Directus (otra base de datos u otro \textit{backend}) & RNF-01, 04 \\
+    002 & Monorepo único y una sola base de datos & Dos repositorios con la misma BD (CI, despliegue y documentación duplicados; peor trazabilidad) & RF-09, RNF-04 \\
+    004 & Conservar el CMS de datos y retirar el de contenidos editoriales & Mantener dos CMS (complejidad sin aportar al objetivo) & RF-09 \\
+    010 & Aislar de Internet los servicios locales & Confiar en el cortafuegos del sistema (los contenedores se lo saltan, B-04) & RNF-02 \\
+    011 & CMS integrado en la consola: API Hono en \texttt{/api/cms}, pantallas como rutas de la web & Apps separadas (tres servicios, dos inicios de sesión); híbrida (dos enrutadores) & RF-08--11 \\
+    012 & Esquema SQL del CMS llamado \texttt{cms} & Conservar el nombre original (excepción permanente en el control de desmarcado) & RF-09 \\
+    013 & Una sola pila de librerías en toda la web & Mantener las del CMS (dos formas de hacer lo mismo; dos sistemas de i18n) & RNF-05 \\
+    014 & Super-admin como raíz del CMS; RBAC del CMS para el resto del personal & Solo super-admin, sin RBAC granular (incumple RF-09) & RF-08, 09 \\
+    015 & Endurecer la seguridad del CMS de partida & Aceptar el código heredado sin auditar (brechas confirmadas, B-05--B-09) & RNF-02, 03 \\
+    016 & Consola para super-admin y personal del CMS, siempre con \texttt{aal2} & Dejar entrar con el \textit{claim} de acceso sin comprobar el AAL (B-14) & RF-08, RNF-02 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\section{Verificación de la seguridad}
+\label{sec:verificacion-seguridad}
+
+\subsection{Proceso de revisión adversarial}
+
+Todo cambio que afecta a la base de datos (una política, un permiso, una
+función \texttt{security definer}, una vista o una migración) se somete a una
+revisión adversarial específica de RLS, definida como un procedimiento del
+\textit{harness} (sección~\ref{sec:metodologia-ia}). Su premisa es que leer
+las políticas no basta: hay que \textbf{demostrar} el aislamiento. Consta de
+estas etapas:
+
+\begin{enumerate}
+  \setcounter{enumi}{-1}
+  \item \textbf{Alcance}: qué tablas, funciones y esquemas se revisan.
+  \item \textbf{Inventario de aislamiento}: políticas, permisos concedidos,
+        funciones de privilegios elevados, vistas y restricciones de MFA y
+        super-administrador de cada objeto.
+  \item \textbf{Auditoría estática} con un catálogo de ataques (exposición de
+        tablas, huecos en los predicados, capas restrictivas, funciones que
+        se saltan RLS, vistas, almacenamiento y el esquema del CMS). Cada
+        acierto se formula como un ataque concreto: qué usuario, qué
+        sentencia y qué fila.
+  \item \textbf{Demostración con pgTAP}~\cite{pgtap}: para cada hallazgo
+        plausible, y para cada garantía que se quiere confirmar, se escribe
+        una prueba que ejecuta el ataque \emph{como el usuario atacante} y
+        comprueba que falla. Las pruebas quedan en el repositorio como
+        pruebas de regresión.
+  \item \textbf{Refutación independiente}: el contexto que produjo un
+        hallazgo no puede confirmarlo. Un agente distinto recibe solo la
+        política, el resultado de la prueba y la afirmación, y su única tarea
+        es refutarla (encontrar la capa que en realidad protege o, ante un
+        veredicto de «seguro», el tipo de sentencia, rol o nivel de sesión
+        que no se ha probado). Una brecha solo se acepta si el refutador
+        también la reproduce; un aprobado, solo si no encuentra un vector
+        abierto.
+  \item \textbf{Informe} con el veredicto, los hallazgos, la matriz de
+        aislamiento y las correcciones.
+\end{enumerate}
+
+\subsection{Hallazgos corregidos}
+
+La aplicación de este proceso a la base de datos del CMS en el incremento
+F2.1 dio los resultados de la tabla~\ref{tab:hallazgos}, que también recoge
+dos incidencias de seguridad detectadas por otras vías. Los fallos de origen
+\emph{heredado} ya estaban en el código de partida; los \emph{propios} se
+introdujeron durante el proyecto.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Incidencias de seguridad detectadas y corregidas (bitácora del proyecto).}
+  \label{tab:hallazgos}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}Xll>{\raggedright\arraybackslash}p{3.1cm}@{}}
+    \toprule
+    \textbf{ID} & \textbf{Fallo} & \textbf{Origen} & \textbf{Grav.} & \textbf{Detección} \\
+    \midrule
+    B-04 & Base de datos local accesible desde Internet (los contenedores se saltaban el cortafuegos) & entorno & Alta & Investigación de un problema de acceso \\
+    B-05 & Escalada de privilegios en el RBAC del CMS: \texttt{UPDATE} sin \texttt{WITH CHECK} & heredado & Alta & Auditoría, confirmada con prueba ejecutada \\
+    B-06 & La comprobación de MFA del CMS fallaba en abierto & heredado & Alta & Una prueba nueva falló de forma inesperada \\
+    B-07 & Lectura de la tabla de usuarios de autenticación mediante una función de consulta & heredado & Alta & Auditoría \\
+    B-08 & Lectura del catálogo de roles de PostgreSQL (\texttt{pg\_authid}) & heredado & Alta & Refutación independiente \\
+    B-09 & Política RLS con una condición tautológica & heredado & Baja & Auditoría \\
+    B-14 & La consola \texttt{/admin} se cargaba sin segundo factor & propio & Media & Prueba manual del autor \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+% PENDIENTE: la bitácora no indica expresamente cómo se detectaron B-07 y
+% B-09 (se asume «auditoría», dentro de la /rls-review de F2.1). Confirmar.
+
+A continuación se resume cada uno.
+
+\begin{description}
+  \item[B-05 · Escalada por \texttt{UPDATE} sin \texttt{WITH CHECK}.] Las
+        políticas de actualización de tres tablas de asignación de permisos
+        solo tenían la cláusula \texttt{USING}. Un administrador delegado
+        podía cambiar el permiso de una fila existente y colgar de un rol
+        inferior un permiso que él mismo no tenía. Se añadió \texttt{WITH
+        CHECK} con la misma comprobación que el \texttt{INSERT}. Lección: en
+        PostgreSQL, un \texttt{UPDATE} sin \texttt{WITH CHECK} valida la fila
+        antigua, no la nueva.
+  \item[B-06 · MFA que fallaba en abierto.] La función de control leía la
+        opción «MFA obligatorio» con los permisos del usuario, y una política
+        restrictiva se la ocultaba precisamente a quien tenía el factor
+        configurado pero había entrado sin él. La función veía la opción
+        vacía, la interpretaba como «opcional» y dejaba pasar. Se corrigió
+        leyendo la opción con una función de privilegios elevados y tratando
+        su ausencia como «obligatorio». Al corregirlo falló una prueba
+        heredada cuyo nombre decía «MFA obligatorio por defecto» pero cuya
+        aserción comprobaba que se concedía el acceso (B-11).
+  \item[B-07 · Lectura de usuarios de autenticación.] Dos funciones de
+        consulta que se saltan RLS no aplicaban la validación de esquemas
+        protegidos ni, una de ellas, la de acceso de administración, que sí
+        aplicaban sus funciones hermanas de escritura. Con un permiso
+        comodín podían devolver los usuarios con sus \textit{hashes} de
+        contraseña. Ahora exigen ambas comprobaciones.
+  \item[B-08 · Lectura del catálogo del sistema.] Tras corregir B-07, la
+        etapa de refutación encontró que la lista de esquemas protegidos no
+        incluía el catálogo de PostgreSQL, lo que permitía leer los
+        \textit{hashes} de los roles de la base de datos. Se bloquea ahora
+        cualquier esquema de sistema. Es la evidencia más clara del valor de
+        la refutación independiente: encontró algo que la primera auditoría
+        había dado por bueno.
+  \item[B-09 · Condición tautológica.] En una subconsulta dentro de una
+        política, una columna sin cualificar se resolvía contra la tabla de
+        la subconsulta y se comparaba consigo misma, de modo que cualquier
+        usuario con un rol veía todas las asignaciones. Se cualificó la
+        columna.
+  \item[B-14 · Consola sin segundo factor.] Al abrir la consola al personal
+        del CMS, la guarda comprobaba el \textit{claim} de acceso, que
+        también tiene un super-administrador que solo ha introducido la
+        contraseña. La API y la base de datos seguían exigiendo MFA, así que
+        no se exponían datos, pero la consola se cargaba. Lo detectó el autor
+        con una prueba exploratoria; se corrigió exigiendo \texttt{aal2} en
+        la guarda y se añadió una prueba E2E de regresión. Es también un
+        ejemplo de la defensa en profundidad funcionando: el fallo de una
+        capa no expuso datos porque las inferiores lo impidieron.
+\end{description}
+
+Las correcciones de la base de datos se recogen en ADR-015 y en tres
+migraciones, cada una con sus pruebas de regresión en pgTAP. ADR-015 enumera
+ocho puntos: dos brechas confirmadas (B-05 y B-08), cinco endurecimientos
+(el fallo en abierto de la comprobación de MFA, B-06; la lectura de esquemas
+protegidos, B-07; el acceso a los paneles; la unicidad de los marcadores del
+rol raíz, y la política tautológica, B-09) y la alineación de cuatro funciones
+cuyo esquema declarativo no coincidía con las migraciones (B-10).
+Tras la corrección, la batería de pruebas de base de datos quedó en 57
+ficheros y 1.550 pruebas pgTAP en verde.
+% Fuente: PROGRESO.md (F2.1). Actualizar al cierre de F2/F6.
+
+El mismo ADR deja registradas, para revisarlas en F2.7, cuatro debilidades
+menores que hoy no constituyen una brecha activa, como que un permiso de
+almacenamiento sin contenedor indicado equivalga a un comodín o que el
+personal pueda insertar entradas de auditoría a su nombre.
+\todo{Actualizar este párrafo con el resultado de la revisión en F2.7.}
+
+\todo{En el capítulo de Pruebas, presentar la matriz de aislamiento por tabla
+del informe de la revisión y las cifras finales de pruebas (pgTAP, unitarias
+y E2E) tras F6.}

@@ -145,7 +145,7 @@ describe('requireUser', () => {
           sub: 'user-1',
           aal: 'aal2',
           email: 'user@test.dev',
-          app_metadata: { role: 'super-admin' },
+          app_metadata: { role: 'super-admin', cms_access: 'true' },
         },
         aal: { currentLevel: 'aal2', nextLevel: 'aal2' },
       });
@@ -157,7 +157,24 @@ describe('requireUser', () => {
         id: 'user-1',
         email: 'user@test.dev',
         is_superadmin: true,
+        has_cms_access: true,
       });
+    });
+
+    // Acceso al CMS (ADR-014): solo cuenta el valor exacto 'true' del claim.
+    it('maps has_cms_access to false without the cms_access claim', async () => {
+      const { client } = createFakeClient({
+        claims: {
+          sub: 'user-2',
+          aal: 'aal1',
+          app_metadata: { cms_access: 'false' },
+        },
+        aal: { currentLevel: 'aal1', nextLevel: 'aal1' },
+      });
+
+      const result = await requireUser(client);
+
+      expect(result.data).toMatchObject({ has_cms_access: false });
     });
   });
 

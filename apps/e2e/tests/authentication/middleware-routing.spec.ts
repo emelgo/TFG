@@ -12,7 +12,7 @@ test.describe('Middleware URL pattern routing', () => {
     await auth.goToSignIn();
 
     await auth.signIn({
-      email: 'super-admin@makerkit.dev',
+      email: 'super-admin@pymekit.test',
       password: 'testingpassword',
     });
 

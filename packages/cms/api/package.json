@@ -1,0 +1,41 @@
+{
+  "name": "@pymekit/cms-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pymekit/cms-audit-logs": "workspace:*",
+    "@pymekit/cms-auth": "workspace:*",
+    "@pymekit/cms-dashboards": "workspace:*",
+    "@pymekit/cms-data-explorer": "workspace:*",
+    "@pymekit/cms-navigation": "workspace:*",
+    "@pymekit/cms-permissions": "workspace:*",
+    "@pymekit/cms-resources": "workspace:*",
+    "@pymekit/cms-settings": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*",
+    "@pymekit/cms-storage-explorer": "workspace:*",
+    "@pymekit/cms-supabase": "workspace:*",
+    "@pymekit/cms-users-explorer": "workspace:*",
+    "@pymekit/shared": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*"
+  }
+}

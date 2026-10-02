@@ -15,7 +15,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  * directly, so the invitation-link purpose is cryptographically separated from
  * the database credential (and HMAC never exposes the underlying key).
  */
-const SIGNATURE_PURPOSE = 'makerkit:invitation-link:v1';
+const SIGNATURE_PURPOSE = 'pymekit:invitation-link:v1';
 
 const SIGNATURE_REGEX = /^[a-f0-9]{64}$/;
 

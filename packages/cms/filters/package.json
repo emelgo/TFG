@@ -1,0 +1,42 @@
+{
+  "name": "@pymekit/cms-filters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./components": "./src/components/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@pymekit/cms-filters-core": "workspace:*",
+    "@pymekit/cms-formatters": "workspace:*",
+    "@pymekit/cms-types": "workspace:*",
+    "@pymekit/cms-ui-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "@pymekit/ui": "workspace:*",
+    "@tanstack/react-form": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@types/react": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "use-intl": "catalog:",
+    "vitest": "catalog:"
+  }
+}

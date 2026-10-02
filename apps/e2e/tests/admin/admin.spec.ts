@@ -20,12 +20,53 @@ test.describe('Admin Auth flow without MFA', () => {
 test.describe('Admin Auth flow with Super Admin but without MFA', () => {
   AuthPageObject.setupSession(AUTH_STATES.TEST_USER);
 
-  test('will redirect to 404 for admin users without MFA', async ({ page }) => {
+  // Este usuario es super-admin pero no tiene ningún factor MFA configurado,
+  // así que no puede elevar su sesión a aal2. La consola exige siempre segundo
+  // factor (ADR-016), de modo que no se anuncia: 404, igual que para un
+  // usuario normal. Debe activar antes el MFA en los ajustes de su cuenta.
+  test('returns a 404 to admins without any MFA factor', async ({ page }) => {
     await page.goto('/admin');
 
-    // the admin route throws notFound(): the root not-found component renders
-    // while the URL stays /admin (no /404 redirect like Next.js)
     await expect(page.locator('[data-testid="root-not-found"]')).toBeVisible();
+    await expect(page.getByTestId('admin-sidebar-platform-group')).toHaveCount(
+      0,
+    );
+  });
+});
+
+test.describe('Admin Auth flow with MFA configured but not verified', () => {
+  // Regresión de un fallo detectado por el autor: el super-admin con MFA
+  // configurado inicia sesión, NO completa el segundo factor y escribe /admin
+  // en la barra de direcciones. Antes se cargaba la consola; ahora se le
+  // exige verificar el MFA y, al hacerlo, vuelve a /admin.
+  test('redirects to MFA verification and back to the console', async ({
+    page,
+  }) => {
+    const auth = new AuthPageObject(page);
+
+    await page.goto('/auth/sign-in');
+
+    await auth.signIn({
+      email: 'super-admin@pymekit.test',
+      password: 'testingpassword',
+    });
+
+    await page.waitForURL('**/auth/verify**');
+
+    // Se salta la verificación y va directo a la consola.
+    await page.goto('/admin');
+
+    await page.waitForURL('**/auth/verify**');
+    await expect(page.getByTestId('admin-sidebar-platform-group')).toHaveCount(
+      0,
+    );
+
+    await auth.submitMFAVerification(AuthPageObject.MFA_KEY);
+
+    await page.waitForURL('**/admin');
+    await expect(
+      page.getByTestId('admin-sidebar-platform-group'),
+    ).toBeVisible();
   });
 });
 
@@ -38,8 +79,14 @@ test.describe('Admin', () => {
     test('displays all stat cards', async ({ page }) => {
       await page.goto('/admin');
 
-      // Check all stat cards are present
-      await expect(page.getByText('Users', { exact: true })).toBeVisible();
+      // Check all stat cards are present. «Users» se busca solo entre los
+      // títulos de las tarjetas: la barra lateral también tiene una entrada
+      // «Users» (explorador de usuarios del CMS).
+      await expect(
+        page.locator('[data-slot="card-title"]').getByText('Users', {
+          exact: true,
+        }),
+      ).toBeVisible();
 
       await expect(
         page.getByText('Team Accounts', { exact: true }),

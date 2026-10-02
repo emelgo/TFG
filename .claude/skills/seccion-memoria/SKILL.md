@@ -16,6 +16,8 @@ Redacta la sección «$ARGUMENTS» de la memoria.
    - Requisitos y filas de `TRAZABILIDAD.md`.
    - Código implicado: léelo, no lo supongas.
    - Si es la parte de implementación, `MAPA-REFERENCIAS.md` (reutilizado, adaptado o nuevo).
+   - Incidencias y lecciones de `BITACORA.md` que afecten a la sección, sobre todo para *Pruebas*, *Seguridad* y *Conclusiones*.
+   - Para *Planificación*: la sección «Dedicación» de `PROGRESO.md`.
 3. **Redactar**: delega en el subagente `redactor-memoria` pasándole el tema, la ruta de destino y las fuentes reunidas. Si el tema es breve, puedes redactar tú mismo siguiendo sus mismas reglas de estilo.
 4. **Revisar el borrador**:
    - No hay afirmaciones sin respaldo en el código ni datos inventados; lo que falte queda como `\todo{}` o `% PENDIENTE`.

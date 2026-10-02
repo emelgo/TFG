@@ -85,6 +85,7 @@ const form = useForm({
 | Notificaciones *toast* | `toast` de `@pymekit/ui/sonner` |
 | Renderizado condicional | `If` de `@pymekit/ui/if` |
 | Combinación de clases | `cn` de `@pymekit/ui/utils` |
+| Markdown de contenido público (sin HTML crudo, URL filtradas) | `SafeMarkdown` de `@pymekit/ui/markdown`; política pura en `@pymekit/ui/markdown-policy` |
 
 ## Zod
 

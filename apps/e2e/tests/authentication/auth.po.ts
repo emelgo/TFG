@@ -102,7 +102,7 @@ export class AuthPageObject {
   createRandomEmail() {
     const value = Math.random() * 10000000000000;
 
-    return `${value.toFixed(0)}@makerkit.dev`;
+    return `${value.toFixed(0)}@pymekit.test`;
   }
 
   async signUpFlow(path: string) {
@@ -131,11 +131,26 @@ export class AuthPageObject {
 
   async loginAsSuperAdmin(params: { next?: string }) {
     await this.loginAsUser({
-      email: 'super-admin@makerkit.dev',
+      email: 'super-admin@pymekit.test',
       next: '/auth/verify',
     });
 
     // Complete MFA verification
+    await this.submitMFAVerification(MFA_KEY);
+    await this.page.waitForURL(params.next ?? '/dashboard');
+  }
+
+  /**
+   * Inicia sesión como el personal de soporte del CMS del *seed*
+   * (`cms-staff@pymekit.test`), completando el segundo factor con el mismo
+   * secreto TOTP que el super-admin.
+   */
+  async loginAsCmsStaff(params: { next?: string }) {
+    await this.loginAsUser({
+      email: 'cms-staff@pymekit.test',
+      next: '/auth/verify',
+    });
+
     await this.submitMFAVerification(MFA_KEY);
     await this.page.waitForURL(params.next ?? '/dashboard');
   }

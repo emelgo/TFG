@@ -213,7 +213,7 @@ test.describe('Full Invitation Flow', () => {
     const invitations = new InvitationsPageObject(page);
 
     // First, create a user account by signing up
-    const existingUserEmail = 'test@makerkit.dev';
+    const existingUserEmail = 'test@pymekit.test';
 
     await invitations.setup();
     await invitations.navigateToMembers();

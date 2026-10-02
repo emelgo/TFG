@@ -1,0 +1,38 @@
+{
+  "name": "@pymekit/cms-data-explorer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./routes": "./src/api/routes/index.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "catalog:",
+    "@pymekit/cms-auth": "workspace:*",
+    "@pymekit/cms-data-explorer-core": "workspace:*",
+    "@pymekit/cms-formatters": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*",
+    "@pymekit/cms-supabase": "workspace:*",
+    "@pymekit/shared": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "vitest": "catalog:"
+  }
+}

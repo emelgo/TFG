@@ -30,6 +30,7 @@ Este documento registra qué partes de `../makerkit` (referencia SaaS) y `../sup
 | `packages/i18n` | `packages/i18n` | A | 📥 | Locale `es` |
 | `packages/{shared,policies,mailers,email-templates,analytics,monitoring,notifications,otp,database-webhooks}` | igual | R | 📥 | |
 | `packages/cms` (Keystatic/WordPress) | — | X | — | ADR-004 |
+| Componentes de presentación del blog (`apps/web/src/components/blog`) | `packages/ui/src/makerkit/markdown/` + rutas `_marketing/blog` | A | 🏷️ | Recuperados en F2.6b sobre datos de la BD y Markdown seguro (ADR-017) |
 | `packages/mcp-server` | — | X | — | ADR-008 |
 | `tooling/*`, `turbo/generators` | igual | R/A | 📥 | Sin script de licencia (ADR-006) ni generadores `setup`/`keystatic` (ADR-008) |
 | `docs/`, `.junie`, `.gemini`, `.codex`, `CHANGELOG.md` | — | X | — | No se copian |
@@ -37,16 +38,22 @@ Este documento registra qué partes de `../makerkit` (referencia SaaS) y `../sup
 
 ## Referencia CMS → PymeKit
 
+El CMS se integra en la web (ADR-011): no hay `apps/cms` ni `apps/cms-api`.
+
 | Origen (`../supamode/…`) | Destino | Tipo | Estado | Notas |
 |---|---|---|---|---|
-| `apps/app` | `apps/cms` | A | ⬜ | |
-| `apps/api` | `apps/cms-api` | A | ⬜ | |
-| `apps/e2e` | `apps/e2e` (subcarpeta cms) | A | ⬜ | |
-| `apps/app/supabase/migrations` | `apps/web/supabase/…` | A | ⬜ | P-02 |
-| `packages/*` | `packages/cms/*` (`@pymekit/cms-*`) | R | ⬜ | |
-| `Dockerfile`, `docker-compose.yml` | base para F7 | A | ⬜ | |
+| `apps/app/supabase/{schemas,migrations,tests}` | `apps/web/supabase/…` | A | 🏷️ | Esquema `cms` (ADR-012), pegamento super-admin (ADR-014), endurecimiento (ADR-015). Sin el seed de demo ni el instalador de extensiones de los tests. Comentarios en español: F4 |
+| `apps/api/app/routes.ts` | `apps/web/src/routes/api/cms/$.ts` + `packages/cms/api` | A | 🏷️ | Hono montado en `/api/cms`. F2.2 |
+| `packages/features/*` (parte `/routes`, servidor) | `packages/cms/<feature>` | R/A | 🏷️ | Servicios Drizzle y rutas Hono. F2.2 |
+| `packages/{supabase,permissions,resources,query-builder,filters-core,data-explorer-core,formatters,types}` | `packages/cms/*` | R/A | 🏷️ | F2.2. `schema` (generador de seeds) y `captcha` descartados: el CMS está detrás de la consola admin |
+| `packages/features/*` (parte `/router`, cliente) | `apps/web/src/routes/admin/cms/**` + paquetes cliente `packages/cms/{ui-core,data-explorer-ui,filters,table,users-explorer-ui,storage-explorer-ui,audit-logs-ui}` | A | 🟨 | Reescritura a TanStack Router, Form y use-intl (ADR-013). Datos (F2.4), usuarios y almacenamiento (F2.5), auditoría y búsqueda (F2.6) hechos; resto F2.7–F2.8 |
+| `packages/ui` | `@pymekit/ui` | A | ⬜ | Solo se incorporan los componentes que falten |
+| `packages/shared` (router-query-bridge) | — | X | — | Sustituido por *loaders* de TanStack + Query |
+| `apps/app/src` (entrada de la SPA, `main.tsx`) | — | X | — | Lo sustituye el router de la web |
+| `apps/e2e` | `apps/e2e/tests/cms` | A | ⬜ | F2.9 |
+| `Dockerfile`, `nginx.conf.template`, `vercel.json` | — | X | — | Un único servicio (la web). Despliegue en F7 |
 | `docs/`, `.junie`, `.cursor` | — | X | — | No se copian |
-| `.claude/skills/*` | fusionadas con las de la referencia SaaS | A | ✅ | F0 |
+| `.claude/skills/*` | fusionadas con las de la referencia SaaS | A | ✅ | F0; se revisan en F2.9 |
 
 ## Código nuevo (aportación propia)
 

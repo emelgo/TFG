@@ -1,0 +1,43 @@
+{
+  "name": "@pymekit/cms-settings-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./components": "./src/components/index.ts",
+    "./utils": "./src/utils/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@pymekit/cms-audit-logs-ui": "workspace:*",
+    "@pymekit/cms-formatters": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*",
+    "@pymekit/cms-types": "workspace:*",
+    "@pymekit/cms-ui-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "@pymekit/ui": "workspace:*",
+    "@tanstack/react-form": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-table": "catalog:",
+    "@types/react": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "use-intl": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  }
+}

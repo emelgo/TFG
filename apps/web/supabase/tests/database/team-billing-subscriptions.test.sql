@@ -2,17 +2,17 @@ BEGIN;
 
 select no_plan();
 
-select makerkit.set_identifier('primary_owner', 'test@makerkit.dev');
-select makerkit.set_identifier('owner', 'owner@makerkit.dev');
-select makerkit.set_identifier('member', 'member@makerkit.dev');
-select makerkit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.set_identifier('owner', 'owner@pymekit.test');
+select pymekit.set_identifier('member', 'member@pymekit.test');
+select pymekit.set_identifier('custom', 'custom@pymekit.test');
 
 -- Create a test account and billing customer
 INSERT INTO public.billing_customers(account_id, provider, customer_id)
-VALUES (makerkit.get_account_id_by_slug('makerkit'), 'stripe', 'cus_test');
+VALUES (pymekit.get_account_id_by_slug('pymekit'), 'stripe', 'cus_test');
 
 -- Call the upsert_subscription function
-SELECT public.upsert_subscription(makerkit.get_account_id_by_slug('makerkit'), 'cus_test', 'sub_test', true, 'active', 'stripe', false, 'usd', now(), now() + interval '1 month', '[
+SELECT public.upsert_subscription(pymekit.get_account_id_by_slug('pymekit'), 'cus_test', 'sub_test', true, 'active', 'stripe', false, 'usd', now(), now() + interval '1 month', '[
     {
         "id": "sub_123",
         "product_id": "prod_test",
@@ -53,7 +53,7 @@ SELECT row_eq(
 );
 
 SELECT throws_ok(
-    $$ SELECT public.upsert_subscription(makerkit.get_account_id_by_slug('makerkit'), 'cus_test', 'sub_missing_quantity', true, 'active', 'stripe', false, 'usd', now(), now() + interval '1 month', '[
+    $$ SELECT public.upsert_subscription(pymekit.get_account_id_by_slug('pymekit'), 'cus_test', 'sub_missing_quantity', true, 'active', 'stripe', false, 'usd', now(), now() + interval '1 month', '[
         {
             "id": "sub_missing_quantity_item",
             "product_id": "prod_missing_quantity",
@@ -83,7 +83,7 @@ SELECT is(
 );
 
 -- Call the upsert_subscription function again to update the subscription
-SELECT public.upsert_subscription(makerkit.get_account_id_by_slug('makerkit'), 'cus_test', 'sub_test', false, 'past_due', 'stripe', true, 'usd', now(), now() + interval '1 month', '[
+SELECT public.upsert_subscription(pymekit.get_account_id_by_slug('pymekit'), 'cus_test', 'sub_test', false, 'past_due', 'stripe', true, 'usd', now(), now() + interval '1 month', '[
     {
         "id": "sub_123",
         "product_id": "prod_test",
@@ -146,7 +146,7 @@ SELECT is(
   'The subscription status should be past_due'
 );
 
-select makerkit.authenticate_as('member');
+select pymekit.authenticate_as('member');
 
 SELECT row_eq(
     $$ select count(*) from subscription_items where subscription_id = 'sub_test' $$,
@@ -166,7 +166,7 @@ SELECT is(
   'The subscription should be active'
 );
 
-select makerkit.authenticate_as('member');
+select pymekit.authenticate_as('member');
 
 -- account can read their own subscription
 select isnt_empty(
@@ -180,14 +180,14 @@ select is_empty(
 );
 
 select is(
-    (public.has_active_subscription(makerkit.get_account_id_by_slug('makerkit'))),
+    (public.has_active_subscription(pymekit.get_account_id_by_slug('pymekit'))),
     true,
     'The function public.has_active_subscription should return true when the account has a subscription'
 );
 
 -- foreigners
 select tests.create_supabase_user('foreigner');
-select makerkit.authenticate_as('foreigner');
+select pymekit.authenticate_as('foreigner');
 
 -- account cannot read other's subscription
 select is_empty(
@@ -201,7 +201,7 @@ select is_empty(
 );
 
 select is(
-    (public.has_active_subscription(makerkit.get_account_id_by_slug('makerkit'))),
+    (public.has_active_subscription(pymekit.get_account_id_by_slug('pymekit'))),
     false,
     'The function public.has_active_subscription should return false when a foreigner is querying the account subscription'
 );

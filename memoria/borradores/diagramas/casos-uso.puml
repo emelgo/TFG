@@ -1,0 +1,40 @@
+' Diagrama de casos de uso principales de PymeKit (capítulo 4, fig:casos-uso).
+' Alternativa a la versión TikZ de 04-analisis.tex. Exportar a PDF/SVG con:
+'   plantuml -tsvg casos-uso.puml
+@startuml casos-uso
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "Visitante" as vis
+actor "Usuario" as usu
+actor "Propietario\ndel equipo" as pro
+actor "Miembro\nsin permiso" as mie
+actor "Super-\nadministrador" as sa
+actor "Gestor de\ncontenidos" as ges
+actor "Desarrollador" as dev
+actor "Pasarela\nde pago" as pas
+
+rectangle PymeKit {
+  usecase "CU-01 Registrarse y acceder\nal área privada" as CU1
+  usecase "CU-02 Crear equipo e\ninvitar a un miembro" as CU2
+  usecase "CU-03 Contratar un plan" as CU3
+  usecase "CU-04 Gestionar la facturación\n(denegado)" as CU4
+  usecase "CU-05 Bloquear y suplantar\na un usuario" as CU5
+  usecase "CU-06 Editar registros en el\nCMS (auditado)" as CU6
+  usecase "CU-07 Arrancar un SaaS nuevo" as CU7
+}
+
+' Usuario generaliza a propietario y miembro (ambos son usuarios registrados)
+pro -|> usu
+mie -|> usu
+
+vis --> CU1
+usu --> CU2
+pro --> CU3
+mie --> CU4
+sa --> CU5
+ges --> CU6
+dev --> CU7
+CU3 <-- pas
+@enduml

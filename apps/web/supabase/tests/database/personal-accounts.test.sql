@@ -11,7 +11,7 @@ select tests.create_supabase_user('test2');
 ------------
 --- Primary Owner
 ------------
-select makerkit.authenticate_as('test1');
+select pymekit.authenticate_as('test1');
 
 -- should create the personal account automatically with the same ID as the user
 SELECT row_eq(
@@ -24,14 +24,16 @@ SELECT row_eq(
 
 set local role anon;
 
+-- anon tiene `usage` sobre public desde F2.6b (blog público), así que el
+-- rechazo llega ahora en la tabla, no en el esquema
 SELECT throws_ok(
    $$ select * from public.accounts order by created_at desc limit 1 $$,
-    'permission denied for schema public'
+    'permission denied for table accounts'
 );
 
 -- the primary owner should be able to see the personal account
 
-select makerkit.authenticate_as('test1');
+select pymekit.authenticate_as('test1');
 
 SELECT isnt_empty(
    $$ select * from public.accounts where primary_owner_user_id = tests.get_supabase_uid('test1') $$,
@@ -80,7 +82,7 @@ select throws_ok(
 
 -- other users should not be able to see the personal account
 
-select makerkit.authenticate_as('test2');
+select pymekit.authenticate_as('test2');
 
 SELECT is_empty(
    $$ select * from public.accounts where primary_owner_user_id = tests.get_supabase_uid('test1') $$,

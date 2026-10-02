@@ -1,0 +1,57 @@
+{
+  "name": "@pymekit/cms-ui-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./api": "./src/api.ts",
+    "./queries": "./src/queries.ts",
+    "./errors": "./src/errors.ts",
+    "./sections": "./src/sections.ts",
+    "./resources": "./src/resources.ts",
+    "./account-context": "./src/account-context.tsx",
+    "./api-context": "./src/api-context.tsx",
+    "./preferences": "./src/preferences.ts",
+    "./users-api": "./src/users-api.ts",
+    "./storage-api": "./src/storage-api.ts",
+    "./hydration": "./src/hydration.ts",
+    "./audit-logs-api": "./src/audit-logs-api.ts",
+    "./settings-api": "./src/settings-api.ts",
+    "./permissions-api": "./src/permissions-api.ts",
+    "./resource-settings-api": "./src/resource-settings-api.ts",
+    "./dashboards-api": "./src/dashboards-api.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@pymekit/cms-api": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@pymekit/cms-audit-logs": "workspace:*",
+    "@pymekit/cms-dashboards": "workspace:*",
+    "@pymekit/cms-data-explorer": "workspace:*",
+    "@pymekit/cms-navigation": "workspace:*",
+    "@pymekit/cms-permissions": "workspace:*",
+    "@pymekit/cms-resources": "workspace:*",
+    "@pymekit/cms-settings": "workspace:*",
+    "@pymekit/cms-storage-explorer": "workspace:*",
+    "@pymekit/cms-users-explorer": "workspace:*",
+    "@pymekit/tsconfig": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "@types/react": "catalog:",
+    "hono": "catalog:",
+    "react": "catalog:",
+    "vitest": "catalog:"
+  }
+}

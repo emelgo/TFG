@@ -16,7 +16,7 @@ select public.create_team_account('Test', tests.get_supabase_uid('test1'));
 select public.create_team_account('Test', tests.get_supabase_uid('test1'));
 
 -- Switch back to authenticated user for testing
-select makerkit.authenticate_as('test1');
+select pymekit.authenticate_as('test1');
 
 -- should automatically create slugs for the accounts
 select row_eq(

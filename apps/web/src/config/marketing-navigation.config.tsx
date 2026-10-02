@@ -14,6 +14,7 @@ type NavLink = {
  */
 export const marketingNavigationLinks: NavLink[] = [
   { label: 'marketing.pricing', path: '/pricing' },
+  { label: 'marketing.blog', path: '/blog' },
   { label: 'marketing.faq', path: '/faq' },
   { label: 'auth.signIn', path: '/auth/sign-in', showOn: 'mobile' },
   {

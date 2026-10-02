@@ -1,0 +1,42 @@
+' Arquitectura general de PymeKit (capítulo 5, fig:arquitectura).
+' Alternativa a la versión TikZ de 05-diseno.tex.
+@startuml arquitectura
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+node "Navegador (React 19)" as browser {
+  [Área privada]
+  [Consola /admin]
+  [CMS /admin/cms]
+}
+
+node "apps/web (TanStack Start)" as web {
+  [Rutas y loaders (SSR)] as ssr
+  [Server functions + middleware] as sfn
+  [Ruta /api/cms/* → aplicación Hono] as hono
+  [Ruta /api/billing/webhook] as wh
+  [Cliente Supabase (sesión del usuario)] as sbc
+  [Servicios Drizzle (claims del usuario)] as drz
+}
+
+cloud "Supabase (una única instancia)" as sb {
+  [Auth (JWT, MFA)] as auth
+  database "PostgreSQL + RLS\nesquemas public y cms" as pg
+  [Storage] as st
+}
+
+[Stripe] as stripe
+
+browser --> ssr
+browser --> sfn
+browser --> hono : RPC
+ssr ..> hono : SSR en el mismo proceso
+ssr --> sfn
+sfn --> sbc
+hono --> drz
+sbc --> auth
+sbc --> pg
+sbc --> st
+drz --> pg
+stripe --> wh : webhooks
+@enduml

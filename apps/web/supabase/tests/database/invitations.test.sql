@@ -4,7 +4,7 @@ select no_plan();
 
 -- ----------------------------------------------------------------------------
 -- Setup: create our OWN users + team account so this test does not depend on
--- the seeded makerkit users (which e2e runs can mutate/rename, e.g. owner@ ->
+-- the seeded PymeKit users (which e2e runs can mutate/rename, e.g. owner@ ->
 -- owner1@). 'inv_owner' owns the account, 'inv_member' is a plain member,
 -- 'inv_manager' is a member holding a custom role with invites.manage, and
 -- 'inv_foreigner' is not a member of the account.
@@ -38,8 +38,8 @@ values ('inv-custom', 'invites.manage');
 
 insert into public.accounts_memberships (account_id, user_id, account_role)
 values
-    (makerkit.get_account_id_by_slug('invite-test'), tests.get_supabase_uid('inv_member'), 'member'),
-    (makerkit.get_account_id_by_slug('invite-test'), tests.get_supabase_uid('inv_manager'), 'inv-custom');
+    (pymekit.get_account_id_by_slug('invite-test'), tests.get_supabase_uid('inv_member'), 'member'),
+    (pymekit.get_account_id_by_slug('invite-test'), tests.get_supabase_uid('inv_manager'), 'inv-custom');
 
 -- ----------------------------------------------------------------------------
 -- Direct INSERTs into invitations are blocked at the privilege layer for ALL
@@ -49,47 +49,47 @@ values
 -- ----------------------------------------------------------------------------
 
 -- account owner: blocked
-select makerkit.authenticate_as('inv_owner');
+select pymekit.authenticate_as('inv_owner');
 
 select throws_ok(
-    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite1@test.com', auth.uid(), makerkit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
+    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite1@test.com', auth.uid(), pymekit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
     'permission denied for table invitations',
     'the account owner cannot directly insert invitations'
 );
 
 -- plain member: blocked
-select makerkit.authenticate_as('inv_member');
+select pymekit.authenticate_as('inv_member');
 
 select throws_ok(
-    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite2@test.com', auth.uid(), makerkit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
+    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite2@test.com', auth.uid(), pymekit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
     'permission denied for table invitations',
     'a plain member cannot directly insert invitations'
 );
 
 -- member holding invites.manage: STILL blocked (permission does not grant INSERT)
-select makerkit.authenticate_as('inv_manager');
+select pymekit.authenticate_as('inv_manager');
 
 select throws_ok(
-    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite3@test.com', auth.uid(), makerkit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
+    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite3@test.com', auth.uid(), pymekit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
     'permission denied for table invitations',
     'a member with invites.manage still cannot directly insert invitations'
 );
 
 -- foreigner (no membership): blocked
-select makerkit.authenticate_as('inv_foreigner');
+select pymekit.authenticate_as('inv_foreigner');
 
 select throws_ok(
-    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite4@test.com', auth.uid(), makerkit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
+    $$ insert into public.invitations (email, invited_by, account_id, role, invite_token) values ('invite4@test.com', auth.uid(), pymekit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
     'permission denied for table invitations',
     'a non-member cannot directly insert invitations'
 );
 
 -- no invitations should have been created by any of the blocked inserts.
 -- NOTE: select id (not *) — authenticated may not read the invite_token column.
-select makerkit.authenticate_as('inv_owner');
+select pymekit.authenticate_as('inv_owner');
 
 select is_empty(
-    $$ select id from public.invitations where account_id = makerkit.get_account_id_by_slug('invite-test') $$,
+    $$ select id from public.invitations where account_id = pymekit.get_account_id_by_slug('invite-test') $$,
     'no invitations should exist when direct inserts are blocked'
 );
 
@@ -187,12 +187,12 @@ insert into public.invitations (email, invited_by, account_id, role, invite_toke
 values (
     'col-invitee@test.com',
     tests.get_supabase_uid('inv_owner'),
-    makerkit.get_account_id_by_slug('invite-test'),
+    pymekit.get_account_id_by_slug('invite-test'),
     'member',
     gen_random_uuid()
 );
 
-select makerkit.authenticate_as('inv_owner');
+select pymekit.authenticate_as('inv_owner');
 
 select isnt_empty(
     $$ select id, email, role from public.invitations where email = 'col-invitee@test.com' $$,
@@ -208,7 +208,7 @@ select throws_ok(
 
 -- authenticated users with update access must not be able to forge delivery
 -- state or reset resend rate-limit counters through the data API.
-select makerkit.authenticate_as('inv_owner');
+select pymekit.authenticate_as('inv_owner');
 set local role authenticated;
 
 select throws_ok(
@@ -225,7 +225,7 @@ select lives_ok(
 );
 
 set local role postgres;
-select makerkit.authenticate_as('inv_owner');
+select pymekit.authenticate_as('inv_owner');
 
 select row_eq(
     $$ select resend_count from public.invitations where email = 'col-invitee@test.com' $$,
@@ -242,7 +242,7 @@ set local role service_role;
 
 select throws_ok(
     $$ insert into public.invitations (email, invited_by, account_id, role, invite_token)
-       values ('not-an-email', tests.get_supabase_uid('inv_owner'), makerkit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
+       values ('not-an-email', tests.get_supabase_uid('inv_owner'), pymekit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
     '23514',
     null,
     'a malformed invitation email is rejected by the format constraint'
@@ -250,7 +250,7 @@ select throws_ok(
 
 select throws_ok(
     $$ insert into public.invitations (email, invited_by, account_id, role, invite_token)
-       values ('spaced user@test.com', tests.get_supabase_uid('inv_owner'), makerkit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
+       values ('spaced user@test.com', tests.get_supabase_uid('inv_owner'), pymekit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid()) $$,
     '23514',
     null,
     'an invitation email containing whitespace is rejected by the format constraint'
@@ -260,7 +260,7 @@ select throws_ok(
 -- expires_at can never be inserted
 select throws_ok(
     $$ insert into public.invitations (email, invited_by, account_id, role, invite_token, expires_at)
-       values ('expired@test.com', tests.get_supabase_uid('inv_owner'), makerkit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid(), now() - interval '1 day') $$,
+       values ('expired@test.com', tests.get_supabase_uid('inv_owner'), pymekit.get_account_id_by_slug('invite-test'), 'member', gen_random_uuid(), now() - interval '1 day') $$,
     '23514',
     null,
     'an invitation that expires before creation is rejected'

@@ -32,7 +32,7 @@ Los nombres de los proyectos de referencia solo pueden aparecer en la documentac
 | `packages/ui/src/makerkit/` | `packages/ui/src/pymekit/` | Y sus exports |
 | `src/styles/makerkit.css` | `src/styles/pymekit.css` | |
 | `author: MakerKit` en `package.json` | `author: "Enrique — TFG ESI UCA"` | |
-| Emails de ejemplo `@makerkit.dev` | `@pymekit.test` | En `.env*`, seeds y tests |
+| Emails de ejemplo `@makerkit.dev` | `@pymekit.test` | En `.env*`, seeds y tests (hecho en F2) |
 | `rp_display_name = "Makerkit"` y los asuntos de email en `config.toml` | `PymeKit` y asuntos en español | |
 | Plantillas `supabase/templates/*.html` | Texto en español con marca PymeKit | |
 | Enlaces a `makerkit.dev` y a la documentación externa | Se eliminan o apuntan a `docs/` propio | |

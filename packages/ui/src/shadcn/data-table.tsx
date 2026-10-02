@@ -7,7 +7,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
-import { Trans } from '../makerkit/trans';
+import { Trans } from '../pymekit/trans';
 import {
   Table,
   TableBody,

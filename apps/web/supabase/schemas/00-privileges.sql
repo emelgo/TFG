@@ -5,7 +5,7 @@
  * -------------------------------------------------------
  */
 
--- Create a private Makerkit schema
+-- Create a private PymeKit schema
 create schema if not exists kit;
 
 create extension if not exists "unaccent" schema kit;

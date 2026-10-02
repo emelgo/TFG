@@ -50,7 +50,7 @@ set local role postgres;
 
 select is(
     (select count(*)::int from public.invitations
-       where account_id = makerkit.get_account_id_by_slug('invite-limits-test')),
+       where account_id = pymekit.get_account_id_by_slug('invite-limits-test')),
     20,
     '20 invitations were created by the batch RPC'
 );
@@ -73,14 +73,14 @@ set local role postgres;
 -- the blocked call created nothing
 select is(
     (select count(*)::int from public.invitations
-       where account_id = makerkit.get_account_id_by_slug('invite-limits-test')),
+       where account_id = pymekit.get_account_id_by_slug('invite-limits-test')),
     20,
     'the rate-limited call did not create any invitation'
 );
 
 -- reset for the quota phase
 delete from public.invitations
-where account_id = makerkit.get_account_id_by_slug('invite-limits-test');
+where account_id = pymekit.get_account_id_by_slug('invite-limits-test');
 
 -- ----------------------------------------------------------------------------
 -- Quota: at most 50 outstanding (non-expired) invitations per account.
@@ -95,7 +95,7 @@ insert into public.invitations (email, invited_by, account_id, role, invite_toke
 select
     'q' || g || '@test.com',
     tests.get_supabase_uid('inv_owner'),
-    makerkit.get_account_id_by_slug('invite-limits-test'),
+    pymekit.get_account_id_by_slug('invite-limits-test'),
     'member',
     gen_random_uuid(),
     now() - interval '2 hours',
@@ -131,7 +131,7 @@ set local role postgres;
 
 select is(
     (select count(*)::int from public.invitations
-       where account_id = makerkit.get_account_id_by_slug('invite-limits-test')),
+       where account_id = pymekit.get_account_id_by_slug('invite-limits-test')),
     50,
     'the quota-blocked call did not create any invitation'
 );
@@ -141,7 +141,7 @@ select is(
 -- ----------------------------------------------------------------------------
 
 delete from public.invitations
-where account_id = makerkit.get_account_id_by_slug('invite-limits-test');
+where account_id = pymekit.get_account_id_by_slug('invite-limits-test');
 
 alter table public.invitations disable trigger invitations_set_timestamps;
 
@@ -151,7 +151,7 @@ insert into public.invitations (email, invited_by, account_id, role, invite_toke
 select
     'exp' || g || '@test.com',
     tests.get_supabase_uid('inv_owner'),
-    makerkit.get_account_id_by_slug('invite-limits-test'),
+    pymekit.get_account_id_by_slug('invite-limits-test'),
     'member',
     gen_random_uuid(),
     now() - interval '2 days',

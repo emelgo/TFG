@@ -1,0 +1,299 @@
+% =====================================================================
+% Capítulo 4 · Análisis
+% Borrador generado a partir de docs/tfg/REQUISITOS.md, TRAZABILIDAD.md,
+% DECISIONES.md (ADR-004, ADR-005, ADR-011, ADR-014) y AGENTS.md.
+% Estado de las fuentes: 2026-09-29 (F2.4b cerrada).
+% Paquetes necesarios: booktabs, tabularx, todonotes, tikz
+%   (bibliotecas: positioning, shapes.geometric, fit, backgrounds).
+% Alternativa en PlantUML: diagramas/casos-uso.puml
+% =====================================================================
+
+\chapter{Análisis}
+\label{cap:analisis}
+
+Este capítulo delimita el problema que resuelve PymeKit, recoge sus
+requisitos funcionales y no funcionales y describe los casos de uso con los
+que se validará la plataforma.
+
+% ---------------------------------------------------------------------
+\section{Contexto del problema}
+\label{sec:contexto-problema}
+
+Las pequeñas y medianas empresas (pymes) consumen cada vez más aplicaciones en
+modalidad \textit{Software as a Service} (SaaS, software como servicio): el
+proveedor aloja y mantiene una única instalación y cada cliente accede a ella
+mediante una suscripción. Quien desarrolla un SaaS para pymes debe resolver,
+antes de escribir una sola línea de su lógica de negocio, un conjunto de
+problemas que se repiten en casi todos los productos de este tipo:
+
+\begin{itemize}
+  \item \textbf{identidad}: registro, inicio de sesión, recuperación de
+        contraseña y, cada vez más a menudo, un segundo factor de
+        autenticación;
+  \item \textbf{multi-tenencia} (\textit{multi-tenancy}): cada pyme cliente
+        es un \textit{tenant} (inquilino) cuyos datos deben quedar aislados de
+        los de los demás, aunque todos compartan la misma base de datos;
+  \item \textbf{organización interna del cliente}: equipos, invitaciones,
+        roles y permisos;
+  \item \textbf{cobro}: planes, suscripciones y sincronización con una
+        pasarela de pago;
+  \item \textbf{operación de la plataforma}: una consola para que el
+        personal del proveedor gestione usuarios y cuentas, y una herramienta
+        para consultar y corregir datos sin acceder directamente a la base de
+        datos;
+  \item \textbf{calidad transversal}: seguridad, internacionalización,
+        pruebas y despliegue reproducible.
+\end{itemize}
+
+Estos componentes no aportan valor diferencial al producto, pero consumen una
+parte muy importante del esfuerzo y son precisamente los que más riesgo de
+seguridad concentran. El objetivo de PymeKit es ofrecerlos ya resueltos,
+integrados y verificados, como una \textbf{plataforma base reutilizable}: un
+nuevo SaaS para pymes debería poder arrancarse cambiando la configuración, sin
+modificar el núcleo (RNF-01).
+
+Del alcance acordado se derivan dos decisiones que condicionan el análisis:
+
+\begin{itemize}
+  \item La plataforma es \textbf{genérica}: no implementa un dominio de
+        negocio concreto. Su reutilización se valida midiendo el arranque de
+        un SaaS nuevo a partir de ella (ADR-005).
+        % PENDIENTE (P-01): confirmar con el tutor que esto cubre el
+        % «escenario de ejemplo» de la propuesta.
+  \item El \textbf{CMS} que pide la propuesta se interpreta como un CMS de
+        administración de datos de la base de datos, integrado en la consola
+        de administración, y no como un gestor de contenidos editoriales
+        (blog, documentación). Mantener dos CMS añadiría complejidad sin
+        acercar el objetivo (ADR-004, ADR-011).
+\end{itemize}
+
+% PENDIENTE (P-06): si la memoria explica aquí que la plataforma parte de una
+% base de código SaaS existente con licencia, redactarlo de forma neutra (sin
+% nombres comerciales ni URL) según lo que se acuerde con el tutor. La parte
+% reutilizada y la propia se distinguen en el capítulo de Implementación.
+
+% ---------------------------------------------------------------------
+\section{Actores}
+\label{sec:actores}
+
+\begin{description}
+  \item[Visitante.] Persona no identificada que consulta la web pública y
+        puede registrarse.
+  \item[Usuario.] Persona registrada. Dispone de una cuenta personal y puede
+        pertenecer a una o varias cuentas de equipo.
+  \item[Propietario del equipo.] Usuario con el rol de mayor nivel en una
+        cuenta de equipo (la pyme cliente); gestiona sus miembros y su
+        suscripción.
+  \item[Miembro.] Usuario de un equipo con un rol de menor nivel y, por
+        tanto, con permisos limitados.
+  \item[Super-administrador.] Personal del proveedor con control total de la
+        plataforma y, por extensión, del CMS (ADR-014).
+  \item[Gestor de contenidos / soporte.] Personal del proveedor que accede al
+        CMS con permisos limitados definidos por el RBAC propio del CMS
+        (ADR-014, ADR-016).
+  \item[Desarrollador.] Quien reutiliza PymeKit para construir un SaaS nuevo.
+  \item[Pasarela de pago.] Sistema externo (Stripe) que procesa los cobros y
+        notifica los cambios de suscripción mediante \textit{webhooks}
+        (llamadas HTTP que el sistema externo envía a la aplicación cuando
+        ocurre un evento).
+\end{description}
+
+% ---------------------------------------------------------------------
+\section{Requisitos funcionales}
+\label{sec:rf}
+
+Los requisitos se derivan de los apartados \emph{Objetivo}, \emph{Descripción}
+y \emph{Alcance} de la propuesta del TFG. Su prioridad es \textbf{M}
+(imprescindible, forma parte del prototipo mínimo) o \textbf{D} (deseable).
+Los identificadores son estables: se citan en el código, en la matriz de
+trazabilidad y en esta memoria, y no se renumeran.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Requisitos funcionales.}
+  \label{tab:rf}
+  \begin{tabularx}{\textwidth}{@{}lXc@{}}
+    \toprule
+    \textbf{ID} & \textbf{Requisito} & \textbf{Prior.} \\
+    \midrule
+    RF-01 & Interfaz web para el usuario final: página de inicio pública (\textit{landing}), página de precios y área privada con navegación & M \\
+    RF-02 & API de \textit{backend} para la lógica de negocio y el acceso a datos, mediante funciones de servidor (\textit{server functions}) tipadas y validadas & M \\
+    RF-03 & Registro e inicio de sesión (contraseña y enlace mágico), recuperación de contraseña y verificación del correo electrónico & M \\
+    RF-04 & Segundo factor de autenticación (MFA) y proveedores OAuth configurables & D \\
+    RF-05 & Gestión de la cuenta personal: perfil, correo, contraseña, preferencia de idioma y baja & M \\
+    RF-06 & Cuentas de equipo (una por pyme cliente): crear equipos, invitar miembros, asignar roles y aplicar permisos por funcionalidad & M \\
+    RF-07 & Suscripciones con pasarela de pago (Stripe): planes, pago (\textit{checkout}), portal de cliente y sincronización mediante \textit{webhooks} & M \\
+    RF-08 & Panel de super-administración de la plataforma: listar y gestionar usuarios y cuentas, bloquear, suplantar y restablecer & M \\
+    RF-09 & CMS de administración de datos, integrado en la consola de administración: explorar y editar tablas de la BD, gestionar usuarios y almacenamiento, con permisos propios & M \\
+    RF-10 & Registro de auditoría de las acciones realizadas desde el CMS & D \\
+    RF-11 & Paneles (\textit{dashboards}) configurables en el CMS & D \\
+    RF-12 & Notificaciones dentro de la aplicación y correos transaccionales & D \\
+    RF-13 & Interfaz multidioma: español por defecto e inglés & M \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+RF-09 es el requisito que más ha evolucionado durante el análisis: en un
+principio se planteó el CMS como una aplicación separada que compartía la
+base de datos (ADR-002) y, tras evaluar alternativas, se decidió integrarlo
+en la consola de administración (ADR-011). De ahí que su redacción incluya
+«integrado en la consola de administración». RF-11 es el primer candidato a
+recortar si el plazo lo exige.
+
+% ---------------------------------------------------------------------
+\section{Requisitos no funcionales}
+\label{sec:rnf}
+
+Cada requisito no funcional se acompaña del modo en que se verifica, para que
+sea comprobable y no una mera declaración de intenciones.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Requisitos no funcionales y forma de verificarlos.}
+  \label{tab:rnf}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{6.2cm}X@{}}
+    \toprule
+    \textbf{ID} & \textbf{Requisito} & \textbf{Verificación} \\
+    \midrule
+    RNF-01 & \textbf{Reutilización y configurabilidad}: la plataforma se adapta a un nuevo SaaS cambiando la configuración (ficheros de configuración y variables de entorno), sin tocar el núcleo & Evaluación de la reutilización (F6): pasos y tiempo para arrancar un proyecto nuevo \\
+    RNF-02 & \textbf{Seguridad}: la autorización se aplica en la base de datos (RLS) además de en la aplicación; secretos fuera del repositorio y validación de todas las entradas & Pruebas pgTAP y revisiones adversariales de RLS y del código \\
+    RNF-03 & \textbf{Aislamiento multi-tenant}: los datos de una cuenta no son accesibles desde otra & Pruebas pgTAP específicas de aislamiento \\
+    RNF-04 & \textbf{Modularidad}: monorepo de paquetes desacoplados, con dependencias explícitas y exportaciones separadas para cliente y servidor & Estructura del monorepo, comprobación de dependencias y de tipos \\
+    RNF-05 & \textbf{Mantenibilidad}: TypeScript estricto, \textit{lint} y formato automáticos, y código comentado en español didáctico & Integración continua y revisión de comentarios \\
+    RNF-06 & \textbf{Calidad verificable}: pruebas unitarias, de base de datos y E2E de los casos de uso principales & Integración continua en verde \\
+    RNF-07 & \textbf{Desplegabilidad}: despliegue reproducible con contenedores y en la nube, con manual de instalación & Despliegue de prueba (F7) \\
+    RNF-08 & \textbf{Usabilidad y accesibilidad}: interfaz adaptable (\textit{responsive}), componentes accesibles y tema claro/oscuro & Revisión manual y E2E \\
+    RNF-09 & \textbf{Rendimiento razonable}: carga de datos en el servidor, caché de consultas y paginación en el CMS & Revisión manual \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La relación entre cada requisito, el código que lo implementa y las pruebas
+que lo verifican se mantiene en una matriz de trazabilidad que se actualiza al
+cerrar cada incremento.
+\todo{Incluir la matriz de trazabilidad (requisito $\rightarrow$ módulo
+$\rightarrow$ pruebas $\rightarrow$ estado) como anexo o en el capítulo de
+Pruebas, con el estado final tras F6.}
+
+% ---------------------------------------------------------------------
+\section{Casos de uso}
+\label{sec:casos-uso}
+
+Se han seleccionado siete casos de uso principales que recorren los módulos
+de la plataforma y que servirán de base para la validación de la fase F6
+(tabla~\ref{tab:cu} y figura~\ref{fig:casos-uso}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Casos de uso principales.}
+  \label{tab:cu}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{2.6cm}Xl@{}}
+    \toprule
+    \textbf{CU} & \textbf{Actor} & \textbf{Descripción} & \textbf{Requisitos} \\
+    \midrule
+    CU-01 & Visitante & Se registra, verifica el correo y accede al área privada & RF-01, RF-03 \\
+    CU-02 & Usuario & Crea un equipo para su pyme e invita a un empleado con el rol \textit{member} & RF-06 \\
+    CU-03 & Propietario del equipo & Contrata un plan (pasarela en modo de pruebas) y el estado de la suscripción se refleja en la aplicación & RF-07 \\
+    CU-04 & Miembro sin permiso & Intenta gestionar la facturación y se le deniega, tanto en la interfaz como en la base de datos & RF-06, RNF-02, RNF-03 \\
+    CU-05 & Super-administrador & Busca un usuario, lo bloquea y lo suplanta para darle soporte & RF-08 \\
+    CU-06 & Gestor de contenidos & Entra en el CMS y edita registros de una tabla según sus permisos; la acción queda auditada & RF-09, RF-10 \\
+    CU-07 & Desarrollador & Arranca un nuevo SaaS a partir de PymeKit siguiendo el manual & RNF-01, RNF-07 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      font=\footnotesize,
+      uc/.style={ellipse, draw, minimum width=4.2cm, minimum height=0.85cm,
+                 align=center, inner sep=1pt},
+      actor/.style={draw=none, align=center, font=\footnotesize\bfseries},
+      link/.style={-}
+    ]
+    % Casos de uso (dentro del sistema)
+    \node[uc] (cu1) at (0, 3.6)  {CU-01 Registrarse y\\acceder al área privada};
+    \node[uc] (cu2) at (0, 2.4)  {CU-02 Crear equipo\\e invitar a un miembro};
+    \node[uc] (cu3) at (0, 1.2)  {CU-03 Contratar\\un plan};
+    \node[uc] (cu4) at (0, 0)    {CU-04 Gestionar la\\facturación (denegado)};
+    \node[uc] (cu5) at (0, -1.2) {CU-05 Bloquear y\\suplantar a un usuario};
+    \node[uc] (cu6) at (0, -2.4) {CU-06 Editar registros\\en el CMS (auditado)};
+    \node[uc] (cu7) at (0, -3.6) {CU-07 Arrancar un\\SaaS nuevo};
+
+    \begin{scope}[on background layer]
+      \node[draw, rounded corners, fit=(cu1)(cu7), inner sep=10pt,
+            label={[font=\small\bfseries]above:PymeKit}] (sys) {};
+    \end{scope}
+
+    % Actores (izquierda: clientes; derecha: personal y externos)
+    \node[actor] (vis) at (-5.2, 3.6)  {Visitante};
+    \node[actor] (usu) at (-5.2, 2.4)  {Usuario};
+    \node[actor] (pro) at (-5.2, 1.2)  {Propietario\\del equipo};
+    \node[actor] (mie) at (-5.2, 0)    {Miembro\\sin permiso};
+    \node[actor] (sa)  at (5.2, -1.2)  {Super-\\administrador};
+    \node[actor] (ges) at (5.2, -2.4)  {Gestor de\\contenidos};
+    \node[actor] (dev) at (5.2, -3.6)  {Desarrollador};
+    \node[actor] (pas) at (5.2, 1.2)   {Pasarela\\de pago};
+
+    \draw[link] (vis) -- (cu1);
+    \draw[link] (usu) -- (cu2);
+    \draw[link] (pro) -- (cu3);
+    \draw[link] (mie) -- (cu4);
+    \draw[link] (sa)  -- (cu5);
+    \draw[link] (ges) -- (cu6);
+    \draw[link] (dev) -- (cu7);
+    \draw[link] (pas) -- (cu3);
+  \end{tikzpicture}
+  \caption{Diagrama de casos de uso principales de PymeKit.}
+  \label{fig:casos-uso}
+  % Texto alternativo: diagrama con el sistema PymeKit y siete casos de uso
+  % (CU-01 a CU-07). A la izquierda, los actores cliente (visitante, usuario,
+  % propietario del equipo, miembro sin permiso) enlazados con CU-01 a CU-04;
+  % a la derecha, el personal (super-administrador con CU-05, gestor de
+  % contenidos con CU-06), el desarrollador con CU-07 y la pasarela de pago
+  % como actor secundario de CU-03.
+\end{figure}
+% PENDIENTE: si la plantilla prefiere figuras de actor UML (monigote), usar la
+% versión PlantUML de diagramas/casos-uso.puml y exportarla a PDF/SVG.
+
+A continuación se describe brevemente cada caso de uso.
+
+\begin{description}
+  \item[CU-01 · Registro y acceso.] El visitante se registra con correo y
+        contraseña (o con enlace mágico), recibe el correo de verificación,
+        lo confirma y accede al área privada, donde dispone de su cuenta
+        personal. Cubre RF-01 y RF-03.
+  \item[CU-02 · Equipo e invitación.] Un usuario crea una cuenta de equipo
+        para su pyme, de la que pasa a ser propietario, e invita por correo a
+        un empleado con el rol \textit{member}. El invitado acepta la
+        invitación y queda como miembro con los permisos de su rol. Cubre
+        RF-06.
+  \item[CU-03 · Contratación de un plan.] El propietario elige un plan y
+        completa el pago en la pasarela (en modo de pruebas). La pasarela
+        notifica el resultado mediante un \textit{webhook} y la aplicación
+        refleja el estado de la suscripción de la cuenta. Cubre RF-07.
+  \item[CU-04 · Acceso denegado.] Un miembro sin el permiso de gestión de la
+        facturación intenta acceder a ella. La interfaz no se lo ofrece y,
+        aunque forzara la petición, la base de datos la rechaza por sus
+        políticas de seguridad. Es el caso que materializa la seguridad en
+        profundidad (RNF-02) y el aislamiento (RNF-03).
+  \item[CU-05 · Soporte desde la consola.] El super-administrador, con sesión
+        de doble factor, busca un usuario en la consola, lo bloquea y lo
+        suplanta temporalmente para reproducir un problema. Cubre RF-08.
+  \item[CU-06 · Edición en el CMS.] Un gestor de contenidos, con un rol
+        limitado del CMS, abre una tabla para la que tiene permiso, edita un
+        registro y la acción queda registrada en la auditoría. Las tablas sin
+        permiso no le aparecen ni puede consultarlas. Cubre RF-09 y RF-10.
+  \item[CU-07 · Reutilización.] Un desarrollador arranca un SaaS nuevo a
+        partir de PymeKit siguiendo el manual y cambiando solo la
+        configuración. Sirve para evaluar RNF-01 y RNF-07.
+        % PENDIENTE (P-01): definir el escenario y las métricas concretas.
+\end{description}
+
+\todo{Cuando termine F6, añadir para cada caso de uso su flujo principal y
+alternativo (plantilla de caso de uso de la ESI, si la hay) y la prueba que lo
+valida. En la fecha de este borrador, CU-01 está probado a mano por el autor;
+CU-02 a CU-06 dependen de F2 y F5, y CU-07 de F6.}

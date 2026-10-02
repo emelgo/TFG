@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------
  * Section: Accounts
- * We create the schema for the accounts. Accounts are the top level entity in the Supabase MakerKit. They can be team or personal accounts.
+ * We create the schema for the accounts. Accounts are the top level entity in the PymeKit. They can be team or personal accounts.
  * -------------------------------------------------------
  */
 
@@ -23,7 +23,7 @@ create table if not exists
     primary key (id)
   );
 
-comment on table public.accounts is 'Accounts are the top level entity in the Supabase MakerKit. They can be team or personal accounts.';
+comment on table public.accounts is 'Accounts are the top level entity in the PymeKit. They can be team or personal accounts.';
 
 comment on column public.accounts.is_personal_account is 'Whether the account is a personal account or not';
 

@@ -47,7 +47,7 @@ function Home() {
           }
           subtitle={
             <span>
-              Makerkit gives you a production-ready boilerplate to build your
+              PymeKit gives you a production-ready boilerplate to build your
               SaaS faster than ever before with the next-gen SaaS Starter Kit.
               Get started in minutes.
             </span>
@@ -60,7 +60,7 @@ function Home() {
               }
               width={3558}
               height={2222}
-              src={`/images/dashboard.webp`}
+              src={`/images/dashboard.png`}
               alt={`App Image`}
             />
           }
@@ -78,7 +78,7 @@ function Home() {
                 .{' '}
                 <span className="text-secondary-foreground/70 block font-normal tracking-tight">
                   Unleash your creativity and build your SaaS faster than ever
-                  with Makerkit.
+                  with PymeKit.
                 </span>
               </>
             }
@@ -93,13 +93,13 @@ function Home() {
               <FeatureCard
                 className={'relative col-span-1 overflow-hidden'}
                 label={'Beautiful Dashboard'}
-                description={`Makerkit provides a beautiful dashboard to manage your SaaS business.`}
+                description={`PymeKit provides a beautiful dashboard to manage your SaaS business.`}
               />
 
               <FeatureCard
                 className={'relative col-span-1 w-full overflow-hidden'}
                 label={'Authentication'}
-                description={`Makerkit provides a variety of providers to allow your users to sign in.`}
+                description={`PymeKit provides a variety of providers to allow your users to sign in.`}
               />
 
               <FeatureCard
@@ -111,7 +111,7 @@ function Home() {
               <FeatureCard
                 className={'relative col-span-1 overflow-hidden'}
                 label={'Billing'}
-                description={`Makerkit supports multiple payment gateways to charge your customers.`}
+                description={`PymeKit supports multiple payment gateways to charge your customers.`}
               />
 
               <FeatureCard
@@ -123,7 +123,7 @@ function Home() {
               <FeatureCard
                 className={'relative col-span-1 overflow-hidden'}
                 label={'Documentation'}
-                description={`Makerkit provides a comprehensive documentation to help you get started.`}
+                description={`PymeKit provides a comprehensive documentation to help you get started.`}
               />
             </FeatureGrid>
           </FeatureShowcase>
@@ -133,11 +133,11 @@ function Home() {
       <div className={'container mx-auto'}>
         <EcosystemShowcase
           heading="The ultimate SaaS Starter Kit for founders."
-          description="Unleash your creativity and build your SaaS faster than ever with Makerkit. Get started in minutes and ship your SaaS in no time."
+          description="Unleash your creativity and build your SaaS faster than ever with PymeKit. Get started in minutes and ship your SaaS in no time."
         >
           <img
             className="rounded-md"
-            src={'/images/sign-in.webp'}
+            src={'/images/sign-in.png'}
             alt="Sign in"
             width={1000}
             height={1000}

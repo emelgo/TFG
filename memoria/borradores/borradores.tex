@@ -1,0 +1,41 @@
+% =====================================================================
+% Documento de previsualización de los borradores (NO es la memoria).
+% Sirve solo para compilar los capítulos sueltos mientras no exista la
+% plantilla oficial de la ESI (P-04). Al integrar la plantilla, copiar a su
+% preámbulo los paquetes que falten y hacer \input de cada capítulo.
+%   latexmk -pdf borradores.tex
+% =====================================================================
+\documentclass[11pt,a4paper,openany]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,backgrounds,calc}
+\usepackage[colorinlistoftodos,spanish]{todonotes}
+\setlength{\marginparwidth}{2cm}
+\usepackage{hyperref}
+
+\title{PymeKit --- Borradores de la memoria}
+\date{\today}
+
+\begin{document}
+\maketitle
+\listoftodos[Pendientes del autor]
+
+\setcounter{chapter}{1}
+\input{02-planificacion}
+\setcounter{chapter}{3}
+\input{04-analisis}
+\input{05-diseno}
+
+\bibliographystyle{plain}
+\bibliography{referencias}
+\end{document}

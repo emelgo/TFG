@@ -1,0 +1,37 @@
+{
+  "name": "@pymekit/cms-supabase",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./client": "./src/clients/drizzle-client.ts",
+    "./schema": "./src/drizzle/schema.ts",
+    "./hono": "./src/clients/hono-client.ts",
+    "./check-requires-mfa": "./src/check-requires-mfa.ts",
+    "./utils/perf-logger": "./src/utils/perf-logger.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pymekit/shared": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "jwt-decode": "catalog:",
+    "postgres": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*"
+  }
+}

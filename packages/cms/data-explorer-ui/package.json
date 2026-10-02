@@ -1,0 +1,48 @@
+{
+  "name": "@pymekit/cms-data-explorer-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "src/*"
+      ]
+    }
+  },
+  "exports": {
+    "./components": "./src/components/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./global-search": "./src/components/global-search.tsx"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@date-fns/tz": "catalog:",
+    "@pymekit/cms-data-explorer-core": "workspace:*",
+    "@pymekit/cms-filters": "workspace:*",
+    "@pymekit/cms-formatters": "workspace:*",
+    "@pymekit/cms-shared": "workspace:*",
+    "@pymekit/cms-table": "workspace:*",
+    "@pymekit/cms-types": "workspace:*",
+    "@pymekit/cms-ui-core": "workspace:*",
+    "date-fns": "catalog:"
+  },
+  "devDependencies": {
+    "@pymekit/tsconfig": "workspace:*",
+    "@pymekit/ui": "workspace:*",
+    "@tanstack/react-form": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-table": "catalog:",
+    "@types/react": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "use-intl": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  }
+}

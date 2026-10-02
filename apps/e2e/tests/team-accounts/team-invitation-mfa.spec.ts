@@ -5,7 +5,7 @@ import { InvitationsPageObject } from '../invitations/invitations.po';
 import { TeamAccountsPageObject } from './team-accounts.po';
 
 test.describe('Team Invitation with MFA Flow', () => {
-  test('complete flow: test@makerkit.dev creates team, invites super-admin@makerkit.dev who accepts after MFA', async ({
+  test('complete flow: test@pymekit.test creates team, invites super-admin@pymekit.test who accepts after MFA', async ({
     page,
   }) => {
     const auth = new AuthPageObject(page);
@@ -13,7 +13,7 @@ test.describe('Team Invitation with MFA Flow', () => {
     const invitations = new InvitationsPageObject(page);
 
     await auth.loginAsUser({
-      email: 'owner@makerkit.dev',
+      email: 'owner@pymekit.test',
     });
 
     const teamName = `test-team-${Math.random().toString(36).substring(2, 15)}`;
@@ -31,7 +31,7 @@ test.describe('Team Invitation with MFA Flow', () => {
 
     await invitations.inviteMembers([
       {
-        email: 'super-admin@makerkit.dev',
+        email: 'super-admin@pymekit.test',
         role: 'member',
       },
     ]);
@@ -40,7 +40,7 @@ test.describe('Team Invitation with MFA Flow', () => {
     await expect(invitations.getInvitations()).toHaveCount(1);
 
     const invitationRow = invitations.getInvitationRow(
-      'super-admin@makerkit.dev',
+      'super-admin@pymekit.test',
     );
 
     await expect(invitationRow).toBeVisible();
@@ -48,7 +48,7 @@ test.describe('Team Invitation with MFA Flow', () => {
     await page.goto('/dashboard');
 
     await expect(async () => {
-      // Sign out test@makerkit.dev
+      // Sign out test@pymekit.test
       await auth.signOut();
 
       await page.waitForURL('/', {
@@ -56,7 +56,7 @@ test.describe('Team Invitation with MFA Flow', () => {
       });
     }).toPass();
 
-    await auth.visitConfirmEmailLink('super-admin@makerkit.dev');
+    await auth.visitConfirmEmailLink('super-admin@pymekit.test');
 
     // Complete MFA verification
     await expect(async () => {

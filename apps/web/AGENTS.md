@@ -9,8 +9,9 @@ Aplicación SaaS de PymeKit: TanStack Start (rutas por fichero + `createServerFn
 | `src/routes/` | Rutas por fichero. `routeTree.gen.ts` se genera (`pnpm --filter web generate-routes`) y nunca se edita a mano |
 | `src/routes/__root.tsx` | `beforeLoad` raíz: resuelve `user`, `locale` y `theme` y los deja en el contexto del *router* |
 | `src/routes/_authenticated/` | Área privada. Su `route.tsx` exige sesión y MFA y carga el *workspace* activo en el contexto |
-| `src/routes/_marketing/` | Páginas públicas (inicio, precios, FAQ, contacto, textos legales) |
-| `src/routes/admin/` | Panel de super-administración. `route.tsx` redirige a los anónimos al inicio de sesión y devuelve 404 a quien no es super-admin |
+| `src/routes/_marketing/` | Páginas públicas (inicio, precios, blog, FAQ, contacto, textos legales). El blog (`blog/`) lee las entradas publicadas con las *server functions* de `src/lib/blog/` (cliente con RLS) y pinta el Markdown con `@pymekit/ui/markdown` |
+| `src/routes/admin/` | Consola de administración. `route.tsx` redirige a los anónimos al inicio de sesión y devuelve 404 a quien no es super-admin ni personal del CMS (`has_cms_access`). Las páginas de la plataforma (`index.tsx`, `accounts/`) exigen super-admin (`requirePlatformAdmin`) y redirigen al personal a `/admin/cms` |
+| `src/routes/admin/cms/` | Interfaz del CMS (ADR-011): *layout* con la comprobación de acceso contra la API del CMS y las pantallas de cada sección. Código de apoyo en `src/lib/cms/` y `@pymekit/cms-ui-core` |
 | `src/routes/auth/`, `join/` | Autenticación y aceptación de invitaciones |
 | `src/routes/api/` | Rutas de servidor: webhooks de facturación y de BD, `healthcheck`, `version` |
 | `src/lib/` | *Server functions* (`*.functions.ts`) y servicios de servidor (`*.server.ts`) de la app |

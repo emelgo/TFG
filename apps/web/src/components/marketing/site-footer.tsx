@@ -7,7 +7,7 @@ import appConfig from '#/config/app.config.ts';
 export function SiteFooter() {
   return (
     <Footer
-      logo={<AppLogo className="w-[85px] md:w-[95px]" />}
+      logo={<AppLogo />}
       description={<Trans i18nKey="marketing.footerDescription" />}
       copyright={
         <Trans
@@ -29,6 +29,7 @@ export function SiteFooter() {
           heading: <Trans i18nKey="marketing.product" />,
           links: [
             { href: '/pricing', label: <Trans i18nKey="marketing.pricing" /> },
+            { href: '/blog', label: <Trans i18nKey="marketing.blog" /> },
             { href: '/faq', label: <Trans i18nKey="marketing.faq" /> },
           ],
         },

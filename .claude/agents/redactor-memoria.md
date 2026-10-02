@@ -12,6 +12,8 @@ Eres el redactor técnico de la memoria del TFG *«Diseño e implementación de 
 3. `docs/tfg/REQUISITOS.md` y `docs/tfg/TRAZABILIDAD.md`.
 4. `docs/tfg/PLAN.md`, que contiene la estructura de capítulos, y `docs/tfg/PROGRESO.md`.
 5. `docs/tfg/MAPA-REFERENCIAS.md`, para saber qué es reutilizado, adaptado o nuevo.
+6. `docs/tfg/BITACORA.md`: incidencias, correcciones de seguridad y lecciones aprendidas (apartados de dificultades, pruebas y conclusiones).
+7. La sección «Dedicación» de `docs/tfg/PROGRESO.md` (planificación: horas reales frente a estimadas) y el historial de git (`git log`), para las fechas.
 
 ## Estilo
 - Español académico, claro y preciso. Impersonal o en primera persona del plural, de forma coherente en todo el texto.

@@ -1,38 +1,36 @@
 ---
 name: react-form-builder
-description: Crea o modifica forms de React en PymeKit con validación Zod, gestión de errores, estados de carga y tipado estricto. Dos variantes — web (`@tanstack/react-form` + `@pymekit/ui/field` + `useServerFn`/`useMutation`) y cms (react-hook-form + `@pymekit/cms-ui/form` + `useFetcher`). Úsala para formularios de registro, perfil, ajustes, diálogos con form o para arreglar problemas de formularios. Invócala con /react-form-builder o cuando se mencionen forms, validación o react-hook-form.
+description: Crea o modifica forms de React en PymeKit con `@tanstack/react-form`, `@pymekit/ui/field` y validación Zod, gestión de errores, estados de carga y tipado estricto. Dos variantes de envío — web (`useServerFn` + `useMutation`) y CMS en `/admin/cms` (cliente RPC de `@pymekit/cms-ui-core` + `useMutation` + códigos de error de la API). Úsala para formularios de registro, perfil, ajustes, diálogos con form o para arreglar problemas de formularios. Invócala con /react-form-builder o cuando se mencionen forms o validación.
 ---
 
 # Constructor de formularios React
 
-Eres experto en formularios React robustos, accesibles y con tipos seguros. PymeKit tiene **dos variantes que no se mezclan**; identifica primero en qué app estás.
+Eres experto en formularios React robustos, accesibles y con tipos seguros. Toda la web, **incluido el CMS** (`/admin/cms`, ADR-011 y ADR-013), usa la misma pila: `@tanstack/react-form`, componentes de `@pymekit/ui/field`, Zod y use-intl. **No se usa react-hook-form.** Solo cambia cómo se envía el formulario:
 
-| | **Web** (`apps/web`, `packages/*`) | **CMS** (`apps/cms`, `packages/cms/*`) |
+| | **Web** (`apps/web`, `packages/features/*`) | **CMS** (`apps/web/src/routes/admin/cms/**`, `packages/cms/*-ui`) |
 |---|---|---|
-| Librería | `@tanstack/react-form` | `react-hook-form` + `zodResolver` |
-| Componentes | `Field`, `FieldLabel`, `FieldDescription`, `FieldError` de `@pymekit/ui/field` | `Form`, `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormDescription`, `FormMessage` de `@pymekit/cms-ui/form` |
-| Envío | `useServerFn(fn)` + `useMutation` de TanStack Query | `useFetcher()` → `fetcher.submit(...)` hacia la `action` de React Router, que llama a la API Hono |
-| Carga | `mutation.isPending` | `fetcher.state === 'submitting'` |
-| Recarga de datos | `await router.invalidate()` en `onSuccess` | `invalidateKeys` de la *action* (`createAction`) |
-| i18n | `useTranslations('ns')` de `use-intl`; claves `ns.clave` | `useTranslation()` de `react-i18next`; claves `ns:clave` |
-| Diálogo asíncrono | `useAsyncDialog` de `@pymekit/ui/hooks/use-async-dialog` | `useAsyncDialog` de `@pymekit/cms-shared/hooks` |
+| Envío | `useServerFn(fn)` + `useMutation` | `useCmsApi().api.<método>` (cliente RPC tipado de `@pymekit/cms-ui-core`) + `useMutation` |
+| Recarga de datos | `await router.invalidate()` en `onSuccess` | `queryClient.invalidateQueries({ queryKey: cmsQueryKeys.<x>() })` |
+| Errores | El servidor devuelve `{ success: false, error: 'clave.i18n' }` | `ApiError` con `errorCode` estable (`@pymekit/cms-shared/error-codes`) → clave i18n con una tabla `utils/<feature>-errors.ts` |
+| i18n | `useTranslations('ns')`; claves `ns.clave` | `useTranslations('cms.<feature>')`; claves `cms.*` |
+| Dónde vive | `packages/features/<feature>/src/components` | `packages/cms/<feature>-ui/src/components` (solo cliente) |
 
-Componentes y plantillas completas en [components.md](components.md). Ejemplos reales (solo lectura): `../makerkit/packages/features/team-accounts/src/components/settings/update-team-account-name-form.tsx` (web) y `../supamode/packages/features/settings/src/components/permissions/dialogs/create-role-dialog.tsx` (CMS).
+Componentes y plantillas en [components.md](components.md). Ejemplos reales: `packages/features/team-accounts/src/components/settings/update-team-account-name-form.tsx` (web) y `packages/cms/settings-ui/src/components/general-settings-form.tsx` (CMS).
 
-> No uses `next-safe-action`, `useAction`, `enhanceAction` ni *server actions* de Next.js: PymeKit no usa Next.js. En la web **no existe** `@pymekit/ui/form`.
+> No uses `next-safe-action`, `useAction`, *server actions* de Next.js, `useFetcher` ni react-hook-form. **No existe** `@pymekit/ui/form`.
 
 ## Reglas comunes
 
-1. **Esquema Zod en un fichero propio** (`src/schema/*.schema.ts` en web, `src/schemas/` en CMS) para reutilizarlo en el servidor. Importa Zod como `import * as z from 'zod'`.
+1. **Esquema Zod en un fichero propio** (`src/schema/*.schema.ts` en web, `src/utils/<feature>.ts` en `packages/cms/<feature>-ui`) para reutilizarlo; en el CMS debe coincidir con el esquema estricto (`.strict()`) de la ruta Hono, que vuelve a validar. Importa Zod como `import * as z from 'zod'`.
 2. **Sin genéricos redundantes**: los tipos se infieren del esquema.
-3. **Ningún texto visible en el código**: etiquetas, descripciones, *placeholders*, mensajes de error de Zod y *toasts* son claves i18n. Añádelas primero en `es` y después en `en`.
+3. **Ningún texto visible en el código**: etiquetas, descripciones, *placeholders*, mensajes de error de Zod y *toasts* son claves i18n. Añádelas en cada idioma de `packages/i18n/src/messages/<locale>/` (hoy solo `en`).
 4. **`data-testid`** en el `<form>`, en cada control y en el botón de envío (lo usa la skill `playwright-e2e`).
 5. **Botón de envío deshabilitado** mientras hay un envío en curso.
 6. **Errores legibles**: nunca muestres errores internos. El servidor devuelve claves i18n y la UI las traduce.
 7. **Sin `useEffect`** salvo necesidad justificada con un comentario. Un único objeto de estado mejor que varios `useState`.
 8. **Formularios dentro de diálogos**: usa `useAsyncDialog` para impedir cerrar el diálogo (Escape o clic fuera) mientras se envía. Extiende `dialogProps` en `Dialog`, usa `setIsPending` durante el envío y `setOpen(false)` al terminar.
 9. **Contenedor/presentador**: no mezcles la carga de datos y el formulario en el mismo componente; carga arriba y pasa los datos por *props*.
-10. Comprueba en `@pymekit/ui` (web) o `@pymekit/cms-ui` (CMS) que el componente existe antes de añadir dependencias. Los componentes son **Base UI**: usa la *prop* `render`, nunca `asChild`.
+10. Comprueba en `@pymekit/ui` que el componente existe (las primitivas que falten se añaden ahí, nunca en `packages/cms/*`) antes de añadir dependencias. Los componentes son **Base UI**: usa la *prop* `render`, nunca `asChild`.
 
 ## Variante web: TanStack Form
 
@@ -167,125 +165,111 @@ export function CreateProjectForm(props: { accountId: string }) {
 }
 ```
 
-## Variante CMS: react-hook-form
+## Variante CMS: TanStack Form + cliente RPC
 
 ### Estructura
 
 ```
-packages/cms/<feature>/src/
-├── schemas/index.ts                    # Zod compartido
-├── actions/feature-action.ts           # cliente RPC Hono (skill service-builder)
-├── api/actions/bridge-actions.ts       # action de React Router (createAction)
-└── components/feature-form.tsx
+packages/cms/<feature>-ui/src/          # SOLO CLIENTE (@pymekit/cms-<feature>-ui)
+├── utils/<feature>.ts                   # esquema Zod + mensajes por código (con tests)
+├── hooks/use-<feature>-mutations.ts     # useMutation sobre useCmsApi().api
+└── components/<feature>-form.tsx
+apps/web/src/routes/admin/cms/<sección>/<página>.tsx   # carga datos y monta el form
 ```
 
 ### Reglas específicas
 
-- `useForm({ resolver: zodResolver(Schema), mode: 'onChange', reValidateMode: 'onChange', defaultValues })`, sin genéricos.
-- Si el esquema necesita mensajes traducidos o límites dinámicos (por ejemplo, `maxRank`), constrúyelo dentro del componente con `t('ns:clave')`, como en el código de referencia.
-- Cada campo con `<FormField control={form.control} name="..." render={({ field }) => (...)} />` y **siempre** `<FormMessage />`.
-- Envío: `form.handleSubmit((data) => fetcher.submit({ intent: 'create-x', data: JSON.stringify(data) }, { method: 'POST' }))`. La *action* de la ruta lee `intent`, valida `data` con Zod y llama a la función RPC.
-- Los *toasts* (`toast.promise`) y la invalidación de consultas viven en la *action* (`createAction` de `@pymekit/cms-shared/router-query-bridge`), no en el componente.
-- Muestra el resultado con `fetcher.data` (por ejemplo, `<If condition={fetcher.data?.success}>` con un `Alert variant="success"`).
-- Usa `form.formState.isDirty` para no enviar formularios sin cambios.
+- El formulario es igual que en la web (`useForm`, `form.Field`, `FieldError`, `form.Subscribe`). Los mensajes de Zod son claves `cms.*`.
+- **Nunca** importes rutas, servicios ni `@pymekit/cms-api/server` desde un componente: arrastran Drizzle y la clave secreta (`serverLeakGuard` rompe la *build*). Solo `@pymekit/cms-ui-core` y tipos con `import type`.
+- La mutación vive en un *hook* aparte: `useMutation({ mutationFn: (d) => api.x(d), onSuccess: invalidar + toast, onError: toast con la clave del `errorCode` })`.
+- Muestra cada acción solo si el usuario tiene permiso (flags de `GET /v1/account`, `permissions` de la respuesta). Es comodidad: la API y la RLS deciden.
+- La ruta (`createFileRoute('/admin/cms/...')`) carga con `ensureQueryData(cmsQueries.x())` en el `loader` o lee la caché con `useSuspenseQuery`, y monta el formulario con una `key` que dependa de lo guardado para reiniciarlo tras guardar.
 
 ### Plantilla mínima
 
 ```tsx
 /**
- * Diálogo del CMS para crear un rol del panel.
+ * Formulario de Ajustes > General del CMS: zona horaria del usuario.
  *
- * El envío no llama a la API directamente: pasa por la `action` de React
- * Router, que centraliza los avisos y la invalidación de la caché de
- * TanStack Query para toda la sección de permisos.
+ * Mismo esquema Zod que la API, para avisar antes de enviar; la API vuelve
+ * a validar y responde con un código estable si algo falla.
  */
-import { useFetcher } from 'react-router';
+import { useForm } from '@tanstack/react-form';
+import { useTranslations } from 'use-intl';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
-import * as z from 'zod';
+import { Button } from '@pymekit/ui/button';
+import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Input } from '@pymekit/ui/input';
 
-import { Button } from '@pymekit/cms-ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@pymekit/cms-ui/form';
-import { Input } from '@pymekit/cms-ui/input';
-import { Trans } from '@pymekit/cms-ui/trans';
+import { useUpdatePreferencesMutation } from '../hooks/use-settings-mutations';
+import { GeneralSettingsSchema } from '../utils/general-settings';
 
-export function CreateRoleForm() {
-  const { t } = useTranslation();
-  const fetcher = useFetcher<{ success: boolean }>();
-  const isSubmitting = fetcher.state === 'submitting';
-
-  const FormSchema = z.object({
-    name: z
-      .string()
-      .min(1, { message: t('settings:errors.nameRequired') })
-      .max(50, { message: t('settings:errors.nameLength') }),
-  });
+export function TimezoneForm(props: { timezone: string }) {
+  const t = useTranslations('cms.settings.general');
+  const mutation = useUpdatePreferencesMutation();
 
   const form = useForm({
-    resolver: zodResolver(FormSchema),
-    mode: 'onChange',
-    reValidateMode: 'onChange',
-    defaultValues: { name: '' },
+    defaultValues: { timezone: props.timezone },
+    validators: {
+      onChange: GeneralSettingsSchema,
+      onSubmit: GeneralSettingsSchema,
+    },
+    onSubmit: ({ value }) => mutation.mutateAsync(value),
   });
 
   return (
-    <Form {...form}>
-      <form
-        data-testid="create-role-form"
-        className="space-y-4"
-        onSubmit={form.handleSubmit((data) =>
-          fetcher.submit(
-            { intent: 'create-role', data: JSON.stringify(data) },
-            { method: 'POST' },
-          ),
+    <form
+      data-testid="general-settings-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        // El aviso de error ya lo muestra la mutación (onError).
+        void form.handleSubmit().catch(() => undefined);
+      }}
+    >
+      <form.Field name="timezone">
+        {(field) => {
+          const isInvalid =
+            field.state.meta.isTouched && !field.state.meta.isValid;
+
+          return (
+            <Field data-invalid={isInvalid}>
+              <FieldLabel htmlFor="cms-timezone">{t('timezone')}</FieldLabel>
+              <Input
+                id="cms-timezone"
+                data-testid="timezone-input"
+                value={field.state.value}
+                aria-invalid={isInvalid}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              <FieldError errors={field.state.meta.errors} />
+            </Field>
+          );
+        }}
+      </form.Field>
+
+      <form.Subscribe selector={(s) => [s.isDirty, s.isSubmitting] as const}>
+        {([isDirty, isSubmitting]) => (
+          <Button
+            type="submit"
+            data-testid="general-settings-submit"
+            disabled={!isDirty || isSubmitting}
+          >
+            {t('save')}
+          </Button>
         )}
-      >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                <Trans i18nKey="settings:roles.name" />
-              </FormLabel>
-
-              <FormControl>
-                <Input {...field} data-testid="create-role-name-input" />
-              </FormControl>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          data-testid="create-role-submit"
-        >
-          <Trans i18nKey={isSubmitting ? 'common:saving' : 'common:save'} />
-        </Button>
-      </form>
-    </Form>
+      </form.Subscribe>
+    </form>
   );
 }
 ```
 
 ## Accesibilidad y experiencia de uso
 
-- Todo control tiene etiqueta (`FieldLabel` / `FormLabel`) asociada por `id`/`htmlFor`.
-- Añade una descripción (`FieldDescription` / `FormDescription`) cuando el campo no sea obvio.
+- Todo control tiene etiqueta (`FieldLabel`) asociada por `id`/`htmlFor`.
+- Añade una descripción (`FieldDescription`) cuando el campo no sea obvio.
 - Los errores se anuncian (`FieldError` ya lleva `role="alert"`).
 - Indica la carga en el botón (texto o `Spinner`) y deshabilítalo.
 - Usa HTML semántico y atributos ARIA cuando haga falta.
 
-Antes de terminar, comprueba que todas las claves i18n nuevas existen en `es` y en `en` (web: `packages/i18n/src/messages/<locale>/<ns>.json`; CMS: `apps/cms/src/i18n/locales/<locale>/<ns>.json`).
+Antes de terminar, comprueba que todas las claves i18n nuevas existen en cada `packages/i18n/src/messages/<locale>/<ns>.json` (el CMS usa `cms.json`).

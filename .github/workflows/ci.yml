@@ -28,13 +28,9 @@ jobs:
         with:
           node-version: lts/*
 
-      # Bloqueante: ningún import puede conservar el scope original de paquetes.
-      - name: Scope de paquetes
-        run: node scripts/tfg/check-branding.mjs --scope-only
-
-      # Informativo hasta cerrar la Fase 3; entonces se quitará continue-on-error.
+      # Bloqueante: ninguna mención a los proyectos de referencia (contenido,
+      # scope de paquetes ni rutas). Está a cero desde la F2 (B-40).
       - name: Desmarcado completo
-        continue-on-error: true
         run: node scripts/tfg/check-branding.mjs
 
       # Informativo hasta la Fase 4; entonces se añadirá --strict.

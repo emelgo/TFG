@@ -43,7 +43,7 @@ if (codeChanged && !progressChanged) {
     JSON.stringify({
       decision: 'block',
       reason:
-        'Hay cambios de código sin reflejar en docs/tfg/PROGRESO.md. Actualiza las casillas y el registro de sesiones y, si procede, DECISIONES.md, TRAZABILIDAD.md y MAPA-REFERENCIAS.md. Si el cambio es trivial y no afecta al progreso, indícalo y termina.',
+        'Hay cambios de código sin reflejar en docs/tfg/PROGRESO.md. Actualiza las casillas, el registro de sesiones y la dedicación y, si procede, DECISIONES.md, MAPA-REFERENCIAS.md y TRAZABILIDAD.md (node scripts/tfg/tfg-tags.mjs --write). Si ha habido alguna incidencia (fallo, error, problema de entorno), anótala en BITACORA.md. Si el cambio es trivial y no afecta al progreso, indícalo y termina.',
     }),
   );
 }

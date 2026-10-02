@@ -2,10 +2,10 @@ BEGIN;
 
 select no_plan();
 
-select makerkit.set_identifier('primary_owner', 'test@makerkit.dev');
-select makerkit.set_identifier('owner', 'owner@makerkit.dev');
-select makerkit.set_identifier('member', 'member@makerkit.dev');
-select makerkit.set_identifier('custom', 'custom@makerkit.dev');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.set_identifier('owner', 'owner@pymekit.test');
+select pymekit.set_identifier('member', 'member@pymekit.test');
+select pymekit.set_identifier('custom', 'custom@pymekit.test');
 
 INSERT INTO public.billing_customers(account_id, provider, customer_id)
 VALUES (tests.get_supabase_uid('primary_owner'), 'stripe', 'cus_test');
@@ -59,7 +59,7 @@ select row_eq(
   'The order item should be deleted when the order is updated'
 );
 
-select makerkit.authenticate_as('primary_owner');
+select pymekit.authenticate_as('primary_owner');
 
 -- account can read their own subscription
 select isnt_empty(
@@ -74,7 +74,7 @@ select isnt_empty(
 
 -- foreigners
 select tests.create_supabase_user('foreigner');
-select makerkit.authenticate_as('foreigner');
+select pymekit.authenticate_as('foreigner');
 
 -- account cannot read other's subscription
 select is_empty(

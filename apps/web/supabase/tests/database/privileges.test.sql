@@ -73,8 +73,8 @@ select is_empty(
 
 -- 5. Prove the denial behaviourally as a real authenticated user, not just from
 --    the catalog -- this is the shape of the original report.
-select makerkit.set_identifier('primary_owner', 'test@makerkit.dev');
-select makerkit.authenticate_as('primary_owner');
+select pymekit.set_identifier('primary_owner', 'test@pymekit.test');
+select pymekit.authenticate_as('primary_owner');
 
 select throws_ok(
   'truncate table public.nonces cascade',
