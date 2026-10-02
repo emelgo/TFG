@@ -1,4 +1,5 @@
 import { AtSign, Mail, Phone } from 'lucide-react';
+import { useTranslations } from 'use-intl';
 
 const DEFAULT_IMAGE_SIZE = 18;
 
@@ -11,6 +12,7 @@ export function OauthProviderLogoImage({
   width?: number;
   height?: number;
 }) {
+  const t = useTranslations('common.ui');
   const image = getOAuthProviderLogos()[providerId];
 
   if (typeof image === `string`) {
@@ -19,7 +21,7 @@ export function OauthProviderLogoImage({
         decoding={'async'}
         loading={'lazy'}
         src={image}
-        alt={`${providerId} logo`}
+        alt={t('providerLogo', { provider: providerId })}
         width={width ?? DEFAULT_IMAGE_SIZE}
         height={height ?? DEFAULT_IMAGE_SIZE}
       />

@@ -25,7 +25,7 @@ export const InviteUserSchema = z.object({
 
 /**
  * Esquema de la confirmación escrita de una acción destructiva: hay que
- * teclear exactamente `word` (por ejemplo, `DELETE`).
+ * teclear exactamente `word` (por ejemplo, `ELIMINAR`).
  */
 export function createConfirmationSchema(word: string) {
   return z.object({

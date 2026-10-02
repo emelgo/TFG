@@ -48,7 +48,7 @@ Los requisitos completos están en `docs/tfg/REQUISITOS.md`.
 | Comentarios, JSDoc, `comment on` de SQL | **Español didáctico** |
 | Documentación (`docs/`, README, manuales), mensajes de commit, memoria | Español |
 | Identificadores (variables, funciones, tipos, tablas, columnas, claves i18n, ficheros) | Inglés |
-| Interfaz de usuario | i18n: `es` por defecto y `en` como segundo idioma |
+| Interfaz de usuario | **Solo español** (`es`), siempre con i18n. Otro idioma es un punto de extensión: ver `packages/i18n/README.md` (ADR-021) |
 
 Los comentarios se escriben **para quien lee el código por primera vez** (el tribunal, el tutor o el próximo desarrollador). Deben explicar *qué hace el módulo, por qué existe y cómo encaja en la arquitectura*. La guía completa, con ejemplos para TS, TSX y SQL, está en **`docs/tfg/GUIA-COMENTARIOS.md`**. Es de cumplimiento obligatorio.
 
@@ -135,7 +135,7 @@ El CMS forma parte de la web (ADR-011): no es una app aparte. Se accede desde la
 - No se usa `any` salvo que esté justificado con un comentario.
 - Componentes pequeños y componibles. Se evita `useEffect` (si hace falta, se justifica). Se prefiere un único objeto de estado.
 - Se añade `data-testid` en los elementos que usen las pruebas E2E.
-- **i18n**: ningún texto visible va escrito directamente en el código. La clave se añade primero en `es` y después en `en`, y se usa `Trans` o los mensajes.
+- **i18n**: ningún texto visible (tampoco `aria-label`, `title`, `alt` o `placeholder`) va escrito directamente en el código. La clave se añade en `es` (`packages/i18n/src/messages/es/`) y se usa `Trans` o los mensajes. La interfaz solo está en español (ADR-021).
 - La configuración reutilizable va en `*.config.ts` y en variables de entorno documentadas. Es la base de la reutilización que defiende el TFG.
 
 ## 6. Verificación obligatoria

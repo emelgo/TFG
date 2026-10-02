@@ -11,6 +11,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '../shadcn/collapsible';
+import { If } from './if';
+import { NavigationConfigSchema } from './navigation-config.schema';
 import {
   SidebarGroup,
   SidebarGroupAction,
@@ -25,9 +27,7 @@ import {
   SidebarMenuSubItem,
   SidebarSeparator,
   useSidebar,
-} from '../shadcn/sidebar';
-import { If } from './if';
-import { NavigationConfigSchema } from './navigation-config.schema';
+} from './sidebar';
 import { Trans } from './trans';
 
 type SidebarNavigationConfig = z.output<typeof NavigationConfigSchema>;

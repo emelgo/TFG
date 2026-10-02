@@ -47,7 +47,12 @@ export class InvitationsPageObject {
         `[data-testid="invite-member-form-item"]:nth-child(${nth}) [data-testid="role-selector-trigger"]`,
       );
 
-      await this.page.getByRole('option', { name: invite.role }).click();
+      // `getByRole` descarta las opciones ocultas del desplegable de la fila
+      // anterior; la `data-testid` identifica el rol sin depender del texto.
+      await this.page
+        .getByRole('option')
+        .and(this.page.getByTestId(`role-option-${invite.role}`))
+        .click();
 
       if (index < invites.length - 1) {
         await form.locator('[data-testid="add-new-invite-button"]').click();

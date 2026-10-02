@@ -222,7 +222,7 @@ export class TeamAccountsPageObject {
       await memberRow.getByRole('button').click();
 
       // Click the update role option in the dropdown menu
-      await this.page.getByText('Update Role').click();
+      await this.page.getByText('Actualizar rol').click();
 
       // Select the new role
       await this.page.click('[data-testid="role-selector-trigger"]');
@@ -247,7 +247,7 @@ export class TeamAccountsPageObject {
       await memberRow.getByRole('button').click();
 
       // Click the transfer ownership option in the dropdown menu
-      await this.page.getByText('Transfer Ownership').click();
+      await this.page.getByText('Transferir propiedad').click();
 
       // Complete OTP verification
       await this.otp.completeOtpVerification(ownerEmail);

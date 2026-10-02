@@ -1,8 +1,11 @@
 import type { AbstractIntlMessages } from 'use-intl';
 import { createTranslator } from 'use-intl';
 
-/** Idiomas en los que existen plantillas de correo (`locales/<idioma>/`). */
-const EMAIL_LANGUAGES = ['es', 'en'];
+/**
+ * Idiomas en los que existen plantillas de correo (`locales/<idioma>/`).
+ * Solo español (ADR-021); al añadir un idioma a la app se añade aquí también.
+ */
+const EMAIL_LANGUAGES = ['es'];
 
 /**
  * Idioma por defecto de los correos: el mismo que el del producto

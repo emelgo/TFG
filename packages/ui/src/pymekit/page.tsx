@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import { cn } from '../lib/utils';
 import { Separator } from '../shadcn/separator';
-import { SidebarTrigger } from '../shadcn/sidebar';
 import { If } from './if';
+import { SidebarTrigger } from './sidebar';
 
 export type PageLayoutStyle = 'sidebar' | 'header' | 'custom';
 

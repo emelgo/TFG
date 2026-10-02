@@ -77,20 +77,20 @@ test.describe('Admin', () => {
       // títulos de las tarjetas: la barra lateral también tiene una entrada
       // «Users» (explorador de usuarios del CMS).
       await expect(
-        page.locator('[data-slot="card-title"]').getByText('Users', {
+        page.locator('[data-slot="card-title"]').getByText('Usuarios', {
           exact: true,
         }),
       ).toBeVisible();
 
       await expect(
-        page.getByText('Team Accounts', { exact: true }),
+        page.getByText('Cuentas de equipo', { exact: true }),
       ).toBeVisible();
 
       await expect(
-        page.getByText('Paying Customers', { exact: true }),
+        page.getByText('Clientes de pago', { exact: true }),
       ).toBeVisible();
 
-      await expect(page.getByText('Trials', { exact: true })).toBeVisible();
+      await expect(page.getByText('Pruebas', { exact: true })).toBeVisible();
 
       // Verify stat values are numbers
       const stats = await page.$$('.text-3xl.font-bold');
@@ -126,22 +126,28 @@ test.describe('Admin', () => {
       await page.getByTestId('admin-ban-account-button').click();
 
       await expect(
-        page.getByRole('heading', { name: 'Ban User' }),
+        page.getByRole('heading', { name: 'Suspender usuario' }),
       ).toBeVisible();
 
       // Try with invalid confirmation
-      await page.fill('[placeholder="Type CONFIRM to confirm"]', 'WRONG');
-      await page.getByRole('button', { name: 'Ban User' }).click();
+      await page.fill(
+        '[placeholder="Escribe CONFIRMAR para confirmar"]',
+        'WRONG',
+      );
+      await page.getByRole('button', { name: 'Suspender usuario' }).click();
 
       await expect(
-        page.getByRole('heading', { name: 'Ban User' }),
+        page.getByRole('heading', { name: 'Suspender usuario' }),
       ).toBeVisible(); // Dialog should still be open
 
       // Confirm with correct text
-      await page.fill('[placeholder="Type CONFIRM to confirm"]', 'CONFIRM');
+      await page.fill(
+        '[placeholder="Escribe CONFIRMAR para confirmar"]',
+        'CONFIRMAR',
+      );
 
       await Promise.all([
-        page.getByRole('button', { name: 'Ban User' }).click(),
+        page.getByRole('button', { name: 'Suspender usuario' }).click(),
         page.waitForResponse((response) =>
           isServerFnResponse(response, { method: 'POST', status: 200 }),
         ),
@@ -150,7 +156,7 @@ test.describe('Admin', () => {
       // TODO: find out why we need to reload the page only in CI
       await page.reload();
 
-      await expect(page.getByText('Banned').first()).toBeVisible();
+      await expect(page.getByText('Suspendido').first()).toBeVisible();
 
       await page.context().clearCookies();
 
@@ -173,29 +179,35 @@ test.describe('Admin', () => {
     test('reactivate user flow', async ({ page }) => {
       // First ban the user
       await page.getByTestId('admin-ban-account-button').click();
-      await page.fill('[placeholder="Type CONFIRM to confirm"]', 'CONFIRM');
-      await page.getByRole('button', { name: 'Ban User' }).click();
+      await page.fill(
+        '[placeholder="Escribe CONFIRMAR para confirmar"]',
+        'CONFIRMAR',
+      );
+      await page.getByRole('button', { name: 'Suspender usuario' }).click();
 
-      await expect(page.getByText('Banned').first()).toBeVisible();
+      await expect(page.getByText('Suspendido').first()).toBeVisible();
 
       // Now reactivate
       await page.getByTestId('admin-reactivate-account-button').click();
 
       await expect(
-        page.getByRole('heading', { name: 'Reactivate User' }),
+        page.getByRole('heading', { name: 'Reactivar usuario' }),
       ).toBeVisible();
 
-      await page.fill('[placeholder="Type CONFIRM to confirm"]', 'CONFIRM');
+      await page.fill(
+        '[placeholder="Escribe CONFIRMAR para confirmar"]',
+        'CONFIRMAR',
+      );
 
       await Promise.all([
-        page.getByRole('button', { name: 'Reactivate User' }).click(),
+        page.getByRole('button', { name: 'Reactivar usuario' }).click(),
         page.waitForResponse((response) =>
           isServerFnResponse(response, { method: 'POST', status: 200 }),
         ),
       ]);
 
       // Verify ban badge is removed
-      await expect(page.getByText('Banned')).not.toBeVisible();
+      await expect(page.getByText('Suspendido')).not.toBeVisible();
 
       // Log out
       await page.context().clearCookies();
@@ -217,22 +229,28 @@ test.describe('Admin', () => {
       await page.getByTestId('admin-delete-account-button').click();
 
       await expect(
-        page.getByRole('heading', { name: 'Delete User' }),
+        page.getByRole('heading', { name: 'Eliminar usuario' }),
       ).toBeVisible();
 
       // Try with invalid confirmation
-      await page.fill('[placeholder="Type CONFIRM to confirm"]', 'WRONG');
+      await page.fill(
+        '[placeholder="Escribe CONFIRMAR para confirmar"]',
+        'WRONG',
+      );
 
-      await page.getByRole('button', { name: 'Delete' }).click();
+      await page.getByRole('button', { name: 'Eliminar' }).click();
 
       await expect(
-        page.getByRole('heading', { name: 'Delete User' }),
+        page.getByRole('heading', { name: 'Eliminar usuario' }),
       ).toBeVisible(); // Dialog should still be open
 
       // Confirm with correct text
-      await page.fill('[placeholder="Type CONFIRM to confirm"]', 'CONFIRM');
+      await page.fill(
+        '[placeholder="Escribe CONFIRMAR para confirmar"]',
+        'CONFIRMAR',
+      );
 
-      await page.getByRole('button', { name: 'Delete' }).click();
+      await page.getByRole('button', { name: 'Eliminar' }).click();
 
       // Should redirect to admin dashboard
       await page.waitForURL('/admin/accounts');
@@ -276,11 +294,14 @@ test.describe('Admin', () => {
       await page.getByTestId('admin-impersonate-button').click();
 
       await expect(
-        page.getByRole('heading', { name: 'Impersonate User' }),
+        page.getByRole('heading', { name: 'Suplantar usuario' }),
       ).toBeVisible();
 
-      await page.fill('[placeholder="Type CONFIRM to confirm"]', 'CONFIRM');
-      await page.getByRole('button', { name: 'Impersonate User' }).click();
+      await page.fill(
+        '[placeholder="Escribe CONFIRMAR para confirmar"]',
+        'CONFIRMAR',
+      );
+      await page.getByRole('button', { name: 'Suplantar usuario' }).click();
 
       // Should redirect to home and be logged in as the user
       await page.waitForURL('/dashboard');
@@ -336,24 +357,30 @@ test.describe('Team Account Management', () => {
   });
 
   test('delete team account flow', async ({ page }) => {
-    await expect(page.getByText('Team Account')).toBeVisible();
+    await expect(page.getByText('Cuenta de equipo')).toBeVisible();
 
     await page.getByTestId('admin-delete-account-button').click();
 
     await expect(
-      page.getByRole('heading', { name: 'Delete Account' }),
+      page.getByRole('heading', { name: 'Eliminar cuenta' }),
     ).toBeVisible();
 
     // Try with invalid confirmation
-    await page.fill('[placeholder="Type CONFIRM to confirm"]', 'WRONG');
-    await page.getByRole('button', { name: 'Delete' }).click();
+    await page.fill(
+      '[placeholder="Escribe CONFIRMAR para confirmar"]',
+      'WRONG',
+    );
+    await page.getByRole('button', { name: 'Eliminar' }).click();
     await expect(
-      page.getByRole('heading', { name: 'Delete Account' }),
+      page.getByRole('heading', { name: 'Eliminar cuenta' }),
     ).toBeVisible(); // Dialog should still be open
 
     // Confirm with correct text
-    await page.fill('[placeholder="Type CONFIRM to confirm"]', 'CONFIRM');
-    await page.getByRole('button', { name: 'Delete' }).click();
+    await page.fill(
+      '[placeholder="Escribe CONFIRMAR para confirmar"]',
+      'CONFIRMAR',
+    );
+    await page.getByRole('button', { name: 'Eliminar' }).click();
 
     // Should redirect to admin dashboard after deletion
     await expect(page).toHaveURL('/admin/accounts');

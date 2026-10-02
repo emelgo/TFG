@@ -708,8 +708,6 @@
     "general": {
       "title": "General",
       "description": "Tus preferencias personales en el CMS.",
-      "language": "Idioma",
-      "languageDescription": "Idioma de la interfaz. Solo se pueden seleccionar los idiomas disponibles en la consola.",
       "timezone": "Zona horaria",
       "timezoneDescription": "Las fechas y horas del CMS (tablas, registros y registros de auditoría) se muestran en esta zona horaria.",
       "findTimezone": "Buscar zona horaria...",
@@ -718,7 +716,6 @@
       "saved": "Preferencias guardadas",
       "saveError": "No se han podido guardar las preferencias",
       "errors": {
-        "invalidLanguage": "Elige un idioma válido",
         "invalidTimezone": "Elige una zona horaria válida"
       }
     },

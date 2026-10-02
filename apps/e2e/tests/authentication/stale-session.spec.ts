@@ -50,7 +50,7 @@ test.describe('Sesión que ya no existe', () => {
 
     await page.goto('/admin');
     await expect(
-      page.getByText('Team Accounts', { exact: true }),
+      page.getByText('Cuentas de equipo', { exact: true }),
     ).toBeVisible();
 
     // Revoca en Auth la sesión de este navegador (equivale a borrar su fila

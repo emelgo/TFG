@@ -120,7 +120,7 @@ function DeleteAccountForm(props: { accountId: string }) {
 
               <Input
                 id={field.name}
-                pattern={'CONFIRM'}
+                pattern={'CONFIRMAR'}
                 required
                 placeholder={t('confirmPlaceholder')}
                 name={field.name}

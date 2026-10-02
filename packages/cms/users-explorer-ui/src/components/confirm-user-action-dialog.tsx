@@ -3,7 +3,7 @@
  *
  * Las acciones irreversibles o delicadas (borrar, bloquear, conceder acceso
  * al CMS…) piden confirmación; las más graves exigen además escribir una
- * palabra (`confirmWord`, por ejemplo `DELETE`), validada con TanStack Form y
+ * palabra (`confirmWord`, por ejemplo `ELIMINAR`), validada con TanStack Form y
  * el mismo esquema que describe el error. Mientras la acción está en curso
  * el diálogo no se puede cerrar (`useAsyncDialog`).
  *

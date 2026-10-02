@@ -94,19 +94,19 @@ test.describe('Team Accounts', () => {
     await teamAccounts.tryCreateTeam('billing');
 
     await expect(
-      page.getByText('This name is reserved. Please choose a different one.'),
+      page.getByText('Este nombre está reservado. Elige uno diferente.'),
     ).toBeVisible();
 
     await teamAccounts.tryCreateTeam('settings');
 
     await expect(
-      page.getByText('This name is reserved. Please choose a different one.'),
+      page.getByText('Este nombre está reservado. Elige uno diferente.'),
     ).toBeVisible();
 
     function expectError() {
       return expect(
         page.getByText(
-          'This name cannot contain special characters. Please choose a different one.',
+          'Este nombre no puede contener caracteres especiales. Elige uno diferente.',
         ),
       ).toBeVisible();
     }
@@ -223,7 +223,7 @@ test.describe('Team Accounts', () => {
 
     await expect(
       page.getByText(
-        'Only English letters (a-z), numbers (0-9), and hyphens (-) are allowed',
+        'Solo se permiten letras del alfabeto inglés (a-z), números (0-9) y guiones (-)',
         { exact: true },
       ),
     ).toBeVisible();
@@ -238,7 +238,7 @@ test.describe('Team Accounts', () => {
 
     await expect(
       page.getByText(
-        'Only English letters (a-z), numbers (0-9), and hyphens (-) are allowed',
+        'Solo se permiten letras del alfabeto inglés (a-z), números (0-9) y guiones (-)',
         { exact: true },
       ),
     ).toBeVisible();
@@ -274,7 +274,7 @@ test.describe('Team Member Role Management', () => {
       '[data-testid="member-role-badge"]',
     );
 
-    await expect(initialRoleBadge).toHaveText('Member');
+    await expect(initialRoleBadge).toHaveText('Miembro');
 
     // Update the member's role to admin
     await teamAccounts.updateMemberRole(memberEmail, 'owner');
@@ -283,7 +283,7 @@ test.describe('Team Member Role Management', () => {
       page
         .getByRole('row', { name: memberEmail })
         .locator('[data-testid="member-role-badge"]'),
-    ).toHaveText('Owner');
+    ).toHaveText('Propietario');
   });
 });
 
@@ -305,11 +305,13 @@ test.describe('Team Ownership Transfer', () => {
     const memberRow = page.getByRole('row', { name: memberEmail });
 
     // Check for the primary owner badge on the member's row
-    await expect(memberRow.locator('text=Primary Owner')).toBeVisible();
+    await expect(memberRow.locator('text=Propietario principal')).toBeVisible();
 
     // The original owner should no longer have the primary owner badge
     const ownerRow = page.getByRole('row', { name: ownerEmail.split('@')[0] });
-    await expect(ownerRow.locator('text=Primary Owner')).not.toBeVisible();
+    await expect(
+      ownerRow.locator('text=Propietario principal'),
+    ).not.toBeVisible();
   });
 });
 

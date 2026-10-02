@@ -7,15 +7,14 @@ import { describe, expect, it } from 'vitest';
 import { getCmsPreferences } from '../preferences';
 
 describe('getCmsPreferences', () => {
-  it('devuelve el idioma y la zona horaria cuando son cadenas', () => {
+  it('devuelve la zona horaria e ignora un idioma antiguo guardado', () => {
     expect(
-      getCmsPreferences({ language: 'es-ES', timezone: 'Europe/Madrid' }),
-    ).toEqual({ language: 'es-ES', timezone: 'Europe/Madrid' });
+      getCmsPreferences({ language: 'en-US', timezone: 'Europe/Madrid' }),
+    ).toEqual({ timezone: 'Europe/Madrid' });
   });
 
   it('ignora cadenas vacías y valores de otro tipo', () => {
-    expect(getCmsPreferences({ language: '', timezone: 42 })).toEqual({
-      language: undefined,
+    expect(getCmsPreferences({ timezone: 42 })).toEqual({
       timezone: undefined,
     });
   });

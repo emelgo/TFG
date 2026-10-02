@@ -28,8 +28,7 @@ export const Route = createFileRoute('/_marketing/')({
  * Página de inicio pública (landing) de PymeKit.
  *
  * Todo el texto sale del catálogo `marketing.home.*` para que la landing se
- * muestre en el idioma activo (español por defecto, inglés como segundo
- * idioma). El contenido describe solo lo que PymeKit hace de verdad: no hay
+ * muestre en el idioma activo (hoy solo español, ADR-021). El contenido describe solo lo que PymeKit hace de verdad: no hay
  * clientes, testimonios ni cifras inventadas.
  */
 function Home() {

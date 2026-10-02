@@ -5,5 +5,5 @@ import * as z from 'zod';
  */
 export const ResetPasswordSchema = z.object({
   userId: z.uuid(),
-  confirmation: z.custom<string>((value) => value === 'CONFIRM'),
+  confirmation: z.custom<string>((value) => value === 'CONFIRMAR'),
 });

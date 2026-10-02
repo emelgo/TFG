@@ -256,5 +256,42 @@
       "part_time": "Media jornada",
       "contractor": "Autónomo"
     }
+  },
+  "ui": {
+    "close": "Cerrar",
+    "closeNotification": "Cerrar aviso",
+    "loadingShort": "Cargando",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "goToPreviousPage": "Ir a la página anterior",
+    "goToNextPage": "Ir a la página siguiente",
+    "pagination": "Paginación",
+    "morePages": "Más páginas",
+    "breadcrumb": "Ruta de navegación",
+    "more": "Más",
+    "sidebar": "Barra lateral",
+    "sidebarDescription": "Muestra la barra lateral en el móvil.",
+    "toggleSidebar": "Mostrar u ocultar la barra lateral",
+    "previousSlide": "Diapositiva anterior",
+    "nextSlide": "Diapositiva siguiente",
+    "submit": "Enviar",
+    "commandPalette": "Paleta de comandos",
+    "commandPaletteDescription": "Busca un comando para ejecutarlo...",
+    "copyToClipboard": "Copiar al portapapeles",
+    "copiedToClipboard": "Copiado al portapapeles",
+    "menu": "Menú",
+    "openMenu": "Abrir el menú",
+    "homePage": "Página de inicio",
+    "logo": "Logotipo",
+    "providerLogo": "Logotipo de {provider}",
+    "checkout": "Pago",
+    "copyFailed": "No se ha podido copiar al portapapeles",
+    "skip": "Omitir"
+  },
+  "validation": {
+    "invalidEmail": "Introduce un correo electrónico válido",
+    "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
+    "invalidOtp": "Introduce un código de verificación válido",
+    "confirmationRequired": "Escribe la palabra indicada para confirmar"
   }
 }

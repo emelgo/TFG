@@ -16,7 +16,7 @@ Este paquete contiene las plantillas de email transaccional y sus funciones de r
 ## Cómo añadir un email nuevo
 
 1. Crear la plantilla en `src/emails/<nombre>.email.tsx`.
-2. Si usa i18n, crear sus traducciones en `src/locales/<idioma>/<nombre>-email.json`. Hoy solo existe `en`; el locale `es` se añade en F3 y, a partir de entonces, cada email nuevo lleva ambos.
+2. Si usa i18n, crear sus traducciones en `src/locales/<idioma>/<nombre>-email.json`. Hoy solo existe `es` (ADR-021). Si se añade un idioma a la app, cada email lleva también su carpeta (ver `packages/i18n/README.md`).
 3. Exportar la función de renderizado desde `src/index.ts`.
 4. Añadirla a `src/registry.ts` (`EMAIL_TEMPLATE_RENDERERS`).
 

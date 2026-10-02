@@ -55,7 +55,7 @@ class AccountService {
    * @returns Las preferencias guardadas.
    * @throws `SettingsError` `SETTINGS_PERMISSION_DENIED` si no se guardó nada.
    */
-  async updatePreferences(update: { language?: string; timezone?: string }) {
+  async updatePreferences(update: { timezone: string }) {
     const client = this.context.get('drizzle');
 
     const saved = await client.runTransaction(async (tx) => {

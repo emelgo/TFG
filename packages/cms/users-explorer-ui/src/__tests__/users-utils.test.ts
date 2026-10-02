@@ -110,10 +110,10 @@ describe('esquemas de formularios', () => {
   });
 
   it('la confirmación escrita exige la palabra exacta', () => {
-    const schema = createConfirmationSchema('DELETE');
+    const schema = createConfirmationSchema('ELIMINAR');
 
     expect(schema.safeParse({ confirmText: 'delete' }).success).toBe(false);
-    expect(schema.safeParse({ confirmText: 'DELETE' }).success).toBe(true);
+    expect(schema.safeParse({ confirmText: 'ELIMINAR' }).success).toBe(true);
   });
 });
 

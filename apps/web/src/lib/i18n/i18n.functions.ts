@@ -6,11 +6,11 @@ import { LOCALE_COOKIE, defaultLocale, isValidLocale } from '@pymekit/i18n';
 /**
  * Resuelve el idioma activo de la petición actual.
  *
- * Precedencia: cookie `locale` (la escribe el selector de idioma) → idioma por
- * defecto (`VITE_DEFAULT_LOCALE`, español). No se usa la cabecera
- * `Accept-Language` a propósito: PymeKit se dirige a pymes españolas y el
- * producto debe abrirse siempre en español salvo que el usuario elija otro
- * idioma de forma explícita.
+ * Precedencia: cookie `locale` (solo si es un idioma configurado) → idioma
+ * por defecto (español). Hoy solo existe `es` (ADR-021), así que una cookie
+ * antigua con `en` se ignora. No se usa la cabecera `Accept-Language` a
+ * propósito: PymeKit se dirige a pymes españolas y el producto debe abrirse
+ * siempre en español.
  *
  * Solo servidor: lee la petición mediante `@tanstack/react-start/server`.
  * Se llama desde el `beforeLoad` raíz.
@@ -22,8 +22,8 @@ function resolveRequestLocale(): string {
 }
 
 /**
- * Resolve the active locale on the server (cookie → idioma por defecto).
- * Called from the root `beforeLoad` and threaded into the router context.
+ * Resuelve el idioma activo en el servidor (cookie → idioma por defecto).
+ * La llama el `beforeLoad` raíz y el valor viaja en el contexto del router.
  */
 export const detectLocale = createServerFn({ method: 'GET' }).handler(() =>
   resolveRequestLocale(),

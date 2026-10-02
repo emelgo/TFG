@@ -33,7 +33,7 @@ import { resetPasswordFunction } from '../lib/server/admin.functions';
 
 const FormSchema = z.object({
   userId: z.uuid(),
-  confirmation: z.custom<string>((value) => value === 'CONFIRM'),
+  confirmation: z.custom<string>((value) => value === 'CONFIRMAR'),
 });
 
 export function AdminResetPasswordDialog(props: {
@@ -131,7 +131,7 @@ function AdminResetPasswordForm({
 
               <Input
                 id={field.name}
-                placeholder="CONFIRM"
+                placeholder="CONFIRMAR"
                 autoComplete="off"
                 name={field.name}
                 value={field.state.value}

@@ -79,5 +79,15 @@
     "pricingPillText": "Pagos seguros con Stripe.",
     "pricingHeading": "Precios claros para tu negocio",
     "pricingSubheading": "Elige el plan que mejor encaje contigo y cámbialo cuando lo necesites."
+  },
+  "newsletter": {
+    "heading": "Suscríbete a nuestro boletín",
+    "description": "Recibe las últimas novedades y ofertas directamente en tu correo.",
+    "success": "¡Listo!",
+    "successMessage": "¡Gracias por suscribirte!",
+    "error": "Error",
+    "errorMessage": "Se ha producido un error. Inténtalo de nuevo.",
+    "subscribe": "Suscribirme",
+    "emailPlaceholder": "Tu correo electrónico"
   }
 }

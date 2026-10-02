@@ -25,12 +25,12 @@ import { sendOtpEmailFunction } from '../server/otp.functions';
 
 // Email form schema
 const SendOtpSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
+  email: z.string().email({ message: 'common.validation.invalidEmail' }),
 });
 
 // OTP verification schema
 const VerifyOtpSchema = z.object({
-  otp: z.string().min(6, { message: 'Please enter a valid OTP code' }).max(6),
+  otp: z.string().min(6, { message: 'common.validation.invalidOtp' }).max(6),
 });
 
 type VerifyOtpFormProps = {
@@ -69,11 +69,13 @@ export function VerifyOtpForm({
         setStep('otp');
         setError(null);
       } else {
-        setError(data?.error || 'Failed to send OTP. Please try again.');
+        // El detalle técnico del servidor no se enseña: se muestra un
+        // mensaje genérico en español (clave i18n).
+        setError('common.genericServerError');
       }
     },
     onError: () => {
-      setError('An unexpected error occurred. Please try again.');
+      setError('common.genericServerError');
     },
   });
 
@@ -148,7 +150,9 @@ export function VerifyOtpForm({
                 <Trans i18nKey="common.otp.errorSendingCode" />
               </AlertTitle>
 
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                <Trans i18nKey={error ?? undefined} />
+              </AlertDescription>
             </Alert>
           </If>
 
@@ -192,7 +196,9 @@ export function VerifyOtpForm({
                   <Trans i18nKey="common.error" />
                 </AlertTitle>
 
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>
+                  <Trans i18nKey={error ?? undefined} />
+                </AlertDescription>
               </Alert>
             </If>
 

@@ -1,5 +1,5 @@
 /**
- * Reglas de las preferencias personales del CMS (idioma y zona horaria).
+ * Reglas de las preferencias personales del CMS (zona horaria).
  *
  * Las preferencias se guardan en `cms.accounts.preferences` (JSONB) y la zona
  * horaria decide cómo se muestran todas las fechas del CMS
@@ -17,9 +17,6 @@ const MAX_TIME_ZONE_LENGTH = 64;
 
 /** Forma de un nombre de zona IANA: `UTC` o `Región/Ciudad[/…]`. */
 const CANONICAL_TIME_ZONE = /^(?:UTC|[A-Z][A-Za-z]*(?:\/[A-Za-z0-9_+-]+)+)$/;
-
-/** Etiqueta de idioma admitida: `es`, `en`, `es-ES`, `pt-BR`… */
-const LANGUAGE_TAG = /^[a-z]{2,3}(-[A-Z]{2})?$/;
 
 /**
  * Indica si `value` es una zona horaria IANA que el motor de JavaScript
@@ -47,19 +44,15 @@ export function isValidTimeZone(value: string) {
   }
 }
 
-/** Indica si `value` tiene la forma de una etiqueta de idioma admitida. */
-export function isValidLanguageTag(value: string) {
-  return LANGUAGE_TAG.test(value);
-}
-
 /**
  * Combina las preferencias guardadas con las nuevas. Las claves que no se
- * envían se conservan: el código de partida sustituía el objeto entero y
- * guardar solo la zona horaria borraba el idioma.
+ * envían se conservan (el código de partida sustituía el objeto entero).
+ * Así sobreviven claves antiguas como `language`, que ya no se edita ni se
+ * lee: la interfaz solo está en español (ADR-021).
  */
 export function mergeCmsPreferences(
   current: unknown,
-  update: { language?: string; timezone?: string },
+  update: { timezone?: string },
 ) {
   const base =
     current && typeof current === 'object' && !Array.isArray(current)
@@ -68,7 +61,6 @@ export function mergeCmsPreferences(
 
   return {
     ...base,
-    ...(update.language !== undefined ? { language: update.language } : {}),
     ...(update.timezone !== undefined ? { timezone: update.timezone } : {}),
   };
 }

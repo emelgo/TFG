@@ -35,7 +35,7 @@ test.describe('User Billing', () => {
 
     await po.billing.returnToBilling();
 
-    await expect(po.billing.getStatus()).toContainText('Active');
+    await expect(po.billing.getStatus()).toContainText('Activa');
     await expect(po.billing.manageBillingButton()).toBeVisible();
 
     // baseline: the cancellation warning should not be visible yet

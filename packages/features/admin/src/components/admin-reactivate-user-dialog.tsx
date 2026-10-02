@@ -144,7 +144,7 @@ function ReactivateUserForm(props: {
               <Input
                 id={field.name}
                 required
-                pattern={'CONFIRM'}
+                pattern={'CONFIRMAR'}
                 placeholder={t('confirmPlaceholder')}
                 name={field.name}
                 value={field.state.value}

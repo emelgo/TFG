@@ -74,6 +74,7 @@ const form = useForm({
 - Los valores observados se leen de forma reactiva con `<form.Subscribe selector={...}>`, nunca con `form.state.values.x` en el render.
 - Si un esquema Zod tiene campos opcionales o con valor por defecto, se hace *cast* de `defaultValues` con `as z.input<typeof Schema>` para que los tipos del formulario encajen con el validador.
 - `FieldError` de `@pymekit/ui/field` es el envoltorio con i18n: trata los mensajes como claves de `Trans`.
+- `dialog`, `sidebar`, `breadcrumb`, `pagination` y `command` se exportan desde envoltorios de `src/pymekit/` que sustituyen los textos en inglés de shadcn («Close», «Toggle Sidebar»…) por claves `common.ui.*` (ADR-021). Dentro de `src/pymekit/` se importan esos envoltorios, no `../shadcn/<nombre>`.
 
 ## Componentes clave
 

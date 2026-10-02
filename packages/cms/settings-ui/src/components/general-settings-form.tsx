@@ -1,14 +1,12 @@
 /**
  * Formulario de Ajustes > General: preferencias personales del usuario del
- * CMS (idioma y zona horaria), guardadas en `cms.accounts.preferences`.
+ * CMS (la zona horaria), guardadas en `cms.accounts.preferences`.
  *
  * La zona horaria decide cómo se muestran TODAS las fechas del CMS: al
  * guardar, la mutación invalida la cuenta, el *layout* `/admin/cms` la
  * vuelve a leer y `FormatterPreferencesProvider` aplica la zona nueva a las
- * tablas del explorador, la auditoría, etc. El idioma solo puede ser uno de
- * los que tiene la interfaz (`locales`); si cambia, quien usa el formulario
- * aplica el cambio (`onLanguageChange`), porque el idioma de la web vive en
- * una *cookie*.
+ * tablas del explorador, la auditoría, etc. No hay campo de idioma: la
+ * interfaz solo está en español (ADR-021).
  *
  * TanStack Form con el mismo esquema Zod que valida la API
  * (`GeneralSettingsSchema`). Para empezar de cero tras guardar, quien lo usa
@@ -25,7 +23,6 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@pymekit/ui/field';
-import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
 import { Spinner } from '@pymekit/ui/spinner';
 
 import { useUpdatePreferencesMutation } from '../hooks/use-settings-mutations';
@@ -36,25 +33,13 @@ import {
 import { TimezoneSelector } from './timezone-selector';
 
 export function GeneralSettingsForm(props: {
-  preferences: { language?: string; timezone?: string };
-  /** Idiomas de la interfaz (`@pymekit/i18n/config`). */
-  locales: string[];
-  /** Idioma actual de la interfaz. */
-  currentLocale: string;
-  /** Se llama tras guardar si el idioma elegido es distinto del actual. */
-  onLanguageChange?: (locale: string) => void;
+  preferences: { timezone?: string };
 }) {
   const t = useTranslations('cms.settings.general');
   const mutation = useUpdatePreferencesMutation();
 
-  const initialLanguage = props.preferences.language?.split('-')[0];
-
   const form = useForm({
     defaultValues: {
-      language:
-        initialLanguage && props.locales.includes(initialLanguage)
-          ? initialLanguage
-          : props.currentLocale,
       timezone: props.preferences.timezone || DEFAULT_CMS_TIME_ZONE,
     },
     validators: {
@@ -63,15 +48,7 @@ export function GeneralSettingsForm(props: {
     },
     onSubmit: async ({ value }) => {
       await mutation.mutateAsync(value);
-
-      if (value.language !== props.currentLocale) {
-        props.onLanguageChange?.(value.language);
-      }
     },
-  });
-
-  const languageNames = new Intl.DisplayNames([props.currentLocale], {
-    type: 'language',
   });
 
   return (
@@ -86,41 +63,6 @@ export function GeneralSettingsForm(props: {
       }}
     >
       <FieldGroup>
-        <form.Field name="language">
-          {(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid;
-
-            return (
-              <Field data-invalid={isInvalid}>
-                <FieldLabel htmlFor="cms-settings-language">
-                  {t('language')}
-                </FieldLabel>
-
-                <NativeSelect
-                  id="cms-settings-language"
-                  data-testid="language-select"
-                  className="w-full max-w-sm"
-                  value={field.state.value}
-                  disabled={props.locales.length <= 1}
-                  aria-invalid={isInvalid}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                >
-                  {props.locales.map((locale) => (
-                    <NativeSelectOption key={locale} value={locale}>
-                      {languageNames.of(locale) ?? locale}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-
-                <FieldDescription>{t('languageDescription')}</FieldDescription>
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            );
-          }}
-        </form.Field>
-
         <form.Field name="timezone">
           {(field) => {
             const isInvalid =

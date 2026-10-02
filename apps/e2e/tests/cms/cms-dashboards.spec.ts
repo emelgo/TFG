@@ -77,7 +77,9 @@ test.describe('Paneles del CMS', () => {
     await expect(page.getByTestId('dashboard-title')).toHaveText(
       DASHBOARD_NAME,
     );
-    await expect(page.getByTestId('dashboard-permission')).toHaveText('Owner');
+    await expect(page.getByTestId('dashboard-permission')).toHaveText(
+      'Propietario',
+    );
 
     // 2. Métrica: recuento de cuentas (soporte puede leer public.accounts).
     const metric = await dashboards.addWidget({
@@ -144,7 +146,7 @@ test.describe('Paneles del CMS', () => {
 
       await staff.goto(`/admin/cms/dashboards/${dashboardId}`);
       await expect(staff.getByTestId('dashboard-permission')).toHaveText(
-        'View only',
+        'Solo lectura',
       );
 
       const staffDashboards = new DashboardsPageObject(staff);

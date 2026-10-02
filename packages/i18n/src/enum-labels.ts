@@ -12,7 +12,7 @@
  * 1. Etiqueta configurada en la columna (`ui_config.value_labels` del CMS),
  *    que el administrador edita en Ajustes → Recursos.
  * 2. Traducción explícita `common.enums.<enumerado>.<valor>` de los
- *    mensajes de `es`/`en`, para los enumerados propios de PymeKit.
+ *    mensajes (`es`), para los enumerados propios de PymeKit.
  * 3. «Humanizador» por defecto: `in_app` → «In app».
  *
  * La parte pura (`humanizeEnumValue`, `enumMessageKey`, `resolveEnumLabel`)

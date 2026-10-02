@@ -407,3 +407,9 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Causa:** al cerrar la F3b solo se ejecutaron los E2E de la zona tocada (modo ahorro, B-48), y este test del explorador no estaba entre ellos. Es la misma situación que en B-51.
 - **Solución:** la aserción pasa a esperar la etiqueta. Antes de volver a subir se ejecutó en local la suite completa: 150 tests correctos y 4 inestables que pasan al reintentar.
 - **Lección:** un cambio de presentación transversal, como las etiquetas de los enumerados, afecta a tests de toda la aplicación. En esos casos conviene ejecutar la suite completa antes de abrir el PR, no después.
+
+## B-55 · La lista de miembros superaba el tiempo máximo con unos cientos de cuentas
+- **Qué pasó:** durante la ejecución completa de los E2E de la F3c, `/settings/members` empezó a devolver 500 y fallaron todas las pruebas de invitaciones. La BD local había acumulado unas 200 cuentas de ejecuciones anteriores.
+- **Causa:** heredada. `get_active_account_members` y `get_active_account_invitations` filtraban con `where accounts.id = public.active_account_id()`. Esa función es volátil, así que Postgres la evaluaba una vez por cada fila de `accounts`. La consulta tardaba más de 6 s y llegaba al tiempo máximo de sentencia (8 s).
+- **Solución:** envolver la llamada en `(select public.active_account_id())`, que Postgres evalúa una sola vez (*InitPlan*). Se cambió en el esquema declarativo y se generó la migración `20261002151617_active_account_initplan.sql`. El diff posterior sale limpio y pgTAP pasa (2067).
+- **Lección:** es el mismo patrón que recomienda Supabase para `auth.uid()` en las políticas RLS. Cualquier función que se llame en un WHERE debería ir dentro de `(select …)`. La BD de pruebas que crece con cada ejecución sirve, sin buscarlo, como prueba de carga.

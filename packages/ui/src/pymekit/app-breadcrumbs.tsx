@@ -13,7 +13,7 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from '../shadcn/breadcrumb';
+} from './breadcrumb';
 import { If } from './if';
 import { Trans } from './trans';
 

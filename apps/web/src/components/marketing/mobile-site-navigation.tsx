@@ -29,13 +29,13 @@ export function MobileSiteNavigation({
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger aria-label={'Open Menu'}>
+      <DrawerTrigger aria-label={t('common.ui.openMenu')}>
         <Menu className={'h-8 w-8'} />
       </DrawerTrigger>
 
       <DrawerContent className={'flex w-full flex-col gap-y-2 px-8! py-8'}>
         <DrawerHeader className={'hidden'}>
-          <DrawerTitle>Menu</DrawerTitle>
+          <DrawerTitle>{t('common.ui.menu')}</DrawerTitle>
         </DrawerHeader>
 
         {links.map((item) => {

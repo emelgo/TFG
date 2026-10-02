@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router';
+import { useTranslations } from 'use-intl';
 
 import { cn } from '@pymekit/ui/utils';
 
@@ -67,8 +68,10 @@ export function AppLogo({
   className?: string;
   label?: string;
 }) {
+  const t = useTranslations('common.ui');
+
   return (
-    <Link aria-label={label ?? 'Home Page'} to="/">
+    <Link aria-label={label ?? t('homePage')} to="/">
       <LogoImage className={className} />
     </Link>
   );

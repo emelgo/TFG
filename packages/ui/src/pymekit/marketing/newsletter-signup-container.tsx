@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from 'react';
 
+import { useTranslations } from 'use-intl';
+
 import { cn } from '../../lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../../shadcn/alert';
 import { Heading } from '../../shadcn/heading';
@@ -19,13 +21,14 @@ interface NewsletterSignupContainerProps extends React.HTMLAttributes<HTMLDivEle
 
 export function NewsletterSignupContainer({
   onSignup,
-  heading = 'Subscribe to our newsletter',
-  description = 'Get the latest updates and offers directly to your inbox.',
-  successMessage = 'Thank you for subscribing!',
-  errorMessage = 'An error occurred. Please try again.',
+  heading,
+  description,
+  successMessage,
+  errorMessage,
   className,
   ...props
 }: NewsletterSignupContainerProps) {
+  const t = useTranslations('marketing.newsletter');
   const [status, setStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle');
@@ -52,8 +55,10 @@ export function NewsletterSignupContainer({
       {...props}
     >
       <div className="text-center">
-        <Heading level={4}>{heading}</Heading>
-        <p className="text-muted-foreground">{description}</p>
+        <Heading level={4}>{heading ?? t('heading')}</Heading>
+        <p className="text-muted-foreground">
+          {description ?? t('description')}
+        </p>
       </div>
 
       {status === 'idle' && <NewsletterSignup onSignup={handleSubmit} />}
@@ -67,8 +72,10 @@ export function NewsletterSignupContainer({
       {status === 'success' && (
         <div>
           <Alert className={alertExtras.success}>
-            <AlertTitle>Success!</AlertTitle>
-            <AlertDescription>{successMessage}</AlertDescription>
+            <AlertTitle>{t('success')}</AlertTitle>
+            <AlertDescription>
+              {successMessage ?? t('successMessage')}
+            </AlertDescription>
           </Alert>
         </div>
       )}
@@ -76,8 +83,10 @@ export function NewsletterSignupContainer({
       {status === 'error' && (
         <div>
           <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
+            <AlertTitle>{t('error')}</AlertTitle>
+            <AlertDescription>
+              {errorMessage ?? t('errorMessage')}
+            </AlertDescription>
           </Alert>
         </div>
       )}

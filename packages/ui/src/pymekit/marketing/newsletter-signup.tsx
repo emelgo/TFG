@@ -1,6 +1,7 @@
 'use client';
 
 import { useForm } from '@tanstack/react-form';
+import { useTranslations } from 'use-intl';
 import * as z from 'zod';
 
 import { cn } from '../../lib/utils';
@@ -22,11 +23,12 @@ interface NewsletterSignupProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function NewsletterSignup({
   onSignup,
-  buttonText = 'Subscribe',
-  placeholder = 'Enter your email',
+  buttonText,
+  placeholder,
   className,
   ...props
 }: NewsletterSignupProps) {
+  const t = useTranslations('marketing.newsletter');
   const form = useForm({
     defaultValues: {
       email: '',
@@ -57,7 +59,7 @@ export function NewsletterSignup({
               <Field data-invalid={isInvalid}>
                 <Input
                   type="email"
-                  placeholder={placeholder}
+                  placeholder={placeholder ?? t('emailPlaceholder')}
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -71,7 +73,7 @@ export function NewsletterSignup({
         </form.Field>
 
         <Button type="submit" className="w-full">
-          {buttonText}
+          {buttonText ?? t('subscribe')}
         </Button>
       </form>
     </div>

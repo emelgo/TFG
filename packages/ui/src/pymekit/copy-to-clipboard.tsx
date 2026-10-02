@@ -3,6 +3,7 @@
 import { type ReactNode, useCallback, useState } from 'react';
 
 import { Check, Copy } from 'lucide-react';
+import { useTranslations } from 'use-intl';
 
 import { cn } from '../lib/utils';
 import { toast } from './sonner';
@@ -23,10 +24,11 @@ export function CopyToClipboard({
   children,
   className,
   value = undefined,
-  tooltipText = 'Copy to clipboard',
-  successMessage = 'Copied to clipboard',
-  errorMessage = 'Failed to copy to clipboard',
+  tooltipText,
+  successMessage,
+  errorMessage,
 }: CopyToClipboardProps) {
+  const t = useTranslations('common.ui');
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(
@@ -39,15 +41,15 @@ export function CopyToClipboard({
         .writeText(value ?? textToCopy)
         .then(() => {
           setCopied(true);
-          toast.success(successMessage);
+          toast.success(successMessage ?? t('copiedToClipboard'));
           setTimeout(() => setCopied(false), 2000);
         })
         .catch((error) => {
           console.error('Failed to copy text: ', error);
-          toast.error(errorMessage);
+          toast.error(errorMessage ?? t('copyFailed'));
         });
     },
-    [children, value, successMessage, errorMessage],
+    [children, value, successMessage, errorMessage, t],
   );
 
   if (typeof value === 'undefined') {
@@ -56,7 +58,7 @@ export function CopyToClipboard({
 
   return (
     <button
-      title={tooltipText}
+      title={tooltipText ?? t('copyToClipboard')}
       onClick={handleCopy}
       className={cn(
         'group group/button -mx-1 inline-flex cursor-pointer items-center gap-1 rounded px-1 transition-colors hover:underline',

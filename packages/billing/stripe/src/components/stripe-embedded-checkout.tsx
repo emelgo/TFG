@@ -9,6 +9,7 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 
 import { Dialog, DialogContent, DialogTitle } from '@pymekit/ui/dialog';
+import { Trans } from '@pymekit/ui/trans';
 
 import { StripeClientEnvSchema } from '../schema/stripe-client-env.schema';
 
@@ -65,7 +66,9 @@ function EmbeddedCheckoutPopup({
         }}
         className={className}
       >
-        <DialogTitle className={'hidden'}>Checkout</DialogTitle>
+        <DialogTitle className={'hidden'}>
+          <Trans i18nKey={'common.ui.checkout'} />
+        </DialogTitle>
         <div>{children}</div>
       </DialogContent>
     </Dialog>

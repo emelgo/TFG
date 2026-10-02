@@ -9,7 +9,7 @@ import { createOtpApi } from '../api';
 
 // Schema for sending OTP email
 const SendOtpEmailSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
+  email: z.string().email({ message: 'common.validation.invalidEmail' }),
   // Purpose of the OTP (e.g., 'email-verification', 'password-reset')
   purpose: z.string().min(1).max(1000),
   // how long the OTP should be valid for. Defaults to 1 hour. Max is 7 days. Min is 30 seconds.

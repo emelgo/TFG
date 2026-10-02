@@ -51,8 +51,9 @@ export function AcceptInvitationContainer(props: {
 
       <If condition={props.invitation.account.picture_url}>
         {(url) => (
+          // Imagen decorativa: el nombre del equipo ya aparece en el título.
           <img
-            alt={'Logo'}
+            alt={''}
             src={url}
             width={64}
             height={64}

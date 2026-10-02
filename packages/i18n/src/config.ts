@@ -1,24 +1,26 @@
 /**
- * Internationalization configuration.
+ * Configuración de idiomas (i18n) compartida por el servidor y el cliente.
  *
- * Public locale settings shared by the server and client. Add a locale by
- * adding it to `locales` and creating its message files under `messages/`.
+ * [TFG] ADR-021: PymeKit solo se ofrece en español, pero la infraestructura
+ * de traducción se conserva como punto de extensión. Cómo añadir un idioma
+ * se explica en `packages/i18n/README.md`.
  */
 
 /** Cookie that stores the user's chosen locale (root path so it's readable everywhere). */
 export const LOCALE_COOKIE = 'locale';
 
 /**
- * Idiomas que PymeKit trae traducidos de serie. El español es el idioma
- * principal del producto (va primero) y el inglés el secundario. Para añadir
- * otro idioma basta con incluirlo aquí y crear sus ficheros en `messages/`.
+ * Idiomas que PymeKit trae traducidos de serie: solo el español (ADR-021).
+ * Para añadir otro idioma se incluye aquí, se crean sus ficheros en
+ * `messages/<idioma>/` y se registran en `messages/index.ts`.
  */
-export const supportedLocales = ['es', 'en'] as const;
+export const supportedLocales = ['es'] as const;
 
 /**
  * Idioma por defecto: el que se usa cuando el usuario no ha elegido ninguno.
  * La fuente de verdad es la variable `VITE_DEFAULT_LOCALE` (Vite la incrusta al
- * compilar). Si falta, o trae un idioma no soportado, se usa el español.
+ * compilar). Si falta, o trae un idioma no soportado (p. ej. `en`), se usa
+ * el español.
  */
 const envLocale = import.meta.env.VITE_DEFAULT_LOCALE;
 
@@ -27,7 +29,7 @@ export const defaultLocale: string =
     ? envLocale
     : 'es';
 
-/** Todos los idiomas disponibles en el selector de idioma. */
+/** Idiomas activos. Cualquier otro (cookie, variable…) se resuelve al por defecto. */
 export const locales: string[] = [...supportedLocales];
 
 export type Locale = string;
