@@ -30,6 +30,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@pymekit/ui/input-group';
+import { PageSummary } from '@pymekit/ui/page';
 import { cn } from '@pymekit/ui/utils';
 
 import { type MembersSearch, withMembersSearch } from '../utils/members-search';
@@ -106,6 +107,8 @@ export function MembersTableView(props: {
         <UsersIcon className="text-muted-foreground h-4 w-4" />
         {t('title')}
       </h1>
+
+      <PageSummary>{t('summary')}</PageSummary>
 
       <MembersSearchInput
         // La clave reinicia el campo cuando la búsqueda cambia desde fuera

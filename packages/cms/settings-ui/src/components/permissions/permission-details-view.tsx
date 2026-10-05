@@ -19,6 +19,7 @@ import type { CmsRbacPermissionDetails } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
 import { Badge } from '@pymekit/ui/badge';
 import { Button } from '@pymekit/ui/button';
+import { PageSummary } from '@pymekit/ui/page';
 
 import { useDeletePermissionMutation } from '../../hooks/use-rbac-mutations';
 import { PermissionFormDialog } from './permission-form-dialog';
@@ -97,6 +98,8 @@ export function PermissionDetailsView(props: {
           ) : null}
         </div>
       </div>
+
+      <PageSummary>{t('details.permissionSummary')}</PageSummary>
 
       {permission.isSystem ? (
         <p

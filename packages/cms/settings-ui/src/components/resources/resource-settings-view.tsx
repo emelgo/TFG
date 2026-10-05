@@ -50,6 +50,7 @@ import {
 import { Field, FieldError, FieldGroup } from '@pymekit/ui/field';
 import { FieldHelp, FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { Input } from '@pymekit/ui/input';
+import { PageSummary } from '@pymekit/ui/page';
 import { Spinner } from '@pymekit/ui/spinner';
 import { Switch } from '@pymekit/ui/switch';
 import {
@@ -123,6 +124,8 @@ export function ResourceSettingsView(props: {
           {t('layout.open')}
         </Link>
       </div>
+
+      <PageSummary>{t('detailSummary')}</PageSummary>
 
       <TableSettingsForm
         key={data.data.updatedAt}

@@ -19,6 +19,7 @@ import {
   EmptyStateHeading,
   EmptyStateText,
 } from '@pymekit/ui/empty-state';
+import { PageSummary } from '@pymekit/ui/page';
 
 export function StorageBucketsView(props: { buckets: CmsStorageBucket[] }) {
   const t = useTranslations('cms.storageExplorer');
@@ -34,6 +35,8 @@ export function StorageBucketsView(props: { buckets: CmsStorageBucket[] }) {
         <FolderIcon className="text-muted-foreground h-4 w-4" />
         {t('title')}
       </h1>
+
+      <PageSummary>{t('buckets.summary')}</PageSummary>
 
       {props.buckets.length === 0 ? (
         <EmptyState data-testid="storage-no-buckets" className="min-h-64 p-6">

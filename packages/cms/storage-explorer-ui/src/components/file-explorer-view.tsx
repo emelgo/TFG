@@ -63,6 +63,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@pymekit/ui/input-group';
+import { PageSummary } from '@pymekit/ui/page';
 import { cn } from '@pymekit/ui/utils';
 
 import { useDownloadFileMutation } from '../hooks/use-storage-mutations';
@@ -226,6 +227,8 @@ export function FileExplorerView(props: {
           ) : null}
         </div>
       </div>
+
+      <PageSummary>{t('folder.summary')}</PageSummary>
 
       <StorageSearchInput
         key={`${path}:${props.search.search ?? ''}`}

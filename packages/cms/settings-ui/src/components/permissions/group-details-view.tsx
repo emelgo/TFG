@@ -20,6 +20,7 @@ import type { CmsRbacGroupDetails } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
 import { Badge } from '@pymekit/ui/badge';
 import { Button } from '@pymekit/ui/button';
+import { PageSummary } from '@pymekit/ui/page';
 
 import {
   useDeleteGroupMutation,
@@ -98,6 +99,8 @@ export function GroupDetailsView(props: { data: CmsRbacGroupDetails }) {
           ) : null}
         </div>
       </div>
+
+      <PageSummary>{t('details.groupSummary')}</PageSummary>
 
       {group.isSystem ? (
         <p

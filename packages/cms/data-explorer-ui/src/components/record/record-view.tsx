@@ -39,6 +39,7 @@ import {
   BreadcrumbSeparator,
 } from '@pymekit/ui/breadcrumb';
 import { Button } from '@pymekit/ui/button';
+import { PageSummary } from '@pymekit/ui/page';
 
 import { useTableTabManagement } from '../../hooks/use-data-explorer-tabs';
 import {
@@ -214,6 +215,11 @@ export function RecordView(props: {
           ) : null}
         </div>
       </div>
+
+      {/* Resumen: la descripción de la tabla en los metadatos del CMS. */}
+      {metadata.table.description ? (
+        <PageSummary>{metadata.table.description}</PageSummary>
+      ) : null}
 
       {customLayout ? (
         <CustomLayoutRenderer

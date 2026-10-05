@@ -51,7 +51,11 @@ function AdminAccountsPage() {
 
   return (
     <PageBody>
-      <PageHeader description={<AppBreadcrumbs />}>
+      <PageHeader
+        description={<AppBreadcrumbs />}
+        title={<Trans i18nKey={'admin.accountsTitle'} />}
+        summary={<Trans i18nKey={'admin.accountsSummary'} />}
+      >
         <div className="flex justify-end">
           <AdminCreateUserDialog>
             <Button data-testid="admin-create-user-button">

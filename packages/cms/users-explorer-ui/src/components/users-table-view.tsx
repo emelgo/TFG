@@ -52,6 +52,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@pymekit/ui/input-group';
+import { PageSummary } from '@pymekit/ui/page';
 import { cn } from '@pymekit/ui/utils';
 
 import { getBatchActionTargets, isUserActionable } from '../utils/user-status';
@@ -253,6 +254,8 @@ export function UsersTableView(props: {
           </DropdownMenu>
         ) : null}
       </div>
+
+      <PageSummary>{t('summary')}</PageSummary>
 
       <UsersSearchInput
         // La clave reinicia el campo cuando la búsqueda cambia desde fuera

@@ -44,6 +44,7 @@ import { Alert, AlertDescription } from '@pymekit/ui/alert';
 import { Badge } from '@pymekit/ui/badge';
 import { Button } from '@pymekit/ui/button';
 import { CopyToClipboard } from '@pymekit/ui/copy-to-clipboard';
+import { PageSummary } from '@pymekit/ui/page';
 
 import {
   type UserAction,
@@ -91,6 +92,8 @@ export function UserDetailsView(props: { data: CmsUserDetails }) {
 
         <UserActionsBar data={props.data} />
       </div>
+
+      <PageSummary>{t('details.summary')}</PageSummary>
 
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold">{user.email ?? user.phone}</h1>

@@ -67,7 +67,7 @@ function CmsOverviewPage() {
 
       <PageHeader
         title={<Trans i18nKey="cms.overview.title" />}
-        description={<Trans i18nKey="cms.overview.description" />}
+        summary={<Trans i18nKey="cms.overview.description" />}
       />
 
       <div className="pb-6 empty:hidden">

@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@hono/zod-validator": "catalog:",
+    "@pymekit/cms-data-explorer-core": "workspace:*",
     "@pymekit/cms-shared": "workspace:*",
     "@pymekit/cms-supabase": "workspace:*",
     "@pymekit/shared": "workspace:*",

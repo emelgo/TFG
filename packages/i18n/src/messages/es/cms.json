@@ -19,7 +19,7 @@
   },
   "overview": {
     "title": "Todas las tablas",
-    "description": "Tablas que puedes leer, agrupadas por área.",
+    "description": "Las tablas de datos que puedes consultar, agrupadas por área. Entra en una para ver, buscar y editar sus registros.",
     "tablesCount": "{count, plural, one {# tabla} other {# tablas}}",
     "emptyHeading": "No hay tablas disponibles",
     "emptyText": "Tu rol de CMS aún no concede acceso de lectura a ninguna tabla. Pide a un administrador que te asigne los permisos que necesitas."
@@ -461,7 +461,8 @@
       "noMfaFactors": "No hay factores de dos pasos.",
       "appMetadata": "Metadatos de la aplicación (solo lectura)",
       "userMetadata": "Metadatos del usuario (solo lectura)",
-      "auditLogs": "Ver registros de auditoría"
+      "auditLogs": "Ver registros de auditoría",
+      "summary": "Ficha de un usuario: sus datos de acceso y las acciones de soporte, como bloquearlo, enviarle un enlace para entrar o restablecer su contraseña."
     },
     "form": {
       "email": "Correo electrónico",
@@ -529,7 +530,8 @@
       "protected": "Este usuario es superadministrador de la plataforma o personal del CMS y no se puede modificar aquí.",
       "alreadyExists": "Ya existe un usuario con este correo electrónico.",
       "invalidData": "Los datos no son válidos (por ejemplo, la contraseña es demasiado débil)."
-    }
+    },
+    "summary": "Las personas que pueden iniciar sesión en la plataforma. Busca a alguien, crea o invita usuarios, bloquéalos o concédeles acceso a esta consola."
   },
   "storageExplorer": {
     "title": "Almacenamiento",
@@ -540,7 +542,8 @@
       "emptyHeading": "No hay buckets disponibles",
       "emptyText": "No tienes permiso para explorar ningún bucket de almacenamiento.",
       "public": "Público",
-      "private": "Privado"
+      "private": "Privado",
+      "summary": "Los archivos subidos a la plataforma, organizados en contenedores (buckets). Elige uno para ver su contenido."
     },
     "actions": {
       "upload": "Subir",
@@ -616,6 +619,9 @@
       "alreadyExists": "Ya existe un archivo o una carpeta con este nombre.",
       "fileTooLarge": "El archivo supera el tamaño máximo de subida.",
       "tooManyFiles": "Demasiados archivos en una sola operación."
+    },
+    "folder": {
+      "summary": "El contenido de esta carpeta. Puedes subir archivos, crear carpetas, renombrar, descargar o borrar."
     }
   },
   "auditLogs": {
@@ -683,14 +689,16 @@
       "redacted": "Los datos de la fila están ocultos porque no tienes permiso para leer {resource}.",
       "yes": "Sí",
       "no": "No",
-      "empty": "vacío"
+      "empty": "vacío",
+      "summary": "Detalle de un cambio: quién lo hizo, cuándo y cómo quedaron los datos antes y después."
     },
     "member": {
       "title": "Registros de auditoría",
       "noResults": "No hay actividad registrada.",
       "forbidden": "No puedes leer los registros de auditoría de este miembro.",
       "loadError": "No se han podido cargar los registros de auditoría."
-    }
+    },
+    "summary": "El historial de cambios hechos desde la consola: quién cambió qué y cuándo. Filtra por persona, fecha o tipo de cambio."
   },
   "globalSearch": {
     "trigger": "Buscar registros",
@@ -717,7 +725,7 @@
     },
     "general": {
       "title": "General",
-      "description": "Tus preferencias personales en el CMS.",
+      "description": "Tus preferencias personales en la consola, como la zona horaria con la que se muestran las fechas.",
       "timezone": "Zona horaria",
       "timezoneDescription": "Las fechas y horas del CMS (tablas, registros y registros de auditoría) se muestran en esta zona horaria.",
       "findTimezone": "Buscar zona horaria...",
@@ -732,7 +740,7 @@
     },
     "authentication": {
       "title": "Autenticación",
-      "description": "Reglas de seguridad que se aplican a todos los miembros del personal del CMS.",
+      "description": "Reglas de seguridad para todo el personal de la consola, como exigir la verificación en dos pasos al entrar.",
       "warningTitle": "Este ajuste afecta a toda la consola",
       "warningText": "Cuando no se exige la autenticación multifactor (MFA), una contraseña robada basta para abrir el CMS con los permisos de esa persona. Mantenla obligatoria salvo que tengas un motivo de peso. Solo un superadministrador de la plataforma que haya verificado su segundo factor puede desactivarla, y el cambio queda registrado en los registros de auditoría.",
       "requireMfa": "Exigir autenticación multifactor",
@@ -806,6 +814,10 @@
         "joined": "Alta el {date}",
         "authUserId": "Usuario de Auth",
         "authUserIdHelp": "Identificador del usuario en Auth."
+      },
+      "summary": "El personal con acceso a esta consola. Cambia su rol o desactiva su cuenta.",
+      "details": {
+        "summary": "Ficha de un miembro del personal: su rol, su estado y lo último que ha hecho en la consola."
       }
     },
     "errors": {
@@ -823,7 +835,7 @@
     },
     "permissions": {
       "title": "Roles y permisos",
-      "description": "Los roles deciden qué puede hacer cada miembro del personal del CMS. Un rol obtiene permisos directamente o mediante grupos de permisos. Solo puedes crear roles de rango inferior al tuyo y conceder capacidades que ya tengas.",
+      "description": "Aquí se decide qué puede hacer cada miembro del personal. Solo puedes crear roles de rango inferior al tuyo y conceder lo que tú ya puedes hacer.",
       "system": "Sistema",
       "back": "Volver a roles y permisos",
       "cancel": "Cancelar",
@@ -1026,11 +1038,21 @@
         "roleHasMembers": "Reasigna los miembros de este rol antes de eliminarlo",
         "groupRankDenied": "Este grupo lo usa un rol que no puedes gestionar",
         "generic": "Algo ha salido mal. Inténtalo de nuevo"
+      },
+      "summaries": {
+        "roles": "Un rol es un perfil de trabajo (por ejemplo, soporte o editor). Cada miembro tiene uno y de él salen sus permisos.",
+        "groups": "Un grupo reúne varios permisos para asignarlos juntos a un rol.",
+        "permissions": "Cada permiso concede una acción concreta (leer, crear, editar o borrar) sobre una tabla o una parte de la consola."
+      },
+      "details": {
+        "roleSummary": "Ficha de un rol: sus permisos, directos o a través de grupos, y los miembros que lo tienen.",
+        "groupSummary": "Ficha de un grupo de permisos: qué permisos reúne y a qué roles se asigna.",
+        "permissionSummary": "Ficha de un permiso: qué acción concede y qué roles o grupos lo tienen."
       }
     },
     "resources": {
       "title": "Recursos",
-      "description": "Tablas gestionadas por el CMS: elige cuáles aparecen en el explorador de datos, su orden y cómo se muestran sus columnas y registros.",
+      "description": "Las tablas de datos de la consola: elige cuáles se muestran, en qué orden y cómo se ven sus columnas y registros.",
       "empty": "Todavía no hay tablas gestionadas. Sincroniza un esquema para registrar sus tablas.",
       "columns": {
         "table": "Tabla",
@@ -1183,7 +1205,8 @@
         "modesHelpShort": "Hay un diseño para ver el registro y otro para editarlo.",
         "modesHelp": "«Ver» ordena los campos de la ficha del registro; «Editar» ordena los del formulario de creación y edición. Puedes diseñarlos por separado."
       },
-      "otherArea": "Otros datos"
+      "otherArea": "Otros datos",
+      "detailSummary": "Cómo se muestra esta tabla en la consola: su nombre, su área, su descripción y qué columnas se ven o se pueden editar."
     }
   },
   "dashboards": {
@@ -1197,7 +1220,8 @@
       "empty": "Todavía no hay paneles. Crea uno para empezar a seguir tus datos.",
       "widgetCount": "{count, plural, =0 {Sin widgets} one {# widget} other {# widgets}}",
       "previous": "Anterior",
-      "next": "Siguiente"
+      "next": "Siguiente",
+      "summary": "Paneles con cifras, gráficos y tablas de tus datos para ver de un vistazo cómo va el negocio. Crea los tuyos o abre los que te han compartido."
     },
     "permission": {
       "owner": "Propietario",
@@ -1255,7 +1279,8 @@
     },
     "view": {
       "empty": "Este panel todavía no tiene widgets.",
-      "emptyEditable": "Este panel todavía no tiene widgets. Añade uno para empezar."
+      "emptyEditable": "Este panel todavía no tiene widgets. Añade uno para empezar.",
+      "summary": "Cada bloque muestra un dato de tus tablas. Si puedes editar el panel, añade bloques, reorganízalos o compártelo con otros roles."
     },
     "arrange": {
       "left": "Mover a la izquierda",

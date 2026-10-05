@@ -5,7 +5,8 @@
  * «Cuentas», «Facturación», «Sistema»), definidas en
  * `cms.table_metadata.ui_config.navigation_group`:
  *
- *  1. **Super-admin con MFA:** ve las cuatro áreas en el bloque «Datos».
+ *  1. **Super-admin con MFA:** ve las cuatro áreas en el bloque «Datos»,
+ *     sin enlaces a tablas de esquemas protegidos como `auth.users`.
  *     «Gestión de cuentas» está en el bloque «Gestión» (no dentro de la
  *     carpeta «Cuentas», donde se confundía con la tabla) y lleva a
  *     `/admin/accounts`. Las tablas muestran solo su nombre visible y el
@@ -51,6 +52,17 @@ test.describe('Barra lateral por áreas: super-admin con MFA', () => {
       cms.dataGroup().locator('[data-testid^="admin-sidebar-area-toggle-"]'),
     ).toHaveCount(4);
 
+    // `auth.users` tiene metadatos en el CMS (sirven para mostrar las
+    // relaciones hacia usuarios), pero el explorador nunca abre el esquema
+    // protegido `auth`: no se ofrece ningún enlace a ella en «Datos».
+    await cms.openSidebarArea('Sistema');
+    await expect(
+      cms.sidebarArea('Sistema').locator('a[href*="/resources/"]').first(),
+    ).toBeVisible();
+    await expect(
+      cms.dataGroup().locator('a[href*="/resources/auth/"]'),
+    ).toHaveCount(0);
+
     await cms.openSidebarArea('Cuentas');
 
     // «Gestión de cuentas» está en el bloque Gestión y no en la carpeta.
@@ -69,6 +81,11 @@ test.describe('Barra lateral por áreas: super-admin con MFA', () => {
 
     await cms.accountsManagementEntry().click();
     await page.waitForURL('**/admin/accounts');
+
+    // «Todas las tablas» tampoco la ofrece.
+    await page.goto('/admin/cms');
+    await expect(page.getByTestId('cms-resources')).toBeVisible();
+    await expect(page.locator('a[href*="/resources/auth/"]')).toHaveCount(0);
   });
 });
 

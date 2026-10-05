@@ -25,6 +25,7 @@ import { useTranslations } from 'use-intl';
 import type { CmsResourceSettingsList } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
 import { Button } from '@pymekit/ui/button';
+import { PageSummary } from '@pymekit/ui/page';
 import { Switch } from '@pymekit/ui/switch';
 import {
   Table,
@@ -76,7 +77,7 @@ export function ResourcesSettingsView(props: {
         ) : null}
       </div>
 
-      <p className="text-muted-foreground text-xs">{t('description')}</p>
+      <PageSummary>{t('description')}</PageSummary>
 
       {groups.length === 0 ? (
         <p

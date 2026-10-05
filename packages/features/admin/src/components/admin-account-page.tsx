@@ -92,6 +92,7 @@ function PersonalAccountPage(props: {
             }}
           />
         }
+        summary={<Trans i18nKey={'admin.personalAccountSummary'} />}
       >
         <div className={'flex gap-x-2.5'}>
           <If condition={isBanned}>
@@ -203,6 +204,7 @@ function TeamAccountPage(props: {
             }}
           />
         }
+        summary={<Trans i18nKey={'admin.teamAccountSummary'} />}
       >
         <AdminDeleteAccountDialog accountId={account.id}>
           <Button

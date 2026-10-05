@@ -103,5 +103,11 @@
   "passwordHelp": "Contraseña inicial. Compártela por un canal seguro y pide que la cambie al entrar.",
   "autoConfirmEmailHelp": "Da el correo por verificado, así la persona puede entrar sin pulsar el enlace de confirmación.",
   "confirmLabelHelp": "Escribir la palabra evita hacer por error una acción importante o que no se puede deshacer.",
-  "confirmationHelp": "Escribir la confirmación evita restablecer la contraseña de alguien por error."
+  "confirmationHelp": "Escribir la confirmación evita restablecer la contraseña de alguien por error.",
+  "homeTitle": "Inicio",
+  "homeSummary": "Resumen de la plataforma: cuántos usuarios, equipos y clientes de pago hay, y cuánto se factura al mes.",
+  "accountsTitle": "Gestión de cuentas",
+  "accountsSummary": "Todas las cuentas de la plataforma, personales y de equipo. Busca una, crea usuarios o entra en su ficha para gestionarla.",
+  "personalAccountSummary": "Ficha de un usuario de la plataforma: sus equipos y las acciones de soporte (bloquearlo, entrar como él o borrarlo).",
+  "teamAccountSummary": "Ficha de un equipo: sus miembros y su suscripción. Desde aquí también se puede borrar el equipo."
 }
