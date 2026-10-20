@@ -1,82 +1,101 @@
+/**
+ * Generador `package`: crea un paquete nuevo del monorepo con el scope
+ * `@pymekit/*`.
+ *
+ * Pregunta el tipo (funcionalidad de negocio en `packages/features/<nombre>`,
+ * como `accounts` o `team-accounts`, o paquete de infraestructura en
+ * `packages/<nombre>`), el nombre y las dependencias. Crea `package.json`,
+ * `tsconfig.json` y un `src/index.ts` mínimos, añade las dependencias con
+ * `pnpm add` (que respeta el catálogo de versiones de `pnpm-workspace.yaml`,
+ * `catalogMode: prefer`) y formatea el resultado.
+ *
+ * Uso: `pnpm turbo gen package`, o sin preguntas:
+ * `pnpm turbo gen package --args feature bookings "zod"`.
+ */
 import type { PlopTypes } from '@turbo/gen';
 
 import { execSync } from 'node:child_process';
 
+const SCOPE = '@pymekit/';
+
 export function createPackageGenerator(plop: PlopTypes.NodePlopAPI) {
   plop.setGenerator('package', {
-    description: 'Generate a new package for the Monorepo',
+    description: 'Crea un paquete nuevo del monorepo (@pymekit/*)',
     prompts: [
+      {
+        type: 'list',
+        name: 'kind',
+        message: '¿Qué tipo de paquete es?',
+        choices: [
+          {
+            name: 'Funcionalidad de negocio (packages/features/<nombre>)',
+            value: 'feature',
+          },
+          {
+            name: 'Paquete de infraestructura (packages/<nombre>)',
+            value: 'package',
+          },
+        ],
+      },
       {
         type: 'input',
         name: 'name',
-        message:
-          'What is the name of the package? (You can skip the `@pymekit/` prefix)',
+        message: `Nombre del paquete, en inglés y en kebab-case (sin el prefijo ${SCOPE})`,
+        validate: (input: string) =>
+          /^[a-z][a-z0-9-]*$/.test(input.replace(SCOPE, '')) ||
+          'Usa solo minúsculas, números y guiones (por ejemplo, «bookings»)',
       },
       {
         type: 'input',
         name: 'deps',
-        message:
-          'Enter a space separated list of dependencies you would like to install',
+        message: 'Dependencias separadas por espacios (opcional)',
       },
     ],
     actions: [
       (answers) => {
         if ('name' in answers && typeof answers.name === 'string') {
-          if (answers.name.startsWith('@pymekit/')) {
-            answers.name = answers.name.replace('@pymekit/', '');
-          }
+          answers.name = answers.name.replace(SCOPE, '');
         }
-        return 'Config sanitized';
+
+        if ('kind' in answers) {
+          answers.dir =
+            answers.kind === 'feature' ? 'packages/features' : 'packages';
+        }
+
+        return 'Respuestas normalizadas';
       },
       {
         type: 'add',
-        path: 'packages/{{ name }}/package.json',
+        path: '{{ dir }}/{{ name }}/package.json',
         templateFile: 'templates/package/package.json.hbs',
       },
       {
         type: 'add',
-        path: 'packages/{{ name }}/tsconfig.json',
+        path: '{{ dir }}/{{ name }}/tsconfig.json',
         templateFile: 'templates/package/tsconfig.json.hbs',
       },
       {
         type: 'add',
-        path: 'packages/{{ name }}/index.ts',
-        template: "export * from './src';",
+        path: '{{ dir }}/{{ name }}/src/index.ts',
+        templateFile: 'templates/package/index.ts.hbs',
       },
-      {
-        type: 'add',
-        path: 'packages/{{ name }}/src/index.ts',
-        template: "export const name = '{{ name }}';",
-      },
-      {
-        type: 'modify',
-        path: 'packages/{{ name }}/package.json',
-        async transform(content, answers) {
-          const pkg = JSON.parse(content);
+      (answers) => {
+        const { name, deps } = answers as { name: string; deps?: string };
+        const list = (deps ?? '').split(' ').filter(Boolean);
 
-          for (const dep of answers.deps.split(' ').filter(Boolean)) {
-            const version = await fetch(
-              `https://registry.npmjs.org/-/package/${dep}/dist-tags`,
-            )
-              .then((res) => res.json())
-              .then((json) => json.latest);
+        // `pnpm add` en lugar de consultar el registro de npm: así se usa la
+        // versión del catálogo cuando la dependencia ya está en él
+        if (list.length > 0) {
+          execSync(`pnpm add --filter ${SCOPE}${name} ${list.join(' ')}`, {
+            stdio: 'inherit',
+          });
+        } else {
+          execSync('pnpm install', { stdio: 'inherit' });
+        }
 
-            pkg.dependencies![dep] = `^${version}`;
-          }
-          return JSON.stringify(pkg, null, 2);
-        },
-      },
-      async () => {
-        /**
-         * Install deps and format everything
-         */
-        execSync('pnpm i', {
-          stdio: 'inherit',
-        });
+        execSync('pnpm run format:fix');
 
-        execSync(`pnpm run format:fix`);
-
-        return 'Package scaffolded';
+        return `Paquete ${SCOPE}${name} creado`;
       },
     ],
   });

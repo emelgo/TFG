@@ -2,11 +2,12 @@
   "name": "@pymekit/{{ name }}",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "exports": {
-    ".": "./index.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
-    "clean": "rm -rf .turbo node_modules",
+    "clean": "git clean -xdf .turbo node_modules",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
