@@ -89,5 +89,28 @@
     "errorMessage": "Se ha producido un error. Inténtalo de nuevo.",
     "subscribe": "Suscribirme",
     "emailPlaceholder": "Tu correo electrónico"
-  }
+  },
+  "tfg": {
+    "badge": "Proyecto académico · Trabajo Fin de Grado",
+    "title": "Esta web es una adaptación de PymeKit, nuestra plantilla SaaS reutilizable para pymes",
+    "description": "PymeKit se ha desarrollado como Trabajo Fin de Grado del Grado en Ingeniería Informática de la Escuela Superior de Ingeniería de la Universidad de Cádiz. Lo que ves aquí es la plantilla adaptada a la web de una pyme: página pública y blog, acceso de clientes y personal, pagos y una consola de administración con CMS.",
+    "credits": "Autor: {author} · Tutor: {tutor}",
+    "logoAlt": "Logotipo de la Escuela Superior de Ingeniería de la Universidad de Cádiz",
+    "tourHeading": "Recorrido de la demostración",
+    "tourSubheading": "Los cinco pasos, en orden, para ver todo lo que cubre la plantilla.",
+    "tourOpen": "Abrir",
+    "tourNote": "Los pagos funcionan en modo de prueba: usa la tarjeta 4242 4242 4242 4242, con cualquier fecha futura y cualquier CVC.",
+    "stepPublicTitle": "Web pública y blog",
+    "stepPublicDescription": "Landing, blog con categorías y etiquetas, formulario de contacto y páginas legales, todo editable desde el CMS.",
+    "stepAuthTitle": "Registro e inicio de sesión",
+    "stepAuthDescription": "Alta con correo verificado, inicio de sesión con contraseña o enlace mágico y verificación en dos pasos.",
+    "stepCustomerTitle": "Área del cliente",
+    "stepCustomerDescription": "Panel privado con la cuenta personal, los equipos con roles e invitaciones y las notificaciones.",
+    "stepBillingTitle": "Planes y pagos",
+    "stepBillingDescription": "Planes de suscripción con Stripe y portal del cliente para cambiar de plan o cancelar.",
+    "stepAdminTitle": "Consola de administración",
+    "stepAdminDescription": "Solo para super-admin o personal: gestión de cuentas y un CMS por áreas con explorador de datos, archivos y auditoría."
+  },
+  "footerTfg": "Proyecto académico",
+  "footerTfgLink": "TFG · ESI · Universidad de Cádiz"
 }

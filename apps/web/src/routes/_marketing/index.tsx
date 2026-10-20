@@ -17,6 +17,10 @@ import {
 } from '@pymekit/ui/marketing';
 import { Trans } from '@pymekit/ui/trans';
 
+import {
+  TfgAcademicBanner,
+  TfgDemoTour,
+} from '#/components/marketing/tfg-presentation.tsx';
 import billingConfig from '#/config/billing.config.ts';
 import pathsConfig from '#/config/paths.config.ts';
 
@@ -71,6 +75,12 @@ function Home() {
         />
       </div>
 
+      {/* [TFG] Bloque académico para la defensa; se oculta con
+          VITE_SHOW_TFG_INFO=false (ver tfg.config.ts). */}
+      <div className={'container mx-auto'}>
+        <TfgAcademicBanner />
+      </div>
+
       <div className={'container mx-auto'}>
         <div className={'py-4 xl:py-8'}>
           <FeatureShowcase
@@ -104,6 +114,10 @@ function Home() {
             </FeatureGrid>
           </FeatureShowcase>
         </div>
+      </div>
+
+      <div className={'container mx-auto'}>
+        <TfgDemoTour />
       </div>
 
       <div className={'container mx-auto'}>
