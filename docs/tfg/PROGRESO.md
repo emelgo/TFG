@@ -15,7 +15,7 @@
 
 ## Pendientes transversales (no bloquean el avance de fase)
 - [ ] P-04 · Plantilla LaTeX de Overleaf: el autor pasará el `.zip` → integrarla en `memoria/` (ver `memoria/README.md`)
-- [ ] P-01 · Escenario de ejemplo para evaluar la reutilización: se abordará más adelante (a más tardar, antes de F6)
+- [x] P-01 · Escenario de ejemplo «Fisioterapia Bahía» en la rama `fase-6/escenario-ejemplo` (no se fusiona); resultados en `docs/tfg/EVALUACION.md`
 - [ ] P-06 · Confirmar con el tutor cómo presenta la memoria la parte reutilizada sin nombrar las referencias (ADR-007)
 
 ## F1 · Base SaaS importada y funcionando
@@ -116,7 +116,7 @@
 - [ ] E2E de CU-01 a CU-06
 - [ ] pgTAP de aislamiento
 - [ ] Integración con Stripe
-- [ ] Evaluación de la reutilización (CU-07)
+- [x] Evaluación de la reutilización (CU-07): `docs/tfg/EVALUACION.md` y anexo de la memoria
 - [ ] Resultados documentados
 
 ## F7 · Despliegue
@@ -127,8 +127,8 @@
 - [ ] Manual de instalación probado desde cero
 
 ## F8 · Memoria
-- [ ] Capítulos 1–9 (borradores)
-- [ ] Anexos: manuales
+- [x] Plantilla oficial integrada y capítulos 1–9 redactados (compila: ~151 páginas; quedan `\todo` del autor y P-06)
+- [x] Anexos: manual del desarrollador, manual de usuario y evaluación de la reutilización
 - [ ] Revisión final con el tutor
 
 ---
@@ -167,6 +167,7 @@ Se distinguen dos medidas:
 | 2026-10-02 | F3c | F3 fusionada (PR #2, B-54). El autor aclara el enfoque: base para la web de una pyme (landing, blog y login de super-admin, personal o cliente), conservando equipos y Stripe como módulos. Tablas del CMS en español, demo retirada y consola por áreas (ADR-020) |
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-10-20 | F6–F8 | Plantilla de la memoria integrada y capítulos redactados; bloque académico y recorrido de la demo en la landing (`VITE_SHOW_TFG_INFO`); escenario de evaluación «Fisioterapia Bahía» (rama aparte); el logo usa `VITE_PRODUCT_NAME` (fricción F-1). PR #3 (F3c) fusionado |
 | 2026-10-20 | F7 | Despliegue (modo ahorro): Dockerfile multi-etapa, compose contra Supabase externa, manual `docs/DESPLIEGUE.md` y borrador LaTeX; imagen verificada (landing y `/auth/sign-in` 200). Pendiente: instancia en la nube |
 | 2026-10-02 | F3b | Etiquetas legibles de enums, caja MFA, sesión caducada, «Invalid Date» y capturas en español; pull request de la F3 |
 | 2026-10-02 | F3a | Español por defecto en toda la plataforma (modo ahorro: un agente) |
