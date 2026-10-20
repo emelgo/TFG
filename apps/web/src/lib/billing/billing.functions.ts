@@ -1,3 +1,15 @@
+/**
+ * *Server functions* de facturación.
+ *
+ * Son la frontera entre la página `/settings/billing` y los servicios de
+ * facturación: cargan los datos de suscripción y pedidos de la cuenta activa
+ * y crean las sesiones de pago y del portal del proveedor. Cada una comprueba
+ * que el cobro del tipo de cuenta esté activado en `feature-flags.config.ts`
+ * y, en las de equipo, el permiso `billing.manage` mediante *middleware*; los
+ * servicios lo vuelven a comprobar.
+ *
+ * [TFG] RF-07 Pagos y suscripciones.
+ */
 import { notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import * as z from 'zod';
@@ -29,13 +41,14 @@ import { createTeamBillingService } from './team-billing.service.server';
 import { createUserBillingService } from './user-billing.service.server';
 
 /**
- * Loads billing-page data for the active account (`/settings/billing`).
+ * Carga los datos de la página de facturación (`/settings/billing`) para la
+ * cuenta activa, sea personal (id de cuenta = id de usuario) o de equipo.
  *
- * Serves both surfaces: personal accounts use the account id (= user id); team
- * accounts use the resolved team id. Billing is gated per surface by the
- * relevant feature flag (redirecting to `/settings` when disabled). Returns
- * `isPersonalAccount` + the active account's `permissions` so the page can pick
- * the right checkout form and derive `billing.manage`.
+ * Si el cobro de ese tipo de cuenta está desactivado, redirige a
+ * `/settings`. Devuelve `isPersonalAccount` y los `permissions` de la cuenta
+ * activa para que la página elija el formulario adecuado y sepa si mostrar
+ * las acciones de `billing.manage`. La cuenta activa se resuelve en el
+ * servidor (`active_account_workspace`), no se acepta del cliente.
  */
 export const fetchActiveAccountBillingData = createServerFn({ method: 'GET' })
   .middleware([errorMiddleware])
@@ -117,6 +130,8 @@ const SessionSchema = z.object({
   sessionId: z.string().min(1),
 });
 
+// Tupla de middleware de las funciones de facturación de equipo: sesión y
+// permiso `billing.manage` sobre el `accountId` de la entrada.
 const billingManageMiddleware = [
   errorMiddleware,
   authMiddleware,
@@ -124,13 +139,12 @@ const billingManageMiddleware = [
 ];
 
 /**
- * Retrieves a checkout session for the billing `return` page (shared by both
- * personal and team return routes).
+ * Recupera la sesión de pago para la página de retorno de facturación (común
+ * a cuentas personales y de equipo).
  *
- * Replaces the Next.js `loadCheckoutSession` in the return page. When the
- * session is still open it returns the embedded `checkoutToken` so the client
- * can resume the embedded checkout; otherwise it returns the session status and
- * customer email for the confirmation UI. Missing session → `notFound()`.
+ * Si la sesión sigue abierta devuelve el `checkoutToken` para reanudar el
+ * pago incrustado; si no, el estado y el email del cliente para la pantalla
+ * de confirmación. Si la sesión no existe, responde `notFound()`.
  */
 export const fetchCheckoutSession = createServerFn({ method: 'GET' })
   .middleware([errorMiddleware])
@@ -162,10 +176,10 @@ export const fetchCheckoutSession = createServerFn({ method: 'GET' })
   });
 
 /**
- * Creates a checkout session for a personal account.
+ * Crea una sesión de pago para la cuenta personal.
  *
- * Returns `{ url, checkoutToken }`. The client navigates to `url` for hosted
- * checkout (`window.location.assign`) or renders the embedded checkout with
+ * Devuelve `{ url, checkoutToken }`: el cliente navega a `url` (pago alojado,
+ * con `window.location.assign`) o pinta el pago incrustado con
  * `checkoutToken`.
  */
 export const createPersonalAccountCheckoutSession = createServerFn({
@@ -185,9 +199,9 @@ export const createPersonalAccountCheckoutSession = createServerFn({
   });
 
 /**
- * Creates a billing portal session for a personal account.
+ * Crea una sesión del portal de facturación para la cuenta personal.
  *
- * External URLs are returned to the client so it can navigate with
+ * La URL es externa, así que se devuelve al cliente para que navegue con
  * `window.location.assign(url)`.
  */
 export const createPersonalAccountBillingPortalSession = createServerFn({
@@ -208,11 +222,11 @@ export const createPersonalAccountBillingPortalSession = createServerFn({
   });
 
 /**
- * Creates a checkout session for a team account.
+ * Crea una sesión de pago para una cuenta de equipo.
  *
- * Gated by the `billing.manage` feature permission on the account. The
- * validated input carries the uuid `accountId` the gate requires; the service
- * re-checks the permission too.
+ * Exige el permiso `billing.manage` en la cuenta; la entrada validada lleva
+ * el `accountId` (uuid) que necesita la guarda, y el servicio vuelve a
+ * comprobar el permiso.
  */
 export const createTeamAccountCheckoutSession = createServerFn({
   method: 'POST',
@@ -231,10 +245,10 @@ export const createTeamAccountCheckoutSession = createServerFn({
   });
 
 /**
- * Creates a billing portal session for a team account.
+ * Crea una sesión del portal de facturación para una cuenta de equipo.
  *
- * Gated by the `billing.manage` feature permission. External URLs are returned
- * to the client so it can navigate with `window.location.assign(url)`.
+ * Exige el permiso `billing.manage`. La URL es externa, así que se devuelve
+ * al cliente para que navegue con `window.location.assign(url)`.
  */
 export const createTeamAccountBillingPortalSession = createServerFn({
   method: 'POST',

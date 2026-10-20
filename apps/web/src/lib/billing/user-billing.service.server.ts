@@ -1,3 +1,14 @@
+/**
+ * Servicio de facturación de cuentas personales.
+ *
+ * Equivalente a `team-billing.service.server.ts` para la cuenta personal del
+ * usuario: crea la sesión de pago y la del portal del proveedor. En una
+ * cuenta personal el id de la cuenta es el id del usuario, así que basta con
+ * la sesión para saber sobre qué cuenta se actúa (no se acepta un id del
+ * cliente).
+ *
+ * [TFG] RF-07 Pagos y suscripciones.
+ */
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type * as z from 'zod';
@@ -16,36 +27,31 @@ import pathsConfig from '#/config/paths.config.ts';
 
 import type { PersonalAccountCheckoutSchema } from './schema/personal-account-checkout.schema';
 
+/** Crea el servicio con el cliente de Supabase de la petición. */
 export function createUserBillingService(client: SupabaseClient<Database>) {
   return new UserBillingService(client);
 }
 
-/**
- * @name UserBillingService
- * @description Service for managing billing for personal accounts.
- */
+/** Operaciones de facturación de la cuenta personal. */
 class UserBillingService {
   private readonly namespace = 'billing.personal-account';
 
   constructor(private readonly client: SupabaseClient<Database>) {}
 
   /**
-   * @name createCheckoutSession
-   * @description Create a checkout session for the user.
+   * Crea una sesión de pago para un plan de la cuenta personal.
    *
-   * Returns the hosted-checkout `url` and/or the embedded `checkoutToken`. In
-   * the Next.js version this method called `redirect(url)` to send the browser
-   * to the provider's hosted page. TanStack's `redirect()` is router-only and
-   * cannot target external URLs, so we instead return the url and let the
-   * client navigate via `window.location.assign(url)`.
-   * @param planId
-   * @param productId
+   * Devuelve la `url` del pago alojado y/o el `checkoutToken` del pago
+   * incrustado. `redirect()` de TanStack solo sirve para rutas internas, así
+   * que es el cliente quien navega con `window.location.assign(url)`.
+   *
+   * @throws Si no hay sesión, si el producto o el plan no existen o si la
+   *   pasarela falla.
    */
   async createCheckoutSession({
     planId,
     productId,
   }: z.output<typeof PersonalAccountCheckoutSchema>) {
-    // get the authenticated user
     const { data: user, error } = await requireUser(this.client);
 
     if (error ?? !user) {
@@ -54,15 +60,12 @@ class UserBillingService {
 
     const service = await getBillingGatewayProvider(this.client);
 
-    // in the case of personal accounts
-    // the account ID is the same as the user ID
+    // En la cuenta personal, id de cuenta = id de usuario.
     const accountId = user.id;
 
-    // the return URL for the checkout session
     const returnUrl = getCheckoutSessionReturnUrl();
 
-    // find the customer ID for the account if it exists
-    // (eg. if the account has been billed before)
+    // Si la cuenta ya se cobró antes, se reutiliza su cliente del proveedor.
     const api = createAccountsApi(this.client);
     const customerId = await api.getCustomerId(accountId);
 
@@ -76,11 +79,11 @@ class UserBillingService {
 
     const { plan } = getProductPlanPair(billingConfig, planId);
 
-    // Determine trial eligibility at the identity level: if the user already
-    // has billing history on any account they own (personal or team), do not
-    // grant another trial. This prevents farming free trials by creating
-    // additional accounts. Uses the admin client to read across the user's own
-    // accounts, scoped to the authenticated user id.
+    // El periodo de prueba se concede por persona: si el usuario ya tiene
+    // historial de cobro en cualquier cuenta suya (personal o de equipo), no
+    // recibe otro, para que no se encadenen pruebas creando cuentas nuevas.
+    // Se usa el cliente administrador para leer todas sus cuentas, con la
+    // consulta limitada al id del usuario autenticado.
     const ownerHasBillingHistory = await createAccountsApi(
       getSupabaseServerAdminClient(),
     ).ownerHasBillingHistory(accountId);
@@ -105,7 +108,6 @@ class UserBillingService {
     let url: string | null | undefined;
 
     try {
-      // call the payment gateway to create the checkout session
       const checkout = await service.createCheckoutSession({
         returnUrl,
         accountId,
@@ -148,9 +150,8 @@ class UserBillingService {
       `Checkout session created. Returning result to client...`,
     );
 
-    // Return the hosted-checkout url and/or the embedded checkout token. The
-    // client navigates to `url` for hosted checkout, or renders the embedded
-    // checkout with `checkoutToken`.
+    // El cliente navega a `url` (pago alojado) o pinta el pago incrustado con
+    // `checkoutToken`.
     return {
       url: url ?? null,
       checkoutToken: checkoutToken ?? null,
@@ -158,9 +159,11 @@ class UserBillingService {
   }
 
   /**
-   * @name createBillingPortalSession
-   * @description Create a billing portal session for the user
-   * @returns The URL to redirect the user to the billing portal
+   * Crea una sesión del portal de facturación del proveedor para la cuenta
+   * personal.
+   *
+   * @returns La URL del portal; la server function la envuelve como `{ url }`
+   *   y el cliente navega con `window.location.assign(url)`.
    */
   async createBillingPortalSession() {
     const { data, error } = await requireUser(this.client);
@@ -218,8 +221,6 @@ class UserBillingService {
 
     logger.info(ctx, `Session successfully created.`);
 
-    // return the billing portal url — the action wraps it as `{ url }` and the
-    // client navigates via `window.location.assign(url)`.
     return url;
   }
 }

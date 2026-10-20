@@ -1,33 +1,39 @@
 import { randomBytes } from 'node:crypto';
 
 /**
- * Strict, nonce-based Content Security Policy. Opt-in and OFF by default —
- * enable with `ENABLE_STRICT_CSP=true` (ports the Next.js kit's behavior).
+ * Política de seguridad de contenidos (CSP) estricta basada en *nonce*.
  *
- * Flow (see src/start.ts, src/router.tsx and src/routes/__root.tsx):
- * 1. `securityHeadersMiddleware` generates a per-request nonce, puts it on the
- *    global Start context (`next({ context: { nonce } })`), and emits the CSP
- *    header.
- * 2. `getRouter` reads the nonce via `getGlobalStartContext()` and sets
- *    `router.options.ssr.nonce`, so TanStack tags every framework-injected
- *    `<script>` (hydration/dehydration, `<Scripts>`, `<HeadContent>`) and emits
- *    the `csp-nonce` meta tag itself.
- * 3. The client recovers the nonce from that meta tag on hydration; it is also
- *    propagated to app consumers via Base UI's `CSPProvider` so its inline
- *    `<style>` elements carry the nonce.
+ * Es opcional y está DESACTIVADA por defecto; se activa con
+ * `ENABLE_STRICT_CSP=true`. Limita de dónde puede cargar la página scripts,
+ * estilos, imágenes y conexiones, lo que reduce mucho el impacto de un
+ * posible XSS.
+ *
+ * Flujo (ver src/start.ts, src/router.tsx y src/routes/__root.tsx):
+ * 1. `securityHeadersMiddleware` genera un *nonce* por petición, lo guarda en
+ *    el contexto global de Start (`next({ context: { nonce } })`) y emite la
+ *    cabecera CSP.
+ * 2. `getRouter` lee el *nonce* con `getGlobalStartContext()` y lo pone en
+ *    `router.options.ssr.nonce`, de modo que TanStack lo añade a todos los
+ *    `<script>` que inyecta el *framework* (hidratación, `<Scripts>`,
+ *    `<HeadContent>`) y emite él mismo la etiqueta meta `csp-nonce`.
+ * 3. En el cliente, el *nonce* se recupera de esa etiqueta al hidratar y se
+ *    pasa a los componentes con el `CSPProvider` de Base UI, para que sus
+ *    `<style>` en línea también lo lleven.
+ *
+ * [TFG] RNF-02 Seguridad.
  */
 
 /**
- * The Supabase origin the browser client talks to directly (auth refresh,
- * PostgREST, Realtime, Storage). Public var, inlined by Vite (client + server)
- * — same mechanism as `getSupabaseClientKeys()` in `@pymekit/supabase`. Undefined
- * when unset or same-origin-relative (already covered by `'self'`).
+ * Origen de Supabase con el que habla directamente el navegador (refresco de
+ * sesión, PostgREST, Realtime, Storage). Es una variable pública que Vite
+ * incrusta, igual que en `getSupabaseClientKeys()` de `@pymekit/supabase`.
+ * Vale `undefined` si no está definida o es relativa (ya la cubre `'self'`).
  */
 const SUPABASE_ORIGIN = getSupabaseOrigin();
 
 /**
- * The `ws(s)://` form of the Supabase origin, required for Realtime
- * websocket connections under `connect-src`.
+ * El mismo origen con esquema `ws(s)://`, necesario en `connect-src` para las
+ * conexiones WebSocket de Realtime.
  */
 const SUPABASE_WEBSOCKET_ORIGIN = SUPABASE_ORIGIN?.replace(
   'https://',
@@ -44,63 +50,64 @@ function getSupabaseOrigin() {
   try {
     return new URL(url).origin;
   } catch {
-    // Relative/invalid URL: same-origin requests are already allowed by 'self'.
+    // URL relativa o no válida: las peticiones al mismo origen ya las permite
+    // 'self'.
     return undefined;
   }
 }
 
 /**
- * Additional origins allowed for `connect-src` (XHR/fetch/websocket). Add API,
- * analytics, or webhook origins here when the strict CSP is enabled.
+ * Orígenes adicionales permitidos en `connect-src` (fetch/XHR/WebSocket). Si
+ * se activa la CSP estricta y se añaden servicios externos (API, analítica),
+ * hay que incluir aquí su origen.
  */
 const CONNECT_SRC_ORIGINS: string[] = [
-  // Turnstile verification requests.
+  // Verificación del CAPTCHA (Turnstile).
   'https://challenges.cloudflare.com',
-  // Supabase API (auth/PostgREST/Storage) + Realtime websocket.
+  // API de Supabase (Auth, PostgREST, Storage) y WebSocket de Realtime.
   ...(SUPABASE_ORIGIN && SUPABASE_WEBSOCKET_ORIGIN
     ? [SUPABASE_ORIGIN, SUPABASE_WEBSOCKET_ORIGIN]
     : []),
 ];
 
-/**
- * Additional origins allowed for `frame-src` (embedded iframes).
- */
+/** Orígenes adicionales permitidos en `frame-src` (iframes incrustados). */
 const FRAME_SRC_ORIGINS: string[] = [
-  // Turnstile widget iframe.
+  // Iframe del widget de Turnstile.
   'https://challenges.cloudflare.com',
 ];
 
-/**
- * Additional origins allowed for `img-src`.
- */
+/** Orígenes adicionales permitidos en `img-src`. */
 const IMG_SRC_ORIGINS: string[] = [
-  // Supabase Storage images.
+  // Imágenes servidas por Supabase Storage.
   ...(SUPABASE_ORIGIN ? [SUPABASE_ORIGIN] : []),
 ];
 
+/** Indica si la CSP estricta está activada por entorno. */
 export function isStrictCspEnabled() {
   return process.env.ENABLE_STRICT_CSP === 'true';
 }
 
 /**
- * Generate a fresh per-request nonce (base64, 128 bits of entropy).
+ * Genera un *nonce* nuevo por petición (base64, 128 bits de entropía). Debe
+ * ser impredecible: si un atacante lo adivinara, podría ejecutar su script.
  */
 export function generateCspNonce() {
   return randomBytes(16).toString('base64');
 }
 
 /**
- * Build the strict, nonce-based Content-Security-Policy header value.
+ * Construye el valor de la cabecera Content-Security-Policy estricta.
  *
- * `script-src` follows the canonical strict-CSP recipe: `'strict-dynamic'` lets
- * scripts trusted via nonce load their own dependencies, while `https:` and
- * `'unsafe-inline'` are ignored by modern browsers and act only as fallbacks
- * for engines that support neither nonces nor `'strict-dynamic'`.
+ * `script-src` sigue la receta habitual de CSP estricta: `'strict-dynamic'`
+ * permite que los scripts autorizados por *nonce* carguen sus dependencias,
+ * mientras que `https:` y `'unsafe-inline'` los ignoran los navegadores
+ * modernos y solo sirven de respaldo para los que no admiten ni *nonces* ni
+ * `'strict-dynamic'`.
  *
- * `style-src` intentionally keeps `'unsafe-inline'`: nonces do not apply to
- * inline `style="…"` attributes (which React emits for dynamic styles), so a
- * strict `style-src` would break the app for little security gain. The strict
- * guarantees here are on scripts.
+ * `style-src` mantiene `'unsafe-inline'` a propósito: los *nonces* no se
+ * aplican a los atributos `style="…"` (que React genera para estilos
+ * dinámicos), así que un `style-src` estricto rompería la aplicación con poca
+ * ganancia de seguridad. Las garantías fuertes están en los scripts.
  */
 export function buildContentSecurityPolicy(nonce: string) {
   const isProduction = process.env.NODE_ENV === 'production';

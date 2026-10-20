@@ -1,3 +1,16 @@
+/**
+ * *Server functions* del espacio de trabajo activo.
+ *
+ * Cargan los datos que necesita la zona autenticada (cuenta activa, equipos
+ * disponibles y usuario) y permiten cambiar de cuenta. La cuenta activa se
+ * guarda en la base de datos (`user_active_account`) y se resuelve allí con
+ * `active_account_workspace`, así que el servidor nunca confía en un id de
+ * cuenta enviado por el cliente para decidir dónde trabaja el usuario.
+ * También aplican el modo de cuentas configurado (solo personal, solo
+ * equipos o mixto).
+ *
+ * [TFG] RF-05 Multi-tenant: ver Memoria §Diseño > Modelo de datos.
+ */
 import { redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import * as z from 'zod';
@@ -19,9 +32,9 @@ export type { WorkspaceShape } from '#/lib/server/workspace-shape.ts';
 const shouldLoadAccounts = featureFlagsConfig.enableTeamAccounts;
 
 /**
- * Loads the workspace for the authenticated shell: the active account (resolved
- * from the DB, falling back to the personal account), the switchable teams, and
- * the current user.
+ * Carga el espacio de trabajo de la zona autenticada: la cuenta activa
+ * (resuelta en la base de datos, con la personal como respaldo), los equipos
+ * a los que se puede cambiar y el usuario actual.
  */
 export const fetchWorkspace = createServerFn({ method: 'GET' })
   .middleware([errorMiddleware])
@@ -53,8 +66,9 @@ export const fetchWorkspace = createServerFn({ method: 'GET' })
       throw workspaceResult.error;
     }
 
-    // The resolver always returns the personal account as a fallback; an empty
-    // result means the personal account row is gone (deleted user / stale JWT).
+    // La función SQL siempre devuelve al menos la cuenta personal; un resultado
+    // vacío significa que esa fila ya no existe (usuario borrado o JWT
+    // obsoleto).
     let account = workspaceResult.data[0];
 
     if (!account) {
@@ -65,10 +79,11 @@ export const fetchWorkspace = createServerFn({ method: 'GET' })
       throw accountsResult.error;
     }
 
-    // Teams-only mode: promote the first team to the active account so the
-    // personal account is not the working surface. When the user has no team
-    // the account stays personal; the `_authenticated` guard routes them to the
-    // create-team flow (which must not itself be redirected — see route.tsx).
+    // Modo solo equipos: se activa el primer equipo para que la cuenta
+    // personal no sea el espacio de trabajo. Si el usuario no tiene ningún
+    // equipo, la cuenta sigue siendo la personal y la guarda `_authenticated`
+    // le envía a crear uno (esa ruta no debe redirigirse a su vez; ver
+    // route.tsx).
     if (
       featureFlagsConfig.enableTeamsOnly &&
       account.is_personal_account &&
@@ -87,11 +102,12 @@ export const fetchWorkspace = createServerFn({ method: 'GET' })
       account = promoted.data[0] ?? account;
     }
 
-    // Personal-only mode: never let a stale team pointer be the working surface.
-    // Demote back to the personal account, self-healing a mode switch after
-    // launch or an out-of-band team membership (the team switcher is hidden, so
-    // there is otherwise no way back). Passing the user id selects the personal
-    // account (see `set_active_account`).
+    // Modo solo personal: un puntero antiguo a un equipo nunca debe ser el
+    // espacio de trabajo. Se vuelve a la cuenta personal, lo que corrige solo
+    // un cambio de modo tras el lanzamiento o una membresía creada por otra
+    // vía (el selector de equipos está oculto y no habría forma de volver).
+    // Pasar el id del usuario selecciona la cuenta personal (ver
+    // `set_active_account`).
     if (
       accountModeConfig.mode === 'personal-only' &&
       !account.is_personal_account
@@ -117,11 +133,13 @@ export const fetchWorkspace = createServerFn({ method: 'GET' })
   });
 
 /**
- * Switches the caller's active account (personal or a team they belong to).
+ * Cambia la cuenta activa del usuario (la personal o un equipo del que sea
+ * miembro).
  *
- * Delegates membership validation to the `set_active_account` function; the
- * client calls `router.invalidate()` afterwards to re-run every loader against
- * the new active account.
+ * La comprobación de pertenencia la hace la función SQL `set_active_account`
+ * (y su política RLS); aquí solo se aplica el modo de cuentas. Después, el
+ * cliente llama a `router.invalidate()` para que todos los *loaders* se
+ * vuelvan a ejecutar con la nueva cuenta.
  */
 export const setActiveAccountFunction = createServerFn({ method: 'POST' })
   .middleware([errorMiddleware])
@@ -135,7 +153,8 @@ export const setActiveAccountFunction = createServerFn({ method: 'POST' })
       throw redirect({ href: auth.redirectTo });
     }
 
-    // The personal account shares the user's id; anything else is a team.
+    // La cuenta personal tiene el mismo id que el usuario; cualquier otra es un
+    // equipo.
     const targetIsOrganization = data.accountId !== auth.data.id;
 
     const switchCheck = canSwitchContext(

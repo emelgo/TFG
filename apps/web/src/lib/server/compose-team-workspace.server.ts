@@ -6,16 +6,13 @@ import { createTeamAccountsApi } from '@pymekit/team-accounts/api';
 import type { TeamAccountWorkspaceShape } from '@pymekit/team-accounts/shared';
 
 /**
- * @name composeTeamWorkspace
- * @description
- * Pure data-loader that composes the team account workspace from an
- * authenticated client + user + slug.
+ * Compone el espacio de trabajo de un equipo a partir del cliente
+ * autenticado, el usuario y el slug del equipo.
  *
- * Returns null when the user has no accessible workspace for that slug
- * (RLS denied, slug unknown, mid-deletion race). Callers decide how to surface
- * the missing case — route loaders redirect home.
- *
- * Callable from any server-only context (server functions, route loaders).
+ * Devuelve `null` si el usuario no tiene acceso a ese slug (la RLS lo deniega,
+ * el slug no existe o el equipo se está borrando); quien llama decide qué
+ * hacer (los *loaders* redirigen a la portada). Se puede usar desde cualquier
+ * contexto de servidor.
  */
 export async function composeTeamWorkspace(
   client: SupabaseClient<Database>,

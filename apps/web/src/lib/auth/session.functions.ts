@@ -1,3 +1,6 @@
+/**
+ * *Server function* que identifica al usuario en cada navegación.
+ */
 import { createServerFn } from '@tanstack/react-start';
 
 import { getSupabaseServerClient } from '@pymekit/supabase/server-client';
@@ -6,14 +9,17 @@ import type { JWTUserData } from '@pymekit/supabase/types';
 export type Session = JWTUserData | null;
 
 /**
- * Reads identity from the JWT via `getClaims()` (NOT `getUser()`). This runs in
- * the root `beforeLoad`; the cookie-writing server client persists the rotated
- * refresh token via `setAll` on every hard navigation — the single token-refresh
- * point that replaces the old `proxy.ts` middleware client.
+ * Lee la identidad del JWT con `getClaims()` (y NO con `getUser()`, que
+ * consultaría a Auth en cada petición). Se ejecuta en el `beforeLoad` raíz; el
+ * cliente de servidor, que escribe *cookies*, guarda el *refresh token*
+ * renovado en cada navegación completa, así que este es el único punto donde
+ * se refresca la sesión.
  *
- * Returns `null` (never throws) when there is no session, so the app boots
- * cleanly for logged-out visitors. The mapping mirrors `requireUser` so guards
- * can share the `JWTUserData` shape.
+ * Si no hay sesión devuelve `null` (nunca lanza), para que la web cargue sin
+ * problemas para los visitantes anónimos. La conversión es la misma que la de
+ * `requireUser`, de modo que las guardas comparten la forma `JWTUserData`.
+ * La comprobación de que la sesión sigue existiendo la hace `fetchAuthGate`
+ * en las zonas privadas.
  */
 export const fetchSession = createServerFn({ method: 'GET' }).handler(
   async (): Promise<Session> => {

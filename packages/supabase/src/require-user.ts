@@ -2,8 +2,8 @@
  * Comprobación de sesión obligatoria en el servidor.
  *
  * `requireUser` es la puerta de entrada de toda petición autenticada: lo usan
- * el *middleware* de autenticación de las *server functions*, los *loaders*
- * de las rutas privadas y la API del CMS. Verifica el JWT con `getClaims`
+ * el *middleware* de autenticación de las *server functions* y las funciones
+ * que cargan datos de las rutas privadas. Verifica el JWT con `getClaims`
  * (que comprueba la firma, no solo lee la *cookie*), exige completar la MFA
  * cuando el usuario la tiene activada y devuelve los datos del usuario o la
  * ruta a la que hay que redirigirle.
