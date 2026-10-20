@@ -125,25 +125,33 @@
     }
   },
   "plans": {
-    "starter": {
-      "description": "El plan ideal para empezar"
+    "basic": {
+      "name": "Básico",
+      "description": "Para dar a conocer tu negocio: web, blog y área de clientes"
     },
     "pro": {
-      "description": "El plan ideal para profesionales"
+      "name": "Profesional",
+      "description": "Para pymes con equipo o con varios locales"
     },
     "enterprise": {
-      "description": "El plan ideal para empresas"
+      "name": "Empresa",
+      "description": "Para pymes que quieren acompañamiento y más control"
     },
     "badges": {
       "value": "Mejor precio",
       "popular": "Popular"
     },
     "features": {
-      "auth": "Inicio de sesión seguro con MFA",
-      "teams": "Cuentas de equipo e invitaciones",
-      "blog": "Blog y documentación",
-      "roles": "Roles y permisos por miembro",
-      "cms": "CMS con explorador de datos",
+      "website": "Web pública con página de inicio y precios",
+      "blog": "Blog gestionado desde la consola",
+      "auth": "Área de clientes con inicio de sesión seguro (MFA)",
+      "cms": "Consola de administración de datos",
+      "everythingBasic": "Todo lo del plan Básico",
+      "teams": "Equipos para varios locales o tiendas, con invitaciones",
+      "roles": "Roles de propietario, encargado y miembro",
+      "staff": "Personal de la consola con permisos limitados",
+      "everythingPro": "Todo lo del plan Profesional",
+      "dashboards": "Paneles con métricas del negocio",
       "prioritySupport": "Soporte prioritario",
       "onboarding": "Acompañamiento en la puesta en marcha"
     }
