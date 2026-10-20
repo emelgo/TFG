@@ -5,7 +5,8 @@
  * -------------------------------------------------------
  */
 
--- Seed the roles table with default roles 'owner' and 'member'
+-- Roles por defecto: 'owner' (1), 'manager' (2, «Encargado», F5 · ADR-023)
+-- y 'member' (3). Cuanto menor es el nivel, más rango tiene el rol
 insert into public.roles(
     name,
     hierarchy_level)
@@ -20,6 +21,15 @@ insert into public.roles(
     hierarchy_level)
 values (
            'member',
+           3)
+on conflict (name)
+do update set hierarchy_level = excluded.hierarchy_level;
+
+insert into public.roles(
+    name,
+    hierarchy_level)
+values (
+           'manager',
            2)
 on conflict (name)
 do update set hierarchy_level = excluded.hierarchy_level;
@@ -42,6 +52,18 @@ values (
            'members.manage'),
        (
            'owner',
+           'invites.manage'),
+       (
+           'manager',
+           'roles.manage'),
+       (
+           'manager',
+           'settings.manage'),
+       (
+           'manager',
+           'members.manage'),
+       (
+           'manager',
            'invites.manage'),
        (
            'member',
