@@ -115,9 +115,11 @@
 - [ ] Resultados documentados
 
 ## F7 · Despliegue
-- [ ] Dockerfiles + docker-compose
-- [ ] Railway + Supabase en la nube
-- [ ] Manual de instalación probado
+- [x] Dockerfile único de la web (incluye el CMS y su API; ADR-022) + `docker-compose.yml`, ajuste para la Supabase local y `.env.docker.example`; imagen construida y arrancada contra la Supabase local
+- [x] Manual de instalación y despliegue (`docs/DESPLIEGUE.md`) y borrador del capítulo de la memoria (`memoria/sections/development/deployment.tex`)
+- [ ] Railway + Supabase en la nube (necesita las cuentas del autor; pasos en `docs/DESPLIEGUE.md` §4 y §6)
+- [ ] Stripe en modo test con webhook público
+- [ ] Manual de instalación probado desde cero
 
 ## F8 · Memoria
 - [ ] Capítulos 1–9 (borradores)
@@ -158,6 +160,7 @@ Se distinguen dos medidas:
 |---|---|---|
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
+| 2026-10-20 | F7 | Despliegue (modo ahorro): Dockerfile multi-etapa, compose contra Supabase externa, manual `docs/DESPLIEGUE.md` y borrador LaTeX; imagen verificada (landing y `/auth/sign-in` 200). Pendiente: instancia en la nube |
 | 2026-10-02 | F3b | Etiquetas legibles de enums, caja MFA, sesión caducada, «Invalid Date» y capturas en español; pull request de la F3 |
 | 2026-10-02 | F3a | Español por defecto en toda la plataforma (modo ahorro: un agente) |
 | 2026-10-02 | F2.9 | Cierre de la F2: E2E completa, skills al día y pull request a `main`. Siguiente: F3 (español) |

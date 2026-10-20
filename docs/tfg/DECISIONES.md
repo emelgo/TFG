@@ -197,3 +197,17 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Alternativas consideradas:** añadir una librería de cuadrícula (más dependencias que mantener y auditar; arrastrar sin teclado no es accesible).
 - **Consecuencias:** la interacción es menos fluida que arrastrar, pero accesible desde el teclado y sin dependencias nuevas. Se puede cambiar más adelante sin tocar la API.
 - **Requisitos relacionados:** RF-11, RNF-04, RNF-08.
+
+## ADR-022 · Despliegue con una sola imagen de la app y Supabase externa
+- **Fecha:** 2026-10-20 · **Fase:** F7 · **Estado:** Aceptada
+- **Contexto:** el plan de F7 preveía un `Dockerfile` para la web, otro para el CMS y otro para su API. Desde ADR-011 el CMS y su API viven dentro de `apps/web`, así que solo hay un servidor que empaquetar. Además, las variables `VITE_*` se incrustan en la build y la URL de Supabase la usan a la vez el navegador y el servidor.
+- **Decisión:**
+  - Un único `apps/web/Dockerfile` multi-etapa (`turbo prune` → build → Alpine con solo `.output`, usuario `node`, `HEALTHCHECK` sobre `/api/healthcheck`). Las `VITE_*` entran como *build args* (solo las que llegan con valor, escritas en `.env.production.local`) y los secretos solo en runtime.
+  - `docker-compose.yml` con el servicio `web` y **sin** Supabase: se conecta a la nube o a la local de `supabase start`. Para la local, `docker-compose.supabase-local.yml` usa la red del anfitrión (Linux) para que `127.0.0.1:54321` valga dentro y fuera del contenedor.
+  - Railway sigue con su constructor automático (`railway.json`); la imagen Docker queda como alternativa documentada.
+- **Alternativas consideradas:**
+  - incluir en el compose toda la pila de Supabase autoalojada: decenas de servicios y configuración que ya resuelve la CLI;
+  - dos URLs de Supabase (una para el navegador y otra interna para el servidor): exigiría tocar `@pymekit/supabase` y el CMS solo para Docker.
+- **Consecuencias:** cambiar una `VITE_*` obliga a reconstruir la imagen. La prueba local con Docker necesita Linux (red del anfitrión) y `VITE_CI=true` para aceptar `http://`. La imagen no contiene secretos y se puede publicar.
+- **Nota de numeración:** en `main` ya existen ADR-020 y ADR-021 (otra rama); por eso esta es la 022.
+- **Requisitos relacionados:** RNF-02, RNF-07.
