@@ -1,0 +1,269 @@
+% ------------------------------------------------------------------------------
+% Capítulo 2 · Antecedentes
+% Fuentes: propuesta del TFG, docs/tfg/DECISIONES.md (ADR-001, 004, 005, 011,
+% 014, 017, 020), bibliografía. Por ADR-007 no se nombran las bases de código
+% de partida.
+% ------------------------------------------------------------------------------
+
+Este capítulo describe la situación de la que parte el trabajo: qué necesitan
+las pymes cuando quieren ofrecer o usar software SaaS propio, qué piezas
+comparten casi todas esas aplicaciones y qué soluciones existen hoy para no
+tener que construirlas desde cero. A partir de ese análisis se justifica la
+solución adoptada.
+
+\section{Contexto}
+\label{sec:ctx-contexto}
+
+\subsection{Las pymes y el software como servicio}
+\label{sec:ctx-pymes-saas}
+
+La Comisión Europea define como pyme a la empresa que emplea a menos de 250
+personas y cuyo volumen de negocio anual no supera los 50 millones de euros o
+cuyo balance general no supera los 43 millones~\cite{ec-sme-definition}. Son
+la gran mayoría de las empresas, pero sus recursos técnicos son limitados:
+pocas tienen un departamento de informática, y las que encargan una aplicación
+a medida lo hacen con presupuestos y plazos ajustados.
+
+El modelo SaaS encaja con esa situación. Según la definición del
+NIST~\cite{nist-cloud}, en este modelo el proveedor ofrece una aplicación que
+se ejecuta en una infraestructura en la nube gestionada por él; el cliente la
+usa a través del navegador sin preocuparse de servidores, actualizaciones ni
+copias de seguridad, y paga por suscripción. Para una pyme, el SaaS aparece en
+dos papeles:
+
+\begin{itemize}
+  \item como \textbf{consumidora}, cuando contrata una herramienta en lugar de
+        instalarla; y
+  \item como \textbf{proveedora}, cuando su propio negocio se ofrece en
+        forma de aplicación web: una zona privada para sus clientes, un
+        servicio de reservas, un catálogo con suscripción o, simplemente, la
+        web de la empresa con un acceso para clientes y otro para el
+        personal.
+\end{itemize}
+
+Este trabajo se sitúa en el segundo caso, y en particular en el de quien
+\emph{desarrolla} esas aplicaciones para pymes: un estudio pequeño o un
+desarrollador independiente que debe entregar, con poco presupuesto, una
+aplicación segura y mantenible, y que probablemente tendrá que repetir el
+ejercicio para otro cliente poco después.
+
+\subsection{Componentes comunes de una aplicación SaaS}
+\label{sec:ctx-componentes}
+
+Por diferente que sea el negocio, una aplicación SaaS repite un conjunto de
+componentes transversales. La tabla~\ref{tab:ctx-componentes} los resume; son,
+precisamente, los que la propuesta del trabajo enumera como esenciales.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Componentes que se repiten en casi cualquier aplicación SaaS.}
+  \label{tab:ctx-componentes}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.6cm}X@{}}
+    \toprule
+    \textbf{Componente} & \textbf{Qué debe resolver} \\
+    \midrule
+    Interfaz pública y privada & Página de presentación, precios y contenido; área privada con navegación y ajustes. \\
+    Autenticación & Registro, verificación del correo, inicio de sesión con contraseña o enlace, recuperación de la contraseña, segundo factor (MFA) y, opcionalmente, proveedores externos. \\
+    Cuentas y organizaciones & Cuenta personal, cuentas de organización con miembros, invitaciones, roles y permisos por funcionalidad. \\
+    Aislamiento entre clientes & Garantizar que los datos de una organización no son visibles ni modificables desde otra (\textit{multi-tenancy}). \\
+    Pagos & Planes, alta de la suscripción, portal del cliente y sincronización del estado con la pasarela de pago. \\
+    Administración & Consola para el personal: buscar usuarios, bloquearlos, darles soporte, consultar métricas. \\
+    Gestión de datos y contenidos & Consultar y corregir datos, publicar contenidos y gestionar archivos sin programar, con permisos y trazabilidad. \\
+    Transversales & Correos transaccionales, notificaciones, internacionalización, registro de errores, pruebas y despliegue. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Ninguno de estos componentes diferencia un producto de otro, pero su coste
+de desarrollo es alto y su margen de error, muy pequeño. La literatura sobre
+aplicaciones multicliente insiste en que el aislamiento, la configurabilidad
+por cliente y la seguridad son las preocupaciones de arquitectura que más
+condicionan estos sistemas y las que más complican su
+mantenimiento~\cite{bezemer2010multitenant,krebs2012multitenancy}. La
+ingeniería del software lleva décadas proponiendo la misma respuesta a este
+tipo de problema: identificar lo común a una familia de productos y
+construirlo una vez, como una base reutilizable sobre la que se derivan los
+productos concretos~\cite{clements2001spl}.
+
+\section{Estado de la técnica}
+\label{sec:ctx-estado-tecnica}
+
+Se revisan a continuación las cuatro familias de soluciones que cubren, total
+o parcialmente, los componentes anteriores: las plantillas o kits de
+aplicaciones SaaS, los servicios de \textit{backend} gestionado, los gestores
+de contenidos y paneles de administración de bases de datos, y las técnicas de
+aislamiento multicliente en la base de datos.
+
+\subsection{Plantillas y kits de aplicaciones SaaS}
+\label{sec:ctx-kits}
+
+Desde hace años existe un mercado de plantillas de partida
+(\textit{boilerplates} o \textit{starter kits}) para aplicaciones SaaS. Son
+proyectos que ya incluyen la autenticación, las cuentas de equipo, la
+facturación y una página de presentación, construidos sobre un
+\textit{framework} web concreto, y que el desarrollador copia y adapta. Se
+distribuyen tanto con licencias libres como con licencias comerciales de pago
+único, y estas últimas suelen ser más completas: incorporan cuentas de equipo
+con roles, panel de administración, pruebas automatizadas y documentación.
+
+Su principal ventaja es el ahorro de tiempo inicial. Sus limitaciones, desde
+el punto de vista de este trabajo, son tres:
+
+\begin{enumerate}
+  \item rara vez incluyen una herramienta para que el personal no técnico
+        administre los datos, más allá de un panel de super-administración
+        con unas pocas operaciones sobre usuarios;
+  \item están pensadas para el mercado anglosajón: interfaz, correos,
+        comentarios y documentación en inglés; y
+  \item su calidad de seguridad no está garantizada. Al ser código de
+        terceros, quien lo adopta hereda sus fallos, y la revisión corre de su
+        cuenta.
+\end{enumerate}
+
+\subsection{Servicios de \textit{backend} gestionado (BaaS)}
+\label{sec:ctx-baas}
+
+Los servicios de \textit{Backend as a Service} ofrecen ya construidos la base
+de datos, la autenticación, el almacenamiento de archivos y una API de acceso a
+los datos. La tabla~\ref{tab:ctx-baas} compara los más extendidos en sus
+características relevantes para este trabajo.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Comparación de servicios de \textit{backend} gestionado.}
+  \label{tab:ctx-baas}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2.6cm}@{}}
+    \toprule
+    \textbf{Servicio} & \textbf{Modelo de datos} & \textbf{Autorización} & \textbf{Código / alojamiento} \\
+    \midrule
+    Firebase~\cite{firebase-docs} & Documental (Cloud Firestore) & Reglas de seguridad propias, declaradas aparte de los datos & Propietario; solo en la nube del proveedor \\
+    Supabase~\cite{supabase-docs} & Relacional (PostgreSQL) con API generada & Políticas RLS de PostgreSQL sobre la identidad del JWT~\cite{supabase-rls} & Abierto; nube o autoalojado \\
+    Appwrite~\cite{appwrite-docs} & Colecciones de documentos sobre una base relacional interna & Permisos por colección y documento & Abierto; nube o autoalojado \\
+    PocketBase~\cite{pocketbase} & SQLite embebido & Reglas de API por colección & Abierto; un único ejecutable autoalojado \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Para una aplicación multicliente con relaciones entre cuentas, miembros,
+roles, suscripciones y datos de negocio, un modelo relacional con integridad
+referencial es una ventaja clara. Supabase añade otra: su autorización no es
+un sistema paralelo, sino la propia seguridad a nivel de fila de
+PostgreSQL~\cite{postgresql-rls}. Cada petición llega a la base de datos con
+la identidad del usuario, y las políticas deciden qué filas puede ver o
+modificar. Al ser PostgreSQL estándar, además, el esquema, las políticas y sus
+pruebas pueden versionarse como código y probarse con herramientas como
+pgTAP~\cite{pgtap}. Su contrapartida es que la seguridad depende de que esas
+políticas estén bien escritas, y un error en ellas no se ve en la interfaz.
+
+\subsection{Gestores de contenidos y paneles de administración de datos}
+\label{sec:ctx-cms}
+
+El componente de administración de datos admite varias soluciones:
+
+\begin{itemize}
+  \item \textbf{CMS \textit{headless}} como Strapi~\cite{strapi-docs}. El
+        desarrollador define tipos de contenido y el CMS genera una API y un
+        panel para editarlos. Son excelentes para contenidos editoriales,
+        pero gestionan su propio esquema y su propio sistema de usuarios: no
+        están pensados para administrar las tablas de negocio de otra
+        aplicación ni para reutilizar sus políticas de acceso.
+  \item \textbf{Plataformas de datos sobre una base existente} como
+        Directus~\cite{directus-docs}, que se conectan a una base de datos SQL
+        ya creada y ofrecen sobre ella una API y una interfaz de edición con
+        roles y permisos. Se acercan más a lo que se busca, pero añaden un
+        segundo servicio de \textit{backend} con su propio modelo de usuarios
+        y permisos que hay que sincronizar con el de la aplicación.
+  \item \textbf{Herramientas para desarrolladores}, como el editor de tablas
+        del panel de Supabase~\cite{supabase-docs} o pgAdmin~\cite{pgadmin}.
+        Son potentes, pero trabajan con privilegios de administrador de la
+        base de datos, sin permisos por tabla para el personal y sin
+        auditoría orientada al negocio. No se pueden entregar a quien gestiona
+        una pyme.
+  \item \textbf{CMS específicos para un BaaS}, que se instalan junto a un
+        proyecto de Supabase y ofrecen un explorador de datos, de usuarios y de
+        almacenamiento con un RBAC propio guardado en la misma base de datos.
+        Son la opción más cercana al objetivo, aunque normalmente se
+        distribuyen como una aplicación independiente, con su propio inicio de
+        sesión y su propia pila tecnológica.
+\end{itemize}
+
+\subsection{Aislamiento multicliente en la base de datos}
+\label{sec:ctx-multitenancy}
+
+Existen tres estrategias clásicas para aislar los datos de los clientes de una
+aplicación SaaS~\cite{chong2006multitenant}: una base de datos por cliente; un
+esquema por cliente dentro de una base compartida; y tablas compartidas en las
+que cada fila lleva el identificador del cliente al que pertenece. La primera
+aísla mejor, pero multiplica el coste de operación; la última es la más
+económica y la que mejor escala en número de clientes, a cambio de que el
+aislamiento dependa por completo de que \emph{todas} las consultas filtren por
+cliente~\cite{krebs2012multitenancy}.
+
+La seguridad a nivel de fila resuelve esa debilidad trasladando el filtro de
+la aplicación a la base de datos~\cite{postgresql-rls,postgresql-createpolicy}.
+Cada tabla declara políticas del tipo «un usuario solo puede leer las filas de
+las cuentas de las que es miembro», y PostgreSQL las aplica a cualquier
+consulta, venga de donde venga. Un fallo en el código de la aplicación ya no
+basta para filtrar datos de otro cliente: tendría que fallar también la
+política. Es el enfoque que recomienda Supabase~\cite{supabase-rls} y el que
+adopta este trabajo, complementado con pruebas automáticas que atacan las
+políticas suplantando a usuarios de distintos clientes.
+
+\section{Justificación de la solución}
+\label{sec:ctx-justificacion}
+
+Del análisis anterior se desprenden las decisiones que dan forma a PymeKit:
+
+\begin{enumerate}
+  \item \textbf{Una base reutilizable, no una aplicación.} Lo que se repite
+        de un SaaS a otro es la infraestructura de la
+        tabla~\ref{tab:ctx-componentes}. Construirla una vez, bien probada y
+        configurable, es lo que acelera los proyectos siguientes (RNF-01).
+  \item \textbf{PostgreSQL con RLS como frontera de seguridad.} Un modelo
+        relacional encaja con los datos de un SaaS multicliente, y la RLS hace
+        que el aislamiento entre clientes no dependa solo del código. Se
+        adopta Supabase porque ofrece autenticación, almacenamiento y
+        PostgreSQL estándar, es de código abierto y permite un entorno local
+        completo para el desarrollo y las pruebas.
+  \item \textbf{Un CMS de datos dentro de la propia aplicación.} Ni los CMS
+        \textit{headless} ni las herramientas para desarrolladores cubren la
+        necesidad de que el personal de una pyme administre los datos de
+        \emph{su} aplicación con permisos y auditoría. Un CMS que trabaja
+        sobre la misma base de datos sí lo hace, y si además se integra en la
+        consola de administración se evita un segundo servicio, un segundo
+        inicio de sesión y una segunda pila tecnológica (ADR-011).
+  \item \textbf{Español e internacionalización.} Una base dirigida a pymes
+        españolas debe estar en español, pero sin cerrar la puerta a otros
+        idiomas (ADR-021).
+\end{enumerate}
+
+% PENDIENTE (P-06): justificación de la reutilización de bases existentes, a confirmar con el tutor.
+\paragraph{Partir de bases existentes.}
+Las plantillas comerciales de aplicaciones SaaS y los CMS para Supabase
+descritos en las secciones~\ref{sec:ctx-kits} y~\ref{sec:ctx-cms} ya
+resuelven buena parte de los componentes necesarios, y escribirlos de nuevo
+habría consumido casi todo el tiempo del trabajo sin aportar valor
+diferencial. Por eso PymeKit parte de dos bases de código existentes con
+licencia, de la misma familia tecnológica (TanStack Start, Supabase y Stripe
+la primera; un CMS para Supabase con API Hono y Drizzle la segunda), y
+concentra la aportación en lo que ninguna de las dos ofrece por separado
+(ADR-001): su integración en una sola aplicación, su adaptación a pymes
+españolas, su configurabilidad y la verificación de su seguridad. Se
+descartaron el desarrollo propio completo, por inviable en el plazo; las
+plantillas de código abierto revisadas, por ser menos completas en cuentas de
+equipo y en políticas RLS; y los CMS genéricos, por añadir otro
+\textit{backend} y otro modelo de usuarios.
+
+Esta forma de trabajar tiene un coste que el plan del proyecto debía asumir:
+el código de terceros llega con decisiones ajenas, con fallos propios y con
+su marca. Hubo que desmarcarlo, unificar sus dos pilas de librerías y, sobre
+todo, auditar su seguridad. Las auditorías adversariales de la base de datos
+encontraron en el CMS de partida, entre otros, una escalada de privilegios en
+su RBAC, comprobaciones de MFA y de usuario bloqueado que fallaban en abierto,
+la posibilidad de leer la tabla de usuarios de la autenticación y una
+inyección SQL por sustitución manual de parámetros, todos corregidos y
+cubiertos con pruebas de regresión (ADR-015). Que una base reutilizable deba
+verificarse antes de reutilizarse es, en sí mismo, uno de los resultados del
+trabajo, y se analiza en el capítulo de conclusiones.

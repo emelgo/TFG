@@ -66,3 +66,4 @@ memoria/**/_minted*
 
 # Informes de las skills de revisión
 .bug-hunt/
+memoria/build/

@@ -1,0 +1,709 @@
+% =====================================================================
+% Capítulo: Diseño del Sistema
+% Fuentes: borradores/05-diseno.tex, docs/tfg/DECISIONES.md (ADR-001…021),
+% AGENTS.md, apps/web/AGENTS.md, apps/web/supabase/AGENTS.md,
+% apps/web/src/config/*.config.ts, packages/cms/*,
+% packages/function-middleware. Estado de las fuentes: F3c cerrada.
+% =====================================================================
+
+Este capítulo describe el diseño de PymeKit: la arquitectura general, el
+modelo multi-tenant y de control de acceso, la estrategia de seguridad en
+profundidad, la integración con la pasarela de pago, el diseño de la interfaz
+y los mecanismos de configuración que hacen la plataforma reutilizable. Cada
+decisión remite al registro de decisiones de arquitectura (ADR,
+\textit{Architecture Decision Record}~\cite{nygard2011adr}) del proyecto, que
+se resume en la sección~\ref{sec:dis-decisiones}. La infraestructura de
+ejecución (contenedores, nube y puesta en marcha) se trata en el capítulo de
+Despliegue del Sistema.
+
+% PENDIENTE (P-06): el capítulo presenta el diseño resultante. Parte de él es
+% heredado de las bases de partida (modelo de cuentas, RBAC de equipos y del
+% CMS, abstracción de la pasarela) y parte es propio (integración del CMS en
+% la web, ADR-011; pegamento super-admin/CMS, ADR-014; acceso a la consola,
+% ADR-016; endurecimiento, ADR-015; consola por áreas, ADR-020). La
+% distinción se detalla en Construcción (sec:imp-reutilizacion).
+
+% ---------------------------------------------------------------------
+\section{Arquitectura general}
+\label{sec:dis-arquitectura}
+
+\subsection{Monorepo de paquetes}
+\label{sec:dis-monorepo}
+
+El código se organiza en un único \textit{monorepo} (un repositorio con
+varias aplicaciones y paquetes que se versionan juntos) gestionado con
+Turborepo~\cite{turborepo} y pnpm (ADR-002):
+
+\begin{itemize}
+  \item \texttt{apps/web}: la aplicación web, que incluye la web pública, el
+        área privada, la consola de administración y el CMS;
+  \item \texttt{apps/web/supabase}: esquemas, migraciones, datos de prueba y
+        pruebas pgTAP de \emph{toda} la base de datos;
+  \item \texttt{apps/e2e}: las pruebas E2E con Playwright~\cite{playwright};
+  \item \texttt{packages/*}: los paquetes reutilizables de la plataforma
+        (\texttt{@pymekit/*}: interfaz, cliente de base de datos,
+        \textit{middleware}, autenticación, cuentas, equipos, facturación,
+        administración, i18n\ldots);
+  \item \texttt{packages/cms/*}: los paquetes del CMS
+        (\texttt{@pymekit/cms-*}), separados en paquetes de servidor
+        (servicios y rutas de la API) y paquetes de cliente (componentes de
+        las pantallas).
+\end{itemize}
+
+El monorepo contiene 51 paquetes, 27 de ellos del CMS, sin ciclos de
+dependencias (RNF-04). Cada paquete declara sus dependencias de forma
+explícita y separa las exportaciones de cliente y de servidor. Esta
+separación evita que código con credenciales de servidor acabe en el
+navegador ---la \textit{build} de la web falla si el cliente de base de datos
+del servidor aparece en un fragmento destinado al navegador--- y, como se
+comprobó en la incidencia B-16, también evita ciclos entre paquetes.
+
+\subsection{Capas y pila tecnológica}
+\label{sec:dis-capas}
+
+La aplicación sigue una arquitectura en capas en la que cada capa solo
+depende de la inferior y la base de datos es la última barrera de
+autorización:
+
+\begin{enumerate}
+  \item \textbf{Presentación.} Rutas por fichero de TanStack
+        Router~\cite{tanstack-router} con React 19, renderizadas en el
+        servidor (SSR). Componentes accesibles de \texttt{@pymekit/ui}
+        con Tailwind CSS. La caché de datos del cliente usa TanStack
+        Query~\cite{tanstack-query}.
+  \item \textbf{Aplicación.} \textit{Server functions} de TanStack
+        Start~\cite{tanstack-start}: funciones que se ejecutan en el servidor
+        y se invocan desde el cliente con tipos compartidos, validadas con
+        Zod y protegidas por una cadena de \textit{middleware} (RF-02). Para el
+        CMS, una API HTTP construida con Hono~\cite{hono}.
+  \item \textbf{Servicios.} Lógica de negocio en servicios sin dependencia de
+        la interfaz, con el cliente de datos inyectado: el cliente de
+        Supabase~\cite{supabase-docs} en la web y Drizzle ORM~\cite{drizzle}
+        en el CMS.
+  \item \textbf{Datos.} PostgreSQL con políticas de seguridad a nivel de fila
+        (RLS), funciones y \textit{triggers}; servicio de autenticación con
+        JWT y MFA; almacenamiento de ficheros.
+\end{enumerate}
+
+Para que el conjunto sea coherente se usa una sola pila de librerías en toda
+la web, CMS incluido: un único sistema de formularios, uno de
+internacionalización y una sola biblioteca de componentes (ADR-013). Así cada
+cosa se hace de una única forma (RNF-05).
+
+\subsection{Una única base de datos}
+\label{sec:dis-bd-unica}
+
+La aplicación y el CMS comparten \textbf{una sola instancia} de PostgreSQL
+(ADR-002). Los datos de la plataforma viven en el esquema \texttt{public} y
+los del CMS en un esquema propio, \texttt{cms} (ADR-012). Compartir la base de
+datos es lo que permite que el CMS administre los datos de la propia
+plataforma ---incluido el blog que publica la web (ADR-017)--- y que las
+mismas políticas de seguridad protejan ambas partes. Los esquemas
+declarativos se numeran (del \texttt{00} al \texttt{55}) para fijar el orden
+de creación, y las migraciones se generan a partir de ellos.
+
+\subsection{CMS integrado en la consola de administración}
+\label{sec:dis-cms-integrado}
+
+La decisión de mayor calado del diseño es cómo integrar el CMS (ADR-011). El
+CMS de partida era una aplicación de página única con su propio enrutador y
+una API independiente. Se evaluaron tres opciones:
+
+\begin{enumerate}[label=(\alph*)]
+  \item \textbf{aplicaciones separadas} (la web, la interfaz del CMS y su
+        API como tres servicios): la de menor esfuerzo, pero con tres
+        despliegues, dos inicios de sesión y las \textit{cookies} de sesión
+        duplicadas;
+  \item \textbf{integración híbrida} (la API dentro de la web y la interfaz
+        del CMS servida como aplicación estática): convivirían dos
+        enrutadores y dos formas de programar;
+  \item \textbf{integración total}: la API se monta dentro del servidor de
+        la web y las pantallas se reescriben como rutas de la web.
+\end{enumerate}
+
+Se eligió la opción (c), aun siendo la de mayor esfuerzo estimado, porque da
+un único servicio, un único inicio de sesión y un único estilo de código:
+
+\begin{itemize}
+  \item La aplicación Hono del CMS se monta en \texttt{/api/cms/*} mediante
+        una ruta de servidor de la web que le reenvía la petición tal cual.
+        El CMS comparte así proceso, dominio y \textit{cookies} con la web.
+  \item Las pantallas del CMS son rutas de la web bajo \texttt{/admin/cms/*},
+        con \textit{loaders} y TanStack Query sobre un cliente RPC tipado de
+        la API.
+  \item Durante el SSR, los \textit{loaders} no hacen una petición de red a la
+        propia API: invocan la aplicación Hono dentro del mismo proceso,
+        reenviando solo la cabecera \texttt{cookie} (ADR-016).
+\end{itemize}
+
+La figura~\ref{fig:dis-arquitectura} resume la arquitectura resultante.
+
+\begin{figure}[htbp]
+  \centering
+  \resizebox{\textwidth}{!}{%
+  \begin{tikzpicture}[
+      font=\footnotesize,
+      box/.style={draw, rounded corners, align=center, minimum height=0.9cm,
+                  inner sep=4pt, fill=white},
+      group/.style={draw, dashed, rounded corners, inner sep=8pt},
+      arr/.style={-{Stealth[length=2mm]}}
+    ]
+    \node[box, minimum width=11cm] (browser) at (0, 5.2)
+      {Navegador (React 19): web pública, área privada, consola \texttt{/admin} y CMS \texttt{/admin/cms}};
+
+    \node[box, minimum width=3.0cm] (ssr) at (-3.8, 3.3)
+      {Rutas y \textit{loaders}\\(SSR, TanStack Router)};
+    \node[box, minimum width=3.0cm] (sfn) at (0, 3.3)
+      {\textit{Server functions}\\+ \textit{middleware}};
+    \node[box, minimum width=3.0cm] (hono) at (3.8, 3.3)
+      {Ruta \texttt{/api/cms/*}\\$\rightarrow$ aplicación Hono};
+    \node[box, minimum width=3.0cm] (svc) at (-1.9, 1.6)
+      {Servicios + cliente Supabase\\(sesión del usuario)};
+    \node[box, minimum width=3.0cm] (drizzle) at (3.8, 1.6)
+      {Servicios Drizzle\\(\textit{claims} del usuario)};
+    \node[box, minimum width=2.4cm] (wh) at (-6.6, 1.6)
+      {Ruta \texttt{/api/billing}\\\textit{webhook}};
+
+    \begin{scope}[on background layer]
+      \node[group, fit=(ssr)(sfn)(hono)(svc)(drizzle)(wh),
+            label={[font=\small\bfseries, anchor=north east]south east:\texttt{apps/web} (TanStack Start, un único proceso)}] (web) {};
+    \end{scope}
+
+    \node[box, minimum width=2.6cm] (auth) at (-3.8, -0.6) {Auth\\(JWT, MFA)};
+    \node[box, minimum width=4.6cm] (pg) at (0.4, -0.6)
+      {PostgreSQL + RLS\\esquemas \texttt{public}, \texttt{cms} y \texttt{auth}};
+    \node[box, minimum width=2.2cm] (st) at (4.4, -0.6) {Storage};
+    \begin{scope}[on background layer]
+      \node[group, fit=(auth)(pg)(st),
+            label={[font=\small\bfseries]below:Supabase (una única instancia)}] (sb) {};
+    \end{scope}
+
+    \node[box] (stripe) at (-10.6, 1.6) {Pasarela\\de pago};
+
+    \draw[arr] (browser) -- (ssr);
+    \draw[arr] (browser) -- (sfn);
+    \draw[arr] (browser) -- node[right, font=\scriptsize]{RPC} (hono);
+    \draw[arr] (ssr) -- (sfn);
+    \draw[arr, dashed] (ssr.south) -- ++(0,-0.3) coordinate (ssrq) -- (ssrq -| hono.south) node[midway, below, font=\scriptsize, fill=white, inner sep=1pt]{SSR en proceso} -- (hono.south);
+    \draw[arr] (sfn) -- (svc);
+    \draw[arr] (hono) -- (drizzle);
+    \draw[arr] (svc) -- (pg);
+    \draw[arr] (svc) -- (auth);
+    \draw[arr] (drizzle) -- (pg);
+    \draw[arr] (stripe) -- node[above, font=\scriptsize]{\textit{webhooks}} (wh);
+    \draw[arr] (wh) |- (pg.west);
+    \draw[arr, dashed] (sfn.north west) to[bend right=25] node[above, font=\scriptsize, pos=0.6]{\textit{checkout}} (stripe.north);
+  \end{tikzpicture}}
+  \caption{Arquitectura general de PymeKit: una única aplicación web con el
+    CMS integrado y una única instancia de la base de datos.}
+  \label{fig:dis-arquitectura}
+  % Texto alternativo: el navegador se comunica con la aplicación web, que
+  % contiene las rutas con SSR, las server functions y la ruta /api/cms que
+  % monta la aplicación Hono del CMS. Las server functions usan servicios con
+  % el cliente de Supabase y la sesión del usuario; la API del CMS usa
+  % servicios Drizzle con los claims del usuario. Ambos acceden a una única
+  % instancia (Auth, PostgreSQL con RLS y Storage). La pasarela de pago
+  % recibe las sesiones de pago desde las server functions y notifica los
+  % cambios a la ruta de webhook, que actualiza la base de datos.
+\end{figure}
+
+% ---------------------------------------------------------------------
+\section{Modelo multi-tenant y control de acceso}
+\label{sec:dis-multitenant}
+
+\subsection{Cuentas como unidad de aislamiento}
+\label{sec:dis-cuentas}
+
+PymeKit sigue un modelo multi-tenant de \emph{base de datos y esquema
+compartidos}: todos los clientes comparten tablas y cada fila lleva el
+identificador de la cuenta a la que pertenece. Es el modelo de menor coste de
+operación y el que más simplifica las actualizaciones, a cambio de que el
+aislamiento dependa por completo de la corrección del control de
+acceso~\cite{bezemer2010multitenant}. Por eso el diseño traslada ese control a la base de
+datos.
+
+El \textit{tenant} es la cuenta (sección~\ref{sec:ana-modelo-datos}). La
+relación de un usuario con una cuenta se resuelve con un pequeño conjunto de
+funciones auxiliares sobre las que se escriben todas las políticas:
+\texttt{has\_role\_on\_account} (pertenencia), \texttt{has\_permission}
+(permiso concreto) y \texttt{has\_more\_elevated\_role} (jerarquía). Las
+escrituras destructivas se condicionan al permiso, no a la mera pertenencia,
+y la cuenta activa de cada sesión se guarda en el servidor
+(\texttt{user\_active\_account}) para que el área privada sepa en qué
+contexto trabaja el usuario.
+
+El modelo admite tres modos, elegidos por configuración
+(sección~\ref{sec:dis-configuracion}): solo cuentas personales (B2C), solo
+cuentas de equipo (B2B) o ambas. En la web de una sola pyme (ADR-020), los
+equipos pueden representar, por ejemplo, las tiendas de la empresa, y sus
+clientes usar la cuenta personal.
+
+\subsection{Control de acceso del CMS}
+\label{sec:dis-rbac-cms}
+
+El CMS tiene su propio control de acceso basado en roles
+(\textit{Role-Based Access Control}, RBAC) en el esquema \texttt{cms}. Conviven
+así dos modelos de autorización en la misma base de datos
+(tabla~\ref{tab:dis-dos-modelos}). La decisión de diseño (ADR-014) fue
+conectarlos en lugar de sustituir uno por otro:
+
+\begin{itemize}
+  \item \textbf{El super-administrador es la raíz del CMS.} Unos
+        \textit{triggers} sobre los usuarios sincronizan a los
+        super-administradores con un rol de sistema \emph{Root}, de rango
+        máximo, que concede todos los permisos. Al promocionar a un usuario
+        recibe acceso, una cuenta activa del CMS y ese rol; al retirarle la
+        condición pierde el acceso y su cuenta se desactiva, pero se conserva
+        para la auditoría. Un índice único garantiza que solo exista un rol
+        raíz.
+  \item \textbf{El RBAC del CMS da acceso limitado a otro personal}
+        (soporte, gestión de contenidos). Se descartó dejar solo al
+        super-administrador porque incumpliría RF-09 («con permisos
+        propios»).
+\end{itemize}
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Los dos modelos de autorización de PymeKit.}
+  \label{tab:dis-dos-modelos}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}XX@{}}
+    \toprule
+     & \textbf{Plataforma (\texttt{public})} & \textbf{CMS (\texttt{cms})} \\
+    \midrule
+    Sujetos & Usuarios de las cuentas (clientes) & Personal con cuenta del CMS \\
+    Ámbito & Una cuenta (\textit{tenant}) & Toda la base de datos administrada \\
+    Roles & Jerarquía por \texttt{hierarchy\_level} & Rango único 0--100, con vigencia \\
+    Permisos & Cinco permisos por funcionalidad & De datos (esquema, tabla, columna), de sistema y de almacenamiento; grupos; concesiones y denegaciones por cuenta \\
+    Raíz & Propietario principal de cada cuenta & Rol Root, ligado al super-administrador \\
+    MFA & Exigido si el usuario lo tiene configurado & Obligatorio por defecto \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Acceso a la consola}
+\label{sec:dis-acceso-consola}
+
+Super-administradores y personal del CMS comparten la consola, con límites
+distintos (ADR-016): la consola admite a quien es super-administrador
+\emph{o} tiene acceso al CMS; las páginas de gestión de la plataforma exigen
+super-administrador y redirigen al personal al CMS. La barra lateral solo
+muestra las secciones que la API permite, pero esa ocultación es solo de
+interfaz: cada ruta y cada \textit{endpoint} vuelven a comprobar el permiso.
+
+% ---------------------------------------------------------------------
+\section{Seguridad en profundidad}
+\label{sec:dis-seguridad}
+
+El principio que guía el diseño es que \textbf{la base de datos es la
+frontera de autorización} (RNF-02): toda comprobación en la interfaz o en el
+servidor de aplicación es una primera barrera, útil para la experiencia de
+uso, pero nunca suficiente. Si una capa superior falla, las políticas de la
+base de datos siguen impidiendo el acceso, en línea con las recomendaciones
+de verificación de seguridad de OWASP~\cite{owasp-asvs}.
+
+\subsection{RLS como frontera}
+\label{sec:dis-rls}
+
+PostgreSQL permite asociar a cada tabla políticas de seguridad a nivel de
+fila (\textit{Row-Level Security}, RLS)~\cite{postgresql-rls}: predicados que
+el propio motor añade a cada consulta según el usuario que la ejecuta.
+Supabase~\cite{supabase-rls} traslada la identidad del usuario (su JWT) a la
+sesión de PostgreSQL, de modo que las políticas deciden con ella. Las reglas
+de diseño, recogidas en las directrices de la base de datos, son:
+
+\begin{itemize}
+  \item RLS activo en toda tabla. Se revocan los privilegios por defecto a
+        los tres roles de la API (\texttt{anon}, \texttt{authenticated} y
+        \texttt{service\_role}), incluidos los que ignoran RLS como
+        \texttt{TRUNCATE}, y se conceden solo los verbos que la funcionalidad
+        usa.
+  \item El \texttt{UPDATE} se concede por columnas, dejando fuera las de
+        identidad y de pertenencia (\texttt{id}, \texttt{account\_id}), para
+        que nadie pueda mover una fila a otra cuenta.
+  \item Las políticas de \texttt{UPDATE} repiten en \texttt{WITH CHECK} las
+        comprobaciones del \texttt{INSERT}: sin esa cláusula PostgreSQL solo
+        valida la fila antigua~\cite{postgresql-createpolicy} (B-05, B-50).
+  \item Toda función \texttt{security definer}, que se ejecuta con
+        privilegios elevados y se salta RLS, aplica sus propias
+        comprobaciones y las justifica en un comentario; las funciones
+        internas no son ejecutables por los roles de la API (B-45).
+  \item Las llamadas a funciones dentro de un predicado se envuelven en
+        \texttt{(select \ldots)} para que se evalúen una sola vez (B-55).
+  \item El cliente de servidor que ignora RLS se reserva para casos
+        excepcionales, tras validar a mano los permisos.
+\end{itemize}
+
+\subsection{Segundo factor obligatorio en la administración}
+\label{sec:dis-mfa}
+
+El servicio de autenticación distingue el nivel de garantía de la sesión
+(\textit{Authenticator Assurance Level}, AAL)~\cite{supabase-mfa}:
+\texttt{aal1} tras la contraseña y \texttt{aal2} tras completar el segundo
+factor. El diseño exige \texttt{aal2} en todas las capas que dan acceso a la
+administración:
+
+\begin{itemize}
+  \item en la base de datos, la función que identifica al super-administrador
+        devuelve falso si la sesión no es \texttt{aal2}; unas políticas
+        restrictivas exigen \texttt{aal2} a quien tiene un factor
+        configurado; y el acceso al CMS lo decide
+        \texttt{cms.verify\_admin\_access()}, que comprueba la cuenta activa
+        del CMS y el MFA;
+  \item en la interfaz, la consola exige siempre \texttt{aal2}: con un factor
+        configurado redirige a la verificación y vuelve a la página pedida;
+        sin factor responde 404 (ADR-016).
+\end{itemize}
+
+\subsection{Middleware más comprobación en la base de datos}
+\label{sec:dis-middleware}
+
+La figura~\ref{fig:dis-flujo-cms} muestra el recorrido de una petición a la
+API del CMS y las comprobaciones que encuentra en cada capa. Las
+\textit{server functions} de la web siguen el mismo patrón: una cadena de
+\textit{middleware} tipado (autenticación, pertenencia al equipo, permiso por
+funcionalidad, super-administrador) valida la petición y después el cliente de
+Supabase con la sesión del usuario deja que RLS tome la decisión final.
+
+\begin{figure}[htbp]
+  \centering
+  \resizebox{\textwidth}{!}{%
+  \begin{tikzpicture}[
+      font=\footnotesize,
+      paso/.style={draw, rounded corners, align=center, minimum width=3.3cm,
+                   minimum height=1.0cm, inner sep=3pt},
+      check/.style={align=left, font=\scriptsize, text width=7.6cm},
+      arr/.style={-{Stealth[length=2mm]}}
+    ]
+    \node[paso] (s1) at (0, 0)     {Navegador\\(consola \texttt{/admin/cms})};
+    \node[paso] (s2) at (0, -1.6)  {Ruta de servidor\\\texttt{/api/cms/\$}};
+    \node[paso] (s3) at (0, -3.2)  {Aplicación Hono\\(\textit{middleware})};
+    \node[paso] (s4) at (0, -4.8)  {Servicio Drizzle\\(transacción)};
+    \node[paso] (s5) at (0, -6.4)  {PostgreSQL\\(esquema \texttt{cms})};
+
+    \draw[arr] (s1) -- (s2);
+    \draw[arr] (s2) -- (s3);
+    \draw[arr] (s3) -- (s4);
+    \draw[arr] (s4) -- (s5);
+
+    \node[check, right=0.6cm of s1] {Guarda de ruta: sesión viva y
+      \texttt{aal2}, acceso de administración (si no: inicio de sesión,
+      verificación MFA o 404)};
+    \node[check, right=0.6cm of s2] {Reenvío a Hono; el código del CMS se
+      importa solo en el servidor};
+    \node[check, right=0.6cm of s3] {Cabeceras de seguridad y CSRF propia; JWT
+      válido (401), acceso al CMS (403), usuario no bloqueado (en cerrado);
+      validación estricta de la entrada con Zod (400)};
+    \node[check, right=0.6cm of s4] {\textit{Claims} del usuario y rol
+      \texttt{authenticated} fijados con parámetros enlazados; permiso
+      concreto comprobado por el servicio};
+    \node[check, right=0.6cm of s5] {\texttt{cms.verify\_admin\_access()}
+      (cuenta activa, MFA) y políticas RLS: \textbf{decisión final}};
+  \end{tikzpicture}}
+  \caption{Flujo de una petición a la API del CMS y comprobaciones de
+    seguridad en cada capa.}
+  \label{fig:dis-flujo-cms}
+  % Texto alternativo: diagrama vertical de cinco pasos (navegador, ruta de
+  % servidor, aplicación Hono, servicio Drizzle, PostgreSQL). A la derecha de
+  % cada paso se indican sus comprobaciones; la última, la base de datos, es
+  % la que toma la decisión.
+\end{figure}
+
+Dos detalles del diseño merecen mención. Primero, el servicio fija la
+identidad del usuario en la transacción mediante parámetros enlazados, nunca
+interpolando valores del JWT en el SQL, de modo que las políticas RLS del
+esquema \texttt{cms} se aplican igual que a cualquier otro cliente. Segundo,
+un super-administrador con sesión \texttt{aal1} supera el \textit{middleware}
+(tiene el \textit{claim} de acceso), pero no ve datos, porque la base de
+datos exige el segundo factor: es la defensa en profundidad en acción.
+
+\subsection{Fallo en cerrado y errores sin detalles internos}
+\label{sec:dis-fallo-cerrado}
+
+Todas las comprobaciones de seguridad \textbf{fallan en cerrado}
+(\textit{fail closed}): ante un dato ausente, ilegible o no válido, se
+deniega. El diseño lo aplica a la opción que indica si el CMS exige MFA, que
+se lee con una función de privilegios elevados para que RLS no pueda
+ocultársela a quien decide (B-06); a la comprobación de usuario bloqueado
+cuando el servicio de autenticación no responde (B-23); y a la auditoría,
+cuyo fallo deshace la escritura auditada (B-41).
+
+Del mismo modo, los errores de la base de datos se clasifican en el servidor:
+el cliente solo recibe un estado HTTP y un código estable
+(\texttt{RECORD\_*}, \texttt{SETTINGS\_*}, \texttt{AUDIT\_LOG\_*}\ldots),
+nunca el texto de PostgreSQL, que podría revelar nombres de tablas o
+restricciones (B-20, B-33).
+
+\subsection{Seguridad del entorno de desarrollo}
+\label{sec:dis-seguridad-entorno}
+
+La seguridad alcanza también al entorno de trabajo. Los servicios locales de
+la base de datos se aíslan de Internet con una regla de cortafuegos específica
+para contenedores y la aplicación se consulta mediante un túnel SSH (ADR-010,
+tras la incidencia B-04). Los secretos nunca se versionan.
+
+% ---------------------------------------------------------------------
+\section{Integración con la pasarela de pago}
+\label{sec:dis-pagos}
+
+La facturación se diseña detrás de una \emph{pasarela abstracta}
+(\texttt{@pymekit/billing-gateway}) con una estrategia por proveedor: la
+aplicación pide «crear una sesión de pago» o «abrir el portal de cliente» sin
+conocer el proveedor concreto, que se elige con la variable
+\texttt{VITE\_BILLING\_PROVIDER} y se valida al construir la aplicación.
+Actualmente se registra Stripe.
+
+Los planes, sus precios y sus características se declaran en
+\texttt{billing.config.ts}, validado con un esquema. El flujo tiene dos
+sentidos (figura~\ref{fig:dis-arquitectura}): las \textit{server functions}
+crean la sesión de pago tras comprobar el permiso \texttt{billing.manage}; y
+la pasarela notifica cada cambio a la ruta \texttt{/api/billing/webhook}, que
+verifica la firma y sincroniza clientes, suscripciones y pedidos con el
+cliente de servicio. Ningún usuario escribe esas tablas con su sesión
+(RN-07): la fuente de verdad de un cobro es la pasarela.
+\todo{Completar con el diseño de los planes orientados a pymes (F5) y con la
+verificación con la pasarela en modo de pruebas.}
+
+% ---------------------------------------------------------------------
+\section{Diseño de la interfaz}
+\label{sec:dis-interfaz}
+
+\subsection{Web pública y área privada}
+
+La web pública ofrece inicio, precios, blog, preguntas frecuentes, contacto y
+textos legales; el área privada, el panel de la cuenta activa, sus ajustes,
+miembros y facturación. La identidad visual es propia (logotipo, iconos y
+capturas generadas a partir de la propia aplicación, B-46). La interfaz es
+adaptable a dispositivos móviles, admite tema claro y oscuro y se construye
+con componentes accesibles (RNF-08).
+
+Mientras PymeKit se presenta como TFG, la página de inicio incluye un bloque
+académico (logotipo de la escuela, autor, tutor y un recorrido guiado por la
+demostración). Depende de un único interruptor de configuración, de modo que
+una pyme que reutilice la plataforma lo desactiva sin tocar el código
+(sección~\ref{sec:dis-configuracion}).
+
+\subsection{Consola de administración por áreas de negocio}
+\label{sec:dis-consola}
+
+La primera versión de la consola separaba «Plataforma», «CMS» y «Recursos» y
+agrupaba las tablas por esquema SQL, una organización técnica que no entiende
+quien gestiona una pyme. Tras la revisión del autor se rediseñó como una
+\textbf{única consola organizada por áreas de negocio} (ADR-020,
+figura~\ref{fig:dis-consola}):
+
+\begin{itemize}
+  \item un bloque \textbf{Gestión} con Inicio, Gestión de cuentas (solo
+        super-administrador) y las herramientas del CMS: Usuarios, Archivos,
+        Paneles, Auditoría y Ajustes;
+  \item un bloque \textbf{Datos} con una entrada plegable por área (Blog,
+        Cuentas, Facturación, Sistema y Otros datos) que contiene sus tablas
+        con nombre en español, y una entrada «Todas las tablas».
+\end{itemize}
+
+El área de cada tabla, su nombre visible y su descripción son \emph{datos}
+de los metadatos del CMS, editables en Ajustes $\rightarrow$ Recursos, de
+modo que una pyme puede crear áreas para sus propias tablas sin programar.
+Las tablas de esquemas protegidos no aparecen en la navegación.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      font=\scriptsize,
+      item/.style={anchor=west, inner sep=1pt},
+      head/.style={anchor=west, font=\scriptsize\bfseries, inner sep=1pt}
+    ]
+    \draw[rounded corners] (0,0) rectangle (4.2,-8.6);
+    \node[head] at (0.2,-0.35) {Gestión};
+    \node[item] at (0.35,-0.8)  {Inicio};
+    \node[item] at (0.35,-1.2)  {Gestión de cuentas$^{*}$};
+    \node[item] at (0.35,-1.6)  {Usuarios};
+    \node[item] at (0.35,-2.0)  {Archivos};
+    \node[item] at (0.35,-2.4)  {Paneles};
+    \node[item] at (0.35,-2.8)  {Auditoría};
+    \node[item] at (0.35,-3.2)  {Ajustes};
+    \node[head] at (0.2,-3.8) {Datos};
+    \node[item] at (0.35,-4.25) {$-$ Blog};
+    \node[item] at (0.75,-4.65) {Entradas};
+    \node[item] at (0.75,-5.0)  {Categorías};
+    \node[item] at (0.75,-5.35) {Etiquetas};
+    \node[item] at (0.35,-5.8)  {$+$ Cuentas};
+    \node[item] at (0.35,-6.2)  {$+$ Facturación};
+    \node[item] at (0.35,-6.6)  {$+$ Sistema};
+    \node[item] at (0.35,-7.0)  {$+$ Otros datos};
+    \node[item] at (0.35,-7.5)  {Todas las tablas};
+    \node[item, font=\tiny] at (0.2,-8.25) {$^{*}$ solo super-administrador};
+
+    \draw[rounded corners] (4.5,0) rectangle (11.4,-8.6);
+    \node[anchor=west, font=\small\bfseries] at (4.8,-0.45) {Entradas};
+    \node[anchor=west, text width=6.3cm, font=\tiny] at (4.8,-1.0)
+      {Resumen: «Artículos del blog. Solo los publicados se muestran en la web.»};
+    \draw (4.8,-1.5) rectangle (11.1,-2.0);
+    \node[anchor=west, font=\tiny] at (4.9,-1.75) {Buscar\ldots \quad Filtros \quad Columnas \quad Vistas};
+    \foreach \y in {-2.4,-2.9,-3.4,-3.9,-4.4} { \draw[gray] (4.8,\y) -- (11.1,\y); }
+    \node[anchor=west, font=\tiny] at (4.9,-2.65) {Título \hspace{1.6cm} Estado \hspace{0.9cm} Publicada};
+    \draw (4.8,-5.0) rectangle (11.1,-8.3);
+    \node[anchor=west, font=\tiny\bfseries] at (4.9,-5.3) {Editar entrada};
+    \node[anchor=west, font=\tiny] at (4.9,-5.8) {Título \textcircled{\scalebox{0.7}{?}}};
+    \draw (4.9,-6.05) rectangle (10.9,-6.4);
+    \node[anchor=west, font=\tiny] at (4.9,-6.8) {Estado \textcircled{\scalebox{0.7}{?}}};
+    \draw (4.9,-7.05) rectangle (10.9,-7.4);
+    \node[anchor=east, font=\tiny] at (10.9,-7.9) {[Guardar]};
+  \end{tikzpicture}
+  \caption{Esquema de la consola: navegación por bloques y áreas (izquierda)
+    y una pantalla del explorador con su resumen, el listado y un formulario
+    con ayuda contextual «?» (derecha).}
+  \label{fig:dis-consola}
+  % Texto alternativo: a la izquierda, la barra lateral con el bloque Gestión
+  % (Inicio, Gestión de cuentas solo para el super-administrador, Usuarios,
+  % Archivos, Paneles, Auditoría y Ajustes) y el bloque Datos con las áreas
+  % plegables Blog (desplegada: Entradas, Categorías, Etiquetas), Cuentas,
+  % Facturación, Sistema y Otros datos, y Todas las tablas. A la derecha, la
+  % pantalla de Entradas con un resumen bajo el título, la barra de búsqueda
+  % y filtros, el listado y un formulario de edición con un icono de ayuda
+  % junto a cada campo.
+\end{figure}
+\todo{Sustituir o complementar la figura~\ref{fig:dis-consola} con capturas
+reales de la consola (pueden generarse con el script de capturas de
+\texttt{apps/e2e/scripts}).}
+
+\subsection{Ayuda contextual y resúmenes}
+\label{sec:dis-ayudas}
+
+Para que la consola la pueda usar personal no técnico, cada pantalla muestra
+bajo el título un \textbf{resumen} de una o dos frases que explica para qué
+sirve; en el explorador, ese resumen es la descripción de la tabla guardada en
+sus metadatos. Además, cada campo de los formularios de la consola lleva una
+\textbf{ayuda contextual «?»}, un componente reutilizable de la biblioteca de
+interfaz que muestra al pulsarlo qué significa el campo y qué efecto tiene.
+Ambos textos pasan por el sistema de traducción.
+
+\subsection{Internacionalización}
+\label{sec:dis-i18n}
+
+La interfaz solo ofrece español (ADR-021): PymeKit se dirige a pymes
+españolas y mantener dos idiomas duplicaría el coste de cada texto. Sin
+embargo, se conserva toda la infraestructura de traducción: ningún texto
+visible se escribe en el código ---tampoco atributos como \texttt{aria-label}
+o \texttt{placeholder}---, sino que se referencia por clave a los mensajes del
+idioma (\texttt{packages/i18n/src/messages/es}); la lista de idiomas está en
+la configuración y una prueba unitaria comprueba la coherencia de las claves.
+Añadir un idioma consiste en crear su carpeta de mensajes y registrarlo,
+y se documenta como \emph{punto de extensión}. Los identificadores, las
+tablas y las columnas siguen en inglés, como es habitual en el ecosistema
+(ADR-003); sus nombres visibles en español son datos del CMS.
+
+% ---------------------------------------------------------------------
+\section{Decisiones de diseño principales}
+\label{sec:dis-decisiones}
+
+Cada decisión relevante se registró en el momento de tomarla con su contexto,
+alternativas y consecuencias. La tabla~\ref{tab:dis-adr} las resume; las
+decisiones no se borran, sino que se marcan como sustituidas cuando dejan de
+valer.
+
+\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{6.2cm}l@{}}
+  \caption{Resumen de decisiones de diseño (ADR) y alternativas descartadas.}\label{tab:dis-adr}\\
+  \toprule
+  \textbf{ADR} & \textbf{Decisión} & \textbf{Alternativas descartadas (motivo)} & \textbf{Req.} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{ADR} & \textbf{Decisión} & \textbf{Alternativas descartadas (motivo)} & \textbf{Req.} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  001 & Partir de bases de código existentes con licencia (SaaS y CMS) % PENDIENTE (P-06)
+    & Desarrollo completo desde cero (inviable en plazo); otras bases abiertas (menos completas en multi-tenant y RLS); CMS genéricos con otra base de datos u otro \textit{backend} & RNF-01, 04 \\
+  002 & Monorepo único y una sola base de datos & Dos repositorios con la misma base de datos (CI, despliegue y documentación duplicados) & RF-09, RNF-04 \\
+  003 & Comentarios y documentación en español; identificadores en inglés & Todo en español (choca con el ecosistema); todo en inglés (dificulta la evaluación) & RF-13, RNF-05 \\
+  004 & Conservar el CMS de datos y retirar el de contenidos basado en ficheros & Mantener dos CMS (complejidad sin aportar al objetivo) & RF-09 \\
+  005 & Plataforma genérica sin dominio de negocio concreto & Implementar un dominio de ejemplo (desvía el esfuerzo de la base reutilizable) & RNF-01 \\
+  006 & Retirar la comprobación remota de licencia del flujo de desarrollo & Mantenerla (dependencia de red y de un servicio externo) & --- \\
+  007 & La memoria no nombra las bases de partida & --- & --- \\
+  008 & Descartar el servidor MCP y los generadores heredados ligados a la base & Conservarlos renombrados (dependen de documentación no incluida) & RNF-04 \\
+  009 & La web escucha en el puerto 3100 & Puerto por defecto (ocupado en el equipo de desarrollo, B-02) & RNF-07 \\
+  010 & Aislar de Internet los servicios locales & Confiar en el cortafuegos del sistema (los contenedores se lo saltan, B-04) & RNF-02 \\
+  011 & CMS integrado: API Hono en \texttt{/api/cms}, pantallas como rutas de la web & Aplicaciones separadas (tres servicios, dos inicios de sesión); híbrida (dos enrutadores) & RF-08--11 \\
+  012 & Esquema SQL del CMS llamado \texttt{cms} & Conservar el nombre original (excepción permanente en el control de marca) & RF-09 \\
+  013 & Una sola pila de librerías en toda la web & Mantener las del CMS (dos formas de hacer lo mismo; dos sistemas de i18n) & RNF-05 \\
+  014 & Super-administrador como raíz del CMS; RBAC del CMS para el resto del personal & Solo super-administrador, sin RBAC granular (incumple RF-09) & RF-08, 09 \\
+  015 & Endurecer la seguridad del CMS de partida & Aceptar el código heredado sin auditar (brechas confirmadas, B-05--B-09) & RNF-02, 03 \\
+  016 & Consola para super-administrador y personal del CMS, siempre con \texttt{aal2} & Dejar entrar con el \textit{claim} de acceso sin comprobar el AAL (B-14) & RF-08, RNF-02 \\
+  017 & Blog en la base de datos gestionado desde el CMS & Blog fuera (debilita la gestión de contenidos); CMS de ficheros (dos CMS) & RF-01, 09 \\
+  018 & Instantánea del autor en la auditoría & Claves ajenas \texttt{RESTRICT} (impide borrar usuarios); borrado lógico (más complejo) & RF-10 \\
+  019 & Paneles con cuadrícula propia, sin librería & Librería de cuadrícula (más dependencias; arrastrar sin teclado no es accesible) & RF-11, RNF-08 \\
+  020 & Consola por áreas de negocio, nombres en español como datos y sin esquema de demostración & Traducir nombres en el cliente; áreas fijas en un fichero; quitar equipos y pagos & RF-09, RNF-01, 08 \\
+  021 & Interfaz solo en español conservando la infraestructura i18n & Mantener dos idiomas (doble mantenimiento); eliminar la i18n (impide traducir) & RF-13, RNF-01 \\
+\end{longtable}
+
+% ---------------------------------------------------------------------
+\section{Configuración reutilizable}
+\label{sec:dis-configuracion}
+
+La reutilización por configuración (RNF-01) se apoya en tres mecanismos, de
+menor a mayor dinamismo.
+
+\paragraph{Ficheros de configuración tipados.} Todo lo que cambia de un
+producto a otro se concentra en \texttt{apps/web/src/config/*.config.ts}
+(tabla~\ref{tab:dis-config}). Cada fichero valida su contenido con un esquema
+Zod al arrancar, de modo que una configuración incorrecta falla pronto y con
+un mensaje claro, en lugar de en tiempo de ejecución.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Ficheros de configuración de la aplicación.}
+  \label{tab:dis-config}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.4cm}X@{}}
+    \toprule
+    \textbf{Fichero} & \textbf{Qué configura} \\
+    \midrule
+    \texttt{app.config.ts} & Nombre del producto, título, descripción, URL y tema por defecto \\
+    \texttt{auth.config.ts} & Métodos de acceso (contraseña, enlace mágico, OAuth) y captcha \\
+    \texttt{account-mode.config.ts} & Modo de cuentas: personal, equipos o híbrido \\
+    \texttt{feature-flags.config.ts} & Interruptores de funcionalidad derivados del modo y de las variables de entorno \\
+    \texttt{billing.config.ts} & Proveedor de pago, productos, planes y precios \\
+    \texttt{paths.config.ts} & Rutas de la aplicación \\
+    \texttt{navigation.config.tsx}, \texttt{marketing-navigation.config.tsx} & Menús del área privada y de la web pública \\
+    \texttt{tfg.config.ts} & Bloque académico de la página de inicio \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{Variables de entorno.} Los valores que dependen de la instalación
+se leen de variables de entorno. Las públicas llevan el prefijo
+\texttt{VITE\_} y los secretos (claves de la base de datos y de la pasarela)
+nunca. Los interruptores de los módulos opcionales son:
+
+\begin{itemize}
+  \item \textbf{Equipos}: \texttt{VITE\_ACCOUNT\_MODE}
+        (\texttt{personal-only}, \texttt{organizations-only} o
+        \texttt{hybrid}) decide qué superficies de cuenta existen, y
+        \texttt{VITE\_ENABLE\_TEAM\_ACCOUNTS\_CREATION} y
+        \texttt{\ldots\_DELETION} las afinan. El modo es la única fuente de
+        verdad: un interruptor granular nunca puede reactivar una superficie
+        que el modo desactiva.
+  \item \textbf{Facturación}: \texttt{VITE\_BILLING\_PROVIDER} y
+        \texttt{VITE\_ENABLE\_PERSONAL\_ACCOUNT\_BILLING} /
+        \texttt{VITE\_ENABLE\_TEAM\_ACCOUNTS\_BILLING}; la base de datos
+        mantiene el mismo interruptor en su tabla de configuración para que
+        las políticas RLS también lo respeten.
+  \item \textbf{Bloque TFG}: \texttt{VITE\_SHOW\_TFG\_INFO=false} deja la web
+        limpia de cualquier referencia académica.
+  \item \textbf{Otros}: notificaciones (y su modo en tiempo real), selector
+        de tema, baja de cuentas y métodos de autenticación.
+\end{itemize}
+
+\paragraph{Configuración como datos.} Lo que la pyme debe poder cambiar sin
+desplegar se guarda en la base de datos y se edita desde la consola: el
+nombre visible, la descripción y el área de cada tabla, el formato de sus
+columnas y el diseño de sus fichas (metadatos del CMS); los roles y permisos
+del personal; y las preferencias globales, como la obligatoriedad del MFA.
+
+Finalmente, el monorepo incluye generadores para crear paquetes nuevos con la
+estructura y las dependencias correctas, de modo que la lógica propia de un
+producto se añade como un paquete más sin modificar el núcleo.
+\todo{Confirmar en F5 la documentación de la configuración reutilizable y la
+revisión de los generadores.}

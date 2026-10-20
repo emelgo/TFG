@@ -1,0 +1,262 @@
+% ------------------------------------------------------------------------------
+% Capítulo 1 · Introducción
+% Fuentes: propuesta aprobada del TFG (objetivo, descripción, alcance y EDT),
+% docs/tfg/{PLAN,REQUISITOS,DECISIONES}.md.
+% ------------------------------------------------------------------------------
+
+Este capítulo presenta la motivación del trabajo, sus objetivos y su alcance,
+tal como se fijaron en la propuesta aprobada, y describe la organización del
+resto del documento.
+
+\section{Motivación}
+\label{sec:intro-motivacion}
+
+Las pequeñas y medianas empresas constituyen la inmensa mayoría del tejido
+empresarial europeo~\cite{ec-sme-definition}. Para muchas de ellas, disponer
+de una aplicación web propia ---una tienda, una zona de clientes, un sistema de
+reservas o una herramienta interna--- ha dejado de ser opcional. El modelo de
+\textit{Software as a Service} (SaaS)~\cite{nist-cloud}, en el que la aplicación
+se ofrece a través de la red y se paga por uso o por suscripción, es la forma
+habitual de construir y explotar este tipo de productos.
+
+Sin embargo, cualquier aplicación SaaS, por sencilla que sea su lógica de
+negocio, necesita un conjunto de piezas que se repiten de un proyecto a otro:
+registro e inicio de sesión con verificación de correo y segundo factor,
+cuentas de usuario y de organización, invitaciones y roles, cobro de
+suscripciones, una consola de administración y alguna forma de consultar y
+corregir los datos sin escribir consultas a mano. Ninguna de ellas aporta
+valor diferencial al producto, pero todas tienen que estar bien hechas: un
+error en el control de acceso o en el aislamiento entre clientes compromete
+los datos de todas las empresas que usan la aplicación.
+
+Para un equipo pequeño, o para un desarrollador que da servicio a varias
+pymes, construir estas piezas desde cero en cada proyecto es lento y
+arriesgado. Lo razonable es partir de una base común, ya probada, y dedicar
+el esfuerzo a lo que distingue a cada producto. Esa es la idea que motiva este
+trabajo: disponer de una \textbf{arquitectura software reutilizable} que
+reduzca el tiempo de puesta en marcha de nuevos productos SaaS, facilite la
+reutilización de componentes comunes y estandarice buenas prácticas en
+seguridad, gestión del acceso, persistencia de datos y administración del
+sistema.
+
+% PENDIENTE (P-06): presentación de la parte reutilizada, a confirmar con el tutor.
+Coherentemente con esa misma idea, PymeKit tampoco se ha construido desde
+cero. El trabajo parte de dos bases de código existentes con licencia de uso
+---una base de aplicación SaaS y un gestor de contenidos (CMS) para la base de
+datos--- y las integra, adapta y extiende hasta formar una plataforma única,
+en español y orientada a pymes (decisión ADR-001). El interés de ingeniería
+del trabajo está, por tanto, en el diseño de esa integración, en las
+decisiones de arquitectura que exige, en la verificación de la seguridad de
+un código que no se ha escrito y en la preparación de la plataforma para ser
+reutilizada. En la sección~\ref{sec:intro-alcance} y en el
+capítulo~\ref{cap:contexto} se precisa qué parte es reutilizada y cuál es
+aportación propia.
+
+\section{Objetivos}
+\label{sec:intro-objetivos}
+
+\subsection{Objetivo general}
+
+El objetivo general, tal como figura en la propuesta aprobada, es
+\emph{diseñar, implementar y validar una arquitectura software reutilizable
+que sirva como base para el desarrollo ágil de aplicaciones SaaS orientadas a
+pequeñas y medianas empresas, integrando los componentes esenciales de una
+solución moderna: \textit{frontend}, \textit{backend}, sistema de
+autenticación, gestión de usuarios y roles, integración de pagos y un módulo
+CMS para la administración de contenidos y datos.}
+
+\subsection{Objetivos específicos}
+
+A partir de la descripción y del alcance de la propuesta, el objetivo general
+se descompone en los objetivos específicos de la
+tabla~\ref{tab:intro-objetivos}. Cada uno se relaciona con los requisitos del
+capítulo de Requisitos del Sistema y se retoma en las conclusiones
+(capítulo~\ref{cap:conclusiones}) para valorar su grado de cumplimiento.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Objetivos específicos del trabajo y requisitos relacionados.}
+  \label{tab:intro-objetivos}
+  \begin{tabularx}{\textwidth}{@{}lXl@{}}
+    \toprule
+    \textbf{ID} & \textbf{Objetivo específico} & \textbf{Requisitos} \\
+    \midrule
+    OE-1 & Analizar el contexto de las aplicaciones SaaS para pymes, identificar los componentes comunes reutilizables y definir los requisitos funcionales y no funcionales de la plataforma base. & Todos \\
+    OE-2 & Diseñar una arquitectura modular que separe \textit{frontend}, \textit{backend}, base de datos y servicios auxiliares, con paquetes desacoplados. & RF-01, RF-02, RNF-04 \\
+    OE-3 & Diseñar e implementar la autenticación, la autorización y la gestión de usuarios, equipos y roles, aplicando el control de acceso en la propia base de datos. & RF-03--RF-06, RNF-02, RNF-03 \\
+    OE-4 & Integrar una pasarela de pagos para la gestión de suscripciones. & RF-07 \\
+    OE-5 & Integrar un módulo CMS para la administración de contenidos y de los datos almacenados, con permisos propios y auditoría. & RF-08--RF-11 \\
+    OE-6 & Diseñar un modelo de datos multicliente (\textit{multi-tenant}) con relaciones, restricciones y mecanismos de acceso orientados a la reutilización. & RNF-02, RNF-03 \\
+    OE-7 & Preparar la plataforma para su reutilización: configuración centralizada, estructura de proyecto reproducible e interfaz en español extensible a otros idiomas. & RF-13, RNF-01, RNF-05 \\
+    OE-8 & Validar la solución con pruebas de los principales casos de uso y de la integración entre módulos, y evaluar su reutilización en un escenario de ejemplo. & RNF-01, RNF-06 \\
+    OE-9 & Definir el despliegue y elaborar la documentación: memoria, documentación técnica y manuales de instalación y de uso. & RNF-07 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Alcance}
+\label{sec:intro-alcance}
+
+La propuesta organiza el trabajo en una Estructura de Descomposición del
+Trabajo (EDT) con seis paquetes: (1)~análisis del problema y definición de
+requisitos; (2)~diseño de la arquitectura software; (3)~diseño del modelo de
+datos; (4)~implementación del prototipo funcional; (5)~validación de la
+solución; y (6)~documentación. Los entregables comprometidos son la memoria,
+el software desarrollado, los ficheros de configuración y despliegue, el
+manual de instalación y puesta en marcha y un manual básico de uso. La
+relación entre los paquetes de la EDT y las fases reales del proyecto se
+detalla en el plan de gestión del proyecto (capítulo~\ref{cap:plan}).
+
+El prototipo debe incluir, como mínimo, gestión de usuarios, autenticación,
+persistencia de datos, administración desde un panel CMS e integración con un
+flujo de pago. Dentro de ese marco, a lo largo del proyecto se fijaron estas
+decisiones de alcance:
+
+\begin{itemize}
+  \item \textbf{Plataforma genérica.} PymeKit es una base reutilizable, no
+        una aplicación de un sector concreto. Su configuración por defecto
+        corresponde a la web de \emph{una} pyme: página pública y blog,
+        acceso de clientes y personal, pagos y una consola de administración
+        (ADR-005, ADR-020). Los equipos y las suscripciones se conservan
+        como módulos que cada instalación activa si los necesita.
+  \item \textbf{Un único CMS, de datos.} La propuesta pide un CMS para la
+        administración de contenidos y de datos. Se cubre con un CMS que
+        trabaja directamente sobre las tablas de la base de datos. El
+        contenido editorial (el blog) se guarda también en la base de datos y
+        se gestiona desde ese mismo CMS, en lugar de mantener un segundo gestor
+        de contenidos basado en ficheros (ADR-004, ADR-017).
+  \item \textbf{CMS integrado en la consola.} El CMS no es una aplicación
+        aparte: forma parte de la consola de administración de la web, con un
+        solo servicio y un solo inicio de sesión (ADR-011).
+  \item \textbf{Interfaz solo en español}, sin textos escritos directamente
+        en el código, de modo que añadir otro idioma sea un punto de
+        extensión documentado (ADR-021).
+  \item \textbf{Fuera de alcance:} aplicaciones móviles nativas, la lógica
+        de negocio de un sector concreto, la facturación fiscal (emisión de
+        facturas con validez legal) y la explotación en producción con
+        clientes reales. Los pagos funcionan en el modo de pruebas de la
+        pasarela.
+\end{itemize}
+
+% PENDIENTE (P-06): distinción entre lo reutilizado y lo propio, a confirmar con el tutor.
+\paragraph{Parte reutilizada y aportaciones propias.}
+Al partir de bases existentes, conviene delimitar con precisión qué aporta este
+trabajo. Se reutilizan, adaptados, la aplicación SaaS de partida (rutas web,
+autenticación, cuentas personales y de equipo, facturación con Stripe, panel
+de super-administración y su esquema de base de datos con políticas RLS) y el
+CMS de partida (servicios de acceso a datos, API, esquema de permisos,
+explorador de datos, de usuarios y de almacenamiento, auditoría y paneles).
+Son aportaciones propias:
+
+\begin{itemize}
+  \item la \textbf{integración del CMS} en la consola de administración de la
+        web (ADR-011): montaje de su API dentro del servidor web, reescritura
+        de sus pantallas sobre el enrutador de la aplicación, unificación de
+        la sesión y del control de acceso entre los dos modelos de permisos
+        (ADR-014, ADR-016) y fusión de los dos esquemas de base de datos en
+        una sola (ADR-012);
+  \item la \textbf{unificación de la pila} de librerías de formularios,
+        textos y componentes de interfaz en toda la web (ADR-013);
+  \item el \textbf{desmarcado} completo del código de partida y su
+        verificación automática;
+  \item la \textbf{interfaz en español} sobre una infraestructura de
+        internacionalización extensible (ADR-021);
+  \item la \textbf{consola por áreas de negocio}, con nombres en español
+        para las tablas, ayudas contextuales en los formularios y un resumen
+        en cada pantalla (ADR-020);
+  \item la \textbf{corrección documentada de fallos de seguridad} del código
+        de partida, detectados mediante auditorías adversariales y fijados
+        con pruebas de regresión (ADR-015 y bitácora de incidencias);
+  \item el \textbf{proceso de desarrollo asistido por IA}, con un arnés de
+        directrices, comprobaciones automáticas y revisiones;
+  \item la \textbf{configuración reutilizable} centralizada, el
+        \textbf{despliegue} y la \textbf{documentación} técnica y de usuario.
+\end{itemize}
+
+\section{Glosario de términos}
+\label{sec:intro-glosario}
+
+\begin{description}[style=nextline,leftmargin=1.2cm]
+  \item[AAL (\textit{Authenticator Assurance Level})] Nivel de garantía de
+        una sesión: \texttt{aal1} tras la contraseña o el enlace mágico;
+        \texttt{aal2} tras verificar además un segundo factor.
+  \item[ADR (\textit{Architecture Decision Record})] Registro breve de una
+        decisión de arquitectura con su contexto, alternativas y
+        consecuencias~\cite{nygard2011adr}.
+  \item[BaaS (\textit{Backend as a Service})] Servicio que ofrece ya
+        construidos la base de datos, la autenticación, el almacenamiento y
+        una API, de modo que la aplicación no necesita un \textit{backend}
+        propio para esas funciones.
+  \item[CMS (\textit{Content Management System})] Sistema para gestionar
+        contenidos. En este trabajo, un CMS \emph{de datos}: una interfaz para
+        consultar y editar las tablas de la base de datos con permisos.
+  \item[E2E (\textit{end-to-end})] Prueba que ejercita la aplicación completa
+        a través de un navegador, como lo haría un usuario.
+  \item[EDT] Estructura de Descomposición del Trabajo (\textit{Work Breakdown
+        Structure}).
+  \item[Harness (arnés)] Conjunto de directrices, procedimientos y
+        comprobaciones automáticas que acota y verifica el trabajo de los
+        agentes de IA en el repositorio.
+  \item[i18n] Internacionalización: preparar el software para mostrar sus
+        textos en varios idiomas sin modificar el código.
+  \item[MFA (\textit{Multi-Factor Authentication})] Autenticación con más de
+        un factor; aquí, contraseña más un código temporal (TOTP).
+  \item[Monorepo] Repositorio único que contiene varias aplicaciones y
+        paquetes con dependencias explícitas entre ellos.
+  \item[Multi-tenant (multicliente)] Arquitectura en la que una sola
+        instalación da servicio a varios clientes (\textit{tenants}) cuyos
+        datos deben quedar aislados entre sí.
+  \item[pgTAP] Marco de pruebas unitarias para PostgreSQL~\cite{pgtap}.
+  \item[Pyme] Pequeña y mediana empresa: menos de 250 personas empleadas y un
+        volumen de negocio anual de hasta 50 millones de euros o un balance
+        de hasta 43 millones~\cite{ec-sme-definition}.
+  \item[RBAC (\textit{Role-Based Access Control})] Control de acceso basado
+        en roles a los que se asignan permisos.
+  \item[RLS (\textit{Row Level Security})] Mecanismo de PostgreSQL que filtra
+        las filas que cada usuario puede leer o modificar mediante
+        políticas~\cite{postgresql-rls}.
+  \item[SaaS (\textit{Software as a Service})] Modelo en el que el proveedor
+        ofrece una aplicación a través de la red sobre una infraestructura
+        que gestiona él mismo~\cite{nist-cloud}.
+  \item[\textit{Server function}] Función que se ejecuta en el servidor pero
+        se invoca desde el cliente como una llamada tipada.
+  \item[Super-admin] Administrador de la plataforma, con acceso a la consola
+        y a todos los permisos del CMS.
+\end{description}
+
+\section{Organización del documento}
+\label{sec:intro-organizacion}
+
+La memoria sigue la estructura de la plantilla de la Escuela Superior de
+Ingeniería y se divide en cuatro partes:
+
+\begin{itemize}
+  \item \textbf{Prolegómeno.} Este capítulo de introducción; el
+        capítulo~\ref{cap:contexto}, de antecedentes, con la situación de las
+        pymes ante el software SaaS, el estado de la técnica y la
+        justificación de la solución; y el capítulo~\ref{cap:plan}, con el
+        plan de gestión del proyecto: metodología, tecnologías,
+        planificación, organización, costes, riesgos, gestión de la
+        configuración y aseguramiento de la calidad.
+  \item \textbf{Desarrollo.} Los capítulos de requisitos, análisis, diseño,
+        construcción, pruebas y despliegue del sistema, que recorren las
+        etapas del proceso de ingeniería con los diagramas, las decisiones y
+        los fragmentos de código más significativos.
+  \item \textbf{Epílogo.} Las conclusiones (capítulo~\ref{cap:conclusiones}),
+        con el grado de cumplimiento de los objetivos, las lecciones
+        aprendidas y el trabajo futuro; la información sobre la licencia y la
+        bibliografía.
+  \item \textbf{Anexos.} El manual del desarrollador
+        (anexo~\ref{cap:manual-desarrollador}), el manual de usuario
+        (anexo~\ref{cap:manual-usuario}) y la evaluación de la reutilización
+        de la plataforma (anexo~\ref{cap:evaluacion}).
+\end{itemize}
+
+El software se entrega como un repositorio git con el monorepo completo:
+código de la aplicación y del CMS, esquemas, migraciones y pruebas de la base
+de datos, pruebas de extremo a extremo, configuración de integración continua
+y de despliegue, y la documentación interna del proyecto (plan, requisitos,
+decisiones, trazabilidad y bitácora). Por las condiciones de licencia del
+código de partida, el repositorio es privado (véase la información sobre
+licencia).

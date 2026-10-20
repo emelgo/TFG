@@ -1,19 +1,38 @@
 # Memoria del TFG
 
-Esta carpeta contiene la memoria del TFG en LaTeX, basada en la plantilla oficial que el autor tiene en Overleaf.
+Memoria en LaTeX basada en la plantilla oficial de TFG de la ESI-UCA (importada desde Overleaf el 2026-10-20).
 
-## Cómo traer la plantilla desde Overleaf (pendiente, P-04)
+## Estructura
 
-1. Abre el proyecto en [overleaf.com](https://www.overleaf.com).
-2. Pulsa **Menú** (icono ☰, arriba a la izquierda).
-3. En la sección **Descargar**, elige **Código fuente**. Se descarga un `.zip` con todos los `.tex`, las imágenes y el `.bib`.
-4. Descomprímelo en esta carpeta, `memoria/`. También puedes dejar el `.zip` en `/home/admin/TFG/` y pedir a Claude que lo integre.
-5. Comprueba que compila en local con `latexmk -pdf <principal>.tex` (hace falta tener instalado TeX Live) o vuelve a subirlo a Overleaf.
+| Ruta | Contenido |
+|---|---|
+| `main.tex` | Documento principal: portadas, Prolegómeno, Desarrollo, Epílogo y Anexos |
+| `config/` | Paquetes (`packages.tex`) y estilos (`styles.tex`) de la plantilla, más los añadidos para PymeKit (TikZ, `booktabs`, `pgfgantt`…) |
+| `sections/frontmatter/` | Portadas, agradecimientos y resumen |
+| `sections/preface/` | Introducción, antecedentes y plan de gestión del proyecto |
+| `sections/development/` | Requisitos, análisis, diseño, construcción, pruebas y despliegue |
+| `sections/epilogue/` | Conclusiones y licencia |
+| `sections/backmatter/` | Manual del desarrollador, manual de usuario y evaluación de la reutilización |
+| `figures/` | Logotipos e imágenes |
+| `diagramas/` | Versiones PlantUML de algunas figuras (opcionales) |
+| `bibliography.bib` | Bibliografía. Las entradas marcadas `% VERIFICAR` deben comprobarse antes de la entrega |
 
-> Alternativa: con Overleaf Premium se puede sincronizar el proyecto con GitHub o por git (Menú → Sincronizar). Con la versión gratuita, el método es el `.zip`.
+## Compilar
 
-## Organización
+En el servidor (TeX Live instalado):
 
-- `borradores/`: secciones redactadas con `/seccion-memoria` mientras no existe la plantilla. Luego se mueven a los capítulos correspondientes.
-- La estructura de capítulos prevista está en `docs/tfg/PLAN.md` (F8).
-- Los artefactos de compilación (`*.aux`, `*.log`, …) están ignorados en `.gitignore`.
+```bash
+cd memoria
+latexmk -pdf -outdir=build main.tex   # build/ está ignorado por git
+```
+
+## Llevarlo a Overleaf
+
+1. Comprime la carpeta `memoria/` sin `build/` (por ejemplo, `zip -r memoria.zip memoria -x 'memoria/build/*'`).
+2. En Overleaf: **Nuevo proyecto → Subir proyecto** y elige el `.zip`. El documento principal es `main.tex`.
+
+## Pendientes del autor
+
+- Los `\todo{…}` se ven en el PDF como notas al margen. Para la versión final se compila con `todonotes` en modo `disable` (`config/packages.tex`).
+- En el fuente quedan comentarios `% PENDIENTE (P-06)`: cómo se presenta la parte reutilizada. Hay que confirmarlo con el tutor.
+- La memoria no nombra los proyectos de referencia (ADR-007); `node scripts/tfg/check-branding.mjs` también revisa esta carpeta.

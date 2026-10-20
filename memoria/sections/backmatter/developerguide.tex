@@ -1,0 +1,415 @@
+% ------------------------------------------------------------------------------
+% Anexo · Manual del desarrollador
+% Fuentes: package.json (raíz y apps/web), README.md, AGENTS.md,
+% apps/web/supabase/AGENTS.md, apps/web/src/config/*.config.ts, apps/web/.env*,
+% packages/i18n/README.md, .github/workflows/ci.yml. Estado: 20/10/2026.
+% Los bloques lstlisting solo contienen caracteres ASCII (listings no admite
+% UTF-8 multibyte sin configuración adicional).
+% ------------------------------------------------------------------------------
+\label{cap:manual-desarrollador}
+
+Este manual se dirige a quien vaya a evolucionar PymeKit o a construir sobre
+él un SaaS nuevo. Explica cómo preparar el entorno, cómo está organizado el
+código, cómo se trabaja con la base de datos, cómo se añade una tabla de
+negocio que aparezca en la consola, qué se configura sin tocar el núcleo y cómo
+se prueba y se despliega. Para la arquitectura y las decisiones que hay detrás
+de cada pieza, véanse los capítulos de Diseño y de Construcción del Sistema.
+
+\section{Introducción}
+\label{sec:dg-introduccion}
+
+PymeKit es un monorepo con una única aplicación web que contiene el área
+pública, el área privada de los clientes, la consola de administración y la
+API del CMS, más un conjunto de paquetes reutilizables. Todo comparte una sola
+base de datos PostgreSQL gestionada con Supabase, cuyas políticas RLS son la
+frontera de seguridad. Las directrices completas para personas y agentes de IA
+están en el fichero \texttt{AGENTS.md} de la raíz y en los de cada paquete;
+este manual resume lo imprescindible.
+
+\section{Preparación del entorno de trabajo}
+\label{sec:dg-entorno}
+
+\subsection{Requisitos}
+
+\begin{itemize}
+  \item Node.js 20.10 o superior (se recomienda la versión 24).
+  \item pnpm 11 (la versión exacta se fija en el campo
+        \texttt{packageManager} del \texttt{package.json} raíz).
+  \item Docker, que usa la instancia local de Supabase. El usuario debe poder
+        ejecutar Docker sin \texttt{sudo}.
+  \item Git y acceso al repositorio privado del proyecto.
+  \item Opcional: Stripe CLI (se ejecuta en un contenedor) para recibir los
+        \textit{webhooks} de pago en local.
+\end{itemize}
+
+\paragraph{Advertencia de seguridad.} Si se desarrolla en un servidor con IP
+pública, los puertos que publica Docker pueden quedar expuestos aunque haya un
+cortafuegos, porque Docker inserta sus propias reglas. Hay que filtrar en la
+cadena \texttt{DOCKER-USER} o enlazar los servicios a \texttt{127.0.0.1} y
+acceder mediante un túnel SSH (ADR-010, incidencia B-04).
+
+\subsection{Arranque local}
+
+\begin{lstlisting}[language=bash]
+git clone <url-del-repositorio> pymekit && cd pymekit
+pnpm install                # dependencias de todo el monorepo
+pnpm supabase:web:start     # Postgres, Auth, Storage y Studio en Docker
+pnpm dev                    # aplicacion web en http://localhost:3100
+\end{lstlisting}
+
+El primer arranque de Supabase aplica todas las migraciones y el
+\textit{seed}. Una vez en marcha, quedan disponibles los servicios de la
+tabla~\ref{tab:dg-puertos}.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Servicios del entorno local.}
+  \label{tab:dg-puertos}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{4.4cm}X@{}}
+    \toprule
+    \textbf{Servicio} & \textbf{Dirección} & \textbf{Uso} \\
+    \midrule
+    Aplicación web & \texttt{http://localhost:3100} & Web pública, área privada, consola y API del CMS (ADR-009) \\
+    API de Supabase & \texttt{http://127.0.0.1:54321} & Auth, Storage y API de datos \\
+    PostgreSQL & \texttt{127.0.0.1:54322} & Conexión directa a la base de datos \\
+    Supabase Studio & \texttt{http://127.0.0.1:54323} & Herramienta de desarrollo para inspeccionar la base de datos \\
+    Correo de pruebas & \texttt{http://127.0.0.1:54324} & Bandeja donde llegan los correos de verificación, invitaciones y enlaces \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{Usuarios de desarrollo.} El \textit{seed} crea, con la contraseña
+\texttt{testingpassword}, las cuentas \texttt{test@pymekit.test},
+\texttt{owner@pymekit.test}, \texttt{member@pymekit.test},
+\texttt{custom@pymekit.test}, \texttt{super-admin@pymekit.test} y
+\texttt{cms-staff@pymekit.test} (personal del CMS con el rol «Soporte»). Las dos
+últimas tienen un factor TOTP verificado cuyo secreto está en
+\texttt{apps/web/supabase/seed.sql}; hay que darlo de alta en una aplicación de
+códigos para entrar en la consola. Son credenciales públicas de desarrollo,
+válidas solo contra la instancia local (B-03).
+
+\paragraph{Variables de entorno.} Los valores públicos van en
+\texttt{apps/web/.env} (compartido) y \texttt{.env.development},
+\texttt{.env.test} o \texttt{.env.production}. Los secretos
+---\texttt{SUPABASE\_SECRET\_KEY}, \texttt{STRIPE\_SECRET\_KEY},
+\texttt{STRIPE\_WEBHOOK\_SECRET}, credenciales del correo--- se ponen en
+\texttt{apps/web/.env.local}, que está excluido del repositorio, o en las
+variables de la plataforma de despliegue. Nunca se suben al repositorio.
+
+\paragraph{Pagos en local.} Para probar la facturación hay que añadir las
+claves de prueba de Stripe (\texttt{VITE\_STRIPE\_PUBLISHABLE\_KEY} y los dos
+secretos anteriores) y reenviar los \textit{webhooks} a la aplicación con
+\texttt{pnpm stripe:listen}, que publica los eventos en
+\texttt{/api/billing/webhook}.
+
+\section{Estructura del monorepo}
+\label{sec:dg-estructura}
+
+La tabla~\ref{tab:dg-estructura} resume dónde está cada cosa.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Estructura del monorepo.}
+  \label{tab:dg-estructura}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{5.3cm}X@{}}
+    \toprule
+    \textbf{Ruta} & \textbf{Contenido} \\
+    \midrule
+    \texttt{apps/web} & Aplicación TanStack Start (React 19): rutas por fichero en \texttt{src/routes}, \textit{server functions} en ficheros \texttt{*.functions.ts}, configuración en \texttt{src/config} \\
+    \texttt{apps/web/src/routes/\_marketing} & Web pública: inicio, precios, blog, contacto, páginas legales \\
+    \texttt{apps/web/src/routes/\_authenticated} & Área privada: panel, ajustes, miembros, facturación, creación de equipos \\
+    \texttt{apps/web/src/routes/admin} & Consola: inicio y gestión de cuentas (\texttt{/admin}) y pantallas del CMS (\texttt{/admin/cms}) \\
+    \texttt{apps/web/src/routes/api} & Rutas de servidor: API del CMS (\texttt{/api/cms/\$}), \textit{webhooks} de pagos y de base de datos, estado de salud \\
+    \texttt{apps/web/supabase} & Esquemas declarativos, migraciones, \textit{seed}, plantillas de correo y pruebas pgTAP de toda la base de datos \\
+    \texttt{apps/e2e} & Pruebas Playwright de la web y del CMS \\
+    \texttt{packages/features/*} & Autenticación, cuentas, equipos, administración y notificaciones \\
+    \texttt{packages/billing/*} & Núcleo de facturación, pasarela y proveedor Stripe \\
+    \texttt{packages/cms/*} & CMS: servicios Drizzle y rutas Hono (solo servidor), componentes de interfaz, filtros, formateadores, permisos \\
+    \texttt{packages/function-middleware} & \textit{Middleware} de las \textit{server functions}: usuario autenticado, miembro de equipo, super-admin, rol mínimo y permiso \\
+    \texttt{packages/supabase} & Clientes de Supabase y tipos generados de la base de datos \\
+    \texttt{packages/ui}, \texttt{packages/i18n} & Componentes de interfaz y textos (catálogos de mensajes) \\
+    \texttt{packages/*} (resto) & Correo, plantillas de correo, analítica, monitorización, OTP, políticas, utilidades compartidas \\
+    \texttt{tooling}, \texttt{turbo/generators} & Configuración compartida y generadores de paquetes \\
+    \texttt{docs/tfg}, \texttt{scripts/tfg} & Documentación interna del proyecto y scripts de control \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Los paquetes internos se importan con el \textit{scope} \texttt{@pymekit/*}
+(los del CMS, \texttt{@pymekit/cms-*}). Los módulos que solo deben ejecutarse
+en el servidor llevan el sufijo \texttt{.server.ts}, y las rutas Hono y los
+servicios del CMS nunca se importan desde componentes.
+
+\section{Consideraciones generales sobre el desarrollo}
+\label{sec:dg-consideraciones}
+
+\begin{itemize}
+  \item \textbf{Server functions.} Se definen con \texttt{createServerFn} en
+        ficheros \texttt{*.functions.ts}, con la cadena
+        \texttt{.middleware(...).validator(esquemaZod).handler(...)}, y se
+        llaman desde el cliente con \texttt{useMutation} y
+        \texttt{useServerFn}.
+  \item \textbf{Clientes de base de datos.} El cliente de servidor y el del
+        navegador aplican RLS. El cliente de administración la ignora: se usa
+        lo mínimo posible, con validación manual y un comentario que lo
+        justifique.
+  \item \textbf{Formularios}: TanStack Form con los campos de
+        \texttt{@pymekit/ui/field} y validación con Zod, también en el CMS.
+  \item \textbf{Textos}: ningún texto visible ---tampoco \texttt{aria-label},
+        \texttt{title}, \texttt{alt} ni \texttt{placeholder}--- se escribe en
+        el código; se añade una clave en
+        \texttt{packages/i18n/src/messages/es/} (sección~\ref{sec:dg-i18n}).
+  \item \textbf{Comentarios} en español didáctico: cabecera en cada fichero
+        con lógica, documentación de las funciones exportadas y justificación
+        de toda decisión de seguridad. Los puntos que se citan en la memoria
+        llevan la etiqueta \texttt{[TFG]} con el requisito.
+  \item \textbf{Registro}: \texttt{getLogger()} de
+        \texttt{@pymekit/shared/logger}; nunca \texttt{console.log} en
+        producción.
+  \item \textbf{Git}: ramas \texttt{fase-N/tema}, \textit{commits} en español
+        con \textit{Conventional Commits} y el módulo como ámbito.
+\end{itemize}
+
+\section{Base de datos}
+\label{sec:dg-bd}
+
+\subsection{Esquemas, migraciones y tipos}
+
+El esquema se escribe de forma declarativa en
+\texttt{apps/web/supabase/schemas/}, en ficheros numerados cuyo prefijo fija el
+orden de dependencias: \texttt{00}--\texttt{18} plataforma SaaS,
+\texttt{19} blog y \texttt{20}--\texttt{55} CMS (esquema \texttt{cms}). Las
+migraciones se generan a partir de los esquemas, nunca a mano:
+
+\begin{lstlisting}[language=bash]
+# 1. Editar o crear el fichero de esquema (schemas/NN-nombre.sql)
+# 2. Generar la migracion a partir de la diferencia
+pnpm --filter web run supabase:db:diff -f nombre_del_cambio
+# 3. Aplicarla y regenerar los tipos TypeScript
+pnpm --filter web supabase migrations up
+pnpm supabase:web:typegen
+# 4. Comprobar que no queda diferencia (no debe mencionar el cambio)
+pnpm --filter web run supabase:db:diff
+\end{lstlisting}
+
+La herramienta de diferencias no genera los \texttt{revoke} por tabla, los
+\texttt{grant} por columna ni la opción \texttt{security\_invoker} de las
+vistas (B-35): hay que escribirlos a mano en la migración y comprobarlos con
+pgTAP. Las migraciones nunca son destructivas. \texttt{pnpm
+supabase:web:reset} recrea la base de datos local desde cero, con las
+migraciones y el \textit{seed}, y conviene ejecutarlo antes de fiarse de una
+ejecución de las pruebas.
+
+\subsection{Reglas de seguridad}
+
+\begin{itemize}
+  \item RLS activada en toda tabla nueva, con políticas basadas en las
+        funciones auxiliares existentes (\texttt{has\_role\_on\_account},
+        \texttt{has\_permission}, \texttt{is\_mfa\_compliant}).
+  \item \texttt{revoke all} a \texttt{anon}, \texttt{authenticated} y
+        \texttt{service\_role} tras crear la tabla, y después solo los verbos
+        que use la funcionalidad. \texttt{UPDATE} siempre por columnas, sin
+        incluir \texttt{id} ni \texttt{account\_id}.
+  \item Ninguna función \texttt{security definer} sin controles de acceso
+        explícitos.
+  \item Todo cambio de políticas, \texttt{grant}, funciones
+        \texttt{security definer} o vistas lleva pruebas pgTAP y una revisión
+        adversarial de RLS.
+\end{itemize}
+
+\subsection{Pruebas pgTAP}
+
+Las pruebas están en \texttt{apps/web/supabase/tests/database/*.test.sql} y se
+ejecutan con \texttt{pnpm supabase:web:test}. El fichero
+\texttt{00000-pymekit-helpers.sql} define el esquema auxiliar
+\texttt{pymekit.*}, con funciones como \texttt{pymekit.authenticate\_as(...)}
+para simular a un usuario concreto; las del CMS usan además
+\texttt{00001-cms-test-helpers.sql}. Una prueba de aislamiento típica se
+autentica como miembro de un equipo e intenta leer o modificar datos de otro.
+
+\section{Añadir una tabla de negocio}
+\label{sec:dg-tabla}
+
+Este es el caso más habitual al construir un SaaS sobre PymeKit. Como ejemplo,
+una tabla de citas (\texttt{appointments}) que pertenece a una cuenta de
+equipo y debe gestionarse desde la consola en un área «Agenda».
+
+\paragraph{1. Esquema con RLS.} Se crea
+\texttt{apps/web/supabase/schemas/56-appointments.sql} a partir de la
+plantilla de tabla de \texttt{apps/web/supabase/AGENTS.md}:
+
+\begin{lstlisting}[language=SQL]
+create table if not exists public.appointments (
+  id uuid not null default extensions.uuid_generate_v4(),
+  account_id uuid references public.accounts(id) on delete cascade not null,
+  customer_name varchar(255) not null,
+  starts_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  created_by uuid references auth.users on delete set null,
+  updated_by uuid references auth.users on delete set null,
+  primary key (id)
+);
+
+alter table public.appointments enable row level security;
+revoke all on public.appointments from anon, authenticated, service_role;
+grant select, insert, update, delete on public.appointments to service_role;
+grant select, insert on public.appointments to authenticated;
+
+create policy appointments_read on public.appointments for select
+  to authenticated using (public.has_role_on_account(account_id));
+create policy appointments_insert on public.appointments for insert
+  to authenticated with check (public.has_role_on_account(account_id));
+create policy restrict_mfa_appointments on public.appointments
+  as restrictive to authenticated using (public.is_mfa_compliant());
+\end{lstlisting}
+
+La plantilla completa añade además los \textit{triggers} de marcas de tiempo y
+de trazabilidad y un índice por \texttt{account\_id}.
+
+\paragraph{2. Migración, tipos y pruebas.} Se genera la migración con
+\texttt{supabase:db:diff -f appointments}, se completan a mano los
+\texttt{revoke}, se aplica, se regeneran los tipos y se añade
+\texttt{tests/database/appointments.test.sql} comprobando que un miembro de
+otro equipo no puede leer ni insertar citas ajenas. Si la tabla está en
+\texttt{public}, hay que confirmar que \texttt{anon-surface.test.sql} sigue
+pasando: el rol anónimo solo puede leer el blog.
+
+\paragraph{3. Registro en el CMS.} Para que la consola conozca la tabla, se
+sincronizan sus metadatos. Puede hacerse desde la interfaz («Ajustes»
+$\rightarrow$ «Recursos» $\rightarrow$ «Sincronizar tablas») o, para que
+quede en todas las instalaciones, en la propia migración:
+
+\begin{lstlisting}[language=SQL]
+select cms.sync_managed_tables('public', 'appointments');
+
+update cms.table_metadata
+set display_name = 'Citas',
+    ui_config = coalesce(ui_config, '{}'::jsonb)
+      || jsonb_build_object('navigation_group', 'Agenda')
+where schema_name = 'public' and table_name = 'appointments';
+\end{lstlisting}
+
+La clave \texttt{navigation\_group} de \texttt{ui\_config} es el área de la
+barra lateral: si no existe, se crea. La sincronización conserva lo ya
+configurado, de modo que puede repetirse sin perder los cambios. Los nombres
+de las columnas, sus descripciones (la ayuda «?»), su formato y el diseño de
+la ficha se ajustan después en «Ajustes» $\rightarrow$ «Recursos», sin código
+(el ejemplo de la migración \texttt{20261002140000\_cms\_navigation\_groups.sql}
+muestra cómo fijarlos también por migración).
+
+\paragraph{4. Permisos del personal.} El super-administrador ve la tabla
+inmediatamente. Para el resto del personal, se crean o amplían roles en
+«Ajustes» $\rightarrow$ «Roles y permisos» con permisos de datos sobre
+\texttt{public.appointments}. El CMS accede a las tablas mediante funciones
+del esquema \texttt{cms} que comprueban esos permisos y registran cada escritura
+en la auditoría; las políticas RLS de la tabla siguen protegiendo el acceso de
+los clientes desde la aplicación.
+
+\paragraph{5. Interfaz del cliente.} Si los clientes también deben ver las
+citas, se añade una ruta en \texttt{apps/web/src/routes/\_authenticated}, una
+\textit{server function} con \texttt{teamAccountFunctionMiddleware} y los
+textos en el catálogo de mensajes.
+
+\section{Configuración reutilizable}
+\label{sec:dg-configuracion}
+
+Adaptar PymeKit a un producto nuevo empieza por la configuración, sin tocar el
+núcleo (RNF-01). Los ficheros de \texttt{apps/web/src/config} validan sus
+valores con Zod al arrancar, de modo que un error de configuración se detecta
+de inmediato (tabla~\ref{tab:dg-configuracion}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Ficheros de configuración y variables principales.}
+  \label{tab:dg-configuracion}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.3cm}X@{}}
+    \toprule
+    \textbf{Fichero} & \textbf{Qué configura (variables)} \\
+    \midrule
+    \texttt{app.config.ts} & Nombre, título, descripción, URL, tema y colores (\texttt{VITE\_PRODUCT\_NAME}, \texttt{VITE\_SITE\_TITLE}, \texttt{VITE\_SITE\_DESCRIPTION}, \texttt{VITE\_SITE\_URL}, \texttt{VITE\_DEFAULT\_THEME\_MODE}, \texttt{VITE\_THEME\_COLOR}, \texttt{VITE\_THEME\_COLOR\_DARK}); en producción exige HTTPS \\
+    \texttt{account-mode.config.ts} & Modo de cuentas: \texttt{personal-only}, \texttt{organizations-only} o \texttt{hybrid} (\texttt{VITE\_ACCOUNT\_MODE}); es la fuente única de qué superficies existen \\
+    \texttt{feature-flags.config.ts} & Interruptores: selector de tema, borrado de cuentas personales y de equipo, creación de equipos, facturación personal y de equipo, notificaciones (\texttt{VITE\_ENABLE\_*}) \\
+    \texttt{auth.config.ts} & Métodos de acceso: contraseña, enlace mágico, CAPTCHA (\texttt{VITE\_AUTH\_PASSWORD}, \texttt{VITE\_AUTH\_MAGIC\_LINK}, \texttt{VITE\_CAPTCHA\_SITE\_KEY}) \\
+    \texttt{billing.config.ts} & Proveedor (\texttt{VITE\_BILLING\_PROVIDER}), planes, periodicidades, precios e identificadores de precio de la pasarela \\
+    \texttt{paths.config.ts} & Rutas de la aplicación (inicio de sesión, panel, ajustes, facturación\ldots) \\
+    \texttt{navigation.config.tsx}, \texttt{marketing-navigation.config.tsx} & Menús del área privada y de la web pública \\
+    \texttt{tfg.config.ts} & Bloque «Proyecto académico» y recorrido de la demostración en la página de inicio (\texttt{VITE\_SHOW\_TFG\_INFO}); una pyme real lo desactiva con \texttt{false} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+A esta configuración por ficheros se suma la configuración \emph{como datos}
+de la consola ---nombres de tablas y columnas, áreas, formatos, diseño de las
+fichas y roles del personal---, que se cambia desde la propia interfaz
+(sección~\ref{sec:dg-tabla}). El puerto de la aplicación (3100) se fija en
+\texttt{vite.config.ts} y en la variable \texttt{PORT}.
+
+\section{Internacionalización}
+\label{sec:dg-i18n}
+
+La interfaz solo ofrece el español, pero todos sus textos salen de catálogos
+de mensajes (ADR-021). Para añadir un texto, se crea la clave en inglés en
+\texttt{packages/i18n/src/messages/es/<namespace>.json} con el valor en español
+y se usa con el componente \texttt{Trans} o con las funciones de mensajes. Las
+etiquetas de los valores de los enumerados de la base de datos van en
+\texttt{common.enums.<enumerado>.<valor>}.
+
+Añadir un idioma es un punto de extensión documentado en
+\texttt{packages/i18n/README.md}. En resumen: copiar
+\texttt{src/messages/es/} con el código del idioma nuevo y traducir los
+valores; registrarlo en \texttt{src/messages/index.ts} y en
+\texttt{supportedLocales} de \texttt{src/config.ts}; crear las traducciones de
+los correos en \texttt{packages/email-templates}; elegir el idioma de los
+mensajes de validación; volver a mostrar el selector de idioma; y ejecutar
+\texttt{pnpm --filter @pymekit/i18n test:unit}, cuya prueba comprueba que el
+nuevo catálogo tiene exactamente las mismas claves y marcadores que el
+español.
+
+\section{Pruebas}
+\label{sec:dg-pruebas}
+
+\begin{lstlisting}[language=bash]
+pnpm typecheck              # tipos de todos los paquetes
+pnpm lint:fix && pnpm format:fix
+pnpm test:unit              # pruebas unitarias (Vitest)
+pnpm supabase:web:test      # pruebas de base de datos (pgTAP)
+
+# Pruebas E2E: contra la build de test, no contra el servidor de desarrollo
+pnpm --filter web build:test
+pnpm --filter web start:test &
+pnpm --filter web-e2e test
+\end{lstlisting}
+
+Las pruebas E2E se lanzan contra la \textit{build} de test porque el inicio de
+sesión automatizado falla contra el servidor de desarrollo (B-13); con
+\texttt{pnpm --filter web-e2e test:ui} se abre la interfaz gráfica de Playwright.
+Antes de dar por terminado un cambio se completa además la verificación del
+proyecto: \texttt{node scripts/tfg/check-branding.mjs} (ninguna referencia a la
+marca del código de partida), revisión del cambio y, si se tocó la base de
+datos, revisión de RLS. La integración continua
+(\texttt{.github/workflows/ci.yml}) repite los controles, los tipos, el
+\textit{lint}, el formato y las pruebas unitarias en cada \textit{push}, y la
+base de datos y las E2E en las \textit{pull requests} hacia \texttt{main}.
+
+\section{Instrucciones para la construcción y el despliegue}
+\label{sec:dg-construccion}
+
+\begin{lstlisting}[language=bash]
+pnpm build                  # construye todos los paquetes y la web
+pnpm --filter web start     # sirve la build de produccion (.output/)
+\end{lstlisting}
+
+El servidor de producción lee las variables de \texttt{apps/web/.env} y del
+entorno, escucha en el puerto de \texttt{PORT} y expone
+\texttt{/api/healthcheck} para las comprobaciones de salud. La base de datos de
+un proyecto de Supabase en la nube se actualiza con
+\texttt{pnpm --filter web supabase:deploy}, que enlaza el proyecto
+(\texttt{SUPABASE\_PROJECT\_REF}) y aplica las migraciones pendientes. El
+fichero \texttt{railway.json} define la construcción y el arranque en la
+plataforma de despliegue. El procedimiento completo, con la configuración de
+Supabase y de Stripe en la nube, se describe en el capítulo de Despliegue del
+Sistema (capítulo~\ref{cap:despliegue}).
