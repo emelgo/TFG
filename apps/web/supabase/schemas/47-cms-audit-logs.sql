@@ -1,6 +1,15 @@
 
--- SECTION: AUDIT LOG TABLE
--- In this section, we define the audit log table. This table is used to store the audit logs.
+/*
+ * -------------------------------------------------------
+ * Sección: Registro de auditoría del CMS
+ * Guarda quién hizo qué desde el panel de administración (operación,
+ * tabla, registro y datos antes y después). Es de solo lectura para el
+ * personal: las entradas las escriben únicamente funciones del sistema, de
+ * modo que nadie puede fabricar, alterar ni borrar su propio rastro, y los
+ * datos de fila se redactan en la base de datos según los permisos de quien
+ * lee.
+ * -------------------------------------------------------
+ */
 create table if not exists cms.audit_logs (
   id UUID primary key default gen_random_uuid (),
   created_at TIMESTAMPTZ not null default now(),
@@ -61,7 +70,7 @@ comment on column cms.audit_logs.actor_account_id is
 comment on column cms.audit_logs.actor_email is
   'Instantánea del correo de Auth de quien actuó, tomada al escribir la entrada';
 
--- Grants
+-- Permisos de tabla.
 -- [TFG] RNF-02 · Integridad del registro de auditoría (PymeKit, F2.6): el
 -- personal del CMS solo puede LEER las entradas (filtradas por la política
 -- `select_cms_audit_logs`). No se concede INSERT, UPDATE ni DELETE a
@@ -106,10 +115,10 @@ grant
 select
   on cms.audit_logs to service_role;
 
--- Enable RLS for the audit log table
+-- RLS activada.
 alter table cms.audit_logs ENABLE row LEVEL SECURITY;
 
--- Indexes
+-- Índices por fecha y por cuenta, que son los filtros habituales del visor.
 create index idx_audit_logs_created_at on cms.audit_logs (created_at);
 
 create index idx_audit_logs_account_id on cms.audit_logs (account_id);
@@ -232,8 +241,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: CAN READ AUDIT LOG
--- In this section, we define the can read audit log function. This function is used to check if the user can read the audit log.
+-- Función `cms.can_read_audit_log`: indica si la sesión puede ver las entradas
+-- escritas por una cuenta (permiso `log:select` y jerarquía de rangos).
 -- Alineada con la versión que dejan las migraciones (el esquema declarativo
 -- heredado estaba desfasado respecto a ellas). Ver ADR-015.
 -- [TFG] RNF-02 · B-47: SECURITY DEFINER con RLS desactivado. Compara el
@@ -354,7 +363,7 @@ comment on function cms.can_read_audit_log_data (text, text) is
 
 grant execute on function cms.can_read_audit_log_data (text, text) to authenticated;
 
--- SELECT(cms.audit_logs)
+-- Política SELECT sobre cms.audit_logs: la decide cms.can_read_audit_log.
 create policy select_cms_audit_logs on cms.audit_logs for
 select
   using (cms.can_read_audit_log (account_id));

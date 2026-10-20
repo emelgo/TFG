@@ -7,8 +7,8 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useSupabase } from './use-supabase';
 
 /**
- * @name PRIVATE_PATH_PREFIXES
- * @description A list of private path prefixes
+ * Prefijos de las rutas privadas: si la sesión se cierra mientras el usuario
+ * está en una de ellas, se le saca de la página.
  */
 const PRIVATE_PATH_PREFIXES = [
   '/dashboard',
@@ -20,17 +20,22 @@ const PRIVATE_PATH_PREFIXES = [
   '/update-password',
 ];
 
-/**
- * @name AUTH_PATHS
- * @description A list of auth paths
- */
+/** Prefijos de las páginas de autenticación. */
 const AUTH_PATHS = ['/auth'];
 
 /**
- * @name useAuthChangeListener
- * @param privatePathPrefixes - A list of private path prefixes
- * @param appHomePath - The path to redirect to when the user is signed out
- * @param onEvent - Callback function to be called when an auth event occurs
+ * Escucha los cambios de sesión de Supabase Auth en el navegador.
+ *
+ * Mantiene la interfaz coherente con la sesión cuando cambia fuera de la
+ * pestaña actual (por ejemplo, al cerrar sesión en otra pestaña o al caducar
+ * el token): si el usuario se queda sin sesión en una ruta privada, se le
+ * envía a la página de inicio, y ante un `SIGNED_OUT` se recarga la página
+ * para que el servidor vuelva a evaluar el acceso. Es solo una ayuda de
+ * experiencia de usuario: la protección real está en el servidor y en la RLS.
+ *
+ * @param privatePathPrefixes Prefijos de rutas privadas (por defecto,
+ *   {@link PRIVATE_PATH_PREFIXES}).
+ * @param onEvent Función opcional que se llama con cada evento de sesión.
  */
 export function useAuthChangeListener({
   privatePathPrefixes = PRIVATE_PATH_PREFIXES,
@@ -42,12 +47,12 @@ export function useAuthChangeListener({
   const client = useSupabase();
 
   const setupAuthListener = useEffectEvent(() => {
-    // don't run on the server
+    // En el servidor no hay sesión del navegador que escuchar.
     if (typeof window === 'undefined') {
       return;
     }
 
-    // keep this running for the whole session unless the component was unmounted
+    // La suscripción dura mientras el componente esté montado.
     return client.auth.onAuthStateChange((event, user) => {
       const pathName = window.location.pathname;
 
@@ -55,22 +60,20 @@ export function useAuthChangeListener({
         onEvent(event, user);
       }
 
-      // log user out if user is falsy
-      // and if the current path is a private route
+      // Sin sesión en una ruta privada: hay que salir de ella.
       const shouldRedirectUser =
         !user && isPrivateRoute(pathName, privatePathPrefixes);
 
       if (shouldRedirectUser) {
-        // send user away when signed out
         window.location.assign('/');
 
         return;
       }
 
-      // revalidate user session when user signs in or out
       if (event === 'SIGNED_OUT') {
-        // sometimes Supabase sends SIGNED_OUT event
-        // but in the auth path, so we ignore it
+        // En las páginas de autenticación Supabase emite a veces SIGNED_OUT
+        // durante el propio flujo de inicio de sesión; recargar ahí lo
+        // interrumpiría, así que se ignora.
         if (AUTH_PATHS.some((path) => pathName.startsWith(path))) {
           return;
         }
@@ -80,19 +83,18 @@ export function useAuthChangeListener({
     });
   });
 
+  // useEffect justificado: hay que suscribirse a un sistema externo (los
+  // eventos de Supabase Auth) y cancelar la suscripción al desmontar.
   useEffect(() => {
     const listener = setupAuthListener();
 
-    // destroy listener on un-mounts
     return () => {
       listener?.data.subscription.unsubscribe();
     };
   }, []);
 }
 
-/**
- * Determines if a given path is a private route.
- */
+/** Indica si la ruta empieza por alguno de los prefijos privados. */
 function isPrivateRoute(path: string, privatePathPrefixes: string[]) {
   return privatePathPrefixes.some((prefix) => path.startsWith(prefix));
 }

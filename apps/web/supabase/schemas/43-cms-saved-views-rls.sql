@@ -1,16 +1,19 @@
-
--- SECTION: INSERT SAVED VIEWS
--- In this section, we define the insert saved views policy. This policy is used to control the access to the saved views table.
--- INSERT(cms.saved_views)
--- Can the current user insert a saved view?
+/*
+ * -------------------------------------------------------
+ * Sección: Políticas RLS de las vistas guardadas
+ * Cada vista pertenece a su creador, el único que puede modificarla o
+ * borrarla; los demás solo la ven si se ha compartido con un rol que tengan.
+ * -------------------------------------------------------
+ */
+-- Política INSERT sobre cms.saved_views: solo se pueden crear vistas a nombre
+-- propio.
 create policy insert_saved_views on cms.saved_views for INSERT to authenticated
 with
   check (
     created_by = cms.get_current_user_account_id ()
   );
 
--- UPDATE(cms.saved_views)
--- Can the current user update a saved view?
+-- Política UPDATE: solo el creador, y sin poder cambiar de dueño.
 create policy update_saved_views on cms.saved_views
 for update
   to authenticated using (
@@ -21,22 +24,20 @@ with
     created_by = cms.get_current_user_account_id ()
   );
 
--- DELETE(cms.saved_views)
--- Can the current user delete a saved view?
+-- Política DELETE: solo el creador.
 create policy delete_saved_views on cms.saved_views for DELETE to authenticated using (
   created_by = cms.get_current_user_account_id ()
 );
 
--- SELECT(cms.saved_views)
--- Can the current user view a saved view they have created?
+-- Política SELECT: el creador ve sus propias vistas.
 create policy view_personal_saved_views on cms.saved_views for
 select
   to authenticated using (
     created_by = cms.get_current_user_account_id ()
   );
 
--- SELECT(cms.saved_views)
--- Can the current user view a saved view shared with them using the saved view roles table?
+-- Política SELECT: también se ven las vistas compartidas con alguno de los
+-- roles del usuario (a través de cms.saved_view_roles).
 create policy view_shared_saved_views on cms.saved_views for
 select
   to authenticated using (
@@ -51,8 +52,8 @@ select
     )
   );
 
--- SELECT(cms.saved_view_roles)
--- Can the current user view a saved view they have created?
+-- Política SELECT sobre cms.saved_view_roles: cada usuario ve las
+-- asignaciones de los roles que tiene.
 create policy view_personal_saved_view_roles on cms.saved_view_roles for
 select
   to authenticated using (

@@ -1,5 +1,9 @@
 import * as z from 'zod';
 
+/**
+ * Entrada del formulario de contacto. Los límites de longitud acotan el
+ * tamaño del correo que se genera, porque el formulario es público.
+ */
 export const ContactEmailSchema = z.object({
   name: z.string().min(1).max(200),
   email: z.email(),

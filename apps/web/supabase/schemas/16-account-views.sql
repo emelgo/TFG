@@ -1,15 +1,20 @@
 /*
  * -------------------------------------------------------
- * Section: Account Functions
- * We create the schema for the functions. Functions are the custom functions for the application.
+ * Sección: Vistas y funciones de espacio de trabajo
+ * Consultas agregadas que cargan de una vez los datos que necesita la
+ * interfaz para pintar el espacio de trabajo del usuario (su cuenta
+ * personal, la lista de equipos y el detalle de un equipo).
  * -------------------------------------------------------
  */
 
 
 --
--- VIEW "user_account_workspace":
--- we create a view to load the general app data for the authenticated
--- user which includes the user accounts and memberships
+-- Vista `user_account_workspace`: datos de la cuenta personal del usuario
+-- autenticado y el estado de su última suscripción.
+-- Usa `security_invoker = true` para que la vista se evalúe con los permisos
+-- de quien la consulta y se apliquen las políticas RLS de las tablas; sin
+-- esa opción, la vista se ejecutaría con los permisos de su propietario y se
+-- saltaría la RLS.
 create or replace view
     public.user_account_workspace
             with
@@ -45,9 +50,9 @@ grant
     service_role;
 
 --
--- VIEW "user_accounts":
--- we create a view to load the user's accounts and memberships
--- useful to display the user's accounts in the app
+-- Vista `user_accounts`: equipos de los que es miembro el usuario, con su rol
+-- en cada uno; alimenta el selector de cuentas. También es `security_invoker`
+-- por el mismo motivo.
 create or replace view
     public.user_accounts (id, name, picture_url, slug, role, public_data)
         with
@@ -80,8 +85,10 @@ grant
     service_role;
 
 --
--- Function "public.team_account_workspace"
--- Load all the data for a team account workspace
+-- Función `public.team_account_workspace`: carga todos los datos de un equipo
+-- (por slug) que necesita la interfaz: rol y jerarquía del usuario, permisos
+-- y estado de la suscripción. Filtra por auth.uid(), así que solo devuelve
+-- algo si el usuario es miembro.
 create or replace function public.team_account_workspace(account_slug text)
 returns table (
     id uuid,

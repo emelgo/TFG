@@ -3,7 +3,7 @@
  *
  * Es el punto de reutilización de RF-07: cada pyme sustituye estos planes por
  * los suyos sin tocar el código de la pasarela. Los planes de partida están
- * pensados para una pyme (ADR-024): «Básico», «Profesional» y «Empresa», cada
+ * pensados para una pyme (ADR-025): «Básico», «Profesional» y «Empresa», cada
  * uno con pago mensual y anual (dos meses gratis), en euros.
  *
  * Los precios y los identificadores son DE EJEMPLO. Cada `lineItems[].id`

@@ -4,9 +4,7 @@ import { useSupabase } from './use-supabase';
 import { usePasskeysQueryKey } from './use-user-passkeys-query-key';
 
 /**
- * @name useFetchPasskeys
- * @description
- * Fetch the passkeys registered for the currently signed-in user.
+ * Consulta las *passkeys* registradas por el usuario con sesión iniciada.
  *
  * @see https://supabase.com/docs/guides/auth/passkeys
  */

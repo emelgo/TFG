@@ -1,11 +1,18 @@
 /*
  * -------------------------------------------------------
- * Section: Accounts
- * We create the schema for the accounts. Accounts are the top level entity in the PymeKit. They can be team or personal accounts.
+ * Sección: Cuentas
+ * La cuenta es la entidad raíz del modelo multi-tenant de PymeKit: todo dato
+ * de negocio (suscripciones, pedidos, notificaciones, miembros...) cuelga de
+ * una cuenta. Hay dos tipos: la cuenta personal, que se crea automáticamente
+ * para cada usuario al registrarse, y la cuenta de equipo, que representa a
+ * la pyme y agrupa a varios usuarios mediante `accounts_memberships`.
+ * Este fichero define la tabla, sus permisos y RLS, la generación de `slug`
+ * y las funciones de creación y transferencia de cuentas.
  * -------------------------------------------------------
  */
 
--- Accounts table
+-- Tabla de cuentas. `id` coincide con el id del usuario en las cuentas
+-- personales, de modo que una cuenta personal se localiza con auth.uid().
 create table if not exists
   public.accounts (
     id uuid unique not null default extensions.uuid_generate_v4 (),
@@ -35,20 +42,21 @@ comment on column public.accounts.primary_owner_user_id is 'The primary owner of
 
 comment on column public.accounts.email is 'The email of the account. For teams, this is the email of the team (if any)';
 
--- Enable RLS on the accounts table
+-- Sin políticas, la RLS deniega todo acceso; cada operación permitida se abre
+-- más abajo con una política concreta.
 alter table "public"."accounts" enable row level security;
 
--- Revoke all on accounts table from authenticated and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.accounts
 from
   anon,
   authenticated,
   service_role;
 
--- Open up access to accounts
--- authenticated has no INSERT: accounts are only created by the
--- kit.setup_new_user trigger and the create_team_account function (both
--- SECURITY DEFINER), so the role never inserts rows directly.
+-- Permisos de tabla para usuarios autenticados.
+-- authenticated no tiene INSERT: las cuentas solo las crean el disparador
+-- kit.setup_new_user y la función create_team_account (ambos `security
+-- definer`), así que este rol nunca inserta filas directamente.
 grant
 select
 ,
@@ -60,25 +68,28 @@ select
   insert,
   delete on table public.accounts to service_role;
 
--- service_role retains full-table UPDATE (system-managed and identity columns)
+-- service_role (cliente administrador) conserva UPDATE sobre toda la tabla,
+-- incluidas las columnas de identidad y las gestionadas por el sistema.
 grant
 update on table public.accounts to service_role;
 
--- authenticated may only UPDATE genuinely user-editable columns.
--- Identity columns (id, primary_owner_user_id, is_personal_account, email) are
--- guarded by kit.protect_account_fields and must never change. System-managed
--- columns (created_at/updated_at, created_by/updated_by) are written only by
--- triggers or the service_role. Note that `slug` IS user-editable: renaming a
--- team updates it directly (see updateTeamAccountName).
--- Enforced by Postgres before RLS or the trigger run (defense-in-depth).
--- NOTE: BEFORE triggers that mutate timestamps/tracking on NEW keep working,
--- because column privileges are checked against the statement's SET list, not
--- against columns a trigger writes.
+-- authenticated solo puede actualizar las columnas que de verdad edita el
+-- usuario. Las columnas de identidad (id, primary_owner_user_id,
+-- is_personal_account, email) las protege kit.protect_account_fields y no
+-- deben cambiar nunca; las gestionadas por el sistema (created_at/updated_at,
+-- created_by/updated_by) solo las escriben los disparadores o service_role.
+-- `slug` sí es editable: al renombrar un equipo se actualiza directamente
+-- (ver updateTeamAccountName).
+-- Postgres aplica este permiso por columna antes que la RLS y el disparador
+-- (defensa en profundidad).
+-- Nota: los disparadores BEFORE que modifican marcas de tiempo o autoría en
+-- NEW siguen funcionando, porque el permiso por columna se comprueba contra la
+-- lista SET de la sentencia, no contra lo que escribe un disparador.
 grant
 update (name, slug, picture_url, public_data) on table public.accounts to authenticated;
 
--- constraint that conditionally allows nulls on the slug ONLY if
---  personal_account is true
+-- Las cuentas personales no tienen slug (se identifican por el usuario) y las
+-- de equipo siempre lo tienen, porque forma parte de su URL.
 alter table public.accounts
 add constraint accounts_slug_null_if_personal_account_true check (
   (
@@ -100,17 +111,17 @@ add constraint accounts_slug_format check (
   )
 );
 
--- Indexes
+-- Índices para las búsquedas habituales por propietario y por tipo de cuenta.
 create index if not exists ix_accounts_primary_owner_user_id on public.accounts (primary_owner_user_id);
 
 create index if not exists ix_accounts_is_personal_account on public.accounts (is_personal_account);
 
--- constraint to ensure that the primary_owner_user_id is unique for personal accounts
+-- Cada usuario tiene como máximo una cuenta personal.
 create unique index unique_personal_account on public.accounts (primary_owner_user_id)
 where
   is_personal_account = true;
 
--- Triggers for accounts table
+-- Disparadores de marcas de tiempo y autoría (definidos en 02-config.sql).
 create trigger accounts_set_timestamps
 before insert or update on public.accounts
 for each row execute function public.trigger_set_timestamps();
@@ -119,9 +130,9 @@ create trigger accounts_set_user_tracking
 before insert or update on public.accounts
 for each row execute function public.trigger_set_user_tracking();
 
--- RLS on the accounts table
--- UPDATE(accounts):
--- Team owners can update their accounts
+-- Política UPDATE: solo el propietario principal puede modificar la cuenta
+-- (sea personal o de equipo). El permiso por columna anterior limita además
+-- qué campos puede tocar.
 create policy accounts_self_update on public.accounts
 for update
   to authenticated using (
@@ -138,8 +149,11 @@ with
     ) = primary_owner_user_id
   );
 
--- Function "public.transfer_team_account_ownership"
--- Function to transfer the ownership of a team account to another user
+-- Función `public.transfer_team_account_ownership`: transfiere la propiedad de
+-- una cuenta de equipo a otro miembro y le asigna el rol de mayor jerarquía.
+-- Solo la ejecuta service_role (ver el `grant` de abajo y la comprobación de
+-- current_user dentro): la aplicación valida antes que quien la pide es el
+-- propietario actual, normalmente tras verificar un token de un solo uso.
 create
 or replace function public.transfer_team_account_ownership (target_account_id uuid, new_owner_id uuid) returns void
 set
@@ -189,8 +203,9 @@ $$ language plpgsql;
 grant
 execute on function public.transfer_team_account_ownership (uuid, uuid) to service_role;
 
--- Function "public.is_account_owner"
--- Function to check if a user is the primary owner of an account
+-- Función `public.is_account_owner`: indica si el usuario actual es el
+-- propietario principal de la cuenta. La usan las políticas RLS de otras
+-- tablas.
 create
 or replace function public.is_account_owner (account_id uuid) returns boolean
 set
@@ -210,8 +225,9 @@ grant
 execute on function public.is_account_owner (uuid) to authenticated,
 service_role;
 
--- Function "kit.protect_account_fields"
--- Function to protect account fields from being updated
+-- Función `kit.protect_account_fields`: impide que un usuario autenticado
+-- cambie las columnas de identidad de una cuenta, aunque la política UPDATE le
+-- permita modificar la fila. service_role queda fuera de la comprobación.
 create
 or replace function kit.protect_account_fields () returns trigger as $$
 begin
@@ -235,13 +251,13 @@ $$ language plpgsql
 set
   search_path = '';
 
--- trigger to protect account fields
+-- Disparador que aplica la protección anterior en cada UPDATE.
 create trigger protect_account_fields before
 update on public.accounts for each row
 execute function kit.protect_account_fields ();
 
--- Function "public.get_upper_system_role"
--- Function to get the highest system role for an account
+-- Función `public.get_upper_system_role`: devuelve el rol con mayor jerarquía
+-- (nivel 1, normalmente `owner`), que se asigna al propietario de un equipo.
 create
 or replace function public.get_upper_system_role () returns varchar
 set
@@ -259,7 +275,10 @@ $$ language plpgsql;
 grant
 execute on function public.get_upper_system_role () to service_role;
 
--- create a trigger to update the account email when the primary owner email is updated
+-- Mantiene sincronizado el email de la cuenta personal cuando el usuario
+-- cambia el suyo en auth.users. Es `security definer` porque se ejecuta desde
+-- un disparador de auth.users, cuyo rol no tiene permisos sobre
+-- public.accounts; solo actualiza la cuenta personal del propio usuario.
 create
 or replace function kit.handle_update_user_email () returns trigger language plpgsql security definer
 set
@@ -279,8 +298,7 @@ end;
 
 $$;
 
--- trigger the function every time a user email is updated only if the user is the primary owner of the account and
--- the account is personal account
+-- Se dispara solo cuando cambia la columna email de auth.users.
 create trigger "on_auth_user_updated"
 after
 update of email on auth.users for each row
@@ -289,13 +307,14 @@ execute procedure kit.handle_update_user_email ();
 
 /**
  * -------------------------------------------------------
- * Section: Slugify
- * We create the schema for the slugify functions. Slugify functions are used to create slugs from strings.
- * We use this for ensure unique slugs for accounts.
+ * Sección: Generación de slugs
+ * Funciones que convierten el nombre de un equipo en un `slug` apto para
+ * URL (sin tildes, en minúsculas y con guiones) y garantizan que sea único
+ * añadiendo un sufijo numérico si ya existe.
  * -------------------------------------------------------
  */
--- Create a function to slugify a string
--- useful for turning an account name into a unique slug
+-- Función `kit.slugify`: convierte un texto en slug. Es `immutable`, porque
+-- para la misma entrada siempre devuelve lo mismo.
 create
 or replace function kit.slugify ("value" text) returns text as $$
     -- removes accents (diacritic signs) from a given string --
@@ -346,8 +365,10 @@ execute on function kit.slugify (text) to service_role,
 authenticated;
 
 
--- Function "kit.set_slug_from_account_name"
--- Set the slug from the account name and increment if the slug exists
+-- Función `kit.set_slug_from_account_name`: calcula el slug a partir del
+-- nombre y, si ya existe en otra cuenta, prueba con "nombre 1", "nombre 2"...
+-- Es `security definer` porque debe ver los slugs de todas las cuentas, no
+-- solo las que la RLS deja ver al usuario, para garantizar la unicidad.
 create
 or replace function kit.set_slug_from_account_name () returns trigger language plpgsql security definer
 set
@@ -387,7 +408,7 @@ begin
 end
 $$;
 
--- Create a trigger to set the slug from the account name
+-- Al crear un equipo sin slug explícito, se genera a partir del nombre.
 create trigger "set_slug_from_account_name" before insert on public.accounts for each row when (
   NEW.name is not null
   and NEW.slug is null
@@ -395,7 +416,7 @@ create trigger "set_slug_from_account_name" before insert on public.accounts for
 )
 execute procedure kit.set_slug_from_account_name ();
 
--- Create a trigger when a name is updated to update the slug
+-- Al renombrar un equipo, se regenera el slug.
 create trigger "update_slug_from_account_name" before
 update on public.accounts for each row when (
   NEW.name is not null
@@ -404,8 +425,10 @@ update on public.accounts for each row when (
 )
 execute procedure kit.set_slug_from_account_name ();
 
--- Function "kit.setup_new_user"
--- Setup a new user account after user creation
+-- Función `kit.setup_new_user`: crea la cuenta personal de cada usuario nuevo
+-- con el nombre y el avatar de sus metadatos (o la parte local del email).
+-- Es `security definer` porque se ejecuta desde un disparador de auth.users y
+-- authenticated no tiene INSERT sobre public.accounts.
 create
 or replace function kit.setup_new_user () returns trigger language plpgsql security definer
 set
@@ -456,20 +479,22 @@ end;
 
 $$;
 
--- trigger the function every time a user is created
+-- Se ejecuta tras cada alta en auth.users.
 create trigger on_auth_user_created
 after insert on auth.users for each row
 execute procedure kit.setup_new_user ();
 
 /**
  * -------------------------------------------------------
- * Section: Functions
- * We create the schema for the functions
+ * Sección: Funciones de cuentas de equipo
  * -------------------------------------------------------
  */
--- Function "public.create_team_account"
--- Create a team account with membership in a single transaction
--- Called by service_role only (Policies API enforced in application layer)
+-- Función `public.create_team_account`: crea una cuenta de equipo y la
+-- membresía de su propietario en una única transacción.
+-- Es `security definer` para insertar en accounts y accounts_memberships sin
+-- que el cliente tenga permisos directos sobre ambas tablas. Solo la puede
+-- ejecutar service_role: la aplicación comprueba antes las políticas de
+-- negocio (paquete de políticas) y después la llama con el cliente admin.
 create
 or replace function public.create_team_account (
     account_name text,
@@ -525,10 +550,10 @@ $$;
 grant
 execute on function public.create_team_account (text, uuid, text) to service_role;
 
--- RLS(public.accounts)
--- The primary owner can delete team accounts. Personal accounts are excluded:
--- they are deleted through the admin flow (auth.admin.deleteUser cascades to
--- the account row), never directly by their owner.
+-- Política DELETE: el propietario principal puede borrar sus cuentas de
+-- equipo. Las personales quedan excluidas: se borran desde el flujo de
+-- administración (auth.admin.deleteUser borra en cascada la cuenta), nunca
+-- directamente por su dueño.
 create policy delete_team_account
     on public.accounts
     for delete
@@ -538,8 +563,10 @@ create policy delete_team_account
         and is_personal_account = false
     );
 
--- Functions "public.get_account_members"
--- Function to get the members of an account by the account slug
+-- Función `public.get_account_members`: devuelve los miembros de una cuenta a
+-- partir de su slug, con su rol y jerarquía. No es `security definer`, así
+-- que la RLS de las tablas consultadas limita el resultado a las cuentas de
+-- las que el usuario es miembro.
 create
 or replace function public.get_account_members (account_slug text) returns table (
   id uuid,

@@ -1,7 +1,8 @@
---
--- SECTION: ROLE PERMISSION GROUPS
--- In this section, we define the role permission groups table.
---
+/*
+ * -------------------------------------------------------
+ * Sección: Grupos de permisos asignados a cada rol del CMS
+ * -------------------------------------------------------
+ */
 create table if not exists cms.role_permission_groups (
   role_id UUID not null references cms.roles (id) on delete CASCADE,
   group_id UUID not null references cms.permission_groups (id) on delete CASCADE,
@@ -11,7 +12,7 @@ create table if not exists cms.role_permission_groups (
   valid_until TIMESTAMPTZ,
   metadata JSONB default '{}'::jsonb,
   primary key (role_id, group_id),
-  -- Ensure valid_from is before valid_until
+  -- valid_from debe ser anterior a valid_until.
   constraint valid_time_range check (
     valid_from is null
     or valid_until is null
@@ -35,7 +36,7 @@ comment on column cms.role_permission_groups.valid_until is 'The time the role p
 
 comment on column cms.role_permission_groups.metadata is 'The metadata of the role permission group';
 
--- Grants
+-- Permisos de tabla; la RLS decide qué puede hacer cada usuario.
 grant
 select
 ,
@@ -44,10 +45,10 @@ update,
 delete on table cms.role_permission_groups to authenticated,
 service_role;
 
--- RLS
+-- RLS activada; las políticas están en 40-cms-permissions-rls.sql.
 alter table cms.role_permission_groups ENABLE row LEVEL SECURITY;
 
--- Indexes
+-- Índice parcial para filtrar por fecha de caducidad.
 create index idx_role_permission_groups_valid on cms.role_permission_groups (valid_until)
 where
   valid_until is not null;

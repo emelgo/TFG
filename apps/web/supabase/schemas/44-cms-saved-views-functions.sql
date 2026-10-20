@@ -1,6 +1,14 @@
 
--- SECTION: INSERT SAVED VIEW
--- In this section, we define the insert saved view function. This function is used to insert a saved view and the roles that have access to it.
+/*
+ * -------------------------------------------------------
+ * Sección: Funciones de vistas guardadas
+ * -------------------------------------------------------
+ */
+
+-- Función `cms.insert_saved_view`: crea una vista guardada y, si se indican,
+-- la comparte con los roles dados, en una única transacción. Se ejecuta con
+-- los permisos del usuario, así que las políticas de 43-cms-saved-views-rls.sql
+-- siguen aplicándose.
 create or replace function cms.insert_saved_view (
   name varchar(255),
   description text,
@@ -45,8 +53,8 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.insert_saved_view to authenticated;
 
--- SECTION: GET USER VIEWS
--- In this section, we define the get user views function. This function is used to get the views that a user has access to.
+-- Función `cms.get_user_views`: devuelve las vistas a las que tiene acceso el
+-- usuario (propias y compartidas), opcionalmente filtradas por tabla.
 create or replace function cms.get_user_views (
   p_schema_name text default null,
   p_table_name text default null

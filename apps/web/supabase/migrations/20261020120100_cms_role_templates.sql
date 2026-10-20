@@ -1,6 +1,6 @@
 /*
  * F5 · Plantilla inicial de roles del CMS para el personal de una pyme
- * (ADR-025)
+ * (ADR-026)
  *
  * El super-admin es la raíz del CMS (ADR-014). El resto del personal entra
  * con un rol del RBAC propio del CMS (`cms.roles`, `cms.permissions`,

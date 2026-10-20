@@ -1,3 +1,18 @@
+/**
+ * *Middleware* y guardas de autorización para las *server functions*.
+ *
+ * Es la capa de seguridad común de la aplicación web: cada *server function*
+ * que toca datos pasa por aquí antes de ejecutar su *handler*. Comprueba la
+ * sesión, el rol de superadministrador o la pertenencia a una cuenta de
+ * equipo, y normaliza los errores para no filtrar detalles internos.
+ * Las comprobaciones de pertenencia, rol y permiso se delegan en funciones
+ * SQL (`has_role_on_account`, `has_permission`...) llamadas con el cliente de
+ * Supabase del usuario, de modo que se evalúan con su identidad y las mismas
+ * reglas que usa la RLS.
+ *
+ * Lo consumen las tuplas de `functions.ts` y, a través de `server.ts`, las
+ * guardas adicionales de cada *server function*.
+ */
 import { isNotFound, isRedirect, redirect } from '@tanstack/react-router';
 import { createMiddleware } from '@tanstack/react-start';
 import * as z from 'zod';
@@ -9,24 +24,23 @@ import { getSupabaseServerClient } from '@pymekit/supabase/server-client';
 export type AppPermission = Database['public']['Enums']['app_permissions'];
 
 /**
- * Validated shape every account-scoped gate relies on. The action's own
- * `.validator` should declare the full input schema (extending this); this is
- * the middleware-side guarantee that a uuid `accountId` is present.
+ * Forma mínima de la entrada que necesitan las guardas por cuenta. El
+ * `.validator` de cada *server function* declara el esquema completo
+ * (ampliando este); aquí se vuelve a comprobar, desde el *middleware*, que
+ * llega un `accountId` con formato uuid.
  */
 const AccountIdSchema = z.object({ accountId: z.uuid() });
 
-/**
- * Pulls a validated uuid `accountId` out of the action input.
- */
+/** Extrae y valida el `accountId` (uuid) de la entrada de la función. */
 function extractAccountId(data: unknown): string {
   return AccountIdSchema.parse(data).accountId;
 }
 
 /**
- * Error-normalization boundary. Replicates next-safe-action's
- * `handleServerError: (e) => e.message` — only the message string is thrown
- * onward to the client. Router control-flow signals (redirect/notFound) pass
- * through untouched so navigation still works.
+ * Frontera de normalización de errores: al cliente solo llega el mensaje del
+ * error, nunca la pila ni otros detalles internos. Las señales de control del
+ * *router* (`redirect` y `notFound`) se dejan pasar intactas para que la
+ * navegación siga funcionando.
  */
 export const errorMiddleware = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
@@ -40,15 +54,17 @@ export const errorMiddleware = createMiddleware({ type: 'function' }).server(
       const message =
         error instanceof Error ? error.message : 'Internal Server Error';
 
-      // Re-throw a clean Error so stacks/internals are not serialized.
+      // Se lanza un Error nuevo para que no se serialicen la pila ni las
+      // propiedades internas del original.
       throw new Error(message);
     }
   },
 );
 
 /**
- * Authenticated middleware — injects `context.user` (JWTUserData).
- * Redirects to the sign-in path when anonymous (mirrors authActionClient).
+ * *Middleware* de autenticación: exige una sesión válida y añade
+ * `context.user` (datos del JWT). Si no hay sesión, redirige a la página de
+ * inicio de sesión (o a la verificación MFA, según indique `requireUser`).
  */
 export const authMiddleware = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
@@ -64,9 +80,10 @@ export const authMiddleware = createMiddleware({ type: 'function' }).server(
 );
 
 /**
- * Admin middleware — requires `context.user.is_superadmin` (derived from JWT
- * claims: role === 'super-admin' && aal === 'aal2'). Does NOT depend on the
- * unported @pymekit/admin package.
+ * *Middleware* de superadministrador: exige `context.user.is_superadmin`, que
+ * se calcula a partir del JWT (rol `super-admin` en `app_metadata` y sesión
+ * `aal2`). Es la misma condición que aplica `public.is_super_admin()` en las
+ * políticas RLS.
  */
 export const adminMiddleware = createMiddleware({ type: 'function' })
   .middleware([authMiddleware])
@@ -79,12 +96,14 @@ export const adminMiddleware = createMiddleware({ type: 'function' })
   });
 
 /**
- * Team-account middleware — validates a uuid `accountId` in the action input
- * and asserts membership via the `has_role_on_account` RPC (RLS client
- * authorizes as the current user). Injects `context.accountId`.
+ * *Middleware* de cuenta de equipo: valida el `accountId` de la entrada y
+ * comprueba que el usuario es miembro con la RPC `has_role_on_account`. Se usa
+ * el cliente con la sesión del usuario (sujeto a RLS), no el administrador,
+ * para que la comprobación se haga con su identidad. Añade
+ * `context.accountId`.
  *
- * The action MUST declare `.validator` with an `{ accountId: string }` shape
- * before this middleware reads it. `data` is the validated input.
+ * La *server function* DEBE declarar un `.validator` con la forma
+ * `{ accountId: string }`: `data` es la entrada ya validada.
  */
 export const teamAccountMiddleware = createMiddleware({ type: 'function' })
   .middleware([authMiddleware])
@@ -108,12 +127,14 @@ export const teamAccountMiddleware = createMiddleware({ type: 'function' })
   });
 
 /**
- * Gate: require a role at OR ABOVE the given role's hierarchy level on the
- * account. `has_role_on_account` does an EXACT role match, so it cannot express
- * "minimum role" — an owner would fail `withMinRole('member')`. Instead combine
- * the hierarchy RPCs: `has_more_elevated_role` (strictly above) OR
- * `has_same_role_hierarchy_level` (equal). Mirrors the drizzle sibling's
- * `getRoleHierarchy` comparison.
+ * Guarda que exige, en la cuenta, un rol de jerarquía IGUAL O SUPERIOR a
+ * `role`. `has_role_on_account` compara el rol de forma exacta y no sirve
+ * para expresar "rol mínimo" (un propietario no pasaría
+ * `withMinRole('member')`), así que se combinan las dos RPC de jerarquía:
+ * `has_more_elevated_role` (estrictamente superior) O
+ * `has_same_role_hierarchy_level` (igual).
+ *
+ * @param role Nombre del rol mínimo exigido (por ejemplo, `'owner'`).
  */
 export function withMinRole(role: string) {
   return createMiddleware({ type: 'function' })
@@ -146,8 +167,12 @@ export function withMinRole(role: string) {
 }
 
 /**
- * Gate: require a feature permission on the account via `has_permission`.
- * Needs the current user id (from context.user.id) + account_id from input.
+ * Guarda que exige un permiso de la aplicación (`app_permissions`) en la
+ * cuenta, comprobado con la RPC `has_permission` para el usuario de la sesión
+ * y el `accountId` de la entrada. Es la forma preferida de autorizar, porque
+ * no depende de nombres de rol concretos.
+ *
+ * @param permission Permiso exigido (por ejemplo, `'members.manage'`).
  */
 export function withFeaturePermission(permission: AppPermission) {
   return createMiddleware({ type: 'function' })
@@ -171,8 +196,10 @@ export function withFeaturePermission(permission: AppPermission) {
 }
 
 /**
- * TODO(migration): withCaptcha — verifyCaptchaToken lives in the unported
- * @pymekit/auth (`@pymekit/auth/captcha/server`). Once ported, add:
+ * TODO(futuro): guarda `withCaptcha`. `verifyCaptchaToken` ya está disponible
+ * en `@pymekit/auth/captcha/server`, pero de momento la única función que la
+ * necesita (el formulario de contacto) la llama directamente. Si se
+ * generaliza, bastaría con algo como:
  *
  *   export const captchaMiddleware = createMiddleware({ type: 'function' })
  *     .server(async ({ next, data }) => {
@@ -182,5 +209,5 @@ export function withFeaturePermission(permission: AppPermission) {
  *       return next();
  *     });
  *
- * and a `withCaptcha` gate. Do NOT implement until @pymekit/auth is available.
+ * y una guarda `withCaptcha` que la envuelva.
  */

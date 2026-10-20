@@ -8,8 +8,16 @@ import {
 import { getSupabaseClientKeys } from '../get-supabase-client-keys';
 
 /**
- * @name getSupabaseServerAdminClient
- * @description Get a Supabase client for use in the Server with admin access to the database.
+ * Cliente de Supabase de servidor con la clave secreta (rol `service_role`).
+ *
+ * **Ignora la RLS**: puede leer y escribir cualquier fila. Solo se usa en el
+ * servidor y en los casos en que el cliente del usuario no basta (por
+ * ejemplo, aceptar una invitación antes de ser miembro, procesar un *webhook*
+ * de Stripe o tareas de administración), siempre con la validación hecha a
+ * mano antes y un comentario en quien lo llama que lo justifique. No guarda
+ * ni refresca sesión porque no actúa en nombre de ningún usuario.
+ *
+ * [TFG] RNF-02 Seguridad: uso mínimo y justificado del cliente administrador.
  */
 export function getSupabaseServerAdminClient<GenericSchema = Database>() {
   warnServiceRoleKeyUsage();

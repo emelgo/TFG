@@ -1,6 +1,17 @@
 
--- SECTION: UPDATE UPDATED AT COLUMN
--- In this section, we define the update updated at column function. This function is used to update the updated at column for all relevant tables.
+/*
+ * -------------------------------------------------------
+ * Sección: Disparadores del CMS
+ * Mantiene `updated_at` en todas las tablas del CMS y audita
+ * automáticamente cada cambio en las tablas sensibles (roles, permisos,
+ * grupos, asignaciones, configuración, metadatos y cuentas). Al hacerlo con
+ * disparadores, el rastro queda aunque la escritura no pase por las
+ * funciones del CMS (por ejemplo, si la API escribe con Drizzle).
+ * -------------------------------------------------------
+ */
+
+-- Bloque que añade el disparador de `updated_at` a todas las tablas del CMS
+-- que tienen esa columna.
 do $$
     DECLARE
         t text;
@@ -21,10 +32,10 @@ do $$
     END;
 $$;
 
--- SECTION: AUDIT TRIGGERS FOR PERMISSIONS, ROLES, AND PERMISSION GROUPS
--- This section adds database triggers to automatically log changes to permission-related tables
--- SECTION: AUDIT TRIGGER FUNCTION
--- Generic trigger function that can be used for any table to create audit logs
+-- Sección: disparadores de auditoría de permisos, roles y grupos.
+-- Función de disparador genérica: escribe en cms.audit_logs la operación, la
+-- tabla y los datos antes y después del cambio. Sirve para cualquier tabla,
+-- tenga clave primaria simple o compuesta.
 create or replace function cms.audit_trigger_function () returns trigger
 set
   row_security = off
@@ -115,8 +126,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- SECTION: ROLES TABLE AUDIT TRIGGERS
--- Create triggers for the roles table
+-- Auditoría de cms.roles.
 create trigger roles_audit_insert_trigger
 after insert on cms.roles for each row
 execute function cms.audit_trigger_function ();
@@ -130,8 +140,7 @@ create trigger roles_audit_delete_trigger
 after delete on cms.roles for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: PERMISSIONS TABLE AUDIT TRIGGERS
--- Create triggers for the permissions table
+-- Auditoría de cms.permissions.
 create trigger permissions_audit_insert_trigger
 after insert on cms.permissions for each row
 execute function cms.audit_trigger_function ();
@@ -145,15 +154,16 @@ create trigger permissions_audit_delete_trigger
 after delete on cms.permissions for each row
 execute function cms.audit_trigger_function ();
 
--- bug-hunt 10x01: block reshaping a permission's capability into one the caller does
--- not hold (in-place escalation past can_grant_permission). BEFORE UPDATE so it can
--- compare OLD vs NEW and ignore metadata-only edits. See enforce_permission_reshape_grantable.
+-- Revisión de bugs 10x01: impide cambiar la capacidad de un permiso por otra
+-- que el usuario no tiene (escalada en el sitio que se saltaría
+-- can_grant_permission). Es BEFORE UPDATE para poder comparar OLD con NEW e
+-- ignorar las ediciones que solo tocan el nombre o la descripción. Ver
+-- enforce_permission_reshape_grantable.
 create trigger permissions_enforce_reshape_grantable_trigger before
 update on cms.permissions for each row
 execute function cms.enforce_permission_reshape_grantable ();
 
--- SECTION: PERMISSION GROUPS TABLE AUDIT TRIGGERS
--- Create triggers for the permission_groups table
+-- Auditoría de cms.permission_groups.
 create trigger permission_groups_audit_insert_trigger
 after insert on cms.permission_groups for each row
 execute function cms.audit_trigger_function ();
@@ -167,18 +177,19 @@ create trigger permission_groups_audit_delete_trigger
 after delete on cms.permission_groups for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: ACCOUNT ROLES TABLE AUDIT TRIGGERS
--- Create triggers for the account_roles junction table
+-- Auditoría de la tabla intermedia cms.account_roles.
 create trigger account_roles_audit_insert_trigger
 after insert on cms.account_roles for each row
 execute function cms.audit_trigger_function ();
 
--- bug-hunt 15x01: account_roles has a single-column unique(account_id), so
--- `PUT /v1/members/role` (insert ... on conflict (account_id) do update) promotes
--- an already-assigned member as an in-place UPDATE, which fires UPDATE-class
--- triggers. Without this trigger the initial grant was audited but every later
--- promote/demote was silent. (Other RBAC junctions use composite PKs and cannot
--- change a key in place, so they remain insert/delete only.)
+-- Revisión de bugs 15x01: account_roles tiene un unique(account_id) de una
+-- sola columna, así que `PUT /v1/members/role` (insert ... on conflict
+-- (account_id) do update) asciende a un miembro ya asignado con un UPDATE en
+-- el sitio, que dispara los disparadores de tipo UPDATE. Sin este disparador
+-- se auditaba la asignación inicial, pero cualquier ascenso o descenso
+-- posterior pasaba en silencio. (Las demás tablas intermedias del RBAC usan
+-- claves primarias compuestas y no pueden cambiar una clave en el sitio, así
+-- que solo tienen disparadores de INSERT y DELETE.)
 create trigger account_roles_audit_update_trigger
 after
 update on cms.account_roles for each row
@@ -188,8 +199,7 @@ create trigger account_roles_audit_delete_trigger
 after delete on cms.account_roles for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: ROLE PERMISSIONS TABLE AUDIT TRIGGERS
--- Create triggers for the role_permissions junction table
+-- Auditoría de la tabla intermedia cms.role_permissions.
 create trigger role_permissions_audit_insert_trigger
 after insert on cms.role_permissions for each row
 execute function cms.audit_trigger_function ();
@@ -198,8 +208,7 @@ create trigger role_permissions_audit_delete_trigger
 after delete on cms.role_permissions for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: ACCOUNT PERMISSIONS TABLE AUDIT TRIGGERS
--- Create triggers for the account_permissions table
+-- Auditoría de cms.account_permissions.
 create trigger account_permissions_audit_insert_trigger
 after insert on cms.account_permissions for each row
 execute function cms.audit_trigger_function ();
@@ -213,8 +222,7 @@ create trigger account_permissions_audit_delete_trigger
 after delete on cms.account_permissions for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: PERMISSION GROUP PERMISSIONS TABLE AUDIT TRIGGERS
--- Create triggers for the permission_group_permissions junction table
+-- Auditoría de la tabla intermedia cms.permission_group_permissions.
 create trigger permission_group_permissions_audit_insert_trigger
 after insert on cms.permission_group_permissions for each row
 execute function cms.audit_trigger_function ();
@@ -223,8 +231,7 @@ create trigger permission_group_permissions_audit_delete_trigger
 after delete on cms.permission_group_permissions for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: ROLE PERMISSION GROUPS TABLE AUDIT TRIGGERS
--- Create triggers for the role_permission_groups junction table
+-- Auditoría de la tabla intermedia cms.role_permission_groups.
 create trigger role_permission_groups_audit_insert_trigger
 after insert on cms.role_permission_groups for each row
 execute function cms.audit_trigger_function ();
@@ -233,10 +240,12 @@ create trigger role_permission_groups_audit_delete_trigger
 after delete on cms.role_permission_groups for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: CONFIGURATION TABLE AUDIT TRIGGERS
--- bug-hunt 15x02: cms.configuration is a security control surface (e.g. the
--- org-wide requires_mfa flag, route PUT /v1/configuration/mfa) written directly via
--- Drizzle, but had no audit trigger -- so disabling org MFA left no audit_logs trail.
+-- Auditoría de cms.configuration.
+-- Revisión de bugs 15x02: la configuración es una superficie de control de
+-- seguridad (por ejemplo, la opción global requires_mfa de la ruta
+-- PUT /v1/configuration/mfa) que se escribe directamente con Drizzle y no
+-- tenía disparador de auditoría, así que desactivar la MFA de toda la
+-- organización no dejaba rastro en audit_logs.
 create trigger configuration_audit_insert_trigger
 after insert on cms.configuration for each row
 execute function cms.audit_trigger_function ();
@@ -250,11 +259,11 @@ create trigger configuration_audit_delete_trigger
 after delete on cms.configuration for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: TABLE METADATA TABLE AUDIT TRIGGERS
--- bug-hunt 15x02: table_metadata drives column visibility / editability / relations
--- (routes PUT /v1/tables*, .../columns, .../layout) and was written directly via
--- Drizzle with no audit trigger, so metadata poisoning that widens data exposure
--- left no trail.
+-- Auditoría de cms.table_metadata.
+-- Revisión de bugs 15x02: los metadatos deciden qué columnas se ven y se
+-- pueden editar y qué relaciones se muestran (rutas PUT /v1/tables*,
+-- .../columns, .../layout). Se escribían con Drizzle sin auditoría, así que
+-- manipularlos para exponer más datos no dejaba rastro.
 create trigger table_metadata_audit_insert_trigger
 after insert on cms.table_metadata for each row
 execute function cms.audit_trigger_function ();
@@ -268,11 +277,12 @@ create trigger table_metadata_audit_delete_trigger
 after delete on cms.table_metadata for each row
 execute function cms.audit_trigger_function ();
 
--- SECTION: ACCOUNTS TABLE AUDIT TRIGGERS
--- bug-hunt 15x02: cms.accounts (route PUT /v1/members/:id updateAccount, plus
--- activate/deactivate) was written directly via Drizzle with no audit trigger, so
--- account profile/metadata changes left no audit_logs trail. audit_logs.account_id is
--- nullable (on delete set null), so auditing account bootstrap with a null actor is safe.
+-- Auditoría de cms.accounts.
+-- Revisión de bugs 15x02: las cuentas del CMS (ruta PUT /v1/members/:id
+-- updateAccount, además de activar y desactivar) se escribían con Drizzle sin
+-- auditoría, así que los cambios de perfil y metadatos no dejaban rastro.
+-- audit_logs.account_id admite NULL (on delete set null), así que auditar la
+-- creación inicial de cuentas sin autor es seguro.
 create trigger accounts_audit_insert_trigger
 after insert on cms.accounts for each row
 execute function cms.audit_trigger_function ();

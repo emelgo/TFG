@@ -1,6 +1,6 @@
 /*
  * Pruebas del rol intermedio «Encargado» (`manager`) de los equipos
- * (F5 · ADR-023).
+ * (F5 · ADR-024).
  *
  * Comprueban la jerarquía (owner 1 < manager 2 < member 3), el conjunto
  * exacto de permisos de cada rol por defecto y que la jerarquía limita lo

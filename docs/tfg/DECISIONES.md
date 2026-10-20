@@ -251,7 +251,24 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Nota de numeración:** en `main` ya existen ADR-020 y ADR-021 (otra rama); por eso esta es la 022.
 - **Requisitos relacionados:** RNF-02, RNF-07.
 
-## ADR-023 · Rol intermedio «Encargado» en los equipos
+## ADR-023 · F4 recortada al núcleo
+- **Fecha:** 2026-10-20 · **Fase:** F4 · **Estado:** Aceptada
+- **Contexto:** la F4 preveía reescribir en español didáctico todos los comentarios heredados del código reutilizado. Al empezar, `report-comments` estimaba unos 4.100 comentarios sospechosos de estar en inglés repartidos por más de 1.300 ficheros. Hacerlo entero, con lectura de cada fichero para escribir cabeceras con sentido, supone un coste de tiempo y de tokens desproporcionado frente al resto de fases pendientes (validación, despliegue y memoria), y el autor ya pidió trabajar en modo ahorro (B-48). La propuesta del TFG no exige que todo el código esté comentado en español; sí exige que la arquitectura se pueda entender y defender.
+- **Decisión:**
+  - La F4 se limita al **núcleo** de la arquitectura, que es lo que el tribunal revisará y lo que un desarrollador necesita entender para reutilizar PymeKit: los esquemas SQL (`apps/web/supabase/schemas`), el *middleware* de autorización (`packages/function-middleware`), los clientes de Supabase (`packages/supabase`), el motor de políticas (`packages/policies`) y las *server functions* y servicios de `apps/web/src/lib`.
+  - En SQL solo se reescriben los comentarios **fuera** de los cuerpos de función. Los `--` dentro de `$$ … $$` forman parte de la definición almacenada y los `comment on` son DDL: cambiarlos crearía deriva frente a las migraciones, que son históricas e inmutables.
+  - El resto de módulos (`packages/features/*`, `packages/billing/*`, `packages/cms/*`, rutas y componentes de `apps/web/src`, `apps/e2e`, `tooling` y demás paquetes) queda como **trabajo futuro**.
+- **Alternativas consideradas:**
+  - completar la F4 entera: es lo más coherente con la guía, pero consume el presupuesto de las fases que sí exige la propuesta;
+  - traducir de forma automática y literal: la guía lo prohíbe porque produce comentarios obvios o incorrectos;
+  - reescribir también los comentarios de dentro de las funciones SQL con una migración que las redefina: añade riesgo de cambios funcionales y pruebas pgTAP adicionales a cambio de poco valor didáctico.
+- **Consecuencias:**
+  - Los módulos fuera del núcleo conservan comentarios en inglés (3.435 sospechosos según `report-comments` al cerrar, incluidos los de las funciones SQL). No se puede activar `--strict` de `report-comments` en la CI hasta completarlos.
+  - Quedan sin tocar unos 770 comentarios dentro de cuerpos de función SQL (unos 200 en inglés según la heurística), además de los `comment on` heredados y 24 comentarios al final de líneas de código.
+  - La memoria describirá la F4 como parcial y justificará el alcance con esta decisión.
+- **Requisitos relacionados:** RNF-05 (cumplimiento parcial: el código del núcleo queda comentado en español), RNF-01.
+
+## ADR-024 · Rol intermedio «Encargado» en los equipos
 - **Fecha:** 2026-10-20 · **Fase:** F5 · **Estado:** Aceptada
 - **Contexto:** los equipos solo tenían dos roles: `owner` (nivel 1, todos los permisos) y `member` (nivel 2, ajustes e invitaciones). En una pyme que usa los equipos para varios locales o tiendas hace falta alguien que gestione al personal sin poder tocar la facturación ni borrar el equipo, y con dos roles había que elegir entre darle todo o casi nada.
 - **Decisión:**
@@ -264,7 +281,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Consecuencias:** `team-roles-manager.test.sql` (17 pruebas) fija la jerarquía, los permisos exactos de los tres roles y lo que el encargado puede y no puede hacer; `team-accounts.test.sql` calculaba un nivel libre a partir de `owner`/`member` y chocaba con el rol personalizado del *seed* (nivel 4): ahora usa el máximo de todos los roles. El *seed* sincroniza la secuencia de `role_permissions` con su máximo real en lugar de un valor fijo (con más filas, el valor fijo 7 haría chocar la siguiente inserción). Nuevo E2E: el propietario promociona a un miembro a «Encargado».
 - **Requisitos relacionados:** RF-06, RNF-01, RNF-02.
 
-## ADR-024 · Planes de pago de ejemplo para una pyme, con ids de precio por variables de entorno
+## ADR-025 · Planes de pago de ejemplo para una pyme, con ids de precio por variables de entorno
 - **Fecha:** 2026-10-20 · **Fase:** F5 · **Estado:** Aceptada
 - **Contexto:** `billing.config.ts` traía los planes heredados («Starter», «Pro», «Enterprise», en dólares) con identificadores de precio de una cuenta de Stripe ajena, escritos en el fichero.
 - **Decisión:** tres productos en euros, cada uno mensual y anual (dos meses gratis): «Básico» (19 €/190 €), «Profesional» (49 €/490 €, destacado) y «Empresa» (99 €/990 €). Los importes son ficticios. El id de precio de cada plan se lee de `VITE_STRIPE_PRICE_<PRODUCTO>_<PERIODO>` (públicas, documentadas vacías en `apps/web/.env`) y, si falta, se usa un relleno `price_ejemplo_*`: la página de precios funciona desde el primer arranque y Stripe rechaza el pago hasta que se configuran. Nombres de producto en español y descripciones y características como claves `billing.plans.*` orientadas a pyme (web y blog; equipos para varios locales y roles; paneles y acompañamiento). Los ids de producto (`basic`, `pro`, `enterprise`) no se usan en ningún otro sitio.
@@ -272,7 +289,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Consecuencias:** la verificación con Stripe real en modo test sigue pendiente (F6/F7, necesita la cuenta del autor). Los E2E de facturación solo eligen el plan por posición, así que no dependen de los nombres.
 - **Requisitos relacionados:** RF-07, RNF-01.
 
-## ADR-025 · Plantilla inicial de roles del CMS en una migración de datos
+## ADR-026 · Plantilla inicial de roles del CMS en una migración de datos
 - **Fecha:** 2026-10-20 · **Fase:** F5 · **Estado:** Aceptada. Desarrolla ADR-014.
 - **Contexto:** el RBAC del CMS empieza vacío salvo el rol raíz. El único rol limitado, «Soporte», se creaba en el *seed*, que solo se aplica en local (`supabase db reset`), así que una instalación nueva no tenía ningún perfil de personal de partida.
 - **Decisión:**

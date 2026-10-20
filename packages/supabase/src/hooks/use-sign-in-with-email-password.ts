@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 
 import { useSupabase } from './use-supabase';
 
+/** Mutación de inicio de sesión con email y contraseña. */
 export function useSignInWithEmailPassword() {
   const client = useSupabase();
   const mutationKey = ['auth', 'sign-in-with-email-password'];
@@ -18,7 +19,8 @@ export function useSignInWithEmailPassword() {
     const user = response.data?.user;
     const identities = user?.identities ?? [];
 
-    // if the user has no identities, it means that the email is taken
+    // Un usuario sin identidades indica una cuenta incompleta o un email ya
+    // usado por otra identidad; se trata como error.
     if (identities.length === 0) {
       throw new Error('User already registered');
     }

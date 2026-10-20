@@ -96,19 +96,21 @@
 ## F4 · Comentarios en español
 | Módulo | Estado | Revisado |
 |---|---|---|
-| `apps/web/supabase` (incluidas 5 funciones del CMS cuya única deriva frente a las migraciones son los comentarios: al reescribirlos hay que redefinirlas en una migración) | ⬜ | ⬜ |
-| `packages/function-middleware`, `supabase`, `policies` | ⬜ | ⬜ |
-| `packages/features/*` | ⬜ | ⬜ |
-| `packages/billing/*` | ⬜ | ⬜ |
-| `apps/web/src` | ⬜ | ⬜ |
+| `apps/web/supabase/schemas` (solo los comentarios fuera de los cuerpos de función; los de dentro de `$$ … $$` y los `comment on` se mantienen para no crear deriva frente a las migraciones; incluidas 5 funciones del CMS cuya única deriva son los comentarios: al reescribirlos hay que redefinirlas en una migración) | ✅ | ⬜ |
+| `packages/function-middleware`, `supabase`, `policies` | ✅ | ⬜ |
+| `packages/features/*` | ⬜ (trabajo futuro) | ⬜ |
+| `packages/billing/*` | ⬜ (trabajo futuro) | ⬜ |
+| `apps/web/src` | 🟡 solo `src/lib` (*server functions* y servicios); rutas y componentes, trabajo futuro | ⬜ |
 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms` (incluye quitar 27 `console.*` heredados y arreglar los tipos de los tests heredados, hoy excluidos del typecheck) | ⬜ | ⬜ |
 | Resto de `packages/*` | ⬜ | ⬜ |
-| `apps/e2e`, `tooling` | ⬜ | ⬜ |
+| `apps/e2e`, `tooling` | ⬜ (trabajo futuro) | ⬜ |
+
+> **F4 recortada al núcleo (ADR-023).** Por decisión de presupuesto, la F4 se limita al núcleo de la arquitectura: esquemas SQL, *middleware* de autorización, clientes de Supabase, motor de políticas y *server functions*/servicios de `apps/web/src/lib`. Los demás módulos conservan comentarios heredados en inglés y quedan como trabajo futuro (se miden con `node scripts/tfg/report-comments.mjs`).
 
 ## F5 · Adaptación a pymes
-- [x] Roles y permisos (ADR + pgTAP): rol intermedio «Encargado» (`manager`, nivel 2; `member` pasa al 3) con miembros, roles, invitaciones y ajustes, sin facturación (ADR-023). `team-roles-manager.test.sql` y E2E de promoción a encargado
-- [x] Planes de Stripe (ADR): «Básico», «Profesional» y «Empresa» en euros, mensual y anual, con ids de precio por `VITE_STRIPE_PRICE_*` y relleno `price_ejemplo_*` (ADR-024)
-- [x] Plantilla de permisos del CMS: «Soporte» (solo lectura de cuentas, miembros, usuarios y auditoría) y «Gestor de contenidos» (grupo «Contenidos»: blog y archivos) en una migración de datos idempotente (ADR-025). `cms-role-templates.test.sql`
+- [x] Roles y permisos (ADR + pgTAP): rol intermedio «Encargado» (`manager`, nivel 2; `member` pasa al 3) con miembros, roles, invitaciones y ajustes, sin facturación (ADR-024). `team-roles-manager.test.sql` y E2E de promoción a encargado
+- [x] Planes de Stripe (ADR): «Básico», «Profesional» y «Empresa» en euros, mensual y anual, con ids de precio por `VITE_STRIPE_PRICE_*` y relleno `price_ejemplo_*` (ADR-025)
+- [x] Plantilla de permisos del CMS: «Soporte» (solo lectura de cuentas, miembros, usuarios y auditoría) y «Gestor de contenidos» (grupo «Contenidos»: blog y archivos) en una migración de datos idempotente (ADR-026). `cms-role-templates.test.sql`
 - [x] Configuración reutilizable documentada: `docs/CONFIGURACION.md` (ficheros `*.config.ts`, variables de entorno, interruptores de módulos, identidad, roles, planes, tablas propias en el CMS y generadores)
 - [x] Generadores revisados: retirados `docker` y `cloudflare` (de otro *framework*); `package` en español, con tipo funcionalidad/paquete y dependencias del catálogo; probado
 - [ ] Pendiente (F5): verificar los planes con Stripe real en modo test (F6/F7, cuenta del autor); `playwright.config.ts` ya acepta `E2E_BASE_URL`, pero `i18n.po.ts`, `cms-settings-auth.spec.ts` y las cabeceras `Origin` de varios E2E del CMS siguen con `localhost:3100` fijo (en otro puerto, los del CMS necesitan una *build* con `VITE_SITE_URL` en 3100 y los de equipos e invitaciones, una con el puerto real, porque los enlaces de los correos salen de esa variable); restos sin uso en `.env` (`VITE_KEYSTATIC_CONTENT_PATH`, `VITE_LOCALES_PATH`)
@@ -165,7 +167,8 @@ Se distinguen dos medidas:
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
-| 2026-10-20 | F5 | Adaptación a pymes (modo ahorro, rama `fase-5/adaptacion-pymes`): rol «Encargado» (ADR-023), planes en euros (ADR-024), plantilla de roles del CMS (ADR-025), `docs/CONFIGURACION.md` y generador `package` revisado. Incidencias B-56 y B-57 |
+| 2026-10-20 | F5 | Adaptación a pymes (modo ahorro, rama `fase-5/adaptacion-pymes`): rol «Encargado» (ADR-024), planes en euros (ADR-025), plantilla de roles del CMS (ADR-026), `docs/CONFIGURACION.md` y generador `package` revisado. Incidencias B-56 y B-57 |
+| 2026-10-20 | F4 | F4 recortada al núcleo (ADR-023, modo ahorro, un agente): comentarios didácticos en `schemas/*.sql` (fuera de los cuerpos de función), `function-middleware`, `supabase`, `policies` y `apps/web/src/lib`; `report-comments` a 0 en los TS del núcleo. Rama `fase-4/comentarios-nucleo` |
 | 2026-10-02 | F3c | F3 fusionada (PR #2, B-54). El autor aclara el enfoque: base para la web de una pyme (landing, blog y login de super-admin, personal o cliente), conservando equipos y Stripe como módulos. Tablas del CMS en español, demo retirada y consola por áreas (ADR-020) |
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |

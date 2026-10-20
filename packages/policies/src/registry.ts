@@ -1,13 +1,19 @@
+/**
+ * Registro de políticas.
+ *
+ * Guarda las definiciones de política por identificador para que cada
+ * funcionalidad declare sus reglas en un sitio y las aplicaciones que
+ * reutilizan PymeKit puedan añadir las suyas. Se apoya en el registro
+ * genérico de `@pymekit/shared/registry`.
+ */
 import { createRegistry } from '@pymekit/shared/registry';
 
 import type { FeaturePolicyDefinition } from './declarative';
 import type { PolicyContext } from './types';
 
-/**
- * Simple policy registry interface
- */
+/** Interfaz del registro de políticas. */
 export interface PolicyRegistry {
-  /** Register a single policy definition */
+  /** Registra una definición; falla si el identificador ya existe. */
   registerPolicy<
     TContext extends PolicyContext = PolicyContext,
     TConfig = unknown,
@@ -15,21 +21,19 @@ export interface PolicyRegistry {
     definition: FeaturePolicyDefinition<TContext, TConfig>,
   ): PolicyRegistry;
 
-  /** Get a policy definition by ID */
+  /** Devuelve una definición por su identificador; falla si no existe. */
   getPolicy<TContext extends PolicyContext = PolicyContext, TConfig = unknown>(
     id: string,
   ): Promise<FeaturePolicyDefinition<TContext, TConfig>>;
 
-  /** Check if a policy exists */
+  /** Indica si existe una política con ese identificador. */
   hasPolicy(id: string): boolean;
 
-  /** List all registered policy IDs */
+  /** Lista los identificadores registrados, en orden de registro. */
   listPolicies(): string[];
 }
 
-/**
- * Creates a new policy registry instance
- */
+/** Crea un registro de políticas vacío. */
 export function createPolicyRegistry(): PolicyRegistry {
   const baseRegistry = createRegistry<
     FeaturePolicyDefinition<PolicyContext, unknown>,
@@ -43,14 +47,14 @@ export function createPolicyRegistry(): PolicyRegistry {
       TContext extends PolicyContext = PolicyContext,
       TConfig = unknown,
     >(definition: FeaturePolicyDefinition<TContext, TConfig>) {
-      // Check for duplicates
+      // Un identificador duplicado sustituiría en silencio una regla, así
+      // que se rechaza.
       if (policyIds.has(definition.id)) {
         throw new Error(
           `Policy with ID "${definition.id}" is already registered`,
         );
       }
 
-      // Register the policy definition
       baseRegistry.register(definition.id, () => definition);
       policyIds.add(definition.id);
 

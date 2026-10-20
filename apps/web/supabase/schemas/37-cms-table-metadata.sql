@@ -1,6 +1,13 @@
 
--- SECTION: TABLE METADATA
--- In this section, we define the table metadata table. The table metadata table is used to store the metadata for the tables in the database.
+/*
+ * -------------------------------------------------------
+ * Sección: Metadatos de tablas del CMS
+ * Configuración de cómo muestra el CMS cada tabla de la aplicación: nombre
+ * visible, columnas, relaciones, claves y opciones de interfaz. El CMS la
+ * rellena automáticamente al sincronizar las tablas gestionadas
+ * (45-cms-sync-managed-tables.sql) y el personal la puede ajustar.
+ * -------------------------------------------------------
+ */
 create table if not exists cms.table_metadata (
   schema_name VARCHAR(64) not null,
   table_name VARCHAR(64) not null,
@@ -9,15 +16,15 @@ create table if not exists cms.table_metadata (
   display_format TEXT,
   is_visible BOOLEAN default true,
   ordering INTEGER,
-  -- Keys config
+  -- Configuración de claves (primaria, de visualización...).
   keys_config JSONB default '{}'::jsonb,
-  -- Columns config - JSONB structure keyed by column name
+  -- Configuración de columnas: JSONB indexado por el nombre de la columna.
   columns_config JSONB default '{}'::jsonb,
-  -- Relations config - Array of relation objects
+  -- Configuración de relaciones: array de objetos de relación.
   relations_config JSONB default '[]'::jsonb,
-  -- UI customization
+  -- Personalización de la interfaz.
   ui_config JSONB default '{}'::jsonb,
-  -- Can it be searched?
+  -- Indica si la tabla participa en la búsqueda global.
   is_searchable BOOLEAN default true,
   created_at TIMESTAMPTZ not null default NOW(),
   updated_at TIMESTAMPTZ not null default NOW(),
@@ -54,19 +61,20 @@ comment on column cms.table_metadata.created_at is 'The creation time of the tab
 
 comment on column cms.table_metadata.updated_at is 'The last update time of the table';
 
--- Grants
+-- Permisos de tabla: solo lectura y actualización (las filas las crea la
+-- sincronización); la RLS decide sobre qué filas.
 grant
 select
 ,
 update on table cms.table_metadata to authenticated,
 service_role;
 
--- RLS
+-- RLS activada.
 alter table cms.table_metadata ENABLE row LEVEL SECURITY;
 
--- RLS Policies
--- SELECT(table_metadata)
--- We allow authenticated users to view table metadata if they have the select permission for the table.
+-- Política SELECT: un usuario ve los metadatos de una tabla si tiene permiso
+-- de lectura sobre esa tabla; así el CMS no revela ni siquiera la existencia
+-- de tablas a las que no tiene acceso.
 create policy view_table_metadata on cms.table_metadata for
 select
   to authenticated using (
@@ -77,8 +85,8 @@ select
     )
   );
 
--- UPDATE(table_metadata)
--- We allow authenticated users to update table metadata if they have the update permission for the table.
+-- Política UPDATE: cambiar cómo se muestra una tabla es una acción de
+-- configuración, así que exige el permiso de sistema `table:update`.
 create policy update_table_metadata on cms.table_metadata
 for update
   to authenticated using (

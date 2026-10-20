@@ -1,11 +1,14 @@
 /*
  * -------------------------------------------------------
- * Section: Subscriptions
- * We create the schema for the subscriptions. Subscriptions are the subscriptions for an account to a product. For example, a user might have a subscription to a product with the status 'active'.
+ * Sección: Suscripciones
+ * Copia local del estado de las suscripciones de cada cuenta en el
+ * proveedor de cobro. La fuente de verdad es el proveedor: estas tablas se
+ * actualizan al recibir sus *webhooks* (con `upsert_subscription`) y sirven
+ * para que la aplicación y la RLS decidan sin llamar a la API externa si una
+ * cuenta tiene acceso a las funciones de pago.
  * -------------------------------------------------------
-
  */
--- Subscriptions table
+-- Tabla de suscripciones; `id` es el identificador del proveedor.
 create table if not exists
   public.subscriptions (
     id text not null primary key,
@@ -53,14 +56,14 @@ comment on column public.subscriptions.active is 'Whether the subscription is ac
 
 comment on column public.subscriptions.billing_customer_id is 'The billing customer ID for the subscription';
 
--- Revoke all on subscriptions table from authenticated and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.subscriptions
 from
   anon,
   authenticated,
   service_role;
 
--- Open up relevant access to subscriptions table for authenticated users and service_role
+-- Solo service_role escribe (desde los *webhooks*); los usuarios solo leen.
 grant
 select
 ,
@@ -72,7 +75,8 @@ grant
 select
   on table public.subscriptions to authenticated;
 
--- Indexes on the subscriptions table
+-- Índices por cuenta, por cliente y parcial para las suscripciones activas,
+-- que es la consulta más frecuente.
 create index ix_subscriptions_account_id on public.subscriptions (account_id);
 
 create index ix_subscriptions_billing_customer_id on public.subscriptions (billing_customer_id);
@@ -81,17 +85,17 @@ create index ix_subscriptions_active_account_id on public.subscriptions (account
 where
   active = true;
 
--- Triggers for subscriptions table
+-- Disparador de marcas de tiempo (definido en 02-config.sql).
 create trigger subscriptions_set_timestamps
 before insert or update on public.subscriptions
 for each row execute function public.trigger_set_timestamps();
 
--- Enable RLS on subscriptions table
+-- RLS activada sobre subscriptions.
 alter table public.subscriptions enable row level security;
 
--- RLS on the subscriptions table
--- SELECT(subscriptions):
--- Users can read account subscriptions on an account they are a member of
+-- Política SELECT: un usuario ve las suscripciones de los equipos de los que
+-- es miembro y la de su cuenta personal, siempre que el cobro de ese tipo de
+-- cuenta esté activado en la configuración global.
 create policy subscriptions_read_self on public.subscriptions for
 select
   to authenticated using (
@@ -108,8 +112,11 @@ select
     )
   );
 
--- Function "public.upsert_subscription"
--- Insert or Update a subscription and its items in the database when receiving a webhook from the billing provider
+-- Función `public.upsert_subscription`: inserta o actualiza en una única
+-- transacción el cliente, la suscripción y sus líneas a partir de un *webhook*
+-- del proveedor, borrando las líneas que ya no vengan en `line_items`. Solo la
+-- ejecuta service_role: el *webhook* se verifica antes en el servidor con la
+-- firma del proveedor.
 create
 or replace function public.upsert_subscription (
   target_account_id uuid,
@@ -270,11 +277,11 @@ execute on function public.upsert_subscription (
 ) to service_role;
 
 /* -------------------------------------------------------
-* Section: Subscription Items
-* We create the schema for the subscription items. Subscription items are the items in a subscription.
-* For example, a subscription might have a subscription item with the product ID 'prod_123' and the variant ID 'var_123'.
-* -------------------------------------------------------
-*/
+ * Sección: Líneas de suscripción
+ * Cada línea es un producto y variante (precio) de la suscripción, con su
+ * tipo (plana, por puesto o por consumo), cantidad e intervalo de cobro.
+ * -------------------------------------------------------
+ */
 create table if not exists
   public.subscription_items (
     id varchar(255) not null primary key,
@@ -311,14 +318,15 @@ comment on column public.subscription_items.created_at is 'The creation date of 
 
 comment on column public.subscription_items.updated_at is 'The last update date of the item';
 
--- Revoke all access to subscription_items table for authenticated users and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.subscription_items
 from
   anon,
   authenticated,
   service_role;
 
--- Open up relevant access to subscription_items table for authenticated users and service_role
+-- Los usuarios autenticados solo leen; service_role escribe desde los
+-- *webhooks*.
 grant
 select
   on table public.subscription_items to authenticated,
@@ -328,22 +336,21 @@ grant insert,
 update,
 delete on table public.subscription_items to service_role;
 
--- Indexes
--- Indexes on the subscription_items table
+-- Índices por suscripción y por producto/variante.
 create index ix_subscription_items_subscription_id on public.subscription_items (subscription_id);
 
 create index ix_subscription_items_product_variant on public.subscription_items (product_id, variant_id);
 
--- Triggers for subscription_items table
+-- Disparador de marcas de tiempo (definido en 02-config.sql).
 create trigger subscription_items_set_timestamps
 before insert or update on public.subscription_items
 for each row execute function public.trigger_set_timestamps();
 
--- RLS
+-- RLS activada sobre subscription_items.
 alter table public.subscription_items enable row level security;
 
--- SELECT(subscription_items)
--- Users can read subscription items on a subscription they are a member of
+-- Política SELECT: un usuario ve las líneas de las suscripciones que puede
+-- ver (las de su cuenta personal y las de sus equipos).
 create policy subscription_items_read_self on public.subscription_items for
 select
   to authenticated using (
@@ -365,9 +372,9 @@ select
   );
 
 
--- Function "public.has_active_subscription"
--- Check if a user has an active subscription on an account - ie. it's trialing or active
--- Useful to gate access to features that require a subscription
+-- Función `public.has_active_subscription`: indica si la cuenta tiene una
+-- suscripción activa (activa o en periodo de prueba). Sirve para restringir el
+-- acceso a funcionalidades de pago, también desde las políticas RLS.
 create
 or replace function public.has_active_subscription (target_account_id uuid) returns boolean
 set

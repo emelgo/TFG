@@ -77,7 +77,7 @@ test.describe('CMS: personal de soporte con MFA', () => {
     await expect(cms.managementGroup()).toBeVisible();
     await expect(cms.homeEntry()).toHaveCount(0);
 
-    // El rol «Soporte» (plantilla de la F5, ADR-025) lee dos tablas, los
+    // El rol «Soporte» (plantilla de la F5, ADR-026) lee dos tablas, los
     // usuarios y la auditoría, pero no el almacenamiento.
     await cms.expectCmsSections([
       'resources',

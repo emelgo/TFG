@@ -261,7 +261,7 @@ conectarlos en lugar de sustituir uno por otro:
         super-administrador porque incumpliría RF-09 («con permisos
         propios»). Para que una instalación nueva no empiece con el RBAC
         vacío, una migración de datos idempotente deja preparados dos roles
-        de partida, editables y sin nadie asignado (ADR-025): «Soporte»,
+        de partida, editables y sin nadie asignado (ADR-026): «Soporte»,
         que solo lee cuentas, miembros, usuarios y la auditoría, y «Gestor
         de contenidos», que gestiona el blog y los archivos a través de un
         grupo de permisos «Contenidos». Se eligió una migración y no el
@@ -468,7 +468,7 @@ verifica la firma y sincroniza clientes, suscripciones y pedidos con el
 cliente de servicio. Ningún usuario escribe esas tablas con su sesión
 (RN-07): la fuente de verdad de un cobro es la pasarela.
 
-Los planes de partida están pensados para una pyme (ADR-024): «Básico»,
+Los planes de partida están pensados para una pyme (ADR-025): «Básico»,
 «Profesional» y «Empresa», en euros, cada uno con pago mensual y anual. Los
 importes son ficticios y los identificadores de precio de la pasarela se
 leen de variables de entorno (\texttt{VITE\_STRIPE\_PRICE\_*}); si faltan,
@@ -650,9 +650,11 @@ valer.
   019 & Paneles con cuadrícula propia, sin librería & Librería de cuadrícula (más dependencias; arrastrar sin teclado no es accesible) & RF-11, RNF-08 \\
   020 & Consola por áreas de negocio, nombres en español como datos y sin esquema de demostración & Traducir nombres en el cliente; áreas fijas en un fichero; quitar equipos y pagos & RF-09, RNF-01, 08 \\
   021 & Interfaz solo en español conservando la infraestructura i18n & Mantener dos idiomas (doble mantenimiento); eliminar la i18n (impide traducir) & RF-13, RNF-01 \\
-  023 & Rol intermedio «Encargado» en los equipos & Mantener solo propietario y miembro; dar al miembro más permisos & RF-06, RNF-01 \\
-  024 & Planes de ejemplo para pymes en euros con ids de precio por variables & Ids fijos en el fichero; planes sin precios & RF-07, RNF-01 \\
-  025 & Plantilla de roles del CMS en una migración de datos idempotente & Solo en el \textit{seed} (no llega a producción); roles de sistema no editables & RF-09, RNF-01 \\
+  022 & Una sola imagen Docker para la web y Supabase externa & Contenedores separados para la API del CMS; Supabase autoalojada en el mismo \textit{compose} & RNF-04, 07 \\
+  023 & Comentarios didácticos en español limitados al núcleo de la arquitectura & Reescribir todos los comentarios (coste desproporcionado); no reescribir ninguno & RNF-05 \\
+  024 & Rol intermedio «Encargado» en los equipos & Mantener solo propietario y miembro; dar al miembro más permisos & RF-06, RNF-01 \\
+  025 & Planes de ejemplo para pymes en euros con ids de precio por variables & Ids fijos en el fichero; planes sin precios & RF-07, RNF-01 \\
+  026 & Plantilla de roles del CMS en una migración de datos idempotente & Solo en el \textit{seed} (no llega a producción); roles de sistema no editables & RF-09, RNF-01 \\
 \end{longtable}
 
 % ---------------------------------------------------------------------

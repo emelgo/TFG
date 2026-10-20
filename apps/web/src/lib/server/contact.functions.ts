@@ -1,3 +1,10 @@
+/**
+ * *Server function* pública del formulario de contacto de la web.
+ *
+ * Es uno de los pocos puntos de entrada que no exigen sesión, así que se
+ * protege con CAPTCHA (si está configurado) y escapa todo lo que escribe el
+ * visitante antes de meterlo en el correo.
+ */
 import { createServerFn } from '@tanstack/react-start';
 import * as z from 'zod';
 
@@ -7,8 +14,9 @@ import { getMailer } from '@pymekit/mailers';
 
 import { ContactEmailSchema } from '#/lib/contact/contact-email.schema.ts';
 
-// Neutralize HTML injection: the submitter controls `name`/`email`/`message`,
-// which are interpolated into the email body sent to the site owner.
+// Evita la inyección de HTML: quien envía el formulario controla `name`,
+// `email` y `message`, que se insertan en el cuerpo del correo que recibe el
+// propietario del sitio.
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -19,20 +27,21 @@ function escapeHtml(value: string) {
 }
 
 /**
- * Public server fn for the marketing contact form. Sends the submission to the
- * configured `CONTACT_EMAIL` via the active mailer. Env vars are resolved at
- * call time (not module load) so a missing value surfaces as a request error
- * instead of crashing SSR.
+ * Envía el mensaje del formulario de contacto a `CONTACT_EMAIL` con el
+ * proveedor de correo activo. Las variables de entorno se leen al llamar (no
+ * al cargar el módulo) para que, si falta alguna, falle esa petición y no el
+ * renderizado en servidor de toda la web.
  */
 export const sendContactEmail = createServerFn({ method: 'POST' })
-  // Normalize failures so raw mailer/captcha errors are not serialized to the
-  // browser.
+  // Se normalizan los errores para no enviar al navegador los mensajes
+  // internos del proveedor de correo o del CAPTCHA.
   .middleware([errorMiddleware])
   .validator(ContactEmailSchema)
   .handler(async ({ data }) => {
-    // When a CAPTCHA is configured, verify the token before dispatching an
-    // email. This gates the public endpoint against automated abuse
-    // (inbox-flooding / mailer-cost amplification). No-op when unconfigured.
+    // Si hay CAPTCHA configurado, se verifica el token antes de enviar nada:
+    // protege este punto público frente a abusos automatizados (inundar el
+    // buzón o disparar el coste del proveedor de correo). Sin configuración no
+    // hace nada.
     if (process.env.CAPTCHA_SECRET_TOKEN) {
       await verifyCaptchaToken(data.captchaToken ?? '');
     }

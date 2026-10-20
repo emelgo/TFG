@@ -377,7 +377,7 @@ values ('6a0f3e2d-1c4b-4a59-8e7d-3b2c1a0f9e8d', 'd3c1a6f2-7b54-4e0a-9c8d-2f6e5b4
 -- El rol «Soporte» (rango 30) y sus permisos de solo lectura no se crean
 -- aquí: forman parte de la plantilla de roles del CMS, que llega también a
 -- producción con la migración `20261020120100_cms_role_templates.sql`
--- (ADR-025). El *seed* solo le asigna el rol al usuario de pruebas.
+-- (ADR-026). El *seed* solo le asigna el rol al usuario de pruebas.
 insert into cms.account_roles (account_id, role_id)
 values ('6a0f3e2d-1c4b-4a59-8e7d-3b2c1a0f9e8d', '9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e');
 

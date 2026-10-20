@@ -1,5 +1,5 @@
 /*
- * F5 · Rol intermedio «Encargado» (`manager`) para los equipos (ADR-023)
+ * F5 · Rol intermedio «Encargado» (`manager`) para los equipos (ADR-024)
  *
  * Una pyme que usa los equipos (por ejemplo, una cuenta por tienda) necesita
  * a alguien que gestione al personal sin tocar la facturación ni poder borrar

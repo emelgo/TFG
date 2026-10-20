@@ -15,7 +15,7 @@ import { createClient } from '@supabase/supabase-js';
  *    CMS, ni siquiera el propio super-admin;
  *  - ningún *endpoint* acepta `app_metadata` (con `role` o `cms_access`): un
  *    campo de más se rechaza con 400;
- *  - el personal de soporte (rol «Soporte», que solo LEE usuarios: ADR-025)
+ *  - el personal de soporte (rol «Soporte», que solo LEE usuarios: ADR-026)
  *    ve el listado y la ficha sin acciones, y la API le responde 403 a
  *    cualquier acción.
  *

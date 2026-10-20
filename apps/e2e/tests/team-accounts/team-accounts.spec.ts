@@ -286,7 +286,7 @@ test.describe('Team Member Role Management', () => {
     ).toHaveText('Propietario');
   });
 
-  // Rol intermedio para pymes (F5 · ADR-023)
+  // Rol intermedio para pymes (F5 · ADR-024)
   test('owner can promote a member to manager («Encargado»)', async ({
     page,
   }) => {

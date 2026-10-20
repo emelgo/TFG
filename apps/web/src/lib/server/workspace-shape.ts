@@ -1,24 +1,27 @@
+/**
+ * Tipos de los datos del espacio de trabajo que el servidor entrega a la zona
+ * autenticada. Están en un fichero aparte, sin código de servidor, para que
+ * los componentes puedan importarlos.
+ */
 import type { Database } from '@pymekit/supabase/database';
 import type { JWTUserData } from '@pymekit/supabase/types';
 
 /**
- * The active account (personal or team) resolved from the DB-backed active
- * account pointer. Superset shape returned by the `active_account_workspace`
- * function — it carries `is_personal_account` plus the team-only role /
- * permission fields (null / empty for personal accounts).
+ * Cuenta activa (personal o de equipo) resuelta a partir del puntero guardado
+ * en la base de datos. Es la forma común que devuelve
+ * `active_account_workspace`: incluye `is_personal_account` y los campos de
+ * rol y permisos propios de los equipos (nulos o vacíos en la personal).
  */
 export type ActiveAccount =
   Database['public']['Functions']['active_account_workspace']['Returns'][number];
 
-/**
- * A team the user belongs to, used to populate the workspace switcher.
- */
+/** Equipo del usuario, para el selector de espacios de trabajo. */
 export type WorkspaceAccountSummary =
   Database['public']['Views']['user_accounts']['Row'];
 
 /**
- * Workspace data flowed to the authenticated shell: the active account, the
- * teams the user can switch to, and the current user.
+ * Datos del espacio de trabajo: cuenta activa, equipos a los que se puede
+ * cambiar y usuario actual.
  */
 export interface WorkspaceShape {
   account: ActiveAccount;

@@ -9,6 +9,10 @@ interface Credentials {
   redirectTo: string;
 }
 
+/**
+ * Mutación que añade email y contraseña a un usuario que se registró con un
+ * proveedor OAuth, y refresca la sesión e identidades al terminar.
+ */
 export function useLinkIdentityWithEmailPassword() {
   const client = useSupabase();
   const queryClient = useQueryClient();
@@ -22,9 +26,9 @@ export function useLinkIdentityWithEmailPassword() {
         email,
         password,
         data: {
-          // This is used to indicate that the user has a password set
-          // because Supabase does not add the identity after setting a password
-          // if the user was created with oAuth
+          // Marca que el usuario ya tiene contraseña: si se creó con OAuth,
+          // Supabase no añade la identidad de email al fijar la contraseña y
+          // la interfaz no tendría otra forma de saberlo.
           hasPassword: true,
         },
       },

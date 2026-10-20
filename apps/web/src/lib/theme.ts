@@ -1,10 +1,10 @@
 /**
- * Theme helpers for the root document.
+ * Utilidades del tema (claro u oscuro) del documento raíz.
  *
- * The theme is resolved server-side from the `theme` cookie (see
- * `theme.functions.ts`) and rendered into the `<html>` class in the root shell,
- * so there is no flash of the wrong theme. The client persists changes via
- * `@pymekit/ui/theme`'s `ThemeProvider`.
+ * El tema se resuelve en el servidor a partir de la *cookie* `theme` (ver
+ * `theme.functions.ts`) y se pinta como clase de `<html>` desde el principio,
+ * para que no haya un parpadeo con el tema equivocado. El cliente guarda los
+ * cambios con el `ThemeProvider` de `@pymekit/ui/theme`.
  */
 import { cn } from '@pymekit/ui/utils';
 
@@ -15,9 +15,8 @@ export const THEME_COOKIE = 'theme';
 const fallbackTheme: Theme = 'light';
 
 /**
- * @name getDefaultTheme
- * @description Resolve the default theme from `VITE_DEFAULT_THEME_MODE`,
- * falling back to `light`.
+ * Devuelve el tema por defecto de `VITE_DEFAULT_THEME_MODE` o, si no es
+ * válido, `light`.
  */
 export function getDefaultTheme(): Theme {
   const value = import.meta.env.VITE_DEFAULT_THEME_MODE;
@@ -30,9 +29,8 @@ export function getDefaultTheme(): Theme {
 }
 
 /**
- * @name parseTheme
- * @description Resolve a theme from a raw cookie value, falling back to the
- * configured default.
+ * Interpreta el valor de la *cookie* de tema; si no es válido, usa el tema
+ * por defecto configurado.
  */
 export function parseTheme(rawValue: string | undefined): Theme {
   if (rawValue === 'light' || rawValue === 'dark' || rawValue === 'system') {
@@ -43,10 +41,9 @@ export function parseTheme(rawValue: string | undefined): Theme {
 }
 
 /**
- * @name getRootClassName
- * @description Build the class list for the root <html> element. `system` is
- * rendered as light; an inline script in the root `<head>` switches it to dark
- * before first paint when the OS prefers dark.
+ * Construye las clases del elemento `<html>`. El tema `system` se pinta como
+ * claro y un script en línea del `<head>` lo cambia a oscuro antes del primer
+ * pintado si el sistema operativo lo prefiere.
  */
 export function getRootClassName(theme: Theme) {
   const dark = theme === 'dark';

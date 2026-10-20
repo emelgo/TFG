@@ -1,5 +1,5 @@
 /*
- * Pruebas de la plantilla inicial de roles del CMS (F5 · ADR-025,
+ * Pruebas de la plantilla inicial de roles del CMS (F5 · ADR-026,
  * migración `20261020120100_cms_role_templates.sql`).
  *
  * Comprueban que existen los roles «Soporte» y «Gestor de contenidos» con su

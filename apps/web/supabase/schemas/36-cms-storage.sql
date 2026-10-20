@@ -1,5 +1,14 @@
--- SECTION: GET COLUMN STORAGE CONFIG
--- In this section, we define the get column storage config function. This function is used to get the storage configuration for a column.
+/*
+ * -------------------------------------------------------
+ * Sección: Almacenamiento desde el CMS
+ * Permite al personal gestionar ficheros de Supabase Storage desde el panel,
+ * con permisos de datos de ámbito `storage` (bucket y patrón de ruta).
+ * -------------------------------------------------------
+ */
+
+-- Función `cms.get_column_storage_config`: devuelve la configuración de
+-- almacenamiento de una columna (bucket y ruta donde se suben sus ficheros),
+-- guardada en los metadatos de la tabla.
 create or replace function cms.get_column_storage_config (p_schema text, p_table text, p_column text) RETURNS jsonb
 set
   search_path = '' as $$
@@ -30,29 +39,32 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.get_column_storage_config to authenticated;
 
--- SECTION: SUPABASE STORAGE RLS POLICIES
--- Simple policies using the single permission function
+-- Políticas RLS de storage.objects para el CMS: una por operación, todas
+-- delegando en cms.has_storage_permission. Son permisivas, así que se suman
+-- (OR) a las del bucket de imágenes de cuentas (17-storage.sql); un usuario
+-- de la web sin permisos del CMS no gana nada con ellas.
+-- Política INSERT (subir ficheros).
 create policy "cms_storage_upload" on storage.objects for INSERT to authenticated
 with
   check (
     cms.has_storage_permission (bucket_id, 'insert'::cms.system_action, name)
   );
 
--- Add policy to check if the user has the permission to select the object
+-- Política SELECT (leer o descargar).
 create policy "cms_storage_select" on storage.objects for
 select
   to authenticated using (
     cms.has_storage_permission (bucket_id, 'select'::cms.system_action, name)
   );
 
--- Add policy to check if the user has the permission to update the object
+-- Política UPDATE (reemplazar o mover).
 create policy "cms_storage_update" on storage.objects
 for update
   to authenticated using (
     cms.has_storage_permission (bucket_id, 'update'::cms.system_action, name)
   );
 
--- TODO: Add a policy to check if the user has the permission to delete the object
+-- Política DELETE (borrar).
 create policy "cms_storage_delete" on storage.objects for DELETE to authenticated using (
   cms.has_storage_permission (bucket_id, 'delete'::cms.system_action, name)
 );

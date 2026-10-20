@@ -4,9 +4,7 @@ import { useSupabase } from './use-supabase';
 import { usePasskeysQueryKey } from './use-user-passkeys-query-key';
 
 /**
- * @name useDeletePasskey
- * @description
- * Delete a passkey for the currently signed-in user.
+ * Mutación que elimina una *passkey* del usuario con sesión iniciada.
  *
  * @see https://supabase.com/docs/guides/auth/passkeys
  */

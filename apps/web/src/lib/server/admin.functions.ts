@@ -1,3 +1,14 @@
+/**
+ * *Server functions* del panel de superadministración (`/admin`).
+ *
+ * Todas usan `adminFunctionMiddleware`, que exige rol `super-admin` y sesión
+ * MFA, de modo que son seguras aunque se llamen sin pasar por el `beforeLoad`
+ * de la ruta. Las lecturas se hacen con el cliente del usuario: las
+ * políticas RLS de superadministrador (14-super-admin.sql) le dan acceso de
+ * solo lectura a todas las cuentas.
+ *
+ * [TFG] RF-08 Panel de superadministración.
+ */
 import { createServerFn } from '@tanstack/react-start';
 import * as z from 'zod';
 
@@ -11,11 +22,7 @@ import { getSupabaseServerClient } from '@pymekit/supabase/server-client';
 
 const PAGE_SIZE = 10;
 
-/**
- * Loads the aggregate counts for the admin dashboard. Gated by
- * `adminFunctionMiddleware` (super-admin only) so the server fn is safe to call
- * independently of the route `beforeLoad`.
- */
+/** Carga los recuentos agregados del panel de administración. */
 export const fetchAdminDashboard = createServerFn({ method: 'GET' })
   .middleware(adminFunctionMiddleware)
   .handler(async (): Promise<AdminDashboardData> => {
@@ -32,8 +39,8 @@ const AdminAccountsSearchSchema = z.object({
 });
 
 /**
- * Loads a paginated, filterable page of accounts for `/admin/accounts`.
- * Replaces the old Next.js `ServerDataLoader` (page size 10, exact count).
+ * Carga una página de cuentas para `/admin/accounts`, con paginación (10 por
+ * página y recuento exacto) y filtros por tipo y texto.
  */
 export const fetchAdminAccounts = createServerFn({ method: 'GET' })
   .middleware(adminFunctionMiddleware)
@@ -55,9 +62,10 @@ export const fetchAdminAccounts = createServerFn({ method: 'GET' })
     }
 
     if (query) {
-      // Wrap the search term in double quotes and escape embedded quotes so
-      // PostgREST reserved characters (`,` `.` `(` `)`) in the user-supplied
-      // query are treated as literals instead of corrupting the filter grammar.
+      // El término se envuelve en comillas dobles y se escapan las comillas y
+      // barras que contenga, para que los caracteres reservados de PostgREST
+      // (`,` `.` `(` `)`) se traten como texto y no alteren la gramática del
+      // filtro (inyección en el filtro `or`).
       const safeQuery = `"%${query.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}%"`;
 
       queryBuilder = queryBuilder.or(
@@ -90,16 +98,18 @@ const AdminAccountParamsSchema = z.object({
 });
 
 /**
- * Loads all data for the account detail page `/admin/accounts/$id`. Fetches the
- * account, its subscription (+items), and — depending on account type — the
- * banned status + team memberships (personal) or the member list (team). All
- * reads that previously ran inside the async server component now run here.
+ * Carga los datos de la ficha `/admin/accounts/$id`: la cuenta, su
+ * suscripción con sus líneas y, según el tipo, el estado de bloqueo y las
+ * membresías (cuenta personal) o la lista de miembros (equipo).
  */
 export const fetchAdminAccountPage = createServerFn({ method: 'GET' })
   .middleware(adminFunctionMiddleware)
   .validator(AdminAccountParamsSchema)
   .handler(async ({ data }): Promise<AdminAccountPageData> => {
     const client = getSupabaseServerClient();
+    // El cliente administrador solo se usa para auth.admin.getUserById (saber
+    // si el usuario está bloqueado), que exige la clave secreta; el
+    // middleware ya ha verificado que quien llama es superadministrador.
     const adminClient = getSupabaseServerAdminClient();
     const { id } = data;
 

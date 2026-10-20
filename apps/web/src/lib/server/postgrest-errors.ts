@@ -1,10 +1,11 @@
 /**
- * True when a PostgREST error is the "no rows returned" case — i.e. a
- * `.single()`/`.maybeSingle()` query that matched nothing (code `PGRST116`).
+ * Indica si un error de PostgREST es el caso "ninguna fila": una consulta
+ * `.single()`/`.maybeSingle()` que no encontró nada (código `PGRST116`).
  *
- * Used to distinguish a genuinely-missing row (deleted account / stale JWT →
- * redirect home) from a transient DB or RLS failure, which must be re-thrown so
- * the error boundary surfaces it instead of masking it as a not-found redirect.
+ * Sirve para distinguir una fila que de verdad no existe (cuenta borrada o
+ * JWT obsoleto, que lleva a la portada) de un fallo transitorio de la base de
+ * datos o de la RLS, que debe relanzarse para que lo muestre el límite de
+ * errores en lugar de disfrazarlo de redirección.
  */
 export function isNoRowsError(error: unknown): boolean {
   return (

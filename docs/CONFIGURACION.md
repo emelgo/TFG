@@ -122,7 +122,7 @@ PymeKit es la base de la web de **una** pyme: landing, blog y un inicio de sesi�
 
 Hay dos modelos de permisos independientes:
 
-**Equipos de la web** (`public.roles` y `public.role_permissions`, ADR-023). Se aplican dentro de cada equipo:
+**Equipos de la web** (`public.roles` y `public.role_permissions`, ADR-024). Se aplican dentro de cada equipo:
 
 | Rol | Nombre visible | Nivel | Permisos |
 |---|---|---|---|
@@ -132,7 +132,7 @@ Hay dos modelos de permisos independientes:
 
 Borrar el equipo y transferir su propiedad están reservados al **propietario principal**, sea cual sea su rol. Para añadir un rol: insertarlo en `public.roles` con un nivel libre, darle permisos en `public.role_permissions` (enumerado `public.app_permissions`) en una migración, y añadir su nombre visible en `common.roles.<rol>.label` de `packages/i18n/src/messages/es/common.json`.
 
-**Personal de la consola** (RBAC del esquema `cms`, ADR-014 y ADR-025). El super-admin de la plataforma es la raíz y lo ve todo. Para el resto del personal hay dos roles de partida, sin nadie asignado:
+**Personal de la consola** (RBAC del esquema `cms`, ADR-014 y ADR-026). El super-admin de la plataforma es la raíz y lo ve todo. Para el resto del personal hay dos roles de partida, sin nadie asignado:
 
 | Rol del CMS | Rango | Permisos |
 |---|---|---|
@@ -143,7 +143,7 @@ Se asignan y se editan desde **Consola → Ajustes → Miembros** y **Ajustes �
 
 ## 6. Planes de pago
 
-Los planes están en `apps/web/src/config/billing.config.ts` (ADR-024). Vienen tres productos de ejemplo pensados para una pyme, en euros y con pago mensual o anual:
+Los planes están en `apps/web/src/config/billing.config.ts` (ADR-025). Vienen tres productos de ejemplo pensados para una pyme, en euros y con pago mensual o anual:
 
 | Producto | Mensual | Anual | Para quién |
 |---|---|---|---|
