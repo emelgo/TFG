@@ -1,7 +1,11 @@
--- SECTION: PERMISSION GROUPS
--- In this section, we define the permission groups table and the functions to check if a user can modify a permission group.
---
--- This function is used to check if a user can modify a permission group.
+/*
+ * -------------------------------------------------------
+ * Sección: Grupos de permisos del CMS
+ * Agrupan permisos para asignarlos a los roles de una sola vez (por
+ * ejemplo, "Editor del blog" con lectura y escritura sobre las tablas del
+ * blog).
+ * -------------------------------------------------------
+ */
 create table if not exists cms.permission_groups (
   id UUID primary key default gen_random_uuid (),
   name VARCHAR(100) not null unique,
@@ -12,7 +16,7 @@ create table if not exists cms.permission_groups (
   created_by UUID references cms.accounts (id) default cms.get_current_user_account_id (),
   valid_from TIMESTAMPTZ default NOW(),
   valid_until TIMESTAMPTZ,
-  -- Ensure valid_from is before valid_until
+  -- valid_from debe ser anterior a valid_until.
   constraint valid_time_range check (
     valid_from is null
     or valid_until is null
@@ -40,10 +44,10 @@ comment on column cms.permission_groups.valid_from is 'The time the permission g
 
 comment on column cms.permission_groups.valid_until is 'The time the permission group is valid until';
 
--- RLS
+-- RLS activada; las políticas están en 40-cms-permissions-rls.sql.
 alter table cms.permission_groups ENABLE row LEVEL SECURITY;
 
--- Grant access to the permission_groups table
+-- Permisos de tabla; la RLS decide qué puede hacer cada usuario.
 grant
 select
 ,

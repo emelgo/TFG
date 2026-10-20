@@ -1,16 +1,21 @@
 /*
  * -------------------------------------------------------
- * Section: Enums
- * We create the enums for the schema
+ * Sección: Tipos enumerados
+ * Define los `enum` compartidos por el resto del esquema (permisos de rol,
+ * estados de suscripción y pago, proveedor de cobro...). Usar tipos
+ * enumerados en lugar de texto libre hace que la base de datos rechace
+ * valores no previstos y que los tipos generados para TypeScript sean
+ * uniones cerradas.
  * -------------------------------------------------------
  */
 
 /*
-* Permissions
-- We create the permissions for the PymeKit. These permissions are used to manage the permissions for the roles
-- The permissions are 'roles.manage', 'billing.manage', 'settings.manage', 'members.manage', and 'invites.manage'.
-- You can add more permissions as needed.
-*/
+ * Permisos de la aplicación.
+ * Son los permisos que se asignan a los roles de equipo (ver
+ * `role_permissions`) y que comprueban las políticas RLS mediante
+ * `has_permission`. Se pueden añadir valores nuevos si una funcionalidad
+ * necesita un permiso propio.
+ */
 create type public.app_permissions as enum(
   'roles.manage',
   'billing.manage',
@@ -20,11 +25,11 @@ create type public.app_permissions as enum(
 );
 
 /*
-* Subscription Status
-- We create the subscription status for the PymeKit. These statuses are used to manage the status of the subscriptions
-- The statuses are 'active', 'trialing', 'past_due', 'canceled', 'unpaid', 'incomplete', 'incomplete_expired', and 'paused'.
-- You can add more statuses as needed.
-*/
+ * Estado de una suscripción.
+ * Refleja los estados que puede comunicar el proveedor de cobro en sus
+ * *webhooks*; la aplicación decide a partir de él si una cuenta tiene acceso
+ * a las funciones de pago.
+ */
 create type public.subscription_status as ENUM(
   'active',
   'trialing',
@@ -37,29 +42,25 @@ create type public.subscription_status as ENUM(
 );
 
 /*
-Payment Status
-- We create the payment status for the PymeKit. These statuses are used to manage the status of the payments
-*/
+ * Estado de un pago único (pedido).
+ */
 create type public.payment_status as ENUM('pending', 'succeeded', 'failed');
 
 /*
-* Billing Provider
-- We create the billing provider for the PymeKit. These providers are used to manage the billing provider for the accounts
-- The providers are 'stripe'
-- You can add more providers as needed.
-*/
+ * Proveedor de cobro.
+ * De momento solo Stripe; añadir otro proveedor exige ampliar este `enum` e
+ * implementar su pasarela en `packages/billing`.
+ */
 create type public.billing_provider as ENUM('stripe');
 
 /*
-* Subscription Item Type
-- We create the subscription item type for the PymeKit. These types are used to manage the type of the subscription items
-- The types are 'flat', 'per_seat', and 'metered'.
-- You can add more types as needed.
-*/
+ * Tipo de línea de suscripción: tarifa plana, por puesto (número de miembros)
+ * o por consumo medido.
+ */
 create type public.subscription_item_type as ENUM('flat', 'per_seat', 'metered');
 
 /*
-* Invitation Type
-- We create the invitation type for the PymeKit. These types are used to manage the type of the invitation
-*/
+ * Tipo compuesto para las invitaciones: pareja (email, rol) que reciben las
+ * funciones que crean invitaciones en lote.
+ */
 create type public.invitation as (email text, role varchar(50));

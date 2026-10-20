@@ -1,11 +1,12 @@
 /*
  * -------------------------------------------------------
- * Section: Billing Customers
- * We create the schema for the billing customers. Billing customers are the customers for an account in the billing provider. For example, a user might have a customer in the billing provider with the customer ID 'cus_123'.
+ * Sección: Clientes de facturación
+ * Vincula cada cuenta de PymeKit con su cliente en el proveedor de cobro
+ * (por ejemplo, el `cus_123` de Stripe). Lo escriben los *webhooks* del
+ * proveedor con el cliente administrador; los usuarios solo pueden leerlo.
  * -------------------------------------------------------
-
  */
--- Billing Customers table
+-- Tabla de clientes de facturación.
 create table if not exists
   public.billing_customers (
     account_id uuid references public.accounts (id) on delete cascade not null,
@@ -27,19 +28,21 @@ comment on column public.billing_customers.customer_id is 'The customer ID for t
 
 comment on column public.billing_customers.email is 'The email of the billing customer';
 
--- Indexes on the billing_customers table
+-- Índices para buscar por cuenta y por identificador del proveedor (este
+-- último lo usan los *webhooks*).
 create index ix_billing_customers_account_id on public.billing_customers (account_id);
 
 create index ix_billing_customers_provider_customer_id on public.billing_customers (provider, customer_id);
 
--- Revoke all on billing_customers table from authenticated and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.billing_customers
 from
   anon,
   authenticated,
   service_role;
 
--- Open up relevant access to billing_customers table for authenticated users and service_role
+-- Solo service_role escribe: los datos de cobro vienen siempre del proveedor
+-- a través de los *webhooks*, nunca del usuario.
 grant
 select
 ,
@@ -47,23 +50,22 @@ select
 update,
 delete on table public.billing_customers to service_role;
 
--- id is a serial, so INSERT needs nextval() on its sequence. usage, not update:
--- update would also permit setval(). authenticated has no INSERT here, so it
--- needs nothing.
+-- `id` es serial, así que el INSERT necesita nextval() sobre su secuencia. Se
+-- concede USAGE y no UPDATE, porque UPDATE permitiría también setval().
+-- authenticated no inserta aquí, así que no necesita nada.
 grant usage on sequence public.billing_customers_id_seq to service_role;
 
--- Open up access to billing_customers table for authenticated users
+-- Los usuarios autenticados solo pueden leer (filtrado por la RLS).
 grant
 select
   on table public.billing_customers to authenticated,
   service_role;
 
--- Enable RLS on billing_customers table
+-- RLS activada sobre billing_customers.
 alter table public.billing_customers enable row level security;
 
--- RLS on the billing_customers table
--- SELECT(billing_customers):
--- Users can read account subscriptions on an account they are a member of
+-- Política SELECT: un usuario ve el cliente de facturación de su cuenta
+-- personal y el de los equipos de los que es miembro.
 create policy billing_customers_read_self on public.billing_customers for
 select
   to authenticated using (

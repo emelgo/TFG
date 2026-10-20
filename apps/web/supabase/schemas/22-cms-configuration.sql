@@ -1,6 +1,11 @@
 
 /**
- * SECTION: CONFIGURATION
+ * -------------------------------------------------------
+ * Sección: Configuración del CMS
+ * Pares clave-valor con las opciones del panel de administración (por
+ * ejemplo, `requires_mfa`). La RLS que limita quién puede leerlas y
+ * modificarlas se define en 35-cms-configuration-rls.sql.
+ * -------------------------------------------------------
  */
 create table if not exists cms.configuration (
   key VARCHAR(100) primary key,
@@ -11,7 +16,7 @@ create table if not exists cms.configuration (
 
 alter table cms.configuration enable row level security;
 
--- Grant access to the configuration table
+-- Permisos de tabla; qué filas puede ver o tocar cada usuario lo decide la RLS.
 grant
 select
 ,
@@ -20,8 +25,9 @@ update,
 delete on cms.configuration to authenticated,
 service_role;
 
--- SECTION: GET CONFIGURATION VALUE
--- This function retrieves a configuration value by its key.
+-- Función `cms.get_configuration_value`: devuelve el valor de una opción por su
+-- clave. Se ejecuta con los permisos del usuario, así que la RLS de la tabla
+-- sigue aplicándose.
 create or replace function cms.get_configuration_value (p_key VARCHAR(100)) returns TEXT
 set
   search_path = '' as $$

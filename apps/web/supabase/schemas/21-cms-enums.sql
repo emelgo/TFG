@@ -1,10 +1,16 @@
 
--- SECTION: AUDIT LOG SEVERITY
--- In this section, we define the audit log severity. Audit log severity is the severity of the audit log.
+/*
+ * -------------------------------------------------------
+ * Sección: Tipos enumerados del CMS
+ * -------------------------------------------------------
+ */
+
+-- Gravedad de una entrada del registro de auditoría.
 create type cms.audit_log_severity as ENUM('info', 'warning', 'error');
 
--- SECTION: SYSTEM RESOURCES
--- In this section, we define the system resources. System resources are resources that belong to CMS itself, not the end application being managed.
+-- Recursos del sistema: los que pertenecen al propio CMS (cuentas de
+-- administración, roles, registros...), no a la aplicación que se gestiona.
+-- Son el objeto de los permisos de tipo `system`.
 create type cms.system_resource as ENUM(
   'account',
   'role',
@@ -15,14 +21,12 @@ create type cms.system_resource as ENUM(
   'system_setting'
 );
 
--- SECTION: PERMISSION TYPE
--- In this section, we define the permission type. Permission type is the type of the permission.
+-- Tipo de permiso: `system` (sobre recursos del CMS) o `data` (sobre tablas,
+-- columnas o ficheros de la aplicación).
 create type cms.permission_type as ENUM('system', 'data');
 
--- SECTION: PERMISSION SCOPES
--- In this section, we define the permission scopes. Permission scopes are the scopes of the permissions.
+-- Alcance de un permiso de datos: una tabla, una columna o el almacenamiento.
 create type cms.permission_scope as ENUM('table', 'column', 'storage');
 
--- SECTION: SYSTEM ACTIONS
--- In this section, we define the system actions. System actions are the actions that can be performed on the system resources.
+-- Acciones que puede autorizar un permiso; `*` equivale a todas.
 create type cms.system_action as ENUM('insert', 'update', 'delete', 'select', '*');

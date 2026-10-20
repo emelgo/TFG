@@ -1,4 +1,4 @@
--- SECTION: GLOBAL SEARCH
+-- Sección: búsqueda global.
 -- Búsqueda global del CMS (paleta Cmd/Ctrl+K): busca un texto en las columnas
 -- de todas las tablas marcadas como buscables y devuelve las filas que
 -- coinciden, agrupables por tabla.
@@ -334,6 +334,6 @@ EXCEPTION
 END;
 $$;
 
--- Grant permissions to the global search function
+-- Permiso de ejecución para el personal; las barreras están dentro.
 grant
 execute on function cms.global_search to authenticated;

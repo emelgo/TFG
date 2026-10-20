@@ -1,14 +1,20 @@
 /*
  * -------------------------------------------------------
- * Section: MFA
- * We create the policies and functions to enforce MFA
+ * Sección: Autenticación multifactor (MFA)
+ * Funciones y políticas que obligan a respetar la MFA. Supabase Auth indica
+ * en el JWT el nivel de garantía de la sesión (`aal1` con contraseña o
+ * enlace mágico, `aal2` tras verificar un segundo factor). Si un usuario ha
+ * activado la MFA, las políticas restrictivas de este fichero le niegan el
+ * acceso a los datos hasta que su sesión llegue a `aal2`, aunque las
+ * políticas permisivas de cada tabla lo permitieran.
  * -------------------------------------------------------
  */
 
 /*
-* public.is_aal2
-* Check if the user has aal2 access
-*/
+ * public.is_aal2
+ * Indica si la sesión actual tiene nivel de garantía `aal2` (segundo factor
+ * verificado).
+ */
 create
     or replace function public.is_aal2() returns boolean
     set
@@ -23,14 +29,16 @@ begin
 end
 $$ language plpgsql;
 
--- Grant access to the function to authenticated users
+-- Se concede a authenticated porque la usan las políticas RLS.
 grant execute on function public.is_aal2() to authenticated;
 
 /*
-* public.is_super_admin
-* Check if the user is a super admin. 
-* A Super Admin is a user that has the role 'super-admin' and has MFA enabled.
-*/
+ * public.is_super_admin
+ * Indica si el usuario es superadministrador: tiene el rol `super-admin` en
+ * `app_metadata` (que solo puede escribir el servidor, no el propio usuario)
+ * y, además, su sesión es `aal2`. Exigir MFA evita que una contraseña robada
+ * baste para obtener acceso de administración.
+ */
 create
     or replace function public.is_super_admin() returns boolean
     set
@@ -49,14 +57,18 @@ begin
 end
 $$ language plpgsql;
 
--- Grant access to the function to authenticated users
+-- Se concede a authenticated porque la usan las políticas RLS.
 grant execute on function public.is_super_admin() to authenticated;
 
 /*
-* public.is_mfa_compliant
-* Check if the user meets MFA requirements if they have MFA enabled.
-* If the user has MFA enabled, then the user must have aal2 enabled. Otherwise, the user must have aal1 enabled (default behavior).
-*/
+ * public.is_mfa_compliant
+ * Indica si la sesión cumple los requisitos de MFA: si el usuario tiene algún
+ * factor verificado, su sesión debe ser `aal2`; si no, basta con `aal1`
+ * (comportamiento normal).
+ * Es `security definer` porque necesita leer auth.mfa_factors, a la que
+ * authenticated no tiene acceso; solo consulta los factores del propio
+ * auth.uid().
+ */
 create or replace function public.is_mfa_compliant() returns boolean
     set search_path = '' as
 $$
@@ -73,85 +85,87 @@ begin
 end
 $$ language plpgsql security definer;
 
--- Grant access to the function to authenticated users
+-- Se concede a authenticated porque la usan las políticas RLS.
 grant execute on function public.is_mfa_compliant() to authenticated;
 
--- MFA Restrictions:
--- the following policies are applied to the tables as a
--- restrictive policy to ensure that if MFA is enabled, then the policy will be applied.
--- For users that have not enabled MFA, the policy will not be applied and will keep the default behavior.
+-- Restricciones de MFA:
+-- Las siguientes políticas son restrictivas (`as restrictive`): PostgreSQL las
+-- combina con AND con las permisivas de cada tabla, así que no conceden nada
+-- por sí mismas, solo pueden quitar acceso. A los usuarios sin MFA activada no
+-- les afectan; a los que la tienen les bloquean el acceso a los datos de cada
+-- tabla hasta completar el segundo factor.
 
--- Restrict access to accounts if MFA is enabled
+-- Cuentas.
 create policy restrict_mfa_accounts
     on public.accounts
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to accounts memberships if MFA is enabled
+-- Membresías.
 create policy restrict_mfa_accounts_memberships
     on public.accounts_memberships
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to subscriptions if MFA is enabled
+-- Suscripciones.
 create policy restrict_mfa_subscriptions
     on public.subscriptions
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to subscription items if MFA is enabled
+-- Líneas de suscripción.
 create policy restrict_mfa_subscription_items
     on public.subscription_items
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to role permissions if MFA is enabled
+-- Permisos de los roles.
 create policy restrict_mfa_role_permissions
     on public.role_permissions
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to invitations if MFA is enabled
+-- Invitaciones.
 create policy restrict_mfa_invitations
     on public.invitations
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to orders if MFA is enabled
+-- Pedidos.
 create policy restrict_mfa_orders
     on public.orders
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to orders items if MFA is enabled
+-- Líneas de pedido.
 create policy restrict_mfa_order_items
     on public.order_items
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to orders if MFA is enabled
+-- Notificaciones.
 create policy restrict_mfa_notifications
     on public.notifications
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to billing customers if MFA is enabled
+-- Clientes de facturación.
 create policy restrict_mfa_billing_customers
     on public.billing_customers
     as restrictive
     to authenticated
     using (public.is_mfa_compliant());
 
--- Restrict access to nonces if MFA is enabled
+-- Tokens de un solo uso.
 create policy restrict_mfa_nonces
     on public.nonces
     as restrictive

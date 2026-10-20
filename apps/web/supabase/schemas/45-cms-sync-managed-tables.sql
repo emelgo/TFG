@@ -1,7 +1,15 @@
 
--- SECTION: SYNC MANAGED TABLES
--- In this section, we define the sync managed tables function. This function is used to sync the managed tables. By default, it will sync all tables in the public schema.
--- If a table name is provided, it will sync only that table. If a schema name is provided, it will sync all tables in that schema.
+/*
+ * -------------------------------------------------------
+ * Sección: Sincronización de tablas gestionadas
+ * -------------------------------------------------------
+ */
+
+-- Función `cms.sync_managed_tables`: lee el catálogo de PostgreSQL y crea o
+-- actualiza en cms.table_metadata la descripción de cada tabla (columnas,
+-- claves, relaciones) para que el CMS pueda mostrarla. Por defecto sincroniza
+-- todas las tablas del esquema `public`; si se indica una tabla, solo esa, y
+-- si se indica un esquema, todas las de ese esquema.
 create or replace function cms.sync_managed_tables (
   p_schema_name TEXT default 'public',
   p_table_name TEXT default null

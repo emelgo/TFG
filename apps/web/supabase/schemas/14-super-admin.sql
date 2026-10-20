@@ -1,14 +1,15 @@
 /*
  * -------------------------------------------------------
- * Section: Super Admin
- * We create the policies and functions to enforce super admin access
+ * Sección: Superadministrador
+ * Políticas que dan al superadministrador de la plataforma (el operador del
+ * SaaS, no el de una pyme) acceso de solo lectura a todas las tablas de
+ * negocio para tareas de soporte. Son políticas permisivas: se suman con OR
+ * a las de cada tabla. La condición `is_super_admin()` exige el rol en
+ * `app_metadata` y una sesión `aal2` (ver 13-mfa.sql).
  * -------------------------------------------------------
  */
 
--- the following policies are applied to the tables as a permissive policy to ensure that
--- super admins can access all tables (view only).
-
--- Allow Super Admins to access the accounts table
+-- Cuentas.
 create policy super_admins_access_accounts
     on public.accounts
     as permissive
@@ -16,7 +17,7 @@ create policy super_admins_access_accounts
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the accounts memberships table
+-- Membresías.
 create policy super_admins_access_accounts_memberships
     on public.accounts_memberships
     as permissive
@@ -24,7 +25,7 @@ create policy super_admins_access_accounts_memberships
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the subscriptions table
+-- Suscripciones.
 create policy super_admins_access_subscriptions
     on public.subscriptions
     as permissive
@@ -32,7 +33,7 @@ create policy super_admins_access_subscriptions
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the subscription items table
+-- Líneas de suscripción.
 create policy super_admins_access_subscription_items
     on public.subscription_items
     as permissive
@@ -40,7 +41,7 @@ create policy super_admins_access_subscription_items
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the invitations items table
+-- Invitaciones.
 create policy super_admins_access_invitations
     on public.invitations
     as permissive
@@ -48,7 +49,7 @@ create policy super_admins_access_invitations
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the orders table
+-- Pedidos.
 create policy super_admins_access_orders
     on public.orders
     as permissive
@@ -56,7 +57,7 @@ create policy super_admins_access_orders
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the order items table
+-- Líneas de pedido.
 create policy super_admins_access_order_items
     on public.order_items
     as permissive
@@ -64,7 +65,7 @@ create policy super_admins_access_order_items
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the role permissions table
+-- Permisos de los roles.
 create policy super_admins_access_role_permissions
     on public.role_permissions
     as permissive
@@ -72,7 +73,7 @@ create policy super_admins_access_role_permissions
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the billing customers table
+-- Clientes de facturación.
 create policy super_admins_access_billing_customers
     on public.billing_customers
     as permissive
@@ -80,7 +81,7 @@ create policy super_admins_access_billing_customers
     to authenticated
     using (public.is_super_admin());
 
--- Allow Super Admins to access the notifications table
+-- Notificaciones.
 create policy super_admins_access_notifications
     on public.notifications
     as permissive

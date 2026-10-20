@@ -1,7 +1,11 @@
 /*
  * -------------------------------------------------------
- * Section: Invitations
- * We create the schema for the invitations. Invitations are the invitations for an account sent to a user to join the account.
+ * Sección: Invitaciones
+ * Invitaciones pendientes para unirse a una cuenta de equipo. Cada fila
+ * guarda el email invitado, el rol que recibirá y un token secreto que
+ * llega por correo; al aceptarla se convierte en una membresía. Incluye
+ * columnas de entrega (envío, reintentos) para limitar el reenvío de
+ * correos y evitar abusos.
  * -------------------------------------------------------
  */
 
@@ -51,7 +55,8 @@ comment on column public.invitations.expires_at is 'The expiry date for the invi
 
 comment on column public.invitations.email is 'The email of the user being invited';
 
--- Indexes on the invitations table
+-- Índices para listar las invitaciones de una cuenta, contar las vigentes y
+-- las pendientes de envío, y aplicar el límite de reenvíos.
 create index ix_invitations_account_id on public.invitations (account_id);
 
 create index ix_invitations_invited_by on public.invitations (invited_by);
@@ -64,19 +69,20 @@ where
 
 create index ix_invitations_resend_rate_limit on public.invitations (id, last_send_attempt_at, resend_count);
 
--- Triggers for invitations table
+-- Disparador de marcas de tiempo (definido en 02-config.sql).
 create trigger invitations_set_timestamps
 before insert or update on public.invitations
 for each row execute function public.trigger_set_timestamps();
 
--- Revoke all on invitations table from authenticated and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.invitations
 from
   anon,
   authenticated,
   service_role;
 
--- service_role retains full access (used by the admin client for the accept route)
+-- service_role conserva acceso completo: lo usa el cliente administrador en la
+-- creación de invitaciones y en la ruta de aceptación.
 grant
 select
 ,
@@ -84,29 +90,31 @@ select
 update,
 delete on table public.invitations to service_role;
 
--- id is a serial, so INSERT needs nextval() on its sequence. usage, not update:
--- update would also permit setval(). authenticated has no INSERT here, so it
--- needs nothing.
+-- `id` es serial, así que el INSERT necesita nextval() sobre su secuencia. Se
+-- concede USAGE y no UPDATE, porque UPDATE permitiría también setval().
+-- authenticated no inserta aquí, así que no necesita nada.
 grant usage on sequence public.invitations_id_seq to service_role;
 
--- Authenticated users may update/delete (gated by RLS) but may NOT:
---   * INSERT: invitations are only created by add_invitations_to_account,
---     which runs with the service_role client (there is no INSERT policy);
---   * read the invite_token column: it is a credential and must not be
---     exposed via the data API to members of the inviting account. The accept
---     route reads it with the service_role (admin) client. This is
---     defense-in-depth on top of the signed-link check (see
+-- Los usuarios autenticados pueden actualizar y borrar (filtrado por la RLS),
+-- pero NO pueden:
+--   * insertar: las invitaciones solo se crean con add_invitations_to_account,
+--     que se ejecuta con el cliente de service_role (no hay política INSERT);
+--   * leer la columna invite_token: es una credencial y no debe exponerse por
+--     la API a los miembros de la cuenta que invita. La ruta de aceptación la
+--     lee con el cliente administrador. Es defensa en profundidad además de la
+--     comprobación del enlace firmado (ver
 --     @pymekit/team-accounts/invitation-signature).
 grant delete on table public.invitations to authenticated;
 
--- authenticated may only UPDATE the invitation role and expiry. Identity and
--- delivery columns (id, email, account_id, invited_by, invite_token,
--- created_at, sent_at, last_send_attempt_at, resend_count) are never
--- user-updatable — the resend flow writes them with the service_role. Enforced
--- by Postgres up front, on top of the kit.protect_invitation_delivery_fields
--- trigger.
+-- authenticated solo puede actualizar el rol y la caducidad. Las columnas de
+-- identidad y de entrega (id, email, account_id, invited_by, invite_token,
+-- created_at, sent_at, last_send_attempt_at, resend_count) nunca las edita el
+-- usuario: el flujo de reenvío las escribe con service_role. Postgres lo
+-- impide de entrada, además del disparador
+-- kit.protect_invitation_delivery_fields.
 grant update (role, expires_at) on table public.invitations to authenticated;
 
+-- Lectura por columnas: todas salvo invite_token (ver arriba).
 grant
 select
   (
@@ -123,11 +131,11 @@ select
     expires_at
   ) on table public.invitations to authenticated;
 
--- Enable RLS on the invitations table
+-- RLS activada: las políticas se definen más abajo.
 alter table public.invitations enable row level security;
 
--- Function "kit.check_team_account"
--- Function to check if the account is a team account or not when inserting or updating an invitation
+-- Función `kit.check_team_account`: solo se puede invitar a cuentas de equipo;
+-- las cuentas personales no admiten más miembros.
 create
 or replace function kit.check_team_account () returns trigger
 set
@@ -155,6 +163,9 @@ or
 update on public.invitations for each row
 execute procedure kit.check_team_account ();
 
+-- Función `kit.protect_invitation_delivery_fields`: segunda barrera (tras el
+-- permiso por columna) que impide a un usuario autenticado modificar las
+-- columnas de identidad y de entrega de una invitación.
 create
 or replace function kit.protect_invitation_delivery_fields () returns trigger
 set
@@ -182,21 +193,21 @@ create trigger protect_invitation_delivery_fields before
 update on public.invitations for each row
 execute function kit.protect_invitation_delivery_fields ();
 
--- RLS on the invitations table
--- SELECT(invitations):
--- Users can read invitations to users of an account they are a member of
+-- Política SELECT: cualquier miembro de la cuenta puede ver sus invitaciones
+-- pendientes (sin el token, que no tiene concedido por columna).
 create policy invitations_read_self on public.invitations for
 select
   to authenticated using (public.has_role_on_account (account_id));
 
--- INSERT(invitations):
--- Invitations are created through server actions using admin client.
--- Permission and role hierarchy checks are enforced in the server action.
--- No RLS policy needed for INSERT.
+-- INSERT: no hay política a propósito. Las invitaciones se crean desde el
+-- servidor con el cliente administrador, después de comprobar en la
+-- aplicación el permiso y la jerarquía de roles, para poder aplicar los
+-- límites de cuota y frecuencia de add_invitations_to_account.
 
--- UPDATE(invitations):
--- Users can update invitations to users of an account they are a member of and have the 'invites.manage' permission AND
--- the target role is not higher than the user's role
+-- Política UPDATE: requiere el permiso `invites.manage` en la cuenta y que el
+-- rol de la invitación sea inferior al del usuario, tanto antes como después
+-- del cambio (así nadie puede "ascender" una invitación por encima de su
+-- propio rol).
 create policy invitations_update on public.invitations
 for update
   to authenticated using (
@@ -237,8 +248,8 @@ with
     )
   );
 
--- DELETE(public.invitations):
--- Users can delete invitations to users of an account they are a member of and have the 'invites.manage' permission
+-- Política DELETE: los miembros con el permiso `invites.manage` pueden
+-- cancelar invitaciones de la cuenta.
 create policy invitations_delete on public.invitations for delete to authenticated using (
   has_role_on_account (account_id)
   and public.has_permission (
@@ -251,8 +262,11 @@ create policy invitations_delete on public.invitations for delete to authenticat
   )
 );
 
--- Functions "public.accept_invitation"
--- Function to accept an invitation to an account
+-- Función `public.accept_invitation`: canjea un token vigente, crea la
+-- membresía con el rol de la invitación y borra la invitación, todo en una
+-- transacción. Solo la ejecuta service_role: el usuario aún no es miembro, así
+-- que no tendría permisos para insertar su membresía; la aplicación valida
+-- antes la firma del enlace y que el email coincide.
 create
 or replace function accept_invitation (token text, user_id uuid) returns uuid
 set
@@ -295,8 +309,8 @@ $$ language plpgsql;
 grant
 execute on function accept_invitation (text, uuid) to service_role;
 
--- Function "public.create_invitation"
--- create an invitation to an account
+-- Función `public.create_invitation`: crea una invitación individual. No tiene
+-- `grant` a authenticated, así que solo es ejecutable por roles privilegiados.
 create
 or replace function public.create_invitation (account_id uuid, email text, role varchar(50)) returns public.invitations
 set
@@ -329,8 +343,10 @@ end;
 $$ language plpgsql;
 
 
--- Function "public.get_account_invitations"
--- List the account invitations by the account slug
+-- Función `public.get_account_invitations`: lista las invitaciones de una
+-- cuenta por su slug junto con el nombre y el email de quien invitó. No es
+-- `security definer`, de modo que la RLS limita el resultado a las cuentas de
+-- las que el usuario es miembro.
 create
 or replace function public.get_account_invitations (account_slug text) returns table (
   id integer,
@@ -381,15 +397,16 @@ grant
 execute on function public.get_account_invitations (text) to authenticated,
 service_role;
 
--- Function "public.add_invitations_to_account"
--- Add invitations to an account.
--- Enforces two anti-abuse limits atomically (a per-account advisory lock
--- serializes concurrent batches so the counts cannot be raced):
---   * a quota on outstanding (non-expired) invitations, and
---   * a rate limit on invitations created within a rolling window.
--- Limits are hardcoded here (plpgsql cannot import TS); keep them in sync with
--- MAX_PENDING_INVITATIONS_PER_ACCOUNT / INVITATION_CREATE_RATE_LIMIT /
--- INVITATION_CREATE_RATE_WINDOW_MINUTES in invite-members.schema.ts.
+-- Función `public.add_invitations_to_account`: crea un lote de invitaciones.
+-- Aplica de forma atómica dos límites contra abusos (un bloqueo consultivo por
+-- cuenta serializa los lotes concurrentes para que los recuentos no puedan
+-- saltarse con carreras):
+--   * una cuota de invitaciones vigentes (no caducadas), y
+--   * un límite de invitaciones creadas en una ventana móvil.
+-- Los límites están fijados aquí (plpgsql no puede importar TypeScript); hay que
+-- mantenerlos sincronizados con MAX_PENDING_INVITATIONS_PER_ACCOUNT,
+-- INVITATION_CREATE_RATE_LIMIT e INVITATION_CREATE_RATE_WINDOW_MINUTES de
+-- invite-members.schema.ts.
 create
 or replace function public.add_invitations_to_account (
   account_slug text,

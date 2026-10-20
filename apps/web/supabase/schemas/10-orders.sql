@@ -1,8 +1,9 @@
 /**
  * -------------------------------------------------------
- * Section: Orders
- * We create the schema for the subscription items. Subscription items are the items in a subscription.
- * For example, a subscription might have a subscription item with the product ID 'prod_123' and the variant ID 'var_123'.
+ * Sección: Pedidos
+ * Pagos únicos (no recurrentes) de una cuenta, por ejemplo la compra de un
+ * producto o de un paquete de créditos. Igual que las suscripciones, es una
+ * copia local de lo que comunica el proveedor de cobro en sus *webhooks*.
  * -------------------------------------------------------
  */
 
@@ -33,14 +34,15 @@ comment on column public.orders.status is 'The status of the order';
 
 comment on column public.orders.billing_customer_id is 'The billing customer ID for the order';
 
--- Revoke all access to orders table for authenticated users and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.orders
 from
   anon,
   authenticated,
   service_role;
 
--- Open up access to orders table for authenticated users and service_role
+-- Los usuarios autenticados solo leen; service_role escribe desde los
+-- *webhooks*.
 grant
 select
   on table public.orders to authenticated;
@@ -52,24 +54,25 @@ select
 update,
 delete on table public.orders to service_role;
 
--- Indexes
--- Indexes on the orders table
+-- Índices por cuenta, por cliente y para listar los pedidos de una cuenta del
+-- más reciente al más antiguo.
 create index ix_orders_account_id on public.orders (account_id);
 
 create index ix_orders_billing_customer_id on public.orders (billing_customer_id);
 
 create index ix_orders_account_created_at on public.orders (account_id, created_at desc);
 
--- Triggers for orders table
+-- Disparador de marcas de tiempo (definido en 02-config.sql).
 create trigger orders_set_timestamps
 before insert or update on public.orders
 for each row execute function public.trigger_set_timestamps();
 
--- RLS
+-- RLS activada sobre orders.
 alter table public.orders enable row level security;
 
--- SELECT(orders)
--- Users can read orders on an account they are a member of or the account is their own
+-- Política SELECT: un usuario ve los pedidos de su cuenta personal y de los
+-- equipos de los que es miembro, siempre que el cobro de ese tipo de cuenta
+-- esté activado en la configuración global.
 create policy orders_read_self on public.orders for
 select
   to authenticated using (
@@ -88,8 +91,8 @@ select
 
 /**
  * -------------------------------------------------------
- * Section: Order Items
- * We create the schema for the order items. Order items are the items in an order.
+ * Sección: Líneas de pedido
+ * Productos y variantes que componen cada pedido.
  * -------------------------------------------------------
  */
 create table if not exists
@@ -123,14 +126,15 @@ comment on column public.order_items.created_at is 'The creation date of the ite
 
 comment on column public.order_items.updated_at is 'The last update date of the item';
 
--- Revoke all access to order_items table for authenticated users and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.order_items
 from
   anon,
   authenticated,
   service_role;
 
--- Open up relevant access to order_items table for authenticated users and service_role
+-- Los usuarios autenticados solo leen; service_role escribe desde los
+-- *webhooks*.
 grant
 select
   on table public.order_items to authenticated,
@@ -138,21 +142,20 @@ select
 
 grant insert, update, delete on table public.order_items to service_role;
 
--- Indexes on the order_items table
+-- Índices por pedido y por producto/variante.
 create index ix_order_items_order_id on public.order_items (order_id);
 
 create index ix_order_items_product_variant on public.order_items (product_id, variant_id);
 
--- Triggers for order_items table
+-- Disparador de marcas de tiempo (definido en 02-config.sql).
 create trigger order_items_set_timestamps
 before insert or update on public.order_items
 for each row execute function public.trigger_set_timestamps();
 
--- RLS
+-- RLS activada sobre order_items.
 alter table public.order_items enable row level security;
 
--- SELECT(order_items):
--- Users can read order items on an order they are a member of
+-- Política SELECT: un usuario ve las líneas de los pedidos que puede ver.
 create policy order_items_read_self on public.order_items for
 select
   to authenticated using (
@@ -173,8 +176,9 @@ select
     )
   );
 
--- Function "public.upsert_order"
--- Insert or update an order and its items when receiving a webhook from the billing provider
+-- Función `public.upsert_order`: inserta o actualiza en una única transacción
+-- el cliente, el pedido y sus líneas a partir de un *webhook* del proveedor.
+-- Solo la ejecuta service_role, después de verificar la firma del *webhook*.
 create
 or replace function public.upsert_order (
   target_account_id uuid,

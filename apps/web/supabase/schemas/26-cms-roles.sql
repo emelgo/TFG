@@ -1,6 +1,13 @@
 
--- SECTION: ROLES
--- In this section, we define the roles table. The roles table links a Supabase Auth user to a role in CMS.
+/*
+ * -------------------------------------------------------
+ * Sección: Roles del CMS
+ * Roles del panel de administración (independientes de los roles de equipo
+ * de `public.roles`). Cada rol tiene un `rank` único: cuanto mayor es, más
+ * poder tiene, y nadie puede gestionar roles de rango igual o superior al
+ * suyo. Pueden tener un periodo de validez opcional.
+ * -------------------------------------------------------
+ */
 create table if not exists cms.roles (
   id UUID primary key default gen_random_uuid (),
   name VARCHAR(50) not null unique,
@@ -11,13 +18,13 @@ create table if not exists cms.roles (
   rank INTEGER default 0 not null check (rank >= 0) check (rank <= 100),
   valid_from TIMESTAMPTZ default NOW(),
   valid_until TIMESTAMPTZ,
-  -- Ensure valid_from is before valid_until
+  -- valid_from debe ser anterior a valid_until.
   constraint valid_time_range check (
     valid_from is null
     or valid_until is null
     or valid_from < valid_until
   ),
-  -- Ensure rank is unique
+  -- El rango es único para que la jerarquía no tenga empates.
   constraint roles_rank_unique unique (rank)
 );
 
@@ -41,7 +48,7 @@ comment on column cms.roles.valid_from is 'The time the role is valid from';
 
 comment on column cms.roles.valid_until is 'The time the role is valid until';
 
--- Grant access
+-- Permisos de tabla; la RLS decide qué puede hacer cada usuario.
 grant
 select
 ,
@@ -50,5 +57,5 @@ update,
 delete on table cms.roles to authenticated,
 service_role;
 
--- RLS
+-- RLS activada; las políticas están en 40-cms-permissions-rls.sql.
 alter table cms.roles ENABLE row LEVEL SECURITY;

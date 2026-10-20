@@ -1,6 +1,13 @@
--- ============================================
--- SECTION: CORE TABLES 
--- ============================================
+/*
+ * -------------------------------------------------------
+ * Sección: Paneles (dashboards) del CMS
+ * Paneles con *widgets* (gráficos, métricas y tablas) que el personal crea
+ * y puede compartir con roles de rango inferior, en modo lectura o edición.
+ * Los *widgets* leen datos de la aplicación, así que su configuración se
+ * valida con los mismos permisos de datos que el explorador.
+ * -------------------------------------------------------
+ */
+-- Tablas principales.
 
 CREATE TYPE cms.dashboard_permission_level AS ENUM ('owner', 'view', 'edit');
 
@@ -9,9 +16,9 @@ CREATE TYPE cms.dashboard_widget_type AS ENUM ('chart', 'metric', 'table');
 CREATE TABLE IF NOT EXISTS cms.dashboards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
-  -- SET NULL, not CASCADE: deleting a user must not destroy dashboards they
-  -- created and shared with the organisation. Ownership falls back to the
-  -- edit-share population in the RLS policies below.
+  -- SET NULL y no CASCADE: borrar a un usuario no debe destruir los paneles
+  -- que creó y compartió con la organización. La propiedad pasa entonces a
+  -- quienes tienen permiso de edición, según las políticas RLS de abajo.
   created_by UUID REFERENCES cms.accounts(id) ON DELETE SET NULL DEFAULT cms.get_current_user_account_id(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -19,7 +26,7 @@ CREATE TABLE IF NOT EXISTS cms.dashboards (
   CONSTRAINT dashboards_name_check CHECK (LENGTH(TRIM(name)) >= 3)
 );
 
--- Dashboard widgets
+-- Widgets de cada panel.
 CREATE TABLE IF NOT EXISTS cms.dashboard_widgets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   dashboard_id UUID REFERENCES cms.dashboards(id) ON DELETE CASCADE NOT NULL,
@@ -45,7 +52,7 @@ CREATE TABLE IF NOT EXISTS cms.dashboard_widgets (
   )
 );
 
--- Dashboard role shares - SIMPLE
+-- Paneles compartidos con roles.
 CREATE TABLE IF NOT EXISTS cms.dashboard_role_shares (
   dashboard_id UUID REFERENCES cms.dashboards(id) ON DELETE CASCADE NOT NULL,
   role_id UUID REFERENCES cms.roles(id) ON DELETE CASCADE NOT NULL,
@@ -56,20 +63,19 @@ CREATE TABLE IF NOT EXISTS cms.dashboard_role_shares (
   PRIMARY KEY (dashboard_id, role_id)
 );
 
--- ============================================
--- SECTION: INDEXES
--- ============================================
+-- Índices.
 
 CREATE INDEX idx_dashboards_created_by ON cms.dashboards(created_by);
 CREATE INDEX idx_dashboard_widgets_dashboard ON cms.dashboard_widgets(dashboard_id);
 CREATE INDEX idx_dashboard_role_shares_dashboard ON cms.dashboard_role_shares(dashboard_id);
 CREATE INDEX idx_dashboard_role_shares_role ON cms.dashboard_role_shares(role_id);
 
--- ============================================
--- SECTION: RLS HELPER FUNCTIONS
--- ============================================
+-- Funciones auxiliares para las políticas RLS.
 
--- Check if user can access dashboard
+-- Función `cms.can_access_dashboard`: indica si el usuario puede ver un panel
+-- (es su creador o se ha compartido con alguno de sus roles). Es `security
+-- definer` para que las políticas puedan consultar las tablas de paneles y de
+-- compartición sin recursión.
 CREATE OR REPLACE FUNCTION cms.can_access_dashboard(p_dashboard_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -104,7 +110,7 @@ BEGIN
 END;
 $$;
 
--- Check if user can edit dashboard
+-- Función `cms.can_edit_dashboard`: igual, pero exige permiso de edición.
 CREATE OR REPLACE FUNCTION cms.can_edit_dashboard(p_dashboard_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -140,18 +146,20 @@ BEGIN
 END;
 $$;
 
--- ============================================
--- SECTION: RLS POLICIES (USING FUNCTIONS)
--- ============================================
+-- Políticas RLS (apoyadas en las funciones anteriores).
 
 ALTER TABLE cms.dashboards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cms.dashboard_widgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cms.dashboard_role_shares ENABLE ROW LEVEL SECURITY;
--- FORCE, so the SECURITY DEFINER sharing functions (owned by the same role as
--- the table) are still subject to the manage_shares rank ceiling.
+-- FORCE: así las funciones `security definer` de compartición (cuyo
+-- propietario es el mismo rol que el de la tabla) siguen sujetas al límite de
+-- rango de la política manage_shares; sin FORCE, el propietario se saltaría
+-- la RLS.
 ALTER TABLE cms.dashboard_role_shares FORCE ROW LEVEL SECURITY;
 
--- Dashboards
+-- Paneles: se ven los accesibles; se crean a nombre propio; edita quien tiene
+-- permiso de edición y borra el creador (o un editor si el creador ya no
+-- existe).
 CREATE POLICY select_dashboards ON cms.dashboards FOR SELECT
 USING (cms.can_access_dashboard(id));
 
@@ -170,7 +178,7 @@ USING (
   OR (created_by IS NULL AND cms.can_edit_dashboard(id))
 );
 
--- Widgets
+-- Widgets: mismo criterio que su panel.
 CREATE POLICY select_widgets ON cms.dashboard_widgets FOR SELECT
 USING (cms.can_access_dashboard(dashboard_id));
 
@@ -202,7 +210,8 @@ WITH CHECK (
 CREATE POLICY delete_widgets ON cms.dashboard_widgets FOR DELETE
 USING (cms.can_edit_dashboard(dashboard_id));
 
--- Shares (only owner can manage, and only with roles of lower rank)
+-- Compartición: solo la gestiona el creador del panel (o un editor si el
+-- creador ya no existe), y solo con roles de rango inferior al propio.
 CREATE POLICY manage_shares ON cms.dashboard_role_shares FOR ALL
 USING (
   EXISTS (
@@ -215,7 +224,7 @@ USING (
   )
 )
 WITH CHECK (
-  -- Additional check for INSERT/UPDATE: ensure role hierarchy is respected
+  -- En INSERT y UPDATE se exige además respetar la jerarquía de rangos.
   EXISTS (
     SELECT 1 FROM cms.dashboards d
     WHERE d.id = dashboard_role_shares.dashboard_id
@@ -234,17 +243,16 @@ WITH CHECK (
   )
 );
 
--- ============================================
--- SECTION: TRIGGERS
--- ============================================
+-- Disparadores.
 
 CREATE TRIGGER widget_changes_update_dashboard
 AFTER INSERT OR UPDATE OR DELETE ON cms.dashboard_widgets
 FOR EACH ROW EXECUTE FUNCTION cms.update_updated_at_column();
 
--- Audit triggers: every dashboard/widget mutation (including share/unshare,
--- which are access-control changes) must produce a tamper-resistant audit
--- record, mirroring the RBAC tables wired in 30-triggers.sql.
+-- Disparadores de auditoría: cada cambio en paneles y widgets (incluido
+-- compartir y dejar de compartir, que son cambios de control de acceso) debe
+-- dejar un registro de auditoría a prueba de manipulaciones, igual que las
+-- tablas del RBAC en 50-cms-triggers.sql.
 CREATE TRIGGER dashboards_audit_insert_trigger
 AFTER INSERT ON cms.dashboards
 FOR EACH ROW EXECUTE FUNCTION cms.audit_trigger_function();
@@ -281,11 +289,10 @@ CREATE TRIGGER dashboard_role_shares_audit_delete_trigger
 AFTER DELETE ON cms.dashboard_role_shares
 FOR EACH ROW EXECUTE FUNCTION cms.audit_trigger_function();
 
--- ============================================
--- SECTION: CORE FUNCTIONS
--- ============================================
+-- Funciones principales (todas `security definer`, con las comprobaciones de
+-- acceso dentro).
 
--- Get dashboard details
+-- Función `cms.get_dashboard`: devuelve un panel con sus widgets.
 CREATE OR REPLACE FUNCTION cms.get_dashboard(p_dashboard_id UUID)
 RETURNS JSONB
 SECURITY DEFINER
@@ -315,7 +322,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- List dashboards
+-- Función `cms.list_dashboards`: lista paginada de los paneles accesibles.
 CREATE OR REPLACE FUNCTION cms.list_dashboards(
   p_page INTEGER DEFAULT 1,
   p_page_size INTEGER DEFAULT 20,
@@ -398,7 +405,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Share dashboard
+-- Función `cms.share_dashboard_with_role`: comparte un panel con un rol.
 -- Alineada con la versión que dejan las migraciones (el esquema declarativo
 -- heredado estaba desfasado respecto a ellas). Ver ADR-015.
 CREATE OR REPLACE FUNCTION cms.share_dashboard_with_role(p_dashboard_id uuid, p_role_id uuid, p_permission_level cms.dashboard_permission_level DEFAULT 'view'::cms.dashboard_permission_level)
@@ -453,7 +460,7 @@ BEGIN
 END;
 $function$;
 
--- Remove share
+-- Función `cms.unshare_dashboard_from_role`: deja de compartirlo.
 CREATE OR REPLACE FUNCTION cms.unshare_dashboard_from_role(
   p_dashboard_id UUID,
   p_role_id UUID
@@ -479,7 +486,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create dashboard
+-- Función `cms.create_dashboard`: crea un panel y, opcionalmente, lo comparte.
 -- Alineada con la versión que dejan las migraciones (el esquema declarativo
 -- heredado estaba desfasado respecto a ellas). Ver ADR-015.
 CREATE OR REPLACE FUNCTION cms.create_dashboard(p_name text, p_role_shares jsonb DEFAULT NULL::jsonb)
@@ -539,9 +546,7 @@ BEGIN
 END;
 $function$;
 
--- ============================================
--- SECTION: GRANTS
--- ============================================
+-- Permisos.
 
 -- [TFG] RNF-02 · `UPDATE` por columnas (F2.8, BITACORA B-50): un editor de un
 -- panel compartido solo puede renombrarlo. Con el `UPDATE` de tabla completa

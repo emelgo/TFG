@@ -1,7 +1,18 @@
 
 /*
+ * -------------------------------------------------------
+ * Sección: Autenticación del CMS
+ * Funciones que deciden si el usuario actual puede entrar en el panel de
+ * administración: indicador `cms_access` en el JWT, cuenta del CMS activa y
+ * cumplimiento de la MFA. `cms.verify_admin_access()` es el punto de control
+ * común que reutilizan las políticas RLS y las funciones del CMS.
+ * -------------------------------------------------------
+ */
+
+/*
  * cms.is_aal2
- * Check if the user has aal2 access
+ * Indica si la sesión actual tiene nivel de garantía `aal2` (segundo factor
+ * verificado).
  */
 create or replace function cms.is_aal2 () returns boolean
 set
@@ -15,14 +26,17 @@ begin
 end
 $$ language plpgsql;
 
--- Grant access to the function to authenticated users
+-- Se concede a authenticated porque la usan las políticas RLS.
 grant
 execute on function cms.is_aal2 () to authenticated;
 
 /*
  * cms.is_mfa_compliant
- * Check if the user meets MFA requirements if they have MFA enabled.
- * If the user has MFA enabled, then the user must have aal2 enabled. Otherwise, the user must have aal1 enabled (default behavior).
+ * Indica si la sesión cumple los requisitos de MFA: si el usuario tiene algún
+ * factor verificado, su sesión debe ser `aal2`; si no, basta con `aal1`.
+ * Es `security definer` (y desactiva la RLS) porque necesita leer
+ * auth.mfa_factors, a la que authenticated no tiene acceso; solo consulta los
+ * factores del propio auth.uid().
  */
 create or replace function cms.is_mfa_compliant () returns boolean
 set
@@ -40,11 +54,13 @@ begin
 end
 $$ language plpgsql security definer;
 
--- Grant access to the function to authenticated users
+-- Se concede a authenticated porque la usan las políticas RLS.
 grant
 execute on function cms.is_mfa_compliant () to authenticated;
 
--- Lightweight function that checks if user has admin_access flag in JWT
+-- Función `cms.account_has_admin_access`: comprobación barata del indicador
+-- `cms_access` en `app_metadata` del JWT. Ese campo solo lo puede escribir el
+-- servidor, pero el indicador por sí solo no basta (ver verify_admin_access).
 create or replace function cms.account_has_admin_access () returns boolean
 set
   search_path = '' as $$
@@ -82,9 +98,12 @@ revoke all on function cms.get_mfa_requirement () from public, anon;
 
 grant execute on function cms.get_mfa_requirement () to authenticated, service_role;
 
--- SECTION: CHECK ADMIN ACCESS
--- In this section, we define the check admin access function. This function is used to check if the user has admin access by checking the app_metadata of the JWT. This is a preliminary, cheap way to check if the user has admin access. Remaining checks are that using cms.has_data_permission and cms.has_admin_permission.
--- In addition, it checks if the user has MFA enabled and if MFA is required for admin access.
+-- Función `cms.verify_admin_access`: decide si el usuario puede usar el CMS.
+-- Primero mira el indicador del JWT (filtro barato), después que su cuenta
+-- del CMS esté activa y, por último, que cumpla la MFA según la
+-- configuración. Los permisos concretos sobre cada recurso se comprueban
+-- después con cms.has_data_permission y cms.has_admin_permission.
+-- No es `security definer`: se evalúa con los permisos del usuario.
 create or replace function cms.verify_admin_access () RETURNS boolean
 set
   search_path = '' as $$

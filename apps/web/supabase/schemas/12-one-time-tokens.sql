@@ -1,11 +1,16 @@
 /*
  * -------------------------------------------------------
- * Section: Nonces
- * We create the schema for the nonces. Nonces are used to create one-time tokens for authentication purposes.
+ * Sección: Tokens de un solo uso (nonces)
+ * Códigos de verificación de un solo uso (por ejemplo, el código de 6
+ * dígitos que se envía por correo antes de una operación delicada, como
+ * borrar la cuenta o transferir la propiedad de un equipo). Solo se guarda
+ * el *hash* bcrypt del código, se limita el número de intentos para impedir
+ * ataques de fuerza bruta y toda la manipulación pasa por funciones
+ * `security definer`: la tabla no se expone a la API de datos.
  * -------------------------------------------------------
  */
 
--- Create a table to store one-time tokens (nonces)
+-- Tabla de tokens de un solo uso.
 CREATE TABLE IF NOT EXISTS public.nonces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_token TEXT NOT NULL, -- token sent to client (hashed)
@@ -13,32 +18,33 @@ CREATE TABLE IF NOT EXISTS public.nonces (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NULL, -- Optional to support anonymous tokens
     purpose TEXT NOT NULL, -- e.g., 'password-reset', 'email-verification', etc.
 
-    -- Status fields
+    -- Campos de estado
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     used_at TIMESTAMPTZ,
     revoked BOOLEAN NOT NULL DEFAULT FALSE, -- For administrative revocation
     revoked_reason TEXT, -- Reason for revocation if applicable
 
-    -- Audit fields
+    -- Campos de auditoría de los intentos de verificación
     verification_attempts INTEGER NOT NULL DEFAULT 0 CHECK (verification_attempts >= 0), -- Track attempted uses
     last_verification_at TIMESTAMPTZ, -- Timestamp of last verification attempt
     last_verification_ip INET, -- For tracking verification source
     last_verification_user_agent TEXT, -- For tracking client information
 
-    -- Extensibility fields
+    -- Campos de extensión
     metadata JSONB DEFAULT '{}'::JSONB, -- optional metadata
     scopes TEXT[] DEFAULT '{}', -- OAuth-style authorized scopes
     CHECK (expires_at > created_at),
     CHECK (used_at IS NULL OR used_at >= created_at)
 );
 
--- Create indexes for efficient lookups
+-- Índices parciales sobre los tokens aún utilizables, para que las búsquedas
+-- de verificación no recorran los ya usados o revocados.
 CREATE INDEX IF NOT EXISTS idx_nonces_status ON public.nonces (client_token, user_id, purpose, expires_at)
   WHERE used_at IS NULL AND revoked = FALSE;
 
--- Optimized index for verify_nonce function query pattern
--- Matches filter order: purpose → expires_at → user_id
+-- Índice ajustado al patrón de consulta de verify_nonce, con el mismo orden de
+-- filtros: purpose → expires_at → user_id.
 CREATE INDEX IF NOT EXISTS idx_nonces_verify_lookup ON public.nonces (purpose, expires_at DESC, user_id)
   WHERE used_at IS NULL AND revoked = FALSE;
 
@@ -47,22 +53,22 @@ CREATE INDEX IF NOT EXISTS idx_nonces_verify_recent ON public.nonces (purpose, u
 
 CREATE INDEX IF NOT EXISTS idx_nonces_cleanup ON public.nonces (expires_at, used_at, revoked);
 
--- Enable Row Level Security (RLS)
+-- RLS activada sobre nonces.
 ALTER TABLE public.nonces ENABLE ROW LEVEL SECURITY;
 
--- Nothing is granted back: this table is RPC-only (see the note on the policies
--- below). Without this, Supabase's default privileges leave all three roles
--- holding TRUNCATE, which bypasses RLS -- and for service_role it would be the
--- only write it can perform here.
+-- No se devuelve ningún permiso: la tabla solo se usa a través de funciones
+-- RPC (ver la nota de las políticas más abajo). Sin este `revoke`, los
+-- privilegios por defecto de Supabase dejarían a los tres roles con TRUNCATE,
+-- que se salta la RLS, y para service_role sería la única escritura posible.
 REVOKE ALL ON public.nonces FROM anon, authenticated, service_role;
 
--- RLS policies
--- Users can view their own nonces for verification
--- Defense-in-depth RLS policies. NOTE: the nonces table is intentionally
--- RPC-only — the authenticated role is never granted base table privileges, so
--- these policies only take effect if such a grant is ever added. All token
--- access happens through the SECURITY DEFINER verify_nonce / get_nonce_status
--- functions; the table is never exposed to the data API directly.
+-- Políticas RLS como defensa en profundidad. Nota: la tabla es, a propósito,
+-- solo accesible por RPC: el rol authenticated no tiene ningún permiso sobre
+-- ella, así que estas políticas solo tendrían efecto si algún día se añadiera
+-- un `grant`. Todo acceso a los tokens pasa por las funciones `security
+-- definer` verify_nonce y get_nonce_status; la tabla nunca se expone
+-- directamente a la API de datos.
+-- Política SELECT: cada usuario solo vería sus propios tokens.
 CREATE POLICY "Users can read their own nonces"
   ON public.nonces
   FOR SELECT
@@ -70,8 +76,12 @@ CREATE POLICY "Users can read their own nonces"
     user_id = (select auth.uid())
   );
 
--- Create a function to create a nonce
--- Create a function to create a nonce
+-- Función `public.create_nonce`: genera un código de 6 dígitos, guarda solo su
+-- *hash* y devuelve el código en claro una única vez para enviarlo al usuario.
+-- Por defecto revoca los tokens anteriores del mismo usuario y propósito, de
+-- modo que solo haya uno vigente. Es `security definer` porque nadie tiene
+-- permisos directos sobre la tabla, y solo la ejecuta service_role: los
+-- tokens siempre los emite el servidor.
 create or replace function public.create_nonce (
     p_user_id UUID default null,
     p_purpose TEXT default null,
@@ -162,8 +172,11 @@ $$;
 
 grant execute on function public.create_nonce to service_role;
 
--- Create a function to verify a nonce
--- Create a function to verify a nonce
+-- Función `public.verify_nonce`: comprueba un código, cuenta el intento y, si
+-- es válido, lo marca como usado. Tras superar el máximo de intentos revoca el
+-- token. Es `security definer` por el mismo motivo que la anterior; se concede
+-- también a authenticated, pero dentro se fuerza que un usuario solo pueda
+-- verificar sus propios tokens.
 create or replace function public.verify_nonce (
     p_token TEXT,
     p_purpose TEXT,
@@ -326,7 +339,8 @@ grant
     execute on function public.verify_nonce to authenticated,
     service_role;
 
--- Create a function to revoke a nonce
+-- Función `public.revoke_nonce`: revoca un token pendiente. Solo para
+-- service_role (uso administrativo).
 CREATE OR REPLACE FUNCTION public.revoke_nonce(
   p_id UUID,
   p_reason TEXT DEFAULT NULL
@@ -355,7 +369,9 @@ $$;
 
 grant execute on function public.revoke_nonce to service_role;
 
--- Create a function to clean up expired nonces
+-- Función `kit.cleanup_expired_nonces`: borra los tokens caducados y, según los
+-- parámetros, los usados o revocados con cierta antigüedad. Está en el esquema
+-- privado `kit` y sin `grant`, pensada para una tarea programada.
 CREATE OR REPLACE FUNCTION kit.cleanup_expired_nonces(
   p_older_than_days INTEGER DEFAULT 1,
   p_include_used BOOLEAN DEFAULT TRUE,
@@ -391,7 +407,8 @@ BEGIN
 END;
 $$;
 
--- Create a function to get token status (for administrative use)
+-- Función `public.get_nonce_status`: devuelve el estado de un token sin
+-- exponer su *hash* (uso administrativo).
 CREATE OR REPLACE FUNCTION public.get_nonce_status(
   p_id UUID
 )
@@ -426,12 +443,13 @@ BEGIN
 END;
 $$;
 
--- get_nonce_status is an administrative function called by the backend using
--- the service role (see @pymekit/otp getNonceStatus via the admin client). It must
--- be executable by service_role like the other administrative nonce functions.
+-- get_nonce_status es una función administrativa que llama el servidor con el
+-- rol de servicio (ver getNonceStatus en @pymekit/otp, que usa el cliente
+-- administrador). Por eso, como las demás funciones administrativas de tokens,
+-- solo la puede ejecutar service_role.
 grant execute on function public.get_nonce_status to service_role;
 
--- Comments for documentation
+-- Comentarios de documentación de la tabla y de las funciones.
 COMMENT ON TABLE public.nonces IS 'Table for storing one-time tokens with enhanced security and audit features';
 COMMENT ON FUNCTION public.create_nonce IS 'Creates a new one-time token for a specific purpose with enhanced options';
 COMMENT ON FUNCTION public.verify_nonce IS 'Verifies a one-time token, checks scopes, and marks it as used';

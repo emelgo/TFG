@@ -1,6 +1,15 @@
 
--- SECTION: UPDATE UPDATED AT COLUMN
--- In this section, we define the update updated at column function. This function is used to update the updated at column of the table.
+/*
+ * -------------------------------------------------------
+ * Sección: Utilidades del CMS
+ * Funciones auxiliares que reutiliza el resto del CMS: disparador de
+ * `updated_at`, validación de identificadores y esquemas (para construir SQL
+ * dinámico sin riesgo de inyección), formato de valores según su tipo y
+ * generación de nombres legibles para las columnas.
+ * -------------------------------------------------------
+ */
+
+-- Disparador genérico que actualiza `updated_at` en cada UPDATE.
 create or replace function cms.update_updated_at_column () RETURNS TRIGGER
 set
   search_path = '' as $$
@@ -10,14 +19,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: SANITIZE IDENTIFIER
--- In this section, we define the sanitize identifier function to prevent SQL injection attacks. This is normally not required when using an ORM however it is useful should the user ever be using raw SQL.
--- ---------------------------------------------------------------------------
--- cms.sanitize_identifier()
---   • Normalises to lowercase
---   • Enforces PostgreSQL identifier rules
---   • Rejects *any* reserved / type / column keyword returned by pg_get_keywords()
--- ---------------------------------------------------------------------------
+-- Función `cms.sanitize_identifier`: valida un identificador (nombre de tabla,
+-- columna o esquema) antes de usarlo en SQL dinámico, como defensa contra la
+-- inyección SQL. El CMS construye consultas con nombres que llegan del
+-- cliente, así que no basta con confiar en la API:
+--   • normaliza a minúsculas;
+--   • exige las reglas de identificadores de PostgreSQL;
+--   • rechaza *cualquier* palabra reservada, de tipo o de columna que devuelva
+--     pg_get_keywords().
 create or replace function cms.sanitize_identifier (identifier TEXT) RETURNS TEXT LANGUAGE plpgsql IMMUTABLE STRICT
 set
   search_path = ''
@@ -72,8 +81,8 @@ grant
 execute on function cms.sanitize_identifier (text) to authenticated,
 service_role;
 
--- SECTION: VALIDATE COLUMN NAME
--- In this section, we define the validate column name function. This function is used to validate the column name. It checks if the column name exists in the table.
+-- Función `cms.validate_column_name`: comprueba que la columna existe de verdad
+-- en la tabla indicada, para no construir SQL dinámico con nombres inventados.
 create or replace function cms.validate_column_name (p_schema text, p_table text, p_column text) RETURNS boolean
 set
   search_path = '' as $$
@@ -91,8 +100,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- SECTION: VALIDATE SCHEMA ACCESS
--- In this section, we define the validate schema access function. This function prevents write operations on private Supabase schemas.
+-- Función `cms.validate_schema_access`: impide escribir en los esquemas
+-- internos de Supabase y PostgreSQL (auth, storage, extensions...), aunque
+-- alguien tuviera un permiso de datos mal configurado sobre ellos.
 create or replace function cms.validate_schema_access (p_schema text) RETURNS boolean
 set
   search_path = '' as $$
@@ -141,8 +151,10 @@ execute on function cms.validate_schema_access (text) to authenticated,
 service_role;
 
 
--- SECTION: GET ENUM VALUES
--- In this section, we define the get enum values function. This function is used to get the values of an enum for display purposes. We require SECURITY DEFINER because we need to access the pg_type and pg_enum tables.
+-- Función `cms.get_enum_values`: devuelve los valores de un `enum` para
+-- mostrarlos en los desplegables del CMS. Es `security definer` porque
+-- necesita leer los catálogos pg_type y pg_enum; solo devuelve nombres de
+-- valores, que no son datos de negocio.
 create or replace function cms.get_enum_values (p_enum_name text) RETURNS JSONB SECURITY DEFINER
 set
   row_security = off
@@ -169,13 +181,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Grant execution rights
+-- Permiso de ejecución.
 grant
 execute on FUNCTION cms.get_enum_values to authenticated,
 service_role;
 
--- SECTION: GENERATE DISPLAY NAME
--- In this section, we define the generate display name function. This function is used to generate a display name for a column.
+-- Función `cms.generate_display_name`: convierte el nombre de una columna
+-- (`created_at`) en una etiqueta legible (`Created At`) para la interfaz.
 create or replace function cms.generate_display_name (name text) RETURNS text LANGUAGE plpgsql
 set
   search_path = '' as $$
@@ -197,8 +209,9 @@ BEGIN
 END;
 $$;
 
--- SECTION: ENHANCED TYPE-AWARE VALUE FORMATTING
--- Helper function to format values based on PostgreSQL data types
+-- Función `cms.format_typed_value`: convierte un valor JSON recibido del
+-- cliente en un literal SQL del tipo PostgreSQL de la columna, para que las
+-- funciones CRUD dinámicas inserten y filtren con el tipo correcto.
 create or replace function cms.format_typed_value (
   p_value jsonb,
   p_data_type text,
@@ -430,8 +443,8 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- SECTION: IS TEXTUAL DATA TYPE
--- In this section, we define the is textual data type function. This function is used to check if a data type is textual.
+-- Función `cms.is_textual_data_type`: indica si un tipo de datos es textual
+-- (lo usan la búsqueda y los filtros para decidir si aplican ILIKE).
 create or replace function cms.is_textual_data_type (
   p_data_type text,
   p_udt_name text default null,
