@@ -58,8 +58,8 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (305 etiquetas). No 
 | `apps/e2e/tests/cms/cms-sidebar-areas.spec.ts:18` | RF-08, RF-09, ADR-014, ADR-020 | RF-08 · RF-09 · ADR-014 · ADR-020. |
 | `apps/e2e/tests/cms/cms-storage-explorer.spec.ts:24` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
 | `apps/e2e/tests/cms/cms-ui.spec.ts:17` | RF-08, RF-09, ADR-014 | RF-08 · RF-09 · ADR-014. |
-| `apps/e2e/tests/cms/cms-users-explorer.spec.ts:24` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
-| `apps/web/.env:61` | — | Bloque «Proyecto académico» y recorrido de la demo en la landing. |
+| `apps/e2e/tests/cms/cms-users-explorer.spec.ts:25` | RF-09, RNF-02, ADR-014 | RF-09 · RNF-02 · ADR-014. |
+| `apps/web/.env:73` | — | Bloque «Proyecto académico» y recorrido de la demo en la landing. |
 | `apps/web/src/components/admin/admin-navigation.ts:29` | RF-08, RF-09, ADR-014, ADR-017, ADR-020 | RF-08 · RF-09 · ADR-014 · ADR-017 · ADR-020. |
 | `apps/web/src/components/admin/admin-sidebar-resources.tsx:19` | RF-09, ADR-017, ADR-020 | RF-09 · ADR-017 · ADR-020: la navegación refleja los permisos del |
 | `apps/web/src/components/admin/cms/cms-global-search.tsx:11` | RF-09 | RF-09. |
@@ -190,9 +190,9 @@ _Tabla generada con `node scripts/tfg/tfg-tags.mjs --write` (305 etiquetas). No 
 | `apps/web/supabase/schemas/54-cms-members-hardening.sql:66` | RNF-02 | RNF-02 · B-47: solo responde con acceso vigente al CMS y sobre la |
 | `apps/web/supabase/schemas/54-cms-members-hardening.sql:96` | RNF-02, ADR-014 | RNF-02 · ADR-014 · F2.7a. `requires_mfa` decide si todo el personal |
 | `apps/web/supabase/schemas/55-cms-rbac-hardening.sql:26` | RF-09, RNF-02, ADR-014, ADR-015 | RF-09 · RNF-02 · ADR-014 · ADR-015. Pruebas en |
-| `apps/web/supabase/seed.sql:304` | RF-09, RF-10 | RF-09, RF-10. |
-| `apps/web/supabase/seed.sql:334` | RF-09, ADR-014 | RF-09 · ADR-014: RBAC del CMS para el personal que no es super-admin. |
-| `apps/web/supabase/seed.sql:409` | RF-01, ADR-017 | RF-01 · ADR-017: contenido gestionado desde el CMS. |
+| `apps/web/supabase/seed.sql:307` | RF-09, RF-10 | RF-09, RF-10. |
+| `apps/web/supabase/seed.sql:338` | RF-09, ADR-014 | RF-09 · ADR-014: RBAC del CMS para el personal que no es super-admin. |
+| `apps/web/supabase/seed.sql:393` | RF-01, ADR-017 | RF-01 · ADR-017: contenido gestionado desde el CMS. |
 | `apps/web/supabase/tests/database/anon-surface.test.sql:17` | RNF-02, ADR-017 | RNF-02 · ADR-017. |
 | `apps/web/supabase/tests/database/blog.test.sql:22` | RF-01, RF-09, RNF-02, ADR-017 | RF-01 · RF-09 · RNF-02 · ADR-017. |
 | `apps/web/supabase/tests/database/cms-audit-isolation.test.sql:25` | RNF-02, ADR-015 | RNF-02 · ADR-015. |
