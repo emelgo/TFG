@@ -16,13 +16,6 @@ se resume en la sección~\ref{sec:dis-decisiones}. La infraestructura de
 ejecución (contenedores, nube y puesta en marcha) se trata en el capítulo de
 Despliegue del Sistema.
 
-% PENDIENTE (P-06): el capítulo presenta el diseño resultante. Parte de él es
-% heredado de las bases de partida (modelo de cuentas, RBAC de equipos y del
-% CMS, abstracción de la pasarela) y parte es propio (integración del CMS en
-% la web, ADR-011; pegamento super-admin/CMS, ADR-014; acceso a la consola,
-% ADR-016; endurecimiento, ADR-015; consola por áreas, ADR-020). La
-% distinción se detalla en Construcción (sec:imp-reutilizacion).
-
 % ---------------------------------------------------------------------
 \section{Arquitectura general}
 \label{sec:dis-arquitectura}
@@ -105,9 +98,9 @@ de creación, y las migraciones se generan a partir de ellos.
 \subsection{CMS integrado en la consola de administración}
 \label{sec:dis-cms-integrado}
 
-La decisión de mayor calado del diseño es cómo integrar el CMS (ADR-011). El
-CMS de partida era una aplicación de página única con su propio enrutador y
-una API independiente. Se evaluaron tres opciones:
+La decisión de mayor calado del diseño es cómo integrar el CMS (ADR-011). Un
+CMS de este tipo se construye habitualmente como una aplicación de página
+única con su propio enrutador y una API independiente. Se evaluaron tres opciones:
 
 \begin{enumerate}[label=(\alph*)]
   \item \textbf{aplicaciones separadas} (la web, la interfaz del CMS y su
@@ -614,22 +607,22 @@ valer.
   \endhead
   \bottomrule
   \endfoot
-  001 & Partir de bases de código existentes con licencia (SaaS y CMS) % PENDIENTE (P-06)
+  001 & Partir de componentes base con licencia
     & Desarrollo completo desde cero (inviable en plazo); otras bases abiertas (menos completas en multi-tenant y RLS); CMS genéricos con otra base de datos u otro \textit{backend} & RNF-01, 04 \\
   002 & Monorepo único y una sola base de datos & Dos repositorios con la misma base de datos (CI, despliegue y documentación duplicados) & RF-09, RNF-04 \\
   003 & Comentarios y documentación en español; identificadores en inglés & Todo en español (choca con el ecosistema); todo en inglés (dificulta la evaluación) & RF-13, RNF-05 \\
-  004 & Conservar el CMS de datos y retirar el de contenidos basado en ficheros & Mantener dos CMS (complejidad sin aportar al objetivo) & RF-09 \\
+  004 & Un único CMS, de datos, sin CMS de contenidos basado en ficheros & Mantener dos CMS (complejidad sin aportar al objetivo) & RF-09 \\
   005 & Plataforma genérica sin dominio de negocio concreto & Implementar un dominio de ejemplo (desvía el esfuerzo de la base reutilizable) & RNF-01 \\
-  006 & Retirar la comprobación remota de licencia del flujo de desarrollo & Mantenerla (dependencia de red y de un servicio externo) & --- \\
-  007 & La memoria no nombra las bases de partida & --- & --- \\
-  008 & Descartar el servidor MCP y los generadores heredados ligados a la base & Conservarlos renombrados (dependen de documentación no incluida) & RNF-04 \\
+  006 & Flujo de desarrollo sin comprobaciones remotas de licencia & Mantenerla (dependencia de red y de un servicio externo) & --- \\
+  007 & La memoria no nombra los componentes base & --- & --- \\
+  008 & Descartar el servidor MCP y los generadores de código ligados a documentación externa & Conservarlos renombrados (dependen de documentación no incluida) & RNF-04 \\
   009 & La web escucha en el puerto 3100 & Puerto por defecto (ocupado en el equipo de desarrollo, B-02) & RNF-07 \\
   010 & Aislar de Internet los servicios locales & Confiar en el cortafuegos del sistema (los contenedores se lo saltan, B-04) & RNF-02 \\
   011 & CMS integrado: API Hono en \texttt{/api/cms}, pantallas como rutas de la web & Aplicaciones separadas (tres servicios, dos inicios de sesión); híbrida (dos enrutadores) & RF-08--11 \\
-  012 & Esquema SQL del CMS llamado \texttt{cms} & Conservar el nombre original (excepción permanente en el control de marca) & RF-09 \\
+  012 & Esquema SQL del CMS llamado \texttt{cms} & Conservar el nombre original (excepción permanente en los controles automáticos) & RF-09 \\
   013 & Una sola pila de librerías en toda la web & Mantener las del CMS (dos formas de hacer lo mismo; dos sistemas de i18n) & RNF-05 \\
   014 & Super-administrador como raíz del CMS; RBAC del CMS para el resto del personal & Solo super-administrador, sin RBAC granular (incumple RF-09) & RF-08, 09 \\
-  015 & Endurecer la seguridad del CMS de partida & Aceptar el código heredado sin auditar (brechas confirmadas, B-05--B-09) & RNF-02, 03 \\
+  015 & Endurecer la seguridad del CMS & Aceptar el código sin auditar (brechas confirmadas, B-05--B-09) & RNF-02, 03 \\
   016 & Consola para super-administrador y personal del CMS, siempre con \texttt{aal2} & Dejar entrar con el \textit{claim} de acceso sin comprobar el AAL (B-14) & RF-08, RNF-02 \\
   017 & Blog en la base de datos gestionado desde el CMS & Blog fuera (debilita la gestión de contenidos); CMS de ficheros (dos CMS) & RF-01, 09 \\
   018 & Instantánea del autor en la auditoría & Claves ajenas \texttt{RESTRICT} (impide borrar usuarios); borrado lógico (más complejo) & RF-10 \\

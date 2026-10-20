@@ -16,7 +16,7 @@
 ## Pendientes transversales (no bloquean el avance de fase)
 - [ ] P-04 · Plantilla LaTeX de Overleaf: el autor pasará el `.zip` → integrarla en `memoria/` (ver `memoria/README.md`)
 - [x] P-01 · Escenario de ejemplo «Fisioterapia Bahía» en la rama `fase-6/escenario-ejemplo` (no se fusiona); resultados en `docs/tfg/EVALUACION.md`
-- [ ] P-06 · Confirmar con el tutor cómo presenta la memoria la parte reutilizada sin nombrar las referencias (ADR-007)
+- [x] P-06 · Confirmar con el tutor cómo presenta la memoria la parte reutilizada sin nombrar las referencias (ADR-007) — resuelto el 2026-10-20: el autor decide una mención mínima (Antecedentes, Construcción y licencia), sin nombrar los productos; el resto de la memoria habla solo de las aportaciones
 
 ## F1 · Base SaaS importada y funcionando
 - [x] Copia de la referencia SaaS (sin excluidos)
@@ -127,7 +127,7 @@
 - [ ] Manual de instalación probado desde cero
 
 ## F8 · Memoria
-- [x] Plantilla oficial integrada y capítulos 1–9 redactados (compila: ~151 páginas; quedan `\todo` del autor y P-06)
+- [x] Plantilla oficial integrada y capítulos 1–9 redactados (compila: ~151 páginas; quedan `\todo` del autor)
 - [x] Anexos: manual del desarrollador, manual de usuario y evaluación de la reutilización
 - [ ] Revisión final con el tutor
 

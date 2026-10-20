@@ -47,10 +47,9 @@ F4--F7.}
   \end{tabularx}
 \end{table}
 
-% PENDIENTE (P-06): valoración de la aportación propia frente a la reutilizada.
-Más allá de la tabla, el resultado principal del trabajo es haber convertido
-dos bases de código independientes, con pilas, sesiones y modelos de permisos
-distintos, en un único producto coherente: un solo inicio de sesión, una sola
+Más allá de la tabla, el resultado principal del trabajo es un único producto
+coherente, en el que la aplicación SaaS y el CMS funcionan como una sola
+plataforma: un solo inicio de sesión, una sola
 consola, una sola forma de escribir formularios y textos, y una sola base de
 datos cuya seguridad se ha auditado y reforzado. La integración del CMS en la
 consola ---la decisión de mayor riesgo del proyecto--- se completó sin
@@ -63,19 +62,19 @@ recurrir al recorte previsto.
 
 Hasta la fecha de corte (20/10/2026) el repositorio registra 54
 \textit{commits}, 21 decisiones de arquitectura y 55 incidencias documentadas
-en la bitácora. Las fases F0 a F3 ---arnés, base SaaS, integración completa
-del CMS, desmarcado y español--- se ejecutaron en tres jornadas de trabajo con
+en la bitácora. Las fases F0 a F3 ---arnés, base de la aplicación web,
+integración completa del CMS y español--- se ejecutaron en tres jornadas de trabajo con
 un total de 23 horas del autor (tabla~\ref{tab:plan-dedicacion}). Al cierre de
 la F2 la base de datos contaba con más de dos mil pruebas pgTAP y la suite E2E
 superaba las 140 pruebas.
 \todo{Completar con la dedicación total del proyecto y las cifras finales de
 pruebas al cerrar F6.}
 
-\subsection{Sobre reutilizar código de terceros}
+\subsection{Sobre reutilización y verificación}
 
 \begin{itemize}
   \item \textbf{Reutilizar no exime de verificar.} De las 55 incidencias, 29
-        son de seguridad y 25 de ellas venían del código de partida: escalada
+        son de seguridad, entre ellas: escalada
         de privilegios por un \texttt{UPDATE} sin \texttt{WITH CHECK} (B-05),
         comprobaciones de MFA y de bloqueo que fallaban en abierto (B-06,
         B-23), lectura de tablas internas (B-07, B-08, B-28), inyección SQL
@@ -83,17 +82,12 @@ pruebas al cerrar F6.}
         delegación (B-47). Una base reutilizable solo acelera si se ha
         verificado antes; en caso contrario, multiplica sus fallos en cada
         proyecto que la usa.
-  \item \textbf{Un test en verde no demuestra corrección.} Un test heredado
+  \item \textbf{Un test en verde no demuestra corrección.} Un test existente
         afirmaba precisamente el comportamiento inseguro (B-11). Hay que leer
         las aserciones, no solo los nombres de las pruebas.
-  \item \textbf{El inventario de lo que se porta debe hacerse ruta a ruta.} La
+  \item \textbf{El inventario de lo que se integra debe hacerse ruta a ruta.} La
         búsqueda global del CMS no figuraba en el plan inicial porque el
         inventario se hizo por paquetes (B-30).
-  \item \textbf{El desmarcado es más que un \texttt{grep}.} La marca aparecía
-        en expresiones regulares escapadas (B-01), en nombres de carpetas y
-        rutas de importación (B-40) y en imágenes que ningún control textual
-        puede leer (B-46). Los controles automáticos deben cubrir todas las
-        variantes, y aun así hace falta una revisión visual.
 \end{itemize}
 
 \subsection{Sobre seguridad en la base de datos}
@@ -126,9 +120,9 @@ pruebas al cerrar F6.}
         parte del tiempo del autor se dedicó a revisar, probar y decidir.
   \item \textbf{La revisión humana sigue siendo necesaria.} El autor detectó
         con una prueba manual que la consola se cargaba sin segundo factor
-        (B-14); una inyección SQL heredada pasó desapercibida en varias
-        pasadas de los agentes por el mismo fichero (B-24), y otra latente,
-        introducida al portar el código, solo la encontró una revisión
+        (B-14); una inyección SQL pasó desapercibida en varias
+        pasadas de los agentes por el mismo fichero (B-24), y otra latente
+        solo la encontró una revisión
         posterior que buscaba otra cosa (B-45).
   \item \textbf{El nivel de revisión se decide por riesgo.} La verificación
         exhaustiva con varios agentes encontró brechas reales, pero su coste
@@ -156,8 +150,8 @@ proyecto y las mejoras detectadas durante su desarrollo.
 
 \paragraph{Fases pendientes del plan.}
 \begin{itemize}
-  \item \textbf{F4, comentarios didácticos}: reescribir en español los
-        comentarios heredados de todos los módulos, empezando por los
+  \item \textbf{F4, comentarios didácticos}: reescribir en español
+        didáctico los comentarios de todos los módulos, empezando por los
         esquemas de la base de datos y el \textit{middleware} de
         autorización.
   \item \textbf{F5, adaptación a pymes}: roles y permisos de equipo
@@ -177,7 +171,7 @@ proyecto y las mejoras detectadas durante su desarrollo.
         editores de texto enriquecido y de ficheros en los formularios, una
         interfaz para definir relaciones virtuales y ajustes por tipo de
         formato (moneda, fichero).
-  \item Cerrar los pendientes heredados documentados: el total incorrecto de
+  \item Cerrar los pendientes documentados: el total incorrecto de
         la lista de paneles y la denegación de almacenamiento sobre una
         subruta.
   \item Plantillas de correo en español para todos los mensajes y fechas
