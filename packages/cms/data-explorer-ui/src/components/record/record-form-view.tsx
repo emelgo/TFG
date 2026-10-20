@@ -36,6 +36,7 @@ import {
   BreadcrumbSeparator,
 } from '@pymekit/ui/breadcrumb';
 import { Button } from '@pymekit/ui/button';
+import { PageSummary } from '@pymekit/ui/page';
 import { Spinner } from '@pymekit/ui/spinner';
 
 import { useTableTabManagement } from '../../hooks/use-data-explorer-tabs';
@@ -97,6 +98,7 @@ export function RecordCreateView(props: {
       uiConfig={metadata.table.uiConfig}
       record={null}
       tableName={tableName}
+      tableDescription={metadata.table.description}
       title={t('record.form.newRecord')}
       backHref={listHref(schema, table)}
       isPending={mutation.isPending}
@@ -175,6 +177,7 @@ export function RecordEditView(props: {
       record={record}
       relationLabels={relationLabels}
       tableName={tableName}
+      tableDescription={metadata.table.description}
       recordName={recordName || t('record.noName')}
       recordHref={props.recordHref}
       title={t('record.form.editRecord')}
@@ -205,6 +208,8 @@ function RecordFormPage(props: {
   record: Record<string, unknown> | null;
   relationLabels?: Record<string, string>;
   tableName: string;
+  /** Descripción de la tabla en los metadatos del CMS, como resumen. */
+  tableDescription?: string | null;
   recordName?: string;
   recordHref?: string;
   title: string;
@@ -350,6 +355,10 @@ function RecordFormPage(props: {
           </Button>
         </div>
       </div>
+
+      {props.tableDescription ? (
+        <PageSummary>{props.tableDescription}</PageSummary>
+      ) : null}
 
       {fields.length === 0 ? (
         <p

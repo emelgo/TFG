@@ -134,7 +134,7 @@ test.describe('Ajustes > Miembros: super-admin con MFA', () => {
     const memberId = members.members[0]!.id;
 
     await settings.gotoMember(memberId);
-    await expect(page.getByTestId('member-details-role')).toHaveText('No role');
+    await expect(page.getByTestId('member-details-role')).toHaveText('Sin rol');
 
     // Asignar el rol «Soporte».
     await page.getByTestId('member-manage-role').click();
@@ -151,7 +151,7 @@ test.describe('Ajustes > Miembros: super-admin con MFA', () => {
     await page.getByTestId('member-role-select').selectOption('');
     await page.getByTestId('member-role-save').click();
     await expect(page.getByTestId('member-role-dialog')).toBeHidden();
-    await expect(page.getByTestId('member-details-role')).toHaveText('No role');
+    await expect(page.getByTestId('member-details-role')).toHaveText('Sin rol');
 
     // Desactivar (con confirmación) y reactivar.
     await page.getByTestId('member-deactivate').click();

@@ -4,7 +4,7 @@
  *
  * Recibe solo los usuarios a los que se aplica (`getBatchActionTargets`) y
  * los lista para que el operador vea exactamente a quién afecta. Borrar exige
- * escribir `DELETE`. La API procesa cada usuario por separado y devuelve
+ * escribir `ELIMINAR`. La API procesa cada usuario por separado y devuelve
  * cuántos fallaron; la mutación avisa del resultado parcial.
  */
 import { useTranslations } from 'use-intl';
@@ -30,7 +30,7 @@ export function BatchUsersActionDialog(props: {
       onOpenChange={props.onOpenChange}
       testId={`users-batch-${props.action}`}
       destructive={props.action === 'delete' || props.action === 'ban'}
-      confirmWord={props.action === 'delete' ? 'DELETE' : undefined}
+      confirmWord={props.action === 'delete' ? 'ELIMINAR' : undefined}
       title={t(`batch.dialogs.${props.action}.title`, {
         count: props.users.length,
       })}

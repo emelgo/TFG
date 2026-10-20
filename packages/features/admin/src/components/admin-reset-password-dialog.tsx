@@ -18,12 +18,8 @@ import {
   AlertDialogTrigger,
 } from '@pymekit/ui/alert-dialog';
 import { Button } from '@pymekit/ui/button';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from '@pymekit/ui/field';
+import { Field, FieldDescription, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
 import { toast } from '@pymekit/ui/sonner';
@@ -33,7 +29,7 @@ import { resetPasswordFunction } from '../lib/server/admin.functions';
 
 const FormSchema = z.object({
   userId: z.uuid(),
-  confirmation: z.custom<string>((value) => value === 'CONFIRM'),
+  confirmation: z.custom<string>((value) => value === 'CONFIRMAR'),
 });
 
 export function AdminResetPasswordDialog(props: {
@@ -121,9 +117,12 @@ function AdminResetPasswordForm({
 
           return (
             <Field data-invalid={isInvalid}>
-              <FieldLabel htmlFor={field.name}>
+              <FieldLabelWithHelp
+                htmlFor={field.name}
+                help={<Trans i18nKey={'admin.confirmationHelp'} />}
+              >
                 <Trans i18nKey={'admin.confirmation'} />
-              </FieldLabel>
+              </FieldLabelWithHelp>
 
               <FieldDescription>
                 <Trans i18nKey={'admin.resetConfirmHint'} />
@@ -131,7 +130,7 @@ function AdminResetPasswordForm({
 
               <Input
                 id={field.name}
-                placeholder="CONFIRM"
+                placeholder="CONFIRMAR"
                 autoComplete="off"
                 name={field.name}
                 value={field.state.value}

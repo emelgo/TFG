@@ -25,6 +25,11 @@ import {
   WIDGET_TYPES,
 } from '@pymekit/cms-shared/dashboards';
 import { useCmsApi } from '@pymekit/cms-ui-core/api-context';
+import {
+  getResourceArea,
+  getResourceLabel,
+  groupByArea,
+} from '@pymekit/cms-ui-core/resources';
 import { Button } from '@pymekit/ui/button';
 import { Checkbox } from '@pymekit/ui/checkbox';
 import {
@@ -35,10 +40,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@pymekit/ui/dialog';
-import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
-import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
+import {
+  NativeSelect,
+  NativeSelectOptGroup,
+  NativeSelectOption,
+} from '@pymekit/ui/native-select';
 import { Spinner } from '@pymekit/ui/spinner';
 
 import {
@@ -121,6 +131,14 @@ export function WidgetEditorDialog(props: {
     ...queries.navigation(),
     enabled: props.open,
   });
+  // Tablas agrupadas por área, igual que en la barra lateral. Se incluyen
+  // también las ocultas del explorador: un *widget* ya guardado puede usar
+  // una y su opción tiene que seguir existiendo.
+  const resourceGroups = groupByArea(resources, {
+    area: getResourceArea,
+    ordering: (resource) => resource.metadata.ordering,
+    label: getResourceLabel,
+  });
   const { data: metadata, isFetching: isLoadingColumns } = useQuery({
     ...queries.tableMetadata(source?.schemaName ?? '', source?.tableName ?? ''),
     enabled: props.open && source !== null,
@@ -161,7 +179,12 @@ export function WidgetEditorDialog(props: {
           <form.Field name="title">
             {(field) => (
               <Field>
-                <FieldLabel htmlFor="widget-title">{t('title')}</FieldLabel>
+                <FieldLabelWithHelp
+                  htmlFor="widget-title"
+                  help={t('titleHelp')}
+                >
+                  {t('title')}
+                </FieldLabelWithHelp>
                 <Input
                   id="widget-title"
                   data-testid="widget-title-input"
@@ -178,7 +201,12 @@ export function WidgetEditorDialog(props: {
             <form.Field name="widgetType">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="widget-type">{t('type')}</FieldLabel>
+                  <FieldLabelWithHelp
+                    htmlFor="widget-type"
+                    help={t('typeHelp')}
+                  >
+                    {t('type')}
+                  </FieldLabelWithHelp>
                   <NativeSelect
                     id="widget-type"
                     data-testid="widget-type-select"
@@ -214,7 +242,12 @@ export function WidgetEditorDialog(props: {
             >
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="widget-table">{t('table')}</FieldLabel>
+                  <FieldLabelWithHelp
+                    htmlFor="widget-table"
+                    help={t('tableHelp')}
+                  >
+                    {t('table')}
+                  </FieldLabelWithHelp>
                   <NativeSelect
                     id="widget-table"
                     data-testid="widget-table-select"
@@ -225,13 +258,20 @@ export function WidgetEditorDialog(props: {
                     <NativeSelectOption value="">
                       {t('chooseTable')}
                     </NativeSelectOption>
-                    {resources.map((resource) => (
-                      <NativeSelectOption
-                        key={`${resource.schemaName}.${resource.tableName}`}
-                        value={`${resource.schemaName}.${resource.tableName}`}
+                    {resourceGroups.map((group) => (
+                      <NativeSelectOptGroup
+                        key={group.name ?? ''}
+                        label={group.name ?? t('otherArea')}
                       >
-                        {resource.displayName} ({resource.schemaName})
-                      </NativeSelectOption>
+                        {group.items.map((resource) => (
+                          <NativeSelectOption
+                            key={`${resource.schemaName}.${resource.tableName}`}
+                            value={`${resource.schemaName}.${resource.tableName}`}
+                          >
+                            {getResourceLabel(resource)} ({resource.tableName})
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelectOptGroup>
                     ))}
                   </NativeSelect>
                 </Field>
@@ -250,9 +290,12 @@ export function WidgetEditorDialog(props: {
                   <form.Field name="chartType">
                     {(field) => (
                       <Field>
-                        <FieldLabel htmlFor="widget-chart-type">
+                        <FieldLabelWithHelp
+                          htmlFor="widget-chart-type"
+                          help={t('chartTypeHelp')}
+                        >
                           {t('chartType')}
-                        </FieldLabel>
+                        </FieldLabelWithHelp>
                         <NativeSelect
                           id="widget-chart-type"
                           data-testid="widget-chart-type-select"
@@ -287,9 +330,12 @@ export function WidgetEditorDialog(props: {
                   >
                     {(field) => (
                       <Field>
-                        <FieldLabel htmlFor="widget-x-axis">
+                        <FieldLabelWithHelp
+                          htmlFor="widget-x-axis"
+                          help={t('xAxisHelp')}
+                        >
                           {t('xAxis')}
-                        </FieldLabel>
+                        </FieldLabelWithHelp>
                         <NativeSelect
                           id="widget-x-axis"
                           data-testid="widget-x-axis-select"
@@ -319,9 +365,12 @@ export function WidgetEditorDialog(props: {
                     <form.Field name="timeBucket">
                       {(field) => (
                         <Field>
-                          <FieldLabel htmlFor="widget-time-bucket">
+                          <FieldLabelWithHelp
+                            htmlFor="widget-time-bucket"
+                            help={t('timeBucketHelp')}
+                          >
                             {t('timeBucket')}
-                          </FieldLabel>
+                          </FieldLabelWithHelp>
                           <NativeSelect
                             id="widget-time-bucket"
                             data-testid="widget-time-bucket-select"
@@ -371,9 +420,12 @@ export function WidgetEditorDialog(props: {
                   >
                     {(field) => (
                       <Field>
-                        <FieldLabel htmlFor="widget-aggregation">
+                        <FieldLabelWithHelp
+                          htmlFor="widget-aggregation"
+                          help={t('aggregationHelp')}
+                        >
                           {t('aggregation')}
-                        </FieldLabel>
+                        </FieldLabelWithHelp>
                         <NativeSelect
                           id="widget-aggregation"
                           data-testid="widget-aggregation-select"
@@ -402,9 +454,12 @@ export function WidgetEditorDialog(props: {
                   <form.Field name="valueColumn">
                     {(field) => (
                       <Field>
-                        <FieldLabel htmlFor="widget-value-column">
+                        <FieldLabelWithHelp
+                          htmlFor="widget-value-column"
+                          help={t('valueColumnHelp')}
+                        >
                           {t('valueColumn')}
-                        </FieldLabel>
+                        </FieldLabelWithHelp>
                         <NativeSelect
                           id="widget-value-column"
                           data-testid="widget-value-column-select"
@@ -440,7 +495,9 @@ export function WidgetEditorDialog(props: {
                 <form.Field name="columns">
                   {(field) => (
                     <Field>
-                      <FieldLabel>{t('columns')}</FieldLabel>
+                      <FieldLabelWithHelp help={t('columnsHelp')}>
+                        {t('columns')}
+                      </FieldLabelWithHelp>
                       <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-md border p-2">
                         {columns.map((column) => {
                           const checked = field.state.value.includes(
@@ -480,9 +537,12 @@ export function WidgetEditorDialog(props: {
                 <form.Field name="filterColumn">
                   {(field) => (
                     <Field>
-                      <FieldLabel htmlFor="widget-filter-column">
+                      <FieldLabelWithHelp
+                        htmlFor="widget-filter-column"
+                        help={t('filterHelp')}
+                      >
                         {t('filter')}
-                      </FieldLabel>
+                      </FieldLabelWithHelp>
                       <NativeSelect
                         id="widget-filter-column"
                         data-testid="widget-filter-column-select"
@@ -513,9 +573,12 @@ export function WidgetEditorDialog(props: {
                     <form.Field name="filterOperator">
                       {(field) => (
                         <Field>
-                          <FieldLabel htmlFor="widget-filter-operator">
+                          <FieldLabelWithHelp
+                            htmlFor="widget-filter-operator"
+                            help={t('operatorHelp')}
+                          >
                             {t('operator')}
-                          </FieldLabel>
+                          </FieldLabelWithHelp>
                           <NativeSelect
                             id="widget-filter-operator"
                             data-testid="widget-filter-operator-select"
@@ -546,9 +609,12 @@ export function WidgetEditorDialog(props: {
                       <form.Field name="filterValue">
                         {(field) => (
                           <Field>
-                            <FieldLabel htmlFor="widget-filter-value">
+                            <FieldLabelWithHelp
+                              htmlFor="widget-filter-value"
+                              help={t('valueHelp')}
+                            >
                               {t('value')}
-                            </FieldLabel>
+                            </FieldLabelWithHelp>
                             <Input
                               id="widget-filter-value"
                               data-testid="widget-filter-value-input"

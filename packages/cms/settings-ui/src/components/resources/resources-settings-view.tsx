@@ -1,6 +1,6 @@
 /**
  * Ajustes > Recursos (F2.7c): tablas gestionadas por el CMS agrupadas por
- * esquema, con su visibilidad en el explorador, su orden y el acceso a la
+ * área de negocio (la misma agrupación que la barra lateral), con su visibilidad en el explorador, su orden y el acceso a la
  * configuración de cada una. Incluye la acción «Sincronizar tablas», que
  * vuelve a leer del catálogo de PostgreSQL las tablas de un esquema.
  *
@@ -25,6 +25,7 @@ import { useTranslations } from 'use-intl';
 import type { CmsResourceSettingsList } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
 import { Button } from '@pymekit/ui/button';
+import { PageSummary } from '@pymekit/ui/page';
 import { Switch } from '@pymekit/ui/switch';
 import {
   Table,
@@ -36,7 +37,7 @@ import {
 } from '@pymekit/ui/table';
 
 import { useUpdateTablesMetadataMutation } from '../../hooks/use-resource-settings-mutations';
-import { groupTablesBySchema, moveTable } from '../../utils/resource-settings';
+import { groupTablesByArea, moveTable } from '../../utils/resource-settings';
 import { SyncTablesDialog } from './sync-tables-dialog';
 
 export function ResourcesSettingsView(props: {
@@ -48,7 +49,7 @@ export function ResourcesSettingsView(props: {
   const mutation = useUpdateTablesMetadataMutation();
 
   const canUpdate = props.data.permissions.canUpdate;
-  const groups = groupTablesBySchema(props.data.tables);
+  const groups = groupTablesByArea(props.data.tables);
   const busy = !canUpdate || mutation.isPending;
 
   return (
@@ -76,7 +77,7 @@ export function ResourcesSettingsView(props: {
         ) : null}
       </div>
 
-      <p className="text-muted-foreground text-xs">{t('description')}</p>
+      <PageSummary>{t('description')}</PageSummary>
 
       {groups.length === 0 ? (
         <p
@@ -89,18 +90,23 @@ export function ResourcesSettingsView(props: {
 
       {groups.map((group) => (
         <section
-          key={group.schema}
+          key={group.name ?? ''}
           className="flex flex-col gap-1"
-          data-testid={`resources-schema-${group.schema}`}
+          data-testid={`resources-area-${group.name ?? 'other'}`}
         >
           <h2 className="text-muted-foreground text-xs font-medium uppercase">
-            {group.schema}
+            {group.name ?? t('otherArea')}
           </h2>
 
-          <Table>
+          {/* Una tabla por área: con `table-fixed` y anchos explícitos, todas
+              las columnas quedan alineadas entre áreas (con el ancho
+              automático, cada tabla medía sus columnas según su contenido).
+              El ancho mínimo evita que en el móvil se aplasten: la tabla se
+              desplaza en horizontal. */}
+          <Table className="min-w-[640px] table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>{t('columns.table')}</TableHead>
+                <TableHead className="w-[38%]">{t('columns.table')}</TableHead>
                 <TableHead>{t('columns.displayName')}</TableHead>
                 <TableHead className="w-24">{t('columns.visible')}</TableHead>
                 <TableHead className="w-24">{t('columns.order')}</TableHead>
@@ -109,15 +115,19 @@ export function ResourcesSettingsView(props: {
             </TableHeader>
 
             <TableBody>
-              {group.tables.map((table, index) => {
+              {group.items.map((table, index) => {
                 const id = `${table.schemaName}.${table.tableName}`;
 
                 return (
                   <TableRow key={id} data-testid={`resource-row-${id}`}>
-                    <TableCell className="font-mono text-xs">
-                      {table.tableName}
+                    <TableCell className="truncate font-mono text-xs">
+                      {table.schemaName === 'public'
+                        ? table.tableName
+                        : `${table.schemaName}.${table.tableName}`}
                     </TableCell>
-                    <TableCell>{table.displayName ?? ''}</TableCell>
+                    <TableCell className="truncate">
+                      {table.displayName ?? ''}
+                    </TableCell>
                     <TableCell>
                       <Switch
                         aria-label={t('columns.visible')}
@@ -138,11 +148,7 @@ export function ResourcesSettingsView(props: {
                     <TableCell>
                       <div className="flex gap-1">
                         {([-1, 1] as const).map((direction) => {
-                          const next = moveTable(
-                            group.tables,
-                            index,
-                            direction,
-                          );
+                          const next = moveTable(group.items, index, direction);
                           const Icon =
                             direction === -1 ? ArrowUpIcon : ArrowDownIcon;
 

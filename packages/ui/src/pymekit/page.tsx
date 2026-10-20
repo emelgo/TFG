@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import { cn } from '../lib/utils';
 import { Separator } from '../shadcn/separator';
-import { SidebarTrigger } from '../shadcn/sidebar';
 import { If } from './if';
+import { SidebarTrigger } from './sidebar';
 
 export type PageLayoutStyle = 'sidebar' | 'header' | 'custom';
 
@@ -143,6 +143,26 @@ export function PageDescription(props: React.PropsWithChildren) {
   );
 }
 
+/**
+ * Resumen breve de una página de la consola: una o dos frases en lenguaje
+ * llano que explican qué se hace en ella. Va justo debajo del título, con un
+ * estilo discreto para no competir con el contenido. Todas las pantallas de
+ * la consola lo usan, directamente o con la prop `summary` de `PageHeader`,
+ * para que el estilo sea el mismo en todas.
+ */
+export function PageSummary(
+  props: React.PropsWithChildren<{ className?: string }>,
+) {
+  return (
+    <p
+      data-testid="page-summary"
+      className={cn('text-muted-foreground max-w-3xl text-sm', props.className)}
+    >
+      {props.children}
+    </p>
+  );
+}
+
 export function PageTitle(props: React.PropsWithChildren) {
   return (
     <h1
@@ -163,12 +183,15 @@ export function PageHeader({
   children,
   title,
   description,
+  summary,
   className,
   displaySidebarTrigger = true,
 }: React.PropsWithChildren<{
   className?: string;
   title?: string | React.ReactNode;
   description?: string | React.ReactNode;
+  /** Resumen de la página bajo el título (ver `PageSummary`). */
+  summary?: React.ReactNode;
   displaySidebarTrigger?: boolean;
 }>) {
   return (
@@ -196,6 +219,10 @@ export function PageHeader({
 
         <If condition={title}>
           <PageTitle>{title}</PageTitle>
+        </If>
+
+        <If condition={summary}>
+          <PageSummary>{summary}</PageSummary>
         </If>
       </div>
 

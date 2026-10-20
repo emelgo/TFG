@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildColumnUpdate,
-  groupTablesBySchema,
+  groupTablesByArea,
   moveColumn,
   moveTable,
   readColumnsSettings,
@@ -14,43 +14,58 @@ import {
 } from '../utils/resource-settings';
 
 const table = (
-  schemaName: string,
+  navigationGroup: string | null,
   tableName: string,
   ordering: number | null,
 ) => ({
-  schemaName,
+  schemaName: 'public',
   tableName,
   displayName: null,
   isVisible: true,
   ordering,
+  navigationGroup,
 });
 
-describe('groupTablesBySchema', () => {
-  it('agrupa por esquema (public primero) y ordena por ordering y nombre', () => {
-    const groups = groupTablesBySchema([
-      table('demo', 'orders', null),
-      table('public', 'b', 1),
-      table('demo', 'customers', 0),
-      table('public', 'a', null),
-      table('public', 'c', 0),
+describe('groupTablesByArea', () => {
+  it('agrupa por área (sin área al final) y ordena por ordering y nombre', () => {
+    const groups = groupTablesByArea([
+      table(null, 'orders', null),
+      table('Cuentas', 'b', 21),
+      table('Blog', 'posts', 10),
+      table('Cuentas', 'a', null),
+      table('Cuentas', 'c', 20),
+      table('  ', 'loose', 0),
     ]);
 
-    expect(groups.map((group) => group.schema)).toEqual(['public', 'demo']);
-    expect(groups[0]!.tables.map((t) => t.tableName)).toEqual(['c', 'b', 'a']);
-    expect(groups[1]!.tables.map((t) => t.tableName)).toEqual([
-      'customers',
+    expect(groups.map((group) => group.name)).toEqual([
+      'Blog',
+      'Cuentas',
+      null,
+    ]);
+    expect(groups[1]!.items.map((t) => t.tableName)).toEqual(['c', 'b', 'a']);
+    expect(groups[2]!.items.map((t) => t.tableName)).toEqual([
+      'loose',
       'orders',
     ]);
   });
 });
 
 describe('moveTable', () => {
-  const ordered = [table('demo', 'a', 0), table('demo', 'b', 1)];
+  const ordered = [table('Blog', 'a', 100), table('Blog', 'b', 101)];
 
-  it('devuelve el nuevo orden completo del esquema', () => {
+  it('devuelve el nuevo orden del área conservando su menor ordering', () => {
     expect(moveTable(ordered, 1, -1)).toEqual([
-      { schema: 'demo', table: 'b', ordering: 0 },
-      { schema: 'demo', table: 'a', ordering: 1 },
+      { schema: 'public', table: 'b', ordering: 100 },
+      { schema: 'public', table: 'a', ordering: 101 },
+    ]);
+  });
+
+  it('empieza en 0 si ninguna tabla tenía orden', () => {
+    expect(
+      moveTable([table(null, 'a', null), table(null, 'b', null)], 0, 1),
+    ).toEqual([
+      { schema: 'public', table: 'b', ordering: 0 },
+      { schema: 'public', table: 'a', ordering: 1 },
     ]);
   });
 

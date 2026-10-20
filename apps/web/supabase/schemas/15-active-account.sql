@@ -220,8 +220,10 @@ set
 begin
   return query
   select * from public.get_account_members(
+    -- `(select …)`: la función es volátil y, sin la subconsulta, Postgres
+    -- la evaluaría una vez por cada fila de `accounts` (BITACORA B-55)
     (select accounts.slug from public.accounts
-     where accounts.id = public.active_account_id())
+     where accounts.id = (select public.active_account_id()))
   );
 end;
 $$ language plpgsql;
@@ -255,8 +257,10 @@ set
 begin
   return query
   select * from public.get_account_invitations(
+    -- `(select …)`: la función es volátil y, sin la subconsulta, Postgres
+    -- la evaluaría una vez por cada fila de `accounts` (BITACORA B-55)
     (select accounts.slug from public.accounts
-     where accounts.id = public.active_account_id())
+     where accounts.id = (select public.active_account_id()))
   );
 end;
 $$ language plpgsql;

@@ -161,7 +161,7 @@ test.describe('Registro de auditoría: super-admin con MFA', () => {
     await form.toggleSwitch('dismissed');
     await form.submit().click();
     await page.waitForURL(`**/${NOTIFICATIONS_PATH}/record/${id}`);
-    await expect(record.fieldValue('dismissed')).toContainText('Yes');
+    await expect(record.fieldValue('dismissed')).toContainText('Sí');
 
     // 2. Listado con filtros: operación, tabla, autor y día de hoy.
     await auditLogs.goto();
@@ -208,7 +208,7 @@ test.describe('Registro de auditoría: super-admin con MFA', () => {
 
     await expect(dismissed).toHaveAttribute('data-status', 'changed');
     await expect(dismissed.getByTestId('audit-log-diff-old')).toHaveText('No');
-    await expect(dismissed.getByTestId('audit-log-diff-new')).toHaveText('Yes');
+    await expect(dismissed.getByTestId('audit-log-diff-new')).toHaveText('Sí');
     await expect(auditLogs.diffRow('body')).toHaveAttribute(
       'data-status',
       'unchanged',

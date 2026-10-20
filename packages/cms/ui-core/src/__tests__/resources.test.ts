@@ -1,116 +1,179 @@
 /**
- * Pruebas de la agrupación por esquema de las tablas legibles del CMS.
+ * Pruebas de la agrupación por área de las tablas legibles del CMS.
  */
 import { describe, expect, it } from 'vitest';
 
 import {
-  getSidebarResourceGroups,
+  getAreaNames,
+  getResourceArea,
   getVisibleResources,
-  groupResourcesBySchema,
+  groupByArea,
+  groupResourcesByArea,
   isResourcePathActive,
+  normalizeNavigationGroup,
 } from '../resources';
 
-function resource(schemaName: string, tableName: string, isVisible = true) {
-  return { schemaName, tableName, metadata: { isVisible } };
+function resource(
+  tableName: string,
+  options: {
+    area?: unknown;
+    ordering?: number | null;
+    displayName?: string;
+    isVisible?: boolean | null;
+    schemaName?: string;
+  } = {},
+) {
+  return {
+    schemaName: options.schemaName ?? 'public',
+    tableName,
+    displayName: options.displayName ?? tableName,
+    metadata: {
+      isVisible: options.isVisible ?? true,
+      ordering: options.ordering ?? null,
+      uiConfig:
+        options.area === undefined
+          ? { primary_keys: [] }
+          : { primary_keys: [], navigation_group: options.area },
+    },
+  };
 }
 
-describe('groupResourcesBySchema', () => {
-  it('agrupa por esquema conservando el orden de llegada', () => {
-    const groups = groupResourcesBySchema([
-      resource('public', 'accounts'),
-      resource('auth', 'users'),
-      resource('public', 'roles'),
+describe('getResourceArea', () => {
+  it('lee navigation_group de ui_config y lo recorta', () => {
+    expect(getResourceArea(resource('a', { area: '  Blog ' }))).toBe('Blog');
+  });
+
+  it('trata como «sin área» lo vacío, lo ausente y lo que no es texto', () => {
+    expect(getResourceArea(resource('a'))).toBeNull();
+    expect(getResourceArea(resource('a', { area: '   ' }))).toBeNull();
+    expect(getResourceArea(resource('a', { area: 42 }))).toBeNull();
+    expect(
+      getResourceArea({ ...resource('a'), metadata: { isVisible: true } }),
+    ).toBeNull();
+    expect(normalizeNavigationGroup(null)).toBeNull();
+  });
+});
+
+describe('groupResourcesByArea', () => {
+  it('ordena las áreas por el menor ordering y después por nombre', () => {
+    const groups = groupResourcesByArea([
+      resource('orders', { area: 'Facturación', ordering: 30 }),
+      resource('accounts', { area: 'Cuentas', ordering: 20 }),
+      resource('posts', { area: 'Blog', ordering: 10 }),
+      resource('zeta', { area: 'Zeta' }),
+      resource('alfa', { area: 'Alfa' }),
     ]);
 
-    expect(groups.map((group) => group.schemaName)).toEqual(['public', 'auth']);
-    expect(groups[0]?.items.map((item) => item.tableName)).toEqual([
+    expect(groups.map((group) => group.name)).toEqual([
+      'Blog',
+      'Cuentas',
+      'Facturación',
+      'Alfa',
+      'Zeta',
+    ]);
+  });
+
+  it('a igual ordering compara nombres sin distinguir tildes ni mayúsculas', () => {
+    const groups = groupResourcesByArea([
+      resource('b', { area: 'facturación' }),
+      resource('a', { area: 'Ámbito' }),
+      resource('c', { area: 'Cuentas' }),
+    ]);
+
+    expect(groups.map((group) => group.name)).toEqual([
+      'Ámbito',
+      'Cuentas',
+      'facturación',
+    ]);
+  });
+
+  it('dentro de un área ordena por ordering y después por nombre visible', () => {
+    const [group] = groupResourcesByArea([
+      resource('roles', { area: 'Cuentas', displayName: 'Roles' }),
+      resource('invitations', { area: 'Cuentas', displayName: 'Invitaciones' }),
+      resource('accounts', {
+        area: 'Cuentas',
+        displayName: 'Cuentas',
+        ordering: 1,
+      }),
+    ]);
+
+    expect(group?.items.map((item) => item.tableName)).toEqual([
       'accounts',
+      'invitations',
       'roles',
     ]);
   });
 
-  it('descarta las tablas marcadas como no visibles', () => {
-    const groups = groupResourcesBySchema([
-      resource('public', 'accounts'),
-      resource('public', 'secrets', false),
+  it('deja las tablas sin área en un grupo final con nombre nulo', () => {
+    const groups = groupResourcesByArea([
+      resource('loose', { ordering: 0 }),
+      resource('posts', { area: 'Blog', ordering: 50 }),
     ]);
 
-    expect(groups).toHaveLength(1);
-    expect(groups[0]?.items).toHaveLength(1);
+    expect(groups.map((group) => group.name)).toEqual(['Blog', null]);
+    expect(groups[1]?.items.map((item) => item.tableName)).toEqual(['loose']);
   });
 
-  it('considera visible un valor nulo (valor por defecto de la BD)', () => {
-    const items = [
-      { schemaName: 'public', tableName: 'x', metadata: { isVisible: null } },
-    ];
+  it('oculta las tablas no visibles y las áreas que se quedan vacías', () => {
+    const groups = groupResourcesByArea([
+      resource('posts', { area: 'Blog', isVisible: false }),
+      resource('accounts', { area: 'Cuentas', isVisible: null }),
+    ]);
 
-    expect(getVisibleResources(items)).toHaveLength(1);
+    expect(groups.map((group) => group.name)).toEqual(['Cuentas']);
+  });
+
+  it('devuelve una lista vacía sin recursos', () => {
+    expect(groupResourcesByArea([])).toEqual([]);
   });
 });
 
-describe('getSidebarResourceGroups', () => {
-  it('con un solo esquema no muestra su nombre', () => {
-    const result = getSidebarResourceGroups([
-      resource('public', 'accounts'),
-      resource('public', 'roles'),
-    ]);
-
-    expect(result.showSchemaLabels).toBe(false);
-    expect(result.groups).toHaveLength(1);
-    expect(result.hiddenCount).toBe(0);
-  });
-
-  it('con varios esquemas agrupa y muestra sus nombres', () => {
-    const result = getSidebarResourceGroups([
-      resource('public', 'accounts'),
-      resource('demo', 'customers'),
-      resource('public', 'roles'),
-    ]);
-
-    expect(result.showSchemaLabels).toBe(true);
-    expect(result.groups.map((group) => group.schemaName)).toEqual([
-      'public',
-      'demo',
-    ]);
-  });
-
-  it('limita el número total de tablas y cuenta las ocultas', () => {
-    const result = getSidebarResourceGroups(
+describe('groupByArea', () => {
+  it('admite filas de cualquier forma mediante accesores', () => {
+    const groups = groupByArea(
       [
-        resource('public', 'a'),
-        resource('public', 'b'),
-        resource('demo', 'c'),
-        resource('demo', 'd'),
-        resource('other', 'e'),
+        { name: 'b', group: null, order: null },
+        { name: 'a', group: 'Blog', order: 2 },
       ],
-      3,
+      {
+        area: (row) => row.group,
+        ordering: (row) => row.order,
+        label: (row) => row.name,
+      },
     );
 
-    expect(
-      result.groups.map((group) => group.items.map((item) => item.tableName)),
-    ).toEqual([['a', 'b'], ['c']]);
-    expect(result.hiddenCount).toBe(2);
-    // El nombre del esquema depende de cuántos esquemas hay, no de cuántos
-    // caben en la lista
-    expect(result.showSchemaLabels).toBe(true);
-  });
-
-  it('no cuenta como ocultas las tablas marcadas como no visibles', () => {
-    const result = getSidebarResourceGroups([
-      resource('public', 'a'),
-      resource('public', 'secret', false),
+    expect(groups).toEqual([
+      { name: 'Blog', items: [{ name: 'a', group: 'Blog', order: 2 }] },
+      { name: null, items: [{ name: 'b', group: null, order: null }] },
     ]);
-
-    expect(result.hiddenCount).toBe(0);
-    expect(result.groups[0]?.items).toHaveLength(1);
   });
+});
 
-  it('sin tablas devuelve una lista vacía', () => {
-    expect(getSidebarResourceGroups([])).toEqual({
-      groups: [],
-      showSchemaLabels: false,
-      hiddenCount: 0,
-    });
+describe('getAreaNames', () => {
+  it('devuelve las áreas sin repetir, recortadas y en orden alfabético', () => {
+    expect(
+      getAreaNames([
+        'Sistema',
+        ' Blog',
+        null,
+        '',
+        'Blog',
+        undefined,
+        'Cuentas',
+      ]),
+    ).toEqual(['Blog', 'Cuentas', 'Sistema']);
+  });
+});
+
+describe('getVisibleResources', () => {
+  it('cuenta is_visible nulo como visible', () => {
+    expect(
+      getVisibleResources([
+        resource('a', { isVisible: null }),
+        resource('b', { isVisible: false }),
+      ]).map((item) => item.tableName),
+    ).toEqual(['a']);
   });
 });
 

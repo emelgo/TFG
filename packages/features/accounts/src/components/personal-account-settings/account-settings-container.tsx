@@ -2,7 +2,6 @@
 
 import type { Provider } from '@supabase/supabase-js';
 
-import { locales } from '@pymekit/i18n';
 import {
   Card,
   CardContent,
@@ -11,7 +10,6 @@ import {
   CardTitle,
 } from '@pymekit/ui/card';
 import { If } from '@pymekit/ui/if';
-import { LanguageSelector } from '@pymekit/ui/language-selector';
 import { LoadingOverlay } from '@pymekit/ui/loading-overlay';
 import { Trans } from '@pymekit/ui/trans';
 
@@ -44,7 +42,6 @@ export function PersonalAccountSettingsContainer(
     providers: Provider[];
   }>,
 ) {
-  const supportsLanguageSelection = useSupportMultiLanguage();
   const user = usePersonalAccountData(props.userId);
 
   if (!user.data || user.isPending) {
@@ -90,23 +87,9 @@ export function PersonalAccountSettingsContainer(
         </CardContent>
       </Card>
 
-      <If condition={supportsLanguageSelection}>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <Trans i18nKey={'account.language'} />
-            </CardTitle>
-
-            <CardDescription>
-              <Trans i18nKey={'account.languageDescription'} />
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <LanguageSelector locales={locales} />
-          </CardContent>
-        </Card>
-      </If>
+      {/* [TFG] ADR-021: la app solo se ofrece en español, así que no hay
+          tarjeta de idioma. Si se añade otro idioma, aquí puede volver a
+          mostrarse `LanguageSelector` de `@pymekit/ui/language-selector`. */}
 
       <Card>
         <CardHeader>
@@ -217,8 +200,4 @@ export function PersonalAccountSettingsContainer(
       </If>
     </div>
   );
-}
-
-function useSupportMultiLanguage() {
-  return locales.length > 1;
 }

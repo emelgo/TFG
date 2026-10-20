@@ -6,6 +6,7 @@ import { getGlobalStartContext } from '@tanstack/react-start';
 import { defaultLocale } from '@pymekit/i18n';
 import { GlobalLoader } from '@pymekit/ui/global-loader';
 
+import './lib/i18n/zod-locale';
 import { getDefaultTheme } from './lib/theme';
 import { routeTree } from './routeTree.gen';
 

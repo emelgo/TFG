@@ -30,6 +30,7 @@ import { CMS_SECTION_PATHS } from '@pymekit/cms-ui-core/sections';
 import { Alert, AlertDescription } from '@pymekit/ui/alert';
 import { Badge } from '@pymekit/ui/badge';
 import { CopyToClipboard } from '@pymekit/ui/copy-to-clipboard';
+import { PageSummary } from '@pymekit/ui/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@pymekit/ui/tabs';
 
 import {
@@ -88,6 +89,8 @@ export function AuditLogDetailsView(props: { data: CmsAuditLogDetails }) {
           {resource}
         </h1>
       </div>
+
+      <PageSummary>{t('details.summary')}</PageSummary>
 
       <dl className="grid max-w-3xl gap-2 text-sm">
         <InfoRow icon={<UserIcon />} label={t('details.performedBy')}>

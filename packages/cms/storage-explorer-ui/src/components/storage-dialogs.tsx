@@ -39,7 +39,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@pymekit/ui/dialog';
-import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldHelp, FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -87,6 +88,7 @@ export function CreateFolderDialog(
           title={t('createFolder.title')}
           description={t('createFolder.description')}
           label={t('createFolder.nameLabel')}
+          help={t('createFolder.nameHelp')}
           submitLabel={t('createFolder.submit')}
           dialog={dialog}
           onSubmit={async (name) => {
@@ -120,6 +122,7 @@ export function RenameFileDialog(
           title={t('rename.title')}
           description={t('rename.description', { name: props.item.name })}
           label={t('rename.nameLabel')}
+          help={t('rename.nameHelp')}
           submitLabel={t('rename.submit')}
           dialog={dialog}
           onSubmit={async (name) => {
@@ -152,6 +155,8 @@ function NameForm(props: {
   title: string;
   description: string;
   label: string;
+  /** Explicación del botón «?» junto a la etiqueta. */
+  help: string;
   submitLabel: string;
   dialog: ReturnType<typeof useAsyncDialog>;
   onSubmit: (name: string) => Promise<void>;
@@ -198,7 +203,9 @@ function NameForm(props: {
 
           return (
             <Field data-invalid={isInvalid}>
-              <FieldLabel htmlFor={props.inputTestId}>{props.label}</FieldLabel>
+              <FieldLabelWithHelp htmlFor={props.inputTestId} help={props.help}>
+                {props.label}
+              </FieldLabelWithHelp>
               <Input
                 id={props.inputTestId}
                 data-testid={props.inputTestId}
@@ -270,7 +277,10 @@ export function UploadFilesDialog(
     <AlertDialog {...dialogProps}>
       <AlertDialogContent data-testid="storage-upload-dialog">
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('upload.title')}</AlertDialogTitle>
+          <div className="flex items-center gap-1">
+            <AlertDialogTitle>{t('upload.title')}</AlertDialogTitle>
+            <FieldHelp label={t('upload.title')}>{t('upload.help')}</FieldHelp>
+          </div>
           <AlertDialogDescription>
             {t('upload.description', {
               max: formatBytes(STORAGE_LIMITS.maxUploadBytes),

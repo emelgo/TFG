@@ -25,7 +25,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@pymekit/ui/dialog';
-import { Field, FieldLabel } from '@pymekit/ui/field';
+import { Field } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
 
 import {
@@ -126,7 +127,9 @@ export function ShareDashboardDialog(props: {
         >
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="share-role">{t('role')}</FieldLabel>
+              <FieldLabelWithHelp htmlFor="share-role" help={t('roleHelp')}>
+                {t('role')}
+              </FieldLabelWithHelp>
               <NativeSelect
                 id="share-role"
                 data-testid="share-role-select"
@@ -149,7 +152,9 @@ export function ShareDashboardDialog(props: {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="share-level">{t('level')}</FieldLabel>
+              <FieldLabelWithHelp htmlFor="share-level" help={t('levelHelp')}>
+                {t('level')}
+              </FieldLabelWithHelp>
               <NativeSelect
                 id="share-level"
                 data-testid="share-level-select"

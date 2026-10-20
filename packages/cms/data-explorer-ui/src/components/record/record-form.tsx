@@ -23,12 +23,8 @@ import { useForm, useStore } from '@tanstack/react-form';
 import { useTranslations } from 'use-intl';
 
 import type { RecordLayoutConfig, RelationConfig } from '@pymekit/cms-types';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { toast } from '@pymekit/ui/sonner';
 import { cn } from '@pymekit/ui/utils';
 
@@ -156,13 +152,20 @@ export function RecordFormFields(props: {
               className="px-3 py-2.5"
             >
               <div className="flex items-center justify-between gap-2">
-                <FieldLabel htmlFor={inputId} className="text-muted-foreground">
+                {/* La ayuda «?» es la descripción de la columna guardada en
+                    los metadatos del CMS (Ajustes → Recursos); sin
+                    descripción no se pinta el botón. */}
+                <FieldLabelWithHelp
+                  htmlFor={inputId}
+                  className="text-muted-foreground"
+                  help={column.description}
+                >
                   {column.display_name || column.name}
 
                   {isFieldRequired(column, props.mode) ? (
                     <span className="text-destructive text-xs">*</span>
                   ) : null}
-                </FieldLabel>
+                </FieldLabelWithHelp>
 
                 {maxLength && typeof value === 'string' ? (
                   <span
@@ -193,10 +196,6 @@ export function RecordFormFields(props: {
                 onBlur={formField.handleBlur}
                 onChange={(next) => formField.handleChange(next)}
               />
-
-              {column.description ? (
-                <FieldDescription>{column.description}</FieldDescription>
-              ) : null}
 
               <FieldError
                 data-testid="record-form-field-error"

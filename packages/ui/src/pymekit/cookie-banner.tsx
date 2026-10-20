@@ -3,8 +3,8 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { Button } from '../shadcn/button';
-import { Dialog, DialogContent } from '../shadcn/dialog';
 import { Heading } from '../shadcn/heading';
+import { Dialog, DialogContent } from './dialog';
 import { Trans } from './trans';
 
 // configure this as you wish

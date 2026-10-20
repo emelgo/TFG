@@ -48,7 +48,7 @@ export function createSettingsApi(clientOptions: ClientOptions) {
      * Guarda las preferencias personales (idioma y zona horaria); las que no
      * se envían se conservan. Lanza `ApiError` 400 con valores no válidos.
      */
-    async updatePreferences(data: { language?: string; timezone?: string }) {
+    async updatePreferences(data: { timezone: string }) {
       const client = createHonoClient<UpdatePreferencesRoute>(clientOptions);
 
       return handleHonoClientResponse(

@@ -46,7 +46,7 @@ export {
   TableSettingsFormSchema,
   type TableSettingsFormValues,
   buildColumnUpdate,
-  groupTablesBySchema,
+  groupTablesByArea,
   moveColumn,
   moveTable,
   readColumnsSettings,

@@ -55,6 +55,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@pymekit/ui/card';
+import { FieldHelp } from '@pymekit/ui/field-help';
+import { PageSummary } from '@pymekit/ui/page';
 import { Spinner } from '@pymekit/ui/spinner';
 
 import { useMemberStatusMutation } from '../hooks/use-settings-mutations';
@@ -150,8 +152,16 @@ export function MemberDetailsView(props: { data: CmsMemberDetails }) {
               </Button>
             )
           ) : null}
+
+          {access.canChangeStatus ? (
+            <FieldHelp label={t('status.helpLabel')}>
+              {t('status.help')}
+            </FieldHelp>
+          ) : null}
         </div>
       </div>
+
+      <PageSummary>{t('details.summary')}</PageSummary>
 
       {access.isSelf || access.isProtected ? (
         <Alert data-testid="member-details-no-actions">

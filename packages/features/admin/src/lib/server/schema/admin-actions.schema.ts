@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 const ConfirmationSchema = z.object({
-  confirmation: z.custom<string>((value) => value === 'CONFIRM'),
+  confirmation: z.custom<string>((value) => value === 'CONFIRMAR'),
 });
 
 const UserIdSchema = ConfirmationSchema.extend({

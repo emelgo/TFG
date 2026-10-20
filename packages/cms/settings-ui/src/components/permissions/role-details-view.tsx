@@ -33,6 +33,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@pymekit/ui/card';
+import { PageSummary } from '@pymekit/ui/page';
 
 import {
   useDeleteRoleMutation,
@@ -112,6 +113,8 @@ export function RoleDetailsView(props: { data: CmsRbacRoleDetails }) {
           ) : null}
         </div>
       </div>
+
+      <PageSummary>{t('details.roleSummary')}</PageSummary>
 
       {role.isSystem ? (
         <p

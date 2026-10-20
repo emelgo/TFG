@@ -4,11 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import {
-  isValidLanguageTag,
-  isValidTimeZone,
-  mergeCmsPreferences,
-} from '../utils/preferences';
+import { isValidTimeZone, mergeCmsPreferences } from '../utils/preferences';
 
 describe('isValidTimeZone', () => {
   it('acepta zonas IANA reconocidas', () => {
@@ -32,20 +28,6 @@ describe('isValidTimeZone', () => {
   });
 });
 
-describe('isValidLanguageTag', () => {
-  it('acepta etiquetas simples y con región', () => {
-    expect(isValidLanguageTag('es')).toBe(true);
-    expect(isValidLanguageTag('en-US')).toBe(true);
-  });
-
-  it('rechaza cualquier otra forma', () => {
-    expect(isValidLanguageTag('')).toBe(false);
-    expect(isValidLanguageTag('english')).toBe(false);
-    expect(isValidLanguageTag('es_ES')).toBe(false);
-    expect(isValidLanguageTag('<script>')).toBe(false);
-  });
-});
-
 describe('mergeCmsPreferences', () => {
   it('conserva las claves que no se envían', () => {
     expect(
@@ -57,8 +39,8 @@ describe('mergeCmsPreferences', () => {
   });
 
   it('parte de un objeto vacío si lo guardado no es un objeto', () => {
-    expect(mergeCmsPreferences(null, { language: 'es' })).toEqual({
-      language: 'es',
+    expect(mergeCmsPreferences(null, { timezone: 'Europe/Madrid' })).toEqual({
+      timezone: 'Europe/Madrid',
     });
     expect(mergeCmsPreferences(['x'], { timezone: 'UTC' })).toEqual({
       timezone: 'UTC',

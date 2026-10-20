@@ -40,8 +40,7 @@ export function useUpdatePreferencesMutation() {
   const { t, showError } = useSettingsFeedback();
 
   return useMutation({
-    mutationFn: (data: { language?: string; timezone?: string }) =>
-      api.updatePreferences(data),
+    mutationFn: (data: { timezone: string }) => api.updatePreferences(data),
     onSuccess: async () => {
       toast.success(t('general.saved'));
       await queryClient.invalidateQueries({

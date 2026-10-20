@@ -16,6 +16,7 @@ import { useTranslations } from 'use-intl';
 
 import type { CmsAuditLogsPage } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
+import { PageSummary } from '@pymekit/ui/page';
 
 import {
   type AuditLogsSearch,
@@ -51,6 +52,8 @@ export function AuditLogsView(props: {
         <ClipboardListIcon className="text-muted-foreground h-4 w-4" />
         {t('title')}
       </h1>
+
+      <PageSummary>{t('summary')}</PageSummary>
 
       <AuditLogsFilters
         key={filtersKey}

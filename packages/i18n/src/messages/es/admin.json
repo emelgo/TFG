@@ -1,8 +1,8 @@
 {
   "cancel": "Cancelar",
   "error": "Error",
-  "confirmLabel": "Escribe <b>CONFIRM</b> para confirmar",
-  "confirmPlaceholder": "Escribe CONFIRM para confirmar",
+  "confirmLabel": "Escribe <b>CONFIRMAR</b> para confirmar",
+  "confirmPlaceholder": "Escribe CONFIRMAR para confirmar",
   "banTitle": "Suspender usuario",
   "banDescription": "¿Seguro que quieres suspender a este usuario? Ten en cuenta que seguirá con la sesión iniciada hasta que esta caduque.",
   "banError": "Se ha producido un error al suspender al usuario. Revisa los registros del servidor para ver qué ha fallado.",
@@ -31,7 +31,7 @@
   "resetTitle": "Enviar un correo de restablecimiento de contraseña",
   "resetDescription": "¿Quieres enviar un correo de restablecimiento de contraseña a este usuario?",
   "confirmation": "Confirmación",
-  "resetConfirmHint": "Escribe CONFIRM para ejecutar esta solicitud.",
+  "resetConfirmHint": "Escribe CONFIRMAR para ejecutar esta solicitud.",
   "resetErrorTitle": "Se ha producido un error al enviar el correo",
   "resetErrorDescription": "Revisa los registros del servidor para más detalles.",
   "resetSuccessTitle": "Correo de restablecimiento de contraseña enviado correctamente",
@@ -98,5 +98,16 @@
   "interval": "Intervalo",
   "pageTitlePrefix": "Administración",
   "accountFallback": "Cuenta",
-  "dashboardLoadError": "No se han podido cargar las estadísticas del panel. Vuelve a intentarlo en unos minutos."
+  "dashboardLoadError": "No se han podido cargar las estadísticas del panel. Vuelve a intentarlo en unos minutos.",
+  "emailHelp": "Correo con el que la persona entrará en PymeKit. Le llegarán los avisos y enlaces de acceso.",
+  "passwordHelp": "Contraseña inicial. Compártela por un canal seguro y pide que la cambie al entrar.",
+  "autoConfirmEmailHelp": "Da el correo por verificado, así la persona puede entrar sin pulsar el enlace de confirmación.",
+  "confirmLabelHelp": "Escribir la palabra evita hacer por error una acción importante o que no se puede deshacer.",
+  "confirmationHelp": "Escribir la confirmación evita restablecer la contraseña de alguien por error.",
+  "homeTitle": "Inicio",
+  "homeSummary": "Resumen de la plataforma: cuántos usuarios, equipos y clientes de pago hay, y cuánto se factura al mes.",
+  "accountsTitle": "Gestión de cuentas",
+  "accountsSummary": "Todas las cuentas de la plataforma, personales y de equipo. Busca una, crea usuarios o entra en su ficha para gestionarla.",
+  "personalAccountSummary": "Ficha de un usuario de la plataforma: sus equipos y las acciones de soporte (bloquearlo, entrar como él o borrarlo).",
+  "teamAccountSummary": "Ficha de un equipo: sus miembros y su suscripción. Desde aquí también se puede borrar el equipo."
 }

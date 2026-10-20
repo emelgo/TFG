@@ -79,13 +79,18 @@
 - [x] Renombrar el esquema de helpers pgTAP (`makerkit.*` → `pymekit.*`) también en los tests del CMS (adelantado a F2, B-40)
 - [x] `check-branding` a cero (contenido y rutas), bloqueante en la CI (adelantado a F2 a petición del autor)
 - [x] Locale `es` por defecto y `en` como segundo idioma (F3a): ~1.770 claves traducidas + 169 nuevas (namespace `admin`, landing, planes), emails y plantillas de Supabase en español, textos escritos en el código pasados a i18n, selector de idioma en ajustes de cuenta y pie de la web, test de paridad de claves. Los E2E se ejecutan en inglés (`.env.test`) y `i18n-espanol.spec.ts` verifica el español
-- [ ] Restos de F3: las celdas de fecha del CMS salen como «13 Jan» en español; el control de sesión añade una llamada `getUser` por navegación protegida; fechas de la demo en en-US; nombres de planes, «MRR» y la palabra CONFIRM en inglés; las invitaciones se envían en el idioma de quien invita
+- [ ] Restos de F3: las celdas de fecha del CMS salen como «13 Jan» en español; el control de sesión añade una llamada `getUser` por navegación protegida; fechas de la gráfica de ejemplo del panel de equipo en en-US; nombres de planes, «MRR» y la palabra CONFIRM en inglés; las invitaciones se envían en el idioma de quien invita
 - [x] Plantillas y `config.toml` de Supabase en español
 - [x] Marca visual: logo propio (símbolo + nombre en texto), favicons generados a partir del símbolo y capturas de la landing tomadas de la propia app (`apps/e2e/scripts/capture-marketing-screenshots.mjs`, a regenerar tras la traducción) (B-46)
 - [x] Gráfica de demostración: corregido «Invalid Date» y fechas según el idioma activo
 - [x] Helpers pgTAP `pymekit.*` (adelantado a F2)
 - [x] Carpeta `packages/ui/src/makerkit/` → `src/pymekit/` (y sus exports) y `styles/makerkit.css` → `pymekit.css` (adelantado a F2 a petición del autor, B-40)
 - [x] Contenido: emails de prueba → `@pymekit.test`, equipo de prueba → «PymeKit» (`pymekit`), comentarios SQL, `.env`, manifest, landing, `config.toml`, plantillas de email, READMEs y *tooling* (eliminado `version.mjs`, que se comparaba con el repositorio original)
+- [x] F3c · Consola más clara (petición del autor, ADR-020): nombres en español para las tablas y columnas de la plataforma en el CMS, esquema `demo` retirado y pruebas trasladadas a tablas reales
+- [x] F3c · Barra lateral única por áreas de negocio (Inicio, Blog, Cuentas, Facturación, Sistema, Otros datos + herramientas), área editable en Ajustes → Recursos
+- [x] F3c · Barra lateral: bloques «Gestión» y «Datos», «Gestión de cuentas» fuera de la carpeta Cuentas, iconos solo en el primer nivel y nombres sin truncar (petición del autor)
+- [x] F3c · Solo español (ADR-021): retirar el locale `en`, el selector de idioma y los mensajes en inglés, conservar la infraestructura i18n como punto de extensión documentado y pasar los E2E a español
+- [x] F3c · Ayuda contextual «?» (solo en español) junto a cada campo de los formularios de la consola (componente reutilizable en `@pymekit/ui` + textos es/en), petición del autor
 - [ ] Plantillas de email solo tienen locale `en`: añadir `es`; revisar `EMAIL_TEMPLATE_RENDERERS` (no tiene consumidores)
 
 ## F4 · Comentarios en español
@@ -151,11 +156,13 @@ Se distinguen dos medidas:
 |---|---|---|---|---|
 | 2026-09-29 | 8,0 | ≈ 8,0 | F0, F1, F2.1–F2.4c, bitácora y borradores de la memoria | autor (confirma la estimación) |
 | 2026-09-30 | 9,0 | — | F2.5, F2.6, F2.6b, F2.7a, F2.7b, limpieza de la marca (F3 adelantada) e identidad visual | autor |
-| **Total** | **17,0** | | | |
+| 2026-10-02 | 6,0 | — | F2.7c, F2.8, F2.9 (cierre de F2), F3a, F3b (cierre de F3), F3c (consola por áreas, solo español, ayuda contextual) | autor |
+| **Total** | **23,0** | | | |
 
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
+| 2026-10-02 | F3c | F3 fusionada (PR #2, B-54). El autor aclara el enfoque: base para la web de una pyme (landing, blog y login de super-admin, personal o cliente), conservando equipos y Stripe como módulos. Tablas del CMS en español, demo retirada y consola por áreas (ADR-020) |
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |
 | 2026-10-02 | F3b | Etiquetas legibles de enums, caja MFA, sesión caducada, «Invalid Date» y capturas en español; pull request de la F3 |

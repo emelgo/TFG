@@ -21,6 +21,7 @@ import { Badge } from '@pymekit/ui/badge';
 import { Button } from '@pymekit/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@pymekit/ui/card';
 import { Input } from '@pymekit/ui/input';
+import { PageSummary } from '@pymekit/ui/page';
 import { cn } from '@pymekit/ui/utils';
 
 import {
@@ -62,6 +63,8 @@ export function DashboardsListView(props: {
 
   return (
     <div className="flex flex-col gap-4" data-testid="dashboards-list">
+      <PageSummary>{t('list.summary')}</PageSummary>
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           {/* Buscar al enviar (Intro): cada búsqueda es una navegación. */}

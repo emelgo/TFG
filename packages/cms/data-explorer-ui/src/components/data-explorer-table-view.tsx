@@ -32,6 +32,7 @@ import type { ColumnMetadata } from '@pymekit/cms-types';
 import type { CmsTableData } from '@pymekit/cms-ui-core/api';
 import { useCmsApi } from '@pymekit/cms-ui-core/api-context';
 import { Button } from '@pymekit/ui/button';
+import { PageSummary } from '@pymekit/ui/page';
 import { cn } from '@pymekit/ui/utils';
 
 import { useColumnPreferences } from '../hooks/use-column-preferences';
@@ -200,6 +201,14 @@ export function DataExplorerTableView(props: {
           ) : null}
         </div>
       </div>
+
+      {/* Resumen de la tabla: su descripción en los metadatos del CMS
+          (`table_metadata.description`, editable en Ajustes → Recursos). */}
+      {data.table.description ? (
+        <PageSummary className="-mt-1 mb-2">
+          {data.table.description}
+        </PageSummary>
+      ) : null}
 
       <div className="bg-background relative mb-2 flex flex-1 flex-col overflow-hidden rounded-lg border">
         <FiltersContainer

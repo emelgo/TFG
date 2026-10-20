@@ -104,7 +104,7 @@ export class Mailbox {
 
     const json = await this.getEmail(email, {
       deleteAfter,
-      subject: `One-time password for`,
+      subject: `Código de un solo uso para`,
     });
 
     if (!json) {
@@ -118,7 +118,8 @@ export class Mailbox {
     }
 
     const text = json.HTML.match(
-      new RegExp(`Your one-time password is: (\\d{6})`),
+      // Plantilla `otp-email` en español: «Tu código de un solo uso es: 123456».
+      new RegExp(`un solo uso es: (\\d{6})`),
     )?.[1];
 
     if (text) {

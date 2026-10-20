@@ -42,7 +42,7 @@ export const InviteMembersSchema = z
       return emails.length === uniqueEmails.size;
     },
     {
-      message: 'Duplicate emails are not allowed',
+      message: 'teams.duplicateInviteEmailError',
       path: ['invitations'],
     },
   );

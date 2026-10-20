@@ -4,6 +4,7 @@ import { Context } from 'hono';
 import { tableMetadataInCms } from '@pymekit/cms-supabase/schema';
 
 import type { ReadableResource } from '../../types';
+import { excludeProtectedResources } from '../utils/browsable-resources';
 
 type ManagedTable = typeof tableMetadataInCms.$inferSelect;
 
@@ -40,15 +41,19 @@ class ResourcesService {
         .orderBy(asc(tableMetadataInCms.ordering));
     });
 
-    // Transform to readable resource format
-    return resources.map((resource: ManagedTable): ReadableResource => {
-      return {
-        schemaName: resource.schemaName,
-        tableName: resource.tableName,
-        displayName: resource.displayName || resource.tableName,
-        metadata: resource,
-      };
-    });
+    // Las tablas de esquemas protegidos (p. ej. `auth.users`) tienen
+    // metadatos para mostrar las relaciones, pero el explorador no las abre:
+    // no se ofrecen en la navegación (ver `browsable-resources.ts`).
+    return excludeProtectedResources(resources).map(
+      (resource: ManagedTable): ReadableResource => {
+        return {
+          schemaName: resource.schemaName,
+          tableName: resource.tableName,
+          displayName: resource.displayName || resource.tableName,
+          metadata: resource,
+        };
+      },
+    );
   }
 
   /**

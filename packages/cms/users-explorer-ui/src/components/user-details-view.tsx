@@ -44,6 +44,7 @@ import { Alert, AlertDescription } from '@pymekit/ui/alert';
 import { Badge } from '@pymekit/ui/badge';
 import { Button } from '@pymekit/ui/button';
 import { CopyToClipboard } from '@pymekit/ui/copy-to-clipboard';
+import { PageSummary } from '@pymekit/ui/page';
 
 import {
   type UserAction,
@@ -91,6 +92,8 @@ export function UserDetailsView(props: { data: CmsUserDetails }) {
 
         <UserActionsBar data={props.data} />
       </div>
+
+      <PageSummary>{t('details.summary')}</PageSummary>
 
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold">{user.email ?? user.phone}</h1>
@@ -239,7 +242,7 @@ function UserActionsBar(props: { data: CmsUserDetails }) {
               action="ban"
               userId={user.id}
               email={user.email}
-              confirmWord="BAN"
+              confirmWord="BLOQUEAR"
               {...button('ban', <BanIcon className="h-3.5 w-3.5" />)}
             />
           )}
@@ -277,7 +280,7 @@ function UserActionsBar(props: { data: CmsUserDetails }) {
           action="revokeAdminAccess"
           userId={user.id}
           email={user.email}
-          confirmWord="REVOKE"
+          confirmWord="REVOCAR"
           {...button(
             'revokeAdminAccess',
             <ShieldOffIcon className="h-3.5 w-3.5" />,
@@ -290,7 +293,7 @@ function UserActionsBar(props: { data: CmsUserDetails }) {
           action="delete"
           userId={user.id}
           email={user.email}
-          confirmWord="DELETE"
+          confirmWord="ELIMINAR"
           onDone={async () => {
             await navigate({ href: CMS_SECTION_PATHS.users });
             queryClient.removeQueries({ queryKey: cmsQueryKeys.user(user.id) });

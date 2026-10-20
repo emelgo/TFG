@@ -200,7 +200,7 @@ test.describe('Blog: gestión desde el CMS (super-admin con MFA)', () => {
 
     await form.field('status').getByTestId('record-field-select').click();
     await page
-      .locator('[data-testid="record-field-option"]', { hasText: 'published' })
+      .locator('[data-testid="record-field-option"]', { hasText: 'Publicado' })
       .click();
 
     await form.submit().click();

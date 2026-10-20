@@ -1,5 +1,8 @@
 /**
- * Preferencias personales del usuario en el CMS (idioma y zona horaria).
+ * Preferencias personales del usuario en el CMS (zona horaria).
+ *
+ * El JSONB puede traer también un `language` antiguo: se ignora, porque la
+ * interfaz solo está en español (ADR-021) y el idioma no es una preferencia.
  *
  * Se guardan en `cms.accounts.preferences` (JSONB) y llegan con la cuenta en
  * `GET /v1/account`. Como el JSONB no tiene tipo, aquí se leen con cuidado:
@@ -10,7 +13,6 @@ import { isValidTimeZone } from '@pymekit/cms-shared/preferences';
 
 /** Preferencias válidas del usuario del CMS. */
 export type CmsPreferences = {
-  language?: string;
   timezone?: string;
 };
 
@@ -23,13 +25,9 @@ export function getCmsPreferences(preferences: unknown): CmsPreferences {
     return {};
   }
 
-  const { language, timezone } = preferences as Record<string, unknown>;
+  const { timezone } = preferences as Record<string, unknown>;
 
   return {
-    language:
-      typeof language === 'string' && language.length > 0
-        ? language
-        : undefined,
     // Una zona no válida (guardada antes de validarla en la API, o escrita a
     // mano en la BD) haría fallar cada formateador de fechas: se ignora y se
     // usa la de por defecto (UTC).

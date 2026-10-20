@@ -8,15 +8,9 @@
  */
 import * as z from 'zod';
 
-import {
-  isValidLanguageTag,
-  isValidTimeZone,
-} from '@pymekit/cms-shared/preferences';
+import { isValidTimeZone } from '@pymekit/cms-shared/preferences';
 
 export const GeneralSettingsSchema = z.object({
-  language: z
-    .string()
-    .refine(isValidLanguageTag, 'cms.settings.general.errors.invalidLanguage'),
   timezone: z
     .string()
     .refine(isValidTimeZone, 'cms.settings.general.errors.invalidTimezone'),

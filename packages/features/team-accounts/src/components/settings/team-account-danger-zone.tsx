@@ -272,8 +272,8 @@ function LeaveTeamContainer(props: {
   });
 
   const LeaveTeamSchema = z.object({
-    confirmation: z.string().refine((value) => value === 'LEAVE', {
-      message: 'Confirmation required to leave team',
+    confirmation: z.string().refine((value) => value === 'SALIR', {
+      message: 'common.validation.confirmationRequired',
       path: ['confirmation'],
     }),
   });
@@ -359,7 +359,7 @@ function LeaveTeamContainer(props: {
                       className="w-full"
                       autoComplete={'off'}
                       placeholder=""
-                      pattern="LEAVE"
+                      pattern="SALIR"
                       required
                       name={field.name}
                       value={field.state.value}

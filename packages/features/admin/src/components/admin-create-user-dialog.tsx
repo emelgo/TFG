@@ -20,12 +20,8 @@ import {
 } from '@pymekit/ui/alert-dialog';
 import { Button } from '@pymekit/ui/button';
 import { Checkbox } from '@pymekit/ui/checkbox';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from '@pymekit/ui/field';
+import { Field, FieldDescription, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { If } from '@pymekit/ui/if';
 import { Input } from '@pymekit/ui/input';
@@ -120,9 +116,12 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>
+                  <FieldLabelWithHelp
+                    htmlFor={field.name}
+                    help={<Trans i18nKey={'admin.emailHelp'} />}
+                  >
                     <Trans i18nKey={'admin.email'} />
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
 
                   <Input
                     id={field.name}
@@ -149,9 +148,12 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>
+                  <FieldLabelWithHelp
+                    htmlFor={field.name}
+                    help={<Trans i18nKey={'admin.passwordHelp'} />}
+                  >
                     <Trans i18nKey={'admin.password'} />
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
 
                   <Input
                     id={field.name}
@@ -193,9 +195,12 @@ export function AdminCreateUserDialog(props: React.PropsWithChildren) {
                   />
 
                   <div className="flex flex-col space-y-1">
-                    <FieldLabel htmlFor={field.name}>
+                    <FieldLabelWithHelp
+                      htmlFor={field.name}
+                      help={<Trans i18nKey={'admin.autoConfirmEmailHelp'} />}
+                    >
                       <Trans i18nKey={'admin.autoConfirmEmail'} />
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
 
                     <FieldDescription>
                       <Trans i18nKey={'admin.autoConfirmEmailHint'} />

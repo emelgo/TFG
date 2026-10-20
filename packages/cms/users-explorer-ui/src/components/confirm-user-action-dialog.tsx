@@ -3,7 +3,7 @@
  *
  * Las acciones irreversibles o delicadas (borrar, bloquear, conceder acceso
  * al CMS…) piden confirmación; las más graves exigen además escribir una
- * palabra (`confirmWord`, por ejemplo `DELETE`), validada con TanStack Form y
+ * palabra (`confirmWord`, por ejemplo `ELIMINAR`), validada con TanStack Form y
  * el mismo esquema que describe el error. Mientras la acción está en curso
  * el diálogo no se puede cerrar (`useAsyncDialog`).
  *
@@ -25,7 +25,8 @@ import {
   AlertDialogTrigger,
 } from '@pymekit/ui/alert-dialog';
 import { Button } from '@pymekit/ui/button';
-import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -107,11 +108,14 @@ export function ConfirmUserActionDialog(props: {
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={`${props.testId}-confirm-input`}>
+                    <FieldLabelWithHelp
+                      htmlFor={`${props.testId}-confirm-input`}
+                      help={t('confirm.typeToConfirmHelp')}
+                    >
                       {t('confirm.typeToConfirm', {
                         word: props.confirmWord ?? '',
                       })}
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
 
                     <Input
                       id={`${props.testId}-confirm-input`}

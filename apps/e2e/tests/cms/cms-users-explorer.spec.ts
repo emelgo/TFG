@@ -139,12 +139,12 @@ test.describe('Explorador de usuarios: super-admin con MFA', () => {
     expect((await getAuthUser(userId))?.app_metadata['role']).toBeUndefined();
 
     // Bloquear (pide escribir BAN) y desbloquear.
-    await users.runAction('ban', 'BAN');
-    await expect(page.getByTestId('user-status')).toHaveText('Banned');
+    await users.runAction('ban', 'BLOQUEAR');
+    await expect(page.getByTestId('user-status')).toHaveText('Bloqueado');
     expect((await getAuthUser(userId))?.banned_until).toBeTruthy();
 
     await users.runAction('unban');
-    await expect(page.getByTestId('user-status')).toHaveText('Active');
+    await expect(page.getByTestId('user-status')).toHaveText('Activo');
 
     // Conceder acceso al CMS: pasa por `cms.grant_admin_access`.
     await users.runAction('grantAdminAccess');
@@ -158,14 +158,14 @@ test.describe('Explorador de usuarios: super-admin con MFA', () => {
     await expect(users.action('delete')).toHaveCount(0);
 
     // Retirarlo (pide escribir REVOKE).
-    await users.runAction('revokeAdminAccess', 'REVOKE');
+    await users.runAction('revokeAdminAccess', 'REVOCAR');
     await expect(users.action('grantAdminAccess')).toBeVisible();
     expect((await getAuthUser(userId))?.app_metadata['cms_access']).toBe(
       'false',
     );
 
     // Borrar (pide escribir DELETE) vuelve al listado.
-    await users.runAction('delete', 'DELETE');
+    await users.runAction('delete', 'ELIMINAR');
     await page.waitForURL('**/admin/cms/users');
     expect(await getAuthUser(userId)).toBeNull();
   });

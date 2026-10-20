@@ -1,6 +1,6 @@
 /**
- * Utilidades puras de Ajustes > Recursos (F2.7c): agrupar y reordenar las
- * tablas gestionadas, leer la configuración de columnas guardada y calcular
+ * Utilidades puras de Ajustes > Recursos (F2.7c): agrupar por área y
+ * reordenar las tablas gestionadas, leer la configuración de columnas guardada y calcular
  * qué ha cambiado para enviar a la API solo eso.
  *
  * Son funciones sin React ni red para probarlas con Vitest
@@ -13,6 +13,10 @@
 import * as z from 'zod';
 
 import { RESOURCE_CONFIG_LIMITS as LIMITS } from '@pymekit/cms-shared/resource-config';
+import {
+  groupByArea,
+  normalizeNavigationGroup,
+} from '@pymekit/cms-ui-core/resources';
 
 /** Fila del listado de tablas gestionadas. */
 export type ManagedTable = {
@@ -21,41 +25,33 @@ export type ManagedTable = {
   displayName: string | null;
   isVisible: boolean | null;
   ordering: number | null;
+  /** Área de negocio (`ui_config.navigation_group`), si tiene. */
+  navigationGroup?: string | null;
 };
 
 /**
- * Agrupa las tablas por esquema y las ordena por `ordering` (las que no lo
- * tienen, al final) y después por nombre. Los esquemas salen en orden
- * alfabético con `public` primero.
+ * Agrupa las tablas por área de negocio (`ui_config.navigation_group`), con
+ * el mismo criterio que la barra lateral (`groupByArea`): áreas por su menor
+ * `ordering` y por nombre, tablas por `ordering` y nombre visible, y las que
+ * no tienen área al final (`name: null`, «Otros datos»). Aquí se listan
+ * también las tablas ocultas, para poder volver a mostrarlas.
  */
-export function groupTablesBySchema<T extends ManagedTable>(tables: T[]) {
-  const groups = new Map<string, T[]>();
-
-  for (const table of tables) {
-    const list = groups.get(table.schemaName) ?? [];
-    list.push(table);
-    groups.set(table.schemaName, list);
-  }
-
-  return [...groups.entries()]
-    .sort(([a], [b]) =>
-      a === 'public' ? -1 : b === 'public' ? 1 : a.localeCompare(b),
-    )
-    .map(([schema, list]) => ({
-      schema,
-      tables: [...list].sort(
-        (a, b) =>
-          (a.ordering ?? Number.MAX_SAFE_INTEGER) -
-            (b.ordering ?? Number.MAX_SAFE_INTEGER) ||
-          a.tableName.localeCompare(b.tableName),
-      ),
-    }));
+export function groupTablesByArea<T extends ManagedTable>(tables: T[]) {
+  return groupByArea(tables, {
+    area: (table) => normalizeNavigationGroup(table.navigationGroup),
+    ordering: (table) => table.ordering,
+    label: (table) => table.displayName || table.tableName,
+  });
 }
 
 /**
- * Mueve una tabla una posición arriba (`-1`) o abajo (`1`) dentro de su
- * esquema y devuelve el nuevo orden de todo el esquema (0, 1, 2…), listo
- * para `PUT /v1/tables`. Devuelve `null` si el movimiento no es posible.
+ * Mueve una tabla una posición arriba (`-1`) o abajo (`1`) dentro de su área
+ * y devuelve el nuevo orden de toda el área, listo para `PUT /v1/tables`.
+ * Devuelve `null` si el movimiento no es posible.
+ *
+ * La numeración parte del menor `ordering` que ya tenía el área (o de 0 si
+ * ninguna tabla lo tenía): así reordenar dentro de un área no cambia su
+ * posición respecto a las demás, que se ordenan por ese mínimo.
  */
 export function moveTable<T extends ManagedTable>(
   ordered: T[],
@@ -71,10 +67,15 @@ export function moveTable<T extends ManagedTable>(
   const [moved] = next.splice(index, 1);
   next.splice(target, 0, moved!);
 
+  const known = ordered
+    .map((table) => table.ordering)
+    .filter((value): value is number => value !== null);
+  const base = known.length > 0 ? Math.min(...known) : 0;
+
   return next.map((table, position) => ({
     schema: table.schemaName,
     table: table.tableName,
-    ordering: position,
+    ordering: Math.min(base + position, LIMITS.ordering),
   }));
 }
 
@@ -265,6 +266,7 @@ export function moveColumn(
 /** Formulario del metadato propio de una tabla. */
 export const TableSettingsFormSchema = z.object({
   displayName: z.string().trim().max(LIMITS.displayName),
+  navigationGroup: z.string().trim().max(LIMITS.navigationGroup),
   description: z.string().trim().max(LIMITS.description),
   displayFormat: z.string().trim().max(LIMITS.displayFormat),
   isVisible: z.boolean(),

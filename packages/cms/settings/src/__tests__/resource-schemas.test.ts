@@ -76,6 +76,22 @@ describe('esquemas estrictos', () => {
     ).toBe(false);
   });
 
+  it('el área se recorta, se vacía con cadena vacía y tiene un máximo', () => {
+    expect(TableMetadataSchema.parse({ navigation_group: '  Blog ' })).toEqual({
+      navigation_group: 'Blog',
+    });
+    expect(TableMetadataSchema.parse({ navigation_group: '' })).toEqual({
+      navigation_group: null,
+    });
+    expect(
+      TableMetadataSchema.safeParse({ navigation_group: 'x'.repeat(61) })
+        .success,
+    ).toBe(false);
+    expect(TableMetadataSchema.safeParse({ navigation_group: 3 }).success).toBe(
+      false,
+    );
+  });
+
   it('la distribución no admite metadata libre ni tamaños fuera de 1–4', () => {
     const layout = (column: Record<string, unknown>) => ({
       layout: {

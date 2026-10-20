@@ -1,9 +1,11 @@
 /**
  * Configuración de una tabla en Ajustes > Recursos (F2.7c):
  *
- *  1. **Tabla**: nombre visible, descripción, formato de visualización (la
- *     plantilla `{columna}` con la que otras tablas muestran sus registros
- *     al enlazarlos), visibilidad en el explorador y búsqueda.
+ *  1. **Tabla**: nombre visible, área de negocio (agrupa la barra lateral;
+ *     se sugieren las áreas que ya existen), descripción, formato de
+ *     visualización (la plantilla `{columna}` con la que otras tablas
+ *     muestran sus registros al enlazarlos), visibilidad en el explorador y
+ *     búsqueda.
  *  2. **Columnas**: etiqueta, visibilidad en el listado y en la ficha,
  *     editable, formateador y orden; los cambios rápidos se hacen en la
  *     propia fila y el resto en `ColumnSettingsDialog`.
@@ -18,6 +20,7 @@
 import { useState } from 'react';
 
 import { useForm } from '@tanstack/react-form';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import {
   ArrowDownIcon,
@@ -29,7 +32,13 @@ import {
 import { useTranslations } from 'use-intl';
 
 import type { CmsResourceSettings } from '@pymekit/cms-ui-core/api';
+import { useCmsApi } from '@pymekit/cms-ui-core/api-context';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
+import {
+  NAVIGATION_GROUP_MAX_LENGTH,
+  getAreaNames,
+  getResourceArea,
+} from '@pymekit/cms-ui-core/resources';
 import { Button } from '@pymekit/ui/button';
 import {
   Card,
@@ -38,8 +47,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@pymekit/ui/card';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError, FieldGroup } from '@pymekit/ui/field';
+import { FieldHelp, FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { Input } from '@pymekit/ui/input';
+import { PageSummary } from '@pymekit/ui/page';
 import { Spinner } from '@pymekit/ui/spinner';
 import { Switch } from '@pymekit/ui/switch';
 import {
@@ -114,12 +125,19 @@ export function ResourceSettingsView(props: {
         </Link>
       </div>
 
+      <PageSummary>{t('detailSummary')}</PageSummary>
+
       <TableSettingsForm
         key={data.data.updatedAt}
         resource={ref}
         canUpdate={canUpdate}
         initial={{
           displayName: data.data.displayName ?? '',
+          navigationGroup:
+            getResourceArea({
+              ...data.data,
+              metadata: { isVisible: true, uiConfig: data.data.uiConfig },
+            }) ?? '',
           description: data.data.description ?? '',
           displayFormat: data.data.displayFormat ?? '',
           isVisible: data.data.isVisible !== false,
@@ -149,6 +167,7 @@ function TableSettingsForm(props: {
   canUpdate: boolean;
   initial: {
     displayName: string;
+    navigationGroup: string;
     description: string;
     displayFormat: string;
     isVisible: boolean;
@@ -157,6 +176,7 @@ function TableSettingsForm(props: {
 }) {
   const t = useTranslations('cms.settings.resources.table');
   const mutation = useUpdateTableMetadataMutation(props.resource);
+  const areaSuggestions = useAreaSuggestions();
 
   const form = useForm({
     defaultValues: props.initial,
@@ -167,6 +187,8 @@ function TableSettingsForm(props: {
     onSubmit: async ({ value }) => {
       await mutation.mutateAsync({
         display_name: value.displayName,
+        // Vacío → `null` en la API: la tabla pasa a «Otros datos».
+        navigation_group: value.navigationGroup,
         description: value.description,
         display_format: value.displayFormat,
         is_visible: value.isVisible,
@@ -202,9 +224,12 @@ function TableSettingsForm(props: {
               <form.Field key={name} name={name}>
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid}>
-                    <FieldLabel htmlFor={`table-settings-${name}`}>
+                    <FieldLabelWithHelp
+                      htmlFor={`table-settings-${name}`}
+                      help={t(`${name}Help`)}
+                    >
                       {t(name)}
-                    </FieldLabel>
+                    </FieldLabelWithHelp>
                     <Input
                       id={`table-settings-${name}`}
                       data-testid={`table-settings-${name}`}
@@ -227,12 +252,54 @@ function TableSettingsForm(props: {
               </form.Field>
             ))}
 
+            <form.Field name="navigationGroup">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
+                  <FieldLabelWithHelp
+                    htmlFor="table-settings-navigationGroup"
+                    help={t('navigationGroupFieldHelp')}
+                  >
+                    {t('navigationGroup')}
+                  </FieldLabelWithHelp>
+                  {/* `datalist` sugiere las áreas existentes sin impedir
+                      escribir una nueva. */}
+                  <Input
+                    id="table-settings-navigationGroup"
+                    data-testid="table-settings-navigationGroup"
+                    list="table-settings-navigationGroup-options"
+                    value={field.state.value}
+                    maxLength={NAVIGATION_GROUP_MAX_LENGTH}
+                    disabled={!props.canUpdate}
+                    placeholder={t('navigationGroupPlaceholder')}
+                    aria-describedby="table-settings-navigationGroup-help"
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                  <datalist id="table-settings-navigationGroup-options">
+                    {areaSuggestions.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                  <p
+                    id="table-settings-navigationGroup-help"
+                    className="text-muted-foreground text-xs"
+                  >
+                    {t('navigationGroupHelp')}
+                  </p>
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+
             <form.Field name="description">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="table-settings-description">
+                  <FieldLabelWithHelp
+                    htmlFor="table-settings-description"
+                    help={t('tableDescriptionHelp')}
+                  >
                     {t('tableDescription')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Textarea
                     id="table-settings-description"
                     value={field.state.value}
@@ -258,9 +325,12 @@ function TableSettingsForm(props: {
                           field.handleChange(checked)
                         }
                       />
-                      <FieldLabel htmlFor={`table-settings-${name}`}>
+                      <FieldLabelWithHelp
+                        htmlFor={`table-settings-${name}`}
+                        help={t(`${name}Help`)}
+                      >
                         {t(name)}
-                      </FieldLabel>
+                      </FieldLabelWithHelp>
                     </Field>
                   )}
                 </form.Field>
@@ -289,6 +359,22 @@ function TableSettingsForm(props: {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Áreas que ya existen, para sugerirlas al editar. Se leen de la
+ * navegación (las tablas que el usuario puede leer), que ya está en caché
+ * porque la barra lateral la usa.
+ */
+function useAreaSuggestions() {
+  const { queries } = useCmsApi();
+  const { data = [] } = useQuery(queries.navigation());
+
+  return getAreaNames(
+    data.map((resource) =>
+      getResourceArea({ ...resource, metadata: resource.metadata }),
+    ),
   );
 }
 
@@ -322,8 +408,13 @@ function ColumnsSettings(props: {
               <TableHead>{t('name')}</TableHead>
               <TableHead>{t('label')}</TableHead>
               {toggles.map(([key]) => (
-                <TableHead key={key} className="w-20">
-                  {t(`short.${key}`)}
+                <TableHead key={key} className="w-24">
+                  <span className="inline-flex items-center gap-1">
+                    {t(`short.${key}`)}
+                    <FieldHelp label={t(`flags.${key}`)}>
+                      {t(`flags.${key}Help`)}
+                    </FieldHelp>
+                  </span>
                 </TableHead>
               ))}
               <TableHead>{t('formatter')}</TableHead>
@@ -498,9 +589,12 @@ function RelationRow(props: {
               disabled={!props.canUpdate}
               onCheckedChange={(checked) => field.handleChange(checked)}
             />
-            <FieldLabel htmlFor={`relation-enabled-${id}`}>
+            <FieldLabelWithHelp
+              htmlFor={`relation-enabled-${id}`}
+              help={t('enabledHelp')}
+            >
               {t('enabled')}
-            </FieldLabel>
+            </FieldLabelWithHelp>
           </Field>
         )}
       </form.Field>

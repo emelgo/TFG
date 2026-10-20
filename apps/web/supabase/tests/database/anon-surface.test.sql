@@ -22,7 +22,7 @@ select no_plan();
 
 -- ---------------------------------------------------------------------------
 -- 1. Esquemas: `anon` solo gana `usage` (nunca `create`) sobre `public`, y
---    ninguno de los esquemas propios (`kit`, `cms`, `demo`)
+--    ninguno de los esquemas propios (`kit`, `cms`)
 -- ---------------------------------------------------------------------------
 
 select ok(
@@ -35,11 +35,11 @@ select is_empty(
     $$
       select n.nspname
       from pg_namespace n
-      where n.nspname in ('kit', 'cms', 'demo', 'vault')
+      where n.nspname in ('kit', 'cms', 'vault')
         and (has_schema_privilege('anon', n.oid, 'USAGE')
              or has_schema_privilege('anon', n.oid, 'CREATE'))
     $$,
-    'anon no tiene acceso a los esquemas kit, cms, demo ni vault'
+    'anon no tiene acceso a los esquemas kit, cms ni vault'
 );
 
 -- ---------------------------------------------------------------------------

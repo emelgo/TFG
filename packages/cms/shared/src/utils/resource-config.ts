@@ -19,6 +19,11 @@ export const RESOURCE_CONFIG_LIMITS = {
   displayName: 255,
   description: 2000,
   displayFormat: 500,
+  /**
+   * Área de negocio de una tabla (`ui_config.navigation_group`): agrupa la
+   * barra lateral de la consola, así que se mantiene corta.
+   */
+  navigationGroup: 60,
   ordering: 100_000,
   /** Tablas que se pueden reordenar u ocultar en una sola petición. */
   tablesPerUpdate: 500,

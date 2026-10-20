@@ -41,6 +41,7 @@ import { CMS_SECTION_PATHS } from '@pymekit/cms-ui-core/sections';
 import { Badge } from '@pymekit/ui/badge';
 import { Button } from '@pymekit/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@pymekit/ui/card';
+import { PageSummary } from '@pymekit/ui/page';
 
 import {
   useDeleteDashboardMutation,
@@ -213,6 +214,8 @@ export function DashboardView(props: { data: DashboardDetails }) {
           )}
         </div>
       </div>
+
+      <PageSummary>{t('view.summary')}</PageSummary>
 
       {widgets.length === 0 ? (
         <div

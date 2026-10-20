@@ -34,7 +34,11 @@ function AdminDashboardPage() {
 
   return (
     <PageBody>
-      <PageHeader description={t('superAdmin')} />
+      <PageHeader
+        description={t('superAdmin')}
+        title={tAdmin('homeTitle')}
+        summary={tAdmin('homeSummary')}
+      />
 
       {data ? (
         <AdminDashboard data={data} />

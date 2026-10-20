@@ -23,7 +23,8 @@ import {
 } from '@pymekit/ui/alert-dialog';
 import { Button } from '@pymekit/ui/button';
 import { Checkbox } from '@pymekit/ui/checkbox';
-import { Field, FieldError, FieldLabel } from '@pymekit/ui/field';
+import { Field, FieldError } from '@pymekit/ui/field';
+import { FieldLabelWithHelp } from '@pymekit/ui/field-help';
 import { useAsyncDialog } from '@pymekit/ui/hooks/use-async-dialog';
 import { Input } from '@pymekit/ui/input';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -95,9 +96,12 @@ export function CreateUserDialog(props: {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor="create-user-email">
+                  <FieldLabelWithHelp
+                    htmlFor="create-user-email"
+                    help={t('form.emailHelp')}
+                  >
                     {t('form.email')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Input
                     id="create-user-email"
                     data-testid="create-user-email"
@@ -121,9 +125,12 @@ export function CreateUserDialog(props: {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor="create-user-password">
+                  <FieldLabelWithHelp
+                    htmlFor="create-user-password"
+                    help={t('form.passwordHelp')}
+                  >
                     {t('form.password')}
-                  </FieldLabel>
+                  </FieldLabelWithHelp>
                   <Input
                     id="create-user-password"
                     data-testid="create-user-password"
@@ -151,9 +158,12 @@ export function CreateUserDialog(props: {
                     field.handleChange(checked === true)
                   }
                 />
-                <FieldLabel htmlFor="create-user-auto-confirm">
+                <FieldLabelWithHelp
+                  htmlFor="create-user-auto-confirm"
+                  help={t('form.autoConfirmHelp')}
+                >
                   {t('form.autoConfirm')}
-                </FieldLabel>
+                </FieldLabelWithHelp>
               </Field>
             )}
           </form.Field>

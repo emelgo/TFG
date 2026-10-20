@@ -52,6 +52,9 @@ export const TableMetadataSchema = z
     is_visible: z.boolean().optional(),
     is_searchable: z.boolean().optional(),
     ordering: Ordering.nullable().optional(),
+    // Área de negocio (F3c): se guarda en `ui_config.navigation_group`.
+    // Vacío o `null` quita el área y la tabla pasa a «Otros datos».
+    navigation_group: optionalText(LIMITS.navigationGroup),
   })
   .strict();
 

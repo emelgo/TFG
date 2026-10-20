@@ -37,6 +37,7 @@ import type { LayoutGroup, RecordLayoutConfig } from '@pymekit/cms-types';
 import type { CmsResourceSettings } from '@pymekit/cms-ui-core/api';
 import { useIsHydrated } from '@pymekit/cms-ui-core/hydration';
 import { Button } from '@pymekit/ui/button';
+import { FieldHelp } from '@pymekit/ui/field-help';
 import { Input } from '@pymekit/ui/input';
 import { NativeSelect, NativeSelectOption } from '@pymekit/ui/native-select';
 import { Spinner } from '@pymekit/ui/spinner';
@@ -263,14 +264,22 @@ export function RecordLayoutDesigner(props: {
         </TabsList>
       </Tabs>
 
+      <p className="text-muted-foreground -mt-2 flex items-center gap-1 text-xs">
+        {t('modesHelpShort')}
+        <FieldHelp label={t('modesLabel')}>{t('modesHelp')}</FieldHelp>
+      </p>
+
       <div className="flex flex-col gap-4 lg:flex-row">
         <aside
           className="flex flex-col gap-2 lg:w-56"
           data-testid="layout-palette"
         >
-          <h2 className="text-muted-foreground text-xs font-medium uppercase">
-            {t('available')}
-          </h2>
+          <div className="flex items-center gap-1">
+            <h2 className="text-muted-foreground text-xs font-medium uppercase">
+              {t('available')}
+            </h2>
+            <FieldHelp label={t('available')}>{t('availableHelp')}</FieldHelp>
+          </div>
 
           {unplaced.length === 0 ? (
             <p className="text-muted-foreground text-xs">{t('allPlaced')}</p>

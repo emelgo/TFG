@@ -34,6 +34,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '@pymekit/ui/input-group';
+import { PageSummary } from '@pymekit/ui/page';
 import { Tabs, TabsList, TabsTrigger } from '@pymekit/ui/tabs';
 
 import {
@@ -95,7 +96,7 @@ export function PermissionsSettingsView(props: {
         ) : null}
       </div>
 
-      <p className="text-muted-foreground text-xs">{t('description')}</p>
+      <PageSummary>{t('description')}</PageSummary>
 
       <Tabs
         value={tab}
@@ -115,6 +116,9 @@ export function PermissionsSettingsView(props: {
           ))}
         </TabsList>
       </Tabs>
+
+      {/* Resumen de la subpestaña activa (Roles, Grupos o Permisos). */}
+      <PageSummary>{t(`summaries.${tab}`)}</PageSummary>
 
       <SearchInput
         key={`${tab}:${props.search.q ?? ''}`}

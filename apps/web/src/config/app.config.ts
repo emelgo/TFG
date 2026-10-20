@@ -18,7 +18,7 @@ const AppConfigSchema = z
     }),
     locale: z
       .string({ error: `Please provide the variable VITE_DEFAULT_LOCALE` })
-      .default('en'),
+      .default('es'),
     theme: z.enum(['light', 'dark', 'system']),
     production: z.boolean(),
     themeColor: z.string(),

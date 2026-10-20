@@ -73,18 +73,14 @@ describe('buildMemberRolesChange', () => {
 });
 
 describe('GeneralSettingsSchema', () => {
-  it('acepta un idioma y una zona horaria válidos', () => {
+  it('acepta una zona horaria válida', () => {
     expect(
-      GeneralSettingsSchema.safeParse({
-        language: 'en',
-        timezone: 'Europe/Madrid',
-      }).success,
+      GeneralSettingsSchema.safeParse({ timezone: 'Europe/Madrid' }).success,
     ).toBe(true);
   });
 
   it('rechaza una zona horaria desconocida con una clave i18n', () => {
     const result = GeneralSettingsSchema.safeParse({
-      language: 'en',
       timezone: 'Nowhere/Land',
     });
 

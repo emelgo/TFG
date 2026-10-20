@@ -6,12 +6,13 @@ import { createClient } from '@supabase/supabase-js';
  *
  * Con el super-admin (cuenta raíz, sesión con MFA):
  *  - ciclo completo desde la interfaz: crear un rol de rango inferior a
- *    Root, un grupo y un permiso de datos de lectura sobre `demo.products`,
+ *    Root, un grupo y un permiso de datos de lectura sobre
+ *    `public.blog_categories`,
  *    meter el permiso en el grupo y el grupo en el rol;
  *  - asignar el rol a un miembro TEMPORAL (creado en la prueba), iniciar
  *    sesión como él con su propio segundo factor y comprobar por la API
- *    que puede leer `demo.products` y nada más (ni otras tablas de la demo
- *    ni las secciones con permiso propio);
+ *    que puede leer `public.blog_categories` y nada más (ni otras tablas
+ *    de `public` ni las secciones con permiso propio);
  *  - limpiar todo al final (miembro, rol, grupo y permiso);
  *  - los objetos de sistema (rol Root, grupo Super Admin) no se pueden
  *    tocar ni desde la API, y no se crean roles de rango igual o superior
@@ -203,7 +204,7 @@ async function loginAsMember(
 test.describe('Ajustes > Permisos: super-admin con MFA', () => {
   AuthPageObject.setupSession(AUTH_STATES.SUPER_ADMIN);
 
-  test('crea rol, grupo y permiso, los asigna y el miembro solo gana demo.products', async ({
+  test('crea rol, grupo y permiso, los asigna y el miembro solo gana public.blog_categories', async ({
     page,
     browser,
   }) => {
@@ -256,14 +257,17 @@ test.describe('Ajustes > Permisos: super-admin con MFA', () => {
     );
     created.group = idFromUrl(page.url());
 
-    // 3 · Permiso de datos: leer demo.products (selectores del catálogo).
+    // 3 · Permiso de datos: leer public.blog_categories (selectores del
+    //     catálogo).
     await settings.gotoPermissions('permissions');
     await page.getByTestId('rbac-create-permission').click();
     await expect(page.getByTestId('permission-form-dialog')).toBeVisible();
-    await page.getByTestId('permission-form-name').fill(`${RUN_ID} productos`);
+    await page.getByTestId('permission-form-name').fill(`${RUN_ID} categorías`);
     await page.getByTestId('permission-form-kind').selectOption('table');
-    await page.getByTestId('permission-form-schema').selectOption('demo');
-    await page.getByTestId('permission-form-table').selectOption('products');
+    await page.getByTestId('permission-form-schema').selectOption('public');
+    await page
+      .getByTestId('permission-form-table')
+      .selectOption('blog_categories');
     await page.getByTestId('permission-form-action').selectOption('select');
     await page.getByTestId('permission-form-submit').click();
     await page.waitForURL(
@@ -272,7 +276,7 @@ test.describe('Ajustes > Permisos: super-admin con MFA', () => {
     created.permission = idFromUrl(page.url());
     await settings.waitForHydration('permission-details');
     await expect(page.getByTestId('permission-details-summary')).toContainText(
-      'demo.products',
+      'public.blog_categories',
     );
 
     // 4 · El permiso entra en el grupo…
@@ -334,7 +338,7 @@ test.describe('Ajustes > Permisos: super-admin con MFA', () => {
     // Con miembros no se ofrece borrarlo.
     await expect(page.getByTestId('role-delete')).toHaveCount(0);
 
-    // 6 · Sesión del miembro (aal2): lee demo.products y nada más.
+    // 6 · Sesión del miembro (aal2): lee public.blog_categories y nada más.
     const { context } = await loginAsMember(browser, {
       email: memberEmail,
       secret: member.secret,
@@ -354,15 +358,17 @@ test.describe('Ajustes > Permisos: super-admin con MFA', () => {
             tableName: string;
           }>
         ).map((item) => `${item.schemaName}.${item.tableName}`),
-      ).toEqual(['demo.products']);
+      ).toEqual(['public.blog_categories']);
 
-      const products = await api.get('/api/cms/v1/tables/demo/products');
+      const categories = await api.get(
+        '/api/cms/v1/tables/public/blog_categories',
+      );
 
-      expect(products.status()).toBe(200);
+      expect(categories.status()).toBe(200);
 
-      const customers = await api.get('/api/cms/v1/tables/demo/customers');
+      const tags = await api.get('/api/cms/v1/tables/public/blog_tags');
 
-      expect(customers.status()).toBe(403);
+      expect(tags.status()).toBe(403);
 
       const account = await api.get('/api/cms/v1/account');
       const { access } = (await account.json()) as {
