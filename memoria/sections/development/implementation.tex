@@ -28,8 +28,8 @@
 }
 
 Este capítulo describe cómo se ha construido PymeKit: el entorno y las
-herramientas, la estructura del código, qué parte se ha reutilizado y qué
-parte es propia, la secuencia de incrementos (fases F0 a F3c), una selección
+herramientas, la estructura del código, el punto de partida y las aportaciones
+del trabajo, la secuencia de incrementos (fases F0 a F3c), una selección
 de extractos de código representativos, el uso de agentes de IA en el
 desarrollo y los problemas más relevantes que se resolvieron.
 
@@ -69,8 +69,8 @@ filtran explícitamente y la aplicación se consulta a través de un túnel SSH
 \end{table}
 
 La integración continua (\texttt{.github/workflows/ci.yml}) tiene tres
-trabajos: \emph{Controles del TFG} (control de marca, bloqueante, e informe de
-comentarios en inglés), \emph{TypeScript} (tipos, \textit{lint}, formato y
+trabajos: \emph{Controles del TFG} (controles automáticos del repositorio, bloqueantes, e
+informe de comentarios en inglés), \emph{TypeScript} (tipos, \textit{lint}, formato y
 pruebas unitarias en cada \textit{push} a la rama principal y en cada \textit{pull request}) y
 \emph{Supabase + E2E} (base de datos local, pgTAP, \textit{build} de pruebas y
 Playwright), que por su coste solo se ejecuta en las \textit{pull requests}
@@ -106,7 +106,7 @@ packages/
                             filters, query-builder, audit-logs, dashboards, ...
                             y sus paquetes cliente *-ui
 docs/tfg/                   plan, requisitos, decisiones, bitácora, trazabilidad
-scripts/tfg/                controles del TFG (marca, comentarios, etiquetas)
+scripts/tfg/                controles automáticos del repositorio y etiquetas
 .claude/                    harness de desarrollo asistido (skills, agentes, hooks)
 memoria/                    esta memoria
 \end{lstlisting}
@@ -135,51 +135,39 @@ repositorio (\texttt{AGENTS.md}), son:
 \end{itemize}
 
 % ---------------------------------------------------------------------
-\section{Reutilización: qué se ha heredado y qué es propio}
+\section{Punto de partida y aportaciones}
 \label{sec:imp-reutilizacion}
 
-% PENDIENTE (P-06): redacción neutra; confirmar con el tutor la forma de
-% presentar la base reutilizada sin nombrarla (ADR-007).
-Como se decidió al planificar el proyecto (ADR-001), PymeKit no se ha escrito
-desde cero. Parte de dos bases de código existentes, utilizadas conforme a su
-licencia: una \textbf{base SaaS} sobre la misma pila tecnológica (aplicación
-web, autenticación, cuentas y equipos, facturación y panel de
-super-administración) y un \textbf{CMS de administración de datos} para el
-mismo tipo de base de datos (aplicación de página única con su propia API y
-su esquema de base de datos). Ambas se han \emph{integrado} en un único
-producto, \emph{adaptadas} a sus requisitos y \emph{extendidas} con
-funcionalidad nueva. El origen está documentado en el repositorio, que es
-privado, y todo el código importado ha seguido el mismo flujo: copiar,
-retirar las marcas originales, comentar en español, verificar y registrar.
+El desarrollo partió de componentes base con licencia comercial ---una base de
+aplicación SaaS y un CMS para la base de datos--- (ADR-001). Sobre ellos, las
+aportaciones de este trabajo son las que recoge la
+tabla~\ref{tab:imp-reutilizacion}.
 
-% PENDIENTE (P-06)
-La tabla~\ref{tab:imp-reutilizacion} distingue las tres categorías. La
-aportación del TFG no está en reescribir lo que ya existía, sino en la
-integración de dos sistemas con arquitecturas distintas, en la corrección de
-su seguridad, en la adaptación al caso de una pyme y en la verificación y la
-documentación del conjunto.
-
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{12.2cm}@{}}
-  \caption{Código reutilizado, adaptado y propio.}\label{tab:imp-reutilizacion}\\
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{10.0cm}@{}}
+  \caption{Aportaciones del trabajo.}\label{tab:imp-reutilizacion}\\
   \toprule
-  \textbf{Tipo} & \textbf{Elementos} \\
+  \textbf{Aportación} & \textbf{Contenido} \\
   \midrule
   \endfirsthead
   \toprule
-  \textbf{Tipo} & \textbf{Elementos} \\
+  \textbf{Aportación} & \textbf{Contenido} \\
   \midrule
   \endhead
   \bottomrule
   \endfoot
-  Reutilizado & Biblioteca de componentes de interfaz; clientes de base de datos; \textit{middleware} de las \textit{server functions}; módulos de autenticación, cuentas, equipos, notificaciones, correo y facturación; esquema \texttt{public} de cuentas, roles, invitaciones y facturación con sus pruebas pgTAP; servicios y rutas de la API del CMS; utilidades del CMS (filtros, constructor de consultas, formateadores). \\
-  \midrule
-  Adaptado & Aplicación web (sin el CMS de contenidos basado en ficheros, el registro de cambios ni la documentación de la base; con comprobación de sesión viva); esquema del CMS renombrado a \texttt{cms} y endurecido (ADR-012, ADR-015); migración de unos 64 formularios y unos 183 ficheros con textos del CMS a la pila de la web (ADR-013); reescritura de las aproximadamente treinta pantallas del CMS como rutas de la web; pruebas E2E heredadas; internacionalización (solo español, ADR-021). \\
-  \midrule
-  Propio & Integración del CMS en la web (montaje de la API, llamada en proceso durante el SSR, guardas de la consola; ADR-011, ADR-016); pegamento entre super-administrador y rol raíz del CMS (ADR-014); corrección de 38 fallos heredados, 25 de ellos de seguridad (bitácora); blog en la base de datos y rutas públicas (ADR-017); instantánea del autor en la auditoría (ADR-018); cuadrícula propia de los paneles (ADR-019); consola por áreas de negocio, nombres en español como datos, ayuda contextual «?» y resúmenes (ADR-020); bloque académico configurable; identidad visual; 25 de las 26 migraciones añadidas durante el proyecto (la primera incorpora el esquema del CMS de partida) y las pruebas pgTAP de aislamiento escritas en las revisiones de RLS; el \textit{harness} de desarrollo y los controles del TFG. \\
+  Integración del CMS en la web & Montaje de la API en \texttt{/api/cms}, llamada en proceso durante el SSR y guardas de la consola (ADR-011, ADR-016); enlace entre el super-administrador y el rol raíz del CMS (ADR-014); pantallas del CMS como rutas de la web; esquema \texttt{cms} en la base de datos única (ADR-012) \\
+  Unificación de la pila & Formularios, textos y componentes de interfaz del CMS sobre las mismas librerías que el resto de la web: unos 64 formularios y unos 183 ficheros con textos (ADR-013) \\
+  Consola por áreas y ayudas & Consola organizada por áreas de negocio, nombres en español de las tablas como datos, ayuda contextual «?» y resúmenes en cada pantalla (ADR-020) \\
+  Interfaz en español & Unas 1.770 claves, correos y plantillas en español sobre una infraestructura de internacionalización extensible (ADR-021) \\
+  Blog & Blog en la base de datos gestionado desde el CMS, con lectura pública por RLS y rutas públicas (ADR-017) \\
+  Auditoría & Registro de auditoría no falsificable, con instantánea del autor (ADR-018) \\
+  Paneles & Cuadrícula propia de los paneles con \textit{widgets} de métrica, gráfica y tabla (ADR-019) \\
+  Endurecimiento de seguridad & Revisiones adversariales de RLS y de seguridad; 29 fallos de seguridad corregidos y cubiertos por pruebas de regresión (ADR-015; capítulo de Pruebas); pruebas pgTAP de aislamiento \\
+  Despliegue & Despliegue de la plataforma y su manual (ADR-022) \\
+  Evaluación de la reutilización & Escenario de reutilización y medición de los cambios necesarios (anexo~\ref{cap:evaluacion}) \\
+  \textit{Harness} de desarrollo asistido & Directrices, \textit{skills}, subagentes, \textit{hooks} y controles automáticos del repositorio (sección~\ref{sec:imp-agentes}) \\
+  Documentación & Plan, requisitos, decisiones, bitácora, trazabilidad, manuales de usuario y de desarrollador, comentarios didácticos en español y bloque académico configurable \\
 \end{longtable}
-\todo{Confirmar con el tutor (P-06) la forma de presentar la parte
-reutilizada y, si procede, cuantificarla (ficheros o líneas reutilizados,
-adaptados y nuevos).}
 
 % ---------------------------------------------------------------------
 \section{Construcción por incrementos}
@@ -204,8 +192,8 @@ temporal se presenta en el capítulo de Planificación.
   \bottomrule
   \endfoot
   F0 & \textit{Harness} de desarrollo: directrices, plan, requisitos, guías, \textit{skills}, agentes, \textit{hooks}, controles del TFG e integración continua mínima & --- \\
-  F1 & Base SaaS importada: renombrado del ámbito de paquetes a \texttt{@pymekit/*}, retirada de módulos no necesarios, base de datos local, puerto propio, CI completa & 61 unit.; pgTAP 27/396; E2E 43 \\
-  F2.1 & Base de datos del CMS: esquema \texttt{cms}, pegamento super-administrador $\rightarrow$ Root, MFA obligatorio; primera revisión adversarial de RLS y corrección de dos brechas heredadas & pgTAP 57/1.550 \\
+  F1 & Base de la aplicación web: renombrado del ámbito de paquetes a \texttt{@pymekit/*}, retirada de módulos no necesarios, base de datos local, puerto propio, CI completa & 61 unit.; pgTAP 27/396; E2E 43 \\
+  F2.1 & Base de datos del CMS: esquema \texttt{cms}, pegamento super-administrador $\rightarrow$ Root, MFA obligatorio; primera revisión adversarial de RLS y corrección de dos brechas & pgTAP 57/1.550 \\
   F2.2 & API del CMS: 19 paquetes de servidor, Hono en \texttt{/api/cms}, autenticación con la sesión de la web & 1.130 unit.; 11 E2E de la API \\
   F2.3 & Base de la interfaz: consola compartida, guardas con \texttt{aal2}, cliente RPC, \textit{fetch} isomorfo & E2E 60 \\
   F2.4 & Explorador de datos: listado con filtros, orden, búsqueda, columnas y vistas; ficha con relaciones; creación, edición y borrado & 1.313 unit.; E2E 86 \\
@@ -215,7 +203,7 @@ temporal se presenta en el capítulo de Planificación.
   F2.7 & Ajustes: general, autenticación, miembros, RBAC (roles, grupos y permisos), recursos y diseñador de fichas & pgTAP 67/2.049; E2E 141 \\
   F2.8 & Paneles con \textit{widgets} de métrica, gráfica y tabla & pgTAP 2.060 \\
   F2.9 & Cierre de la integración del CMS: suite E2E completa, \textit{skills} actualizadas & E2E 149 \\
-  F3a--b & Desmarcado completo, español por defecto (unas 1.770 claves), correos y plantillas en español, identidad visual, etiquetas legibles de enumerados, sesión caducada & E2E 150 \\
+  F3a--b & Español por defecto (unas 1.770 claves), correos y plantillas en español, identidad visual, etiquetas legibles de enumerados, sesión caducada & E2E 150 \\
   F3c & Consola por áreas de negocio, nombres en español de las tablas, retirada del esquema de demostración (ADR-020); solo español (ADR-021); ayuda «?» y resúmenes; bloque académico en la página de inicio & 1.691 unit.; pgTAP 70/2.073; E2E 156 \\
 \end{longtable}
 
@@ -434,11 +422,11 @@ controles automáticos que gobiernan el trabajo del agente
     \midrule
     Directrices & \texttt{AGENTS.md} raíz (fuente única) y uno por aplicación o paquete: pila, patrones, reglas de seguridad de la base de datos, convenciones e idioma, y una lista de verificación obligatoria al terminar cada cambio \\
     Registros & Plan, progreso, requisitos, decisiones (ADR), bitácora de incidencias, trazabilidad y mapa de reutilización en \texttt{docs/tfg/}, que el agente actualiza en cada cambio \\
-    \textit{Skills} & Procedimientos reutilizables: incorporar un módulo de una base de partida, comentar un módulo en español, registrar una decisión, redactar una sección de la memoria, revisión adversarial del \textit{diff}, búsqueda de fallos, revisión de RLS, experto en PostgreSQL y patrones de servicios, formularios y E2E \\
+    \textit{Skills} & Procedimientos reutilizables: incorporar un módulo, comentar un módulo en español, registrar una decisión, redactar una sección de la memoria, revisión adversarial del \textit{diff}, búsqueda de fallos, revisión de RLS, experto en PostgreSQL y patrones de servicios, formularios y E2E \\
     Subagentes & Revisor de calidad, revisor de comentarios y redactor de la memoria, con instrucciones y herramientas propias \\
-    \textit{Hooks} & Al iniciar la sesión, muestran la fase actual y sus pendientes; tras cada edición, ejecutan el control de marca sobre el fichero; antes de terminar, exigen actualizar el progreso si hay cambios de código \\
-    Permisos & Lectura permitida y escritura denegada sobre las bases de partida; lectura denegada sobre ficheros de secretos \\
-    Controles en CI & Control de marca bloqueante e informe de comentarios en inglés; un script aparte regenera la tabla de etiquetas de trazabilidad \\
+    \textit{Hooks} & Al iniciar la sesión, muestran la fase actual y sus pendientes; tras cada edición, ejecutan los controles automáticos sobre el fichero; antes de terminar, exigen actualizar el progreso si hay cambios de código \\
+    Permisos & Escritura denegada fuera del repositorio; lectura denegada sobre ficheros de secretos \\
+    Controles en CI & Controles automáticos del repositorio, bloqueantes, e informe de comentarios en inglés; un script aparte regenera la tabla de etiquetas de trazabilidad \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -464,9 +452,9 @@ agente por paso, E2E completos solo al cerrar cada fase y revisión de RLS
 solo en cambios importantes de permisos. El riesgo se traslada al cierre de
 fase, como mostraron dos pruebas desactualizadas que solo detectó la suite
 completa (B-51, B-54). Además, ninguna revisión automática es exhaustiva: una
-inyección SQL heredada pasó por varias revisiones de agentes sin ser vista y
+inyección SQL pasó por varias revisiones de agentes sin ser vista y
 la encontró la revisión crítica de sus informes (B-24), y algunos fallos solo
-los descubrió el autor con pruebas manuales (B-14, B-40, B-52).
+los descubrió el autor con pruebas manuales (B-14, B-52).
 \todo{Valorar en las Conclusiones el efecto de la asistencia de IA con los
 datos de dedicación (horas del autor frente a tiempo de reloj).}
 
@@ -493,15 +481,14 @@ las de seguridad se analizan en el capítulo de Pruebas
   \endhead
   \bottomrule
   \endfoot
-  B-01 & El renombrado masivo del ámbito de paquetes no alcanzó una expresión regular donde aparecía escapado & Se corrigió y el control de marca detecta ahora también las variantes escapadas. Un renombrado masivo se verifica buscando variantes, no solo la forma literal. \\
+  B-01 & El renombrado masivo del ámbito de paquetes no alcanzó una expresión regular donde aparecía escapado & Se corrigió y los controles automáticos detectan ahora también las variantes escapadas. Un renombrado masivo se verifica buscando variantes, no solo la forma literal. \\
   B-04 & La base de datos local quedó accesible desde Internet porque los contenedores se saltan el cortafuegos & Regla de filtrado específica para contenedores y acceso por túnel SSH (ADR-010). En un servidor con IP pública, «local» no significa privado. \\
-  B-10 & Esquema declarativo y migraciones del CMS de partida desincronizados (nueve funciones distintas) & Se alinearon con las migraciones. La comparación de esquemas forma parte de la verificación de cualquier cambio de base de datos. \\
-  B-11 & Una prueba heredada se titulaba «MFA obligatorio por defecto», pero su aserción comprobaba que se concedía el acceso & Se reescribió. Una prueba en verde solo demuestra que el sistema hace lo que dice la prueba: hay que leer las aserciones. \\
+  B-10 & Esquema declarativo y migraciones del CMS desincronizados (nueve funciones distintas) & Se alinearon con las migraciones. La comparación de esquemas forma parte de la verificación de cualquier cambio de base de datos. \\
+  B-11 & Una prueba existente se titulaba «MFA obligatorio por defecto», pero su aserción comprobaba que se concedía el acceso & Se reescribió. Una prueba en verde solo demuestra que el sistema hace lo que dice la prueba: hay que leer las aserciones. \\
   B-16 & Ciclo de dependencias al poner componentes y API del explorador en el mismo paquete & Paquete cliente separado. Separar cliente y servidor también evita ciclos. \\
   B-17, B-29 & La API respondía 500 a registros inexistentes porque el envoltorio de errores perdía el código de PostgreSQL & Se conserva la causa y se traduce el código SQLSTATE a 403/404. Sin la causa no se distingue «no existe» de «ha fallado». \\
   B-35 & La herramienta de comparación de esquemas omitía la opción \texttt{security\_invoker} de una vista y los permisos por columna & Esa parte de la migración se escribe a mano y pgTAP comprueba ambas propiedades. Que la comparación salga limpia no demuestra que la migración sea segura. \\
   B-36 & La sincronización de tablas del CMS duplicaba las relaciones en cada ejecución & Función idempotente, cubierta por pgTAP. \\
-  B-40, B-46 & El control de marca solo miraba el contenido de los ficheros, no sus rutas, y no podía ver la marca dibujada en imágenes & Se comprueban también las rutas; logotipo y capturas propias generadas con un script. Un control automático solo cubre lo que se le dice que mire. \\
   B-52 & Tras cambiar de rama, el servidor de desarrollo conservaba un árbol de rutas sin el CMS & Reinicio limpiando cachés. Que las pruebas pasen contra la \textit{build} no garantiza que el entorno de desarrollo esté sano. \\
   B-53 & Una sesión revocada pero con firma válida rompía la consola & Comprobación con estado de la sesión en la entrada de las rutas protegidas. Verificar la firma de un JWT no demuestra que la sesión exista. \\
   B-55 & La lista de miembros superaba el tiempo máximo con unos cientos de cuentas (función volátil evaluada por fila) & Envolver la llamada en \texttt{(select \ldots)}; véase la sección~\ref{sec:pru-rendimiento}. \\

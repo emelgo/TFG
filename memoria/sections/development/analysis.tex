@@ -468,6 +468,9 @@ miembros). Los roles forman una jerarquía mediante
 \texttt{hierarchy\_level} y cada uno tiene un conjunto de permisos por
 funcionalidad (\texttt{roles.manage}, \texttt{billing.manage},
 \texttt{settings.manage}, \texttt{members.manage} e \texttt{invites.manage}).
+Por defecto hay tres roles: propietario (\textit{owner}), con todos los
+permisos; encargado (\textit{manager}), que gestiona al personal y las
+invitaciones pero no la facturación; y miembro (\textit{member}) (ADR-024).
 El contenido del blog es la única información pensada para lectura
 anónima.
 

@@ -1,8 +1,15 @@
 
--- SECTION: ACCOUNT PERMISSIONS POLICIES
--- In this section, we define the account permissions policies. The account permissions policies are used to control the access to the account permissions table.
--- SELECT(cms.account_permissions)
--- Can the current user view an account permission?
+/*
+ * -------------------------------------------------------
+ * Sección: Políticas RLS del RBAC del CMS
+ * Controlan quién puede ver y modificar roles, permisos, grupos y sus
+ * asignaciones. Se apoyan en las funciones de 34-cms-permissions-functions.sql
+ * y siguen dos reglas: nadie actúa sobre cuentas o roles de rango igual o
+ * superior al suyo, y nadie puede conceder una capacidad que no tiene.
+ * -------------------------------------------------------
+ */
+-- Política SELECT sobre cms.account_permissions: ¿puede el usuario ver un
+-- permiso individual de una cuenta?
 -- [TFG] RNF-02 · B-47: las cuatro políticas de esta tabla comparan el rango
 -- propio con el de la cuenta afectada mediante `current_account_outranks`
 -- (antes, `get_user_max_role_rank` de las dos cuentas; esa función ya no
@@ -10,9 +17,9 @@
 create policy view_account_permissions on cms.account_permissions for
 select
   to authenticated using (
-    -- Users can see their own permissions
+    -- Cada usuario ve sus propios permisos.
     account_id = cms.get_current_user_account_id ()
-    -- Users with permission management rights can see permissions of users with lower rank
+    -- Quien gestiona permisos ve los de cuentas de rango inferior.
     or (
       cms.has_admin_permission (
         'permission'::cms.system_resource,
@@ -22,8 +29,8 @@ select
     )
   );
 
--- SELECT(cms.role_permissions)
--- Can the current user view a role permission?
+-- Política SELECT sobre cms.role_permissions: ¿puede el usuario ver qué
+-- permisos tiene un rol?
 -- [TFG] RNF-02 · Corrección de PymeKit: la condición heredada
 -- `ar.role_id = role_id` comparaba la columna consigo misma (dentro de la
 -- subconsulta `role_id` se resuelve como `ar.role_id`), así que cualquiera con
@@ -48,8 +55,8 @@ select
     )
   );
 
--- INSERT(cms.role_permissions)
--- Can the current user insert a role permission?
+-- Política INSERT sobre cms.role_permissions: ¿puede el usuario asignar un
+-- permiso a un rol?
 create policy insert_role_permissions on cms.role_permissions for INSERT to authenticated
 with
   check (
@@ -58,13 +65,13 @@ with
       'permission'::cms.system_resource,
       'insert'::cms.system_action
     )
-    -- The user may only attach a permission whose capability they themselves hold,
-    -- preventing escalation by binding an over-broad permission to an in-rank role.
+    -- Solo se puede asignar un permiso cuya capacidad tenga el propio usuario;
+    -- así nadie escala privilegios colgando un permiso demasiado amplio de un
+    -- rol de su rango.
     and cms.can_grant_permission (permission_id)
   );
 
--- UPDATE(cms.role_permissions)
--- Can the current user update a role permission?
+-- Política UPDATE sobre cms.role_permissions.
 -- [TFG] RNF-02 · Corrección de PymeKit (brecha heredada detectada en /rls-review).
 -- Sin WITH CHECK, PostgreSQL reutiliza el USING para la fila nueva y no
 -- comprobaba `can_grant_permission`: un miembro del personal con permiso
@@ -84,24 +91,24 @@ with
     and cms.can_grant_permission (permission_id)
   );
 
--- DELETE(cms.role_permissions)
--- Can the current user delete a role permission?
+-- Política DELETE sobre cms.role_permissions: exige poder actuar sobre el rol
+-- y el permiso de sistema `permission:delete`.
 create policy delete_role_permissions on cms.role_permissions for DELETE to authenticated using (
   cms.can_action_role (role_id, 'delete')
   and cms.has_admin_permission ('permission'::cms.system_resource, 'delete')
 );
 
--- SELECT(cms.permissions)
--- Can the current user view a permission?
+-- Política SELECT sobre cms.permissions: ¿puede el usuario ver el catálogo de
+-- permisos?
 create policy view_permissions on cms.permissions for
 select
   to authenticated using (
-    -- Any authenticated user with admin access can view the permissions table
+    -- Cualquier usuario con acceso al CMS puede ver el catálogo.
     cms.verify_admin_access ()
   );
 
--- INSERT(cms.permissions)
--- Can the current user insert a permission?
+-- Política INSERT sobre cms.permissions: crear un permiso exige
+-- `permission:insert`; asignarlo después ya pasa por can_grant_permission.
 create policy insert_permissions on cms.permissions for insert to authenticated
 with
   check (
@@ -111,17 +118,19 @@ with
     )
   );
 
--- UPDATE(cms.permissions)
--- Can the current user update a permission?
--- can_modify_permission enforces the admin permission AND the rank gate
--- (the user must out-rank every role that uses this permission), preventing a
--- low-rank admin from broadening a permission attached to their own role.
--- NOTE (bug-hunt 10x01): the in-place reshape re-delegation guard is enforced by the
--- BEFORE UPDATE trigger cms.enforce_permission_reshape_grantable (see 30-triggers.sql),
--- NOT here. A WITH CHECK cannot see the OLD row, so it cannot distinguish a capability
--- reshape from a metadata-only edit (name/description) and would over-block legitimate
--- edits of a powerful permission the caller doesn't personally hold. The trigger compares
--- OLD vs NEW and only re-validates when a capability-defining column actually changes.
+-- Política UPDATE sobre cms.permissions.
+-- can_modify_permission exige el permiso de administración Y la regla de
+-- rango (el usuario debe superar a todos los roles que usan el permiso), para
+-- que un administrador de rango bajo no pueda ampliar un permiso asignado a
+-- su propio rol.
+-- Nota (revisión de bugs 10x01): la protección contra "redelegar" cambiando la
+-- forma de un permiso en el sitio la aplica el disparador BEFORE UPDATE
+-- cms.enforce_permission_reshape_grantable (ver
+-- 34-cms-permissions-functions.sql), NO esta política. Un WITH CHECK no ve la
+-- fila antigua, así que no puede distinguir un cambio de capacidad de una
+-- edición solo de nombre o descripción, y bloquearía ediciones legítimas de un
+-- permiso potente que el usuario no tiene. El disparador compara OLD con NEW
+-- y solo vuelve a validar cuando cambia una columna que define la capacidad.
 create policy update_permissions on cms.permissions
 for update
   to authenticated using (
@@ -132,16 +141,15 @@ with
     cms.can_modify_permission (id, 'update'::cms.system_action)
   );
 
--- DELETE(cms.permissions)
--- Can the current user delete a permission?
--- can_delete_permission enforces the admin permission, the rank gate, and
--- refuses deletion of a permission still in use by roles/groups/accounts.
+-- Política DELETE sobre cms.permissions.
+-- can_delete_permission exige el permiso de administración y la regla de
+-- rango, y rechaza borrar un permiso que aún usan roles, grupos o cuentas.
 create policy delete_permissions on cms.permissions for DELETE to authenticated using (
   cms.can_delete_permission (id)
 );
 
--- INSERT(cms.account_permissions)
--- Can the current user insert an account permission?
+-- Política INSERT sobre cms.account_permissions: ¿puede el usuario conceder o
+-- denegar un permiso a una cuenta?
 create policy insert_account_permissions on cms.account_permissions for INSERT to authenticated
 with
   check (
@@ -150,12 +158,11 @@ with
       'insert'::cms.system_action
     )
     and cms.current_account_outranks (account_id)
-    -- The user may only grant a permission whose capability they themselves hold.
+    -- Solo se puede conceder un permiso cuya capacidad tenga el propio usuario.
     and cms.can_grant_permission (permission_id)
   );
 
--- UPDATE(cms.account_permissions)
--- Can the current user update an account permission?
+-- Política UPDATE sobre cms.account_permissions.
 -- [TFG] RNF-02 · Mismo arreglo que en update_role_permissions: el WITH CHECK
 -- impide cambiar `permission_id` por un permiso que el usuario no posee o
 -- `account_id` por una cuenta de rango igual o superior.
@@ -178,8 +185,8 @@ with
     and cms.can_grant_permission (permission_id)
   );
 
--- DELETE(cms.account_permissions)
--- Can the current user delete an account permission?
+-- Política DELETE sobre cms.account_permissions: exige `permission:delete` y un
+-- rango superior al de la cuenta afectada.
 create policy delete_account_permissions on cms.account_permissions for DELETE to authenticated using (
   cms.has_admin_permission (
     'permission'::cms.system_resource,
@@ -188,29 +195,26 @@ create policy delete_account_permissions on cms.account_permissions for DELETE t
   and cms.current_account_outranks (account_id)
 );
 
--- SECTION: PERMISSION GROUP PERMISSIONS POLICIES
--- In this section, we define the permission group permissions policies. The permission group permissions policies are used to control the access to the permission group permissions table.
--- SELECT(cms.permission_group_permissions)
--- Can the current user view a permission group permission?
+-- Políticas de cms.permission_group_permissions (permisos de cada grupo).
+-- Política SELECT: se ven los permisos de los grupos que el usuario puede ver.
 create policy view_permission_group_permissions on cms.permission_group_permissions for
 select
   to authenticated using (
     cms.can_view_permission_group (cms.get_current_user_account_id (), group_id)
   );
 
--- INSERT(cms.permission_group_permissions)
--- Can the current user insert a permission group permission?
+-- Política INSERT: añadir un permiso a un grupo.
 create policy insert_permission_group_permissions on cms.permission_group_permissions for INSERT to authenticated
 with
   check (
     cms.can_modify_permission_group_permissions (group_id, 'insert'::cms.system_action)
-    -- The user may only add a permission whose capability they themselves hold,
-    -- preventing injection of an over-privileged permission into a group they can modify.
+    -- Solo se puede añadir un permiso cuya capacidad tenga el propio usuario,
+    -- para que nadie inyecte un permiso excesivo en un grupo que sí puede
+    -- modificar.
     and cms.can_grant_permission (permission_id)
   );
 
--- UPDATE(cms.permission_group_permissions)
--- Can the current user update a permission group permission?
+-- Política UPDATE sobre cms.permission_group_permissions.
 -- [TFG] RNF-02 · Mismo arreglo: la fila nueva debe seguir cumpliendo que el
 -- usuario puede modificar el grupo destino y que posee el permiso asignado.
 create policy update_permission_group_permissions on cms.permission_group_permissions
@@ -224,51 +228,46 @@ with
     and cms.can_grant_permission (permission_id)
   );
 
--- DELETE(cms.permission_group_permissions)
--- Can the current user delete a permission group permission?
+-- Política DELETE sobre cms.permission_group_permissions.
 create policy delete_permission_group_permissions on cms.permission_group_permissions for DELETE to authenticated using (
   cms.can_modify_permission_group_permissions (group_id, 'delete'::cms.system_action)
 );
 
--- SELECT(cms.roles)
--- Can the current user view a role?
+-- Política SELECT sobre cms.roles: ¿puede el usuario ver los roles?
 create policy view_roles on cms.roles for
 select
   to authenticated using (
-    -- Any authenticated user with admin access can view the roles table
+    -- Cualquier usuario con acceso al CMS puede ver la lista de roles.
     cms.verify_admin_access ()
   );
 
--- UPDATE(cms.roles)
--- Can the current user update a role?
+-- Política UPDATE sobre cms.roles: solo sobre roles de rango inferior al propio.
 create policy update_roles on cms.roles
 for update
   to authenticated using (cms.can_action_role (id, 'update'))
 with
   check (cms.can_action_role (id, 'update'));
 
--- DELETE(cms.roles)
--- Can the current user delete a role?
+-- Política DELETE sobre cms.roles: la decide cms.can_delete_role.
 create policy delete_roles on cms.roles for DELETE to authenticated using (cms.can_delete_role (id));
 
--- INSERT(cms.roles)
--- Can the current user insert a role?
+-- Política INSERT sobre cms.roles: ¿puede el usuario crear un rol?
 create policy insert_roles on cms.roles for INSERT to authenticated
 with
   check (
-    -- The user must have the insert role permission AND
+    -- Hace falta el permiso `role:insert`...
     cms.has_admin_permission (
       'role'::cms.system_resource,
       'insert'::cms.system_action
     )
     and
-    -- The role rank must be less than the user's maximum role rank
+    -- ...y el rango del rol nuevo debe ser inferior al máximo del usuario.
     rank < cms.get_user_max_role_rank (cms.get_current_user_account_id ())
   );
 
 
--- SELECT(cms.account_roles)
--- Can the current user view an account role?
+-- Política SELECT sobre cms.account_roles: ¿puede el usuario ver qué rol tiene
+-- una cuenta?
 -- [TFG] RNF-02 · B-47: antes bastaba con tener acceso al CMS
 -- (`verify_admin_access`), así que cualquier miembro del personal (Soporte,
 -- por ejemplo) leía todas las asignaciones de roles, incluida la de Root.
@@ -288,12 +287,12 @@ select
     )
   );
 
--- INSERT(cms.account_roles)
--- Can the current user insert an account role?
+-- Política INSERT sobre cms.account_roles: ¿puede el usuario asignar un rol a
+-- una cuenta?
 create policy insert_account_roles on cms.account_roles for INSERT to authenticated
 with
   check (
-    -- We verify if the user can modify the account role
+    -- Lo decide can_modify_account_role (permiso y jerarquía de rangos).
     cms.can_modify_account_role (
       cms.get_current_user_account_id (),
       account_id,
@@ -302,8 +301,8 @@ with
     )
   );
 
--- UPDATE(cms.account_roles)
--- Can the current user update an account role?
+-- Política UPDATE sobre cms.account_roles: misma comprobación, antes y después
+-- del cambio.
 create policy update_account_roles on cms.account_roles
 for update
   to authenticated using (
@@ -324,8 +323,7 @@ with
     )
   );
 
--- DELETE(cms.account_roles)
--- Can the current user delete an account role?
+-- Política DELETE sobre cms.account_roles.
 create policy delete_account_roles on cms.account_roles for DELETE to authenticated using (
   cms.can_modify_account_role (
     cms.get_current_user_account_id (),
@@ -335,30 +333,28 @@ create policy delete_account_roles on cms.account_roles for DELETE to authentica
   )
 );
 
--- SELECT(cms.permission_groups)
--- Can the current user view a permission group?
+-- Política SELECT sobre cms.permission_groups: ¿puede el usuario ver un grupo
+-- de permisos?
 create policy view_permissions_groups on cms.permission_groups for
 select
   using (
     cms.can_view_permission_group (cms.get_current_user_account_id (), id)
   );
 
--- UPDATE(cms.permission_groups)
--- Can the current user update a permission group?
+-- Política UPDATE sobre cms.permission_groups.
 create policy update_permissions_groups on cms.permission_groups
 for update
   to authenticated using (
     cms.can_modify_permission_group (id, 'update'::cms.system_action)
   );
 
--- DELETE(cms.permission_groups)
--- Can the current user delete a permission group?
+-- Política DELETE sobre cms.permission_groups.
 create policy delete_permissions_groups on cms.permission_groups for DELETE to authenticated using (
   cms.can_modify_permission_group (id, 'delete'::cms.system_action)
 );
 
--- INSERT(cms.permission_groups)
--- Can the current user insert a permission group?
+-- Política INSERT sobre cms.permission_groups: crear un grupo vacío exige
+-- `permission:insert`; lo que se le añade después tiene sus propias políticas.
 create policy insert_permission_groups on cms.permission_groups for insert to authenticated
 with
   check (
@@ -368,18 +364,18 @@ with
     )
   );
 
--- SELECT(cms.role_permission_groups)
--- Can the current user view a role permission group?
+-- Política SELECT sobre cms.role_permission_groups: ¿puede el usuario ver qué
+-- grupos tiene un rol?
 create policy view_role_permission_groups on cms.role_permission_groups for
 select
   to authenticated using (
     cms.can_view_role_permission_group (cms.get_current_user_account_id (), role_id)
   );
 
--- INSERT(cms.role_permission_groups)
--- Can the current user insert a role permission group?
--- can_modify_role_permission_group only ranks the target role; can_grant_permission_group
--- is what constrains the capabilities being attached.
+-- Política INSERT sobre cms.role_permission_groups: ¿puede el usuario asignar
+-- un grupo a un rol?
+-- can_modify_role_permission_group solo comprueba el rango del rol destino;
+-- lo que limita las capacidades que se asignan es can_grant_permission_group.
 create policy insert_role_permission_groups on cms.role_permission_groups for insert to authenticated
 with
   check (
@@ -391,8 +387,7 @@ with
     and cms.can_grant_permission_group (group_id)
   );
 
--- UPDATE(cms.role_permission_groups)
--- Can the current user update a role permission group?
+-- Política UPDATE sobre cms.role_permission_groups.
 create policy update_role_permission_groups on cms.role_permission_groups
 for update
   to authenticated using (
@@ -412,8 +407,7 @@ with
     and cms.can_grant_permission_group (group_id)
   );
 
--- DELETE(cms.role_permission_groups)
--- Can the current user delete a role permission group?
+-- Política DELETE sobre cms.role_permission_groups.
 create policy delete_role_permission_groups on cms.role_permission_groups for DELETE to authenticated using (
   cms.can_modify_role_permission_group (
     cms.get_current_user_account_id (),

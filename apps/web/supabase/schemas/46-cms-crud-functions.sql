@@ -1,6 +1,20 @@
 
--- SECTION: GET RECORD BY KEYS
--- In this section, we define the get record by keys function. This function is used to get a record by its keys. We require SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+/*
+ * -------------------------------------------------------
+ * Sección: Funciones CRUD dinámicas del CMS
+ * El explorador de datos del CMS lee y escribe en cualquier tabla de la
+ * aplicación gestionada a través de estas funciones, que construyen SQL
+ * dinámico. Son `security definer` porque el personal no tiene permisos
+ * directos sobre esas tablas; a cambio, cada una valida los identificadores
+ * (contra el catálogo y con cms.sanitize_identifier), exige
+ * cms.verify_admin_access y comprueba con cms.has_data_permission la acción
+ * concreta antes de tocar nada.
+ * -------------------------------------------------------
+ */
+
+-- Función `cms.get_record_by_keys`: devuelve un registro por sus claves.
+-- `security definer` por el motivo explicado en la cabecera; el acceso se
+-- verifica con has_data_permission.
 create or replace function cms.get_record_by_keys (p_schema text, p_table text, p_key_values jsonb) RETURNS jsonb SECURITY DEFINER
 set
   row_security = off
@@ -172,8 +186,8 @@ grant
 execute on function cms.get_record_by_keys to authenticated,
 service_role;
 
--- SECTION: BUILD CRUD RESPONSE
--- In this section, we define the build crud response function. This function is used to build a response for the crud operations.
+-- Función `cms.build_crud_response`: construye la respuesta JSON común de las
+-- operaciones CRUD (éxito, datos y error).
 create or replace function cms.build_crud_response (
   p_success boolean,
   p_action cms.system_action,
@@ -195,9 +209,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Mutation Functions
--- SECTION: INSERT RECORD
--- In this section, we define the insert record function. This function is used to insert a record into a table. We require SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+-- Funciones de escritura.
+-- Función `cms.insert_record`: inserta un registro en una tabla. `security
+-- definer` por el motivo de la cabecera; el acceso se verifica con
+-- has_data_permission.
 create or replace function cms.insert_record (p_schema text, p_table text, p_data jsonb) RETURNS jsonb SECURITY DEFINER
 set
   row_security = off
@@ -440,8 +455,9 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.insert_record to authenticated;
 
--- SECTION: UPDATE RECORD
--- In this section, we define the update record function. This function is used to update a record in a table. We require SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+-- Función `cms._update_record_impl`: implementación interna de la
+-- actualización. `security definer`; el acceso se verifica con
+-- has_data_permission. No se concede a nadie (ver los `grant` del final).
 create or replace function cms._update_record_impl (
   p_schema text,
   p_table text,
@@ -646,8 +662,8 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: UPDATE RECORD BY ID
--- In this section, we define the update record by id function. This function is used to update a record in a table by its id. We require SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+-- Función `cms.update_record`: actualiza un registro por su id. Es el punto de
+-- entrada público y delega en _update_record_impl.
 create or replace function cms.update_record (
   p_schema text,
   p_table text,
@@ -671,8 +687,8 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.update_record to authenticated;
 
--- SECTION: UPDATE RECORD BY CONDITIONS
--- In this section, we define the update record by conditions function when a primary key is not provided. This function is used to update a record in a table by a set of conditions.
+-- Función `cms.update_record_by_conditions`: actualiza un registro a partir de
+-- un conjunto de condiciones, para tablas sin clave primaria simple.
 create or replace function cms.update_record_by_conditions (
   p_schema text,
   p_table text,
@@ -853,8 +869,9 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.update_record_by_conditions to authenticated;
 
--- SECTION: DELETE RECORD
--- In this section, we define the delete record function. This function is used to delete a record from a table. We require SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+-- Función `cms._delete_record_impl`: implementación interna del borrado.
+-- `security definer`; el acceso se verifica con has_data_permission. No se
+-- concede a nadie, porque acepta cláusulas WHERE en crudo (ver más abajo).
 create or replace function cms._delete_record_impl (
   p_schema text,
   p_table text,
@@ -967,8 +984,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: DELETE RECORD BY ID
--- In this section, we define the delete record by id function. This function is used to delete a record from a table by its id.
+-- Función `cms.delete_record`: borra un registro por su id.
 -- [TFG] RNF-02 · Corrección de PymeKit (BITACORA B-45): pasa a SECURITY
 -- DEFINER, igual que `update_record`, para que `authenticated` no necesite
 -- ejecutar directamente `_delete_record_impl`, que acepta cláusulas WHERE en
@@ -990,8 +1006,9 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.delete_record to authenticated;
 
--- SECTION: DELETE RECORD BY CONDITIONS
--- In this section, we define the delete record by conditions function. This function is used to delete a record from a table by its conditions. Uses SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+-- Función `cms.delete_record_by_conditions`: borra un registro a partir de sus
+-- condiciones. `security definer`; el acceso se verifica con
+-- has_data_permission.
 create or replace function cms.delete_record_by_conditions (
   p_schema text,
   p_table text,
@@ -1184,8 +1201,9 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.delete_record_by_conditions to authenticated;
 
--- SECTION: BUILD WHERE CLAUSE (FIXED)
--- This function builds a secure WHERE clause for queries with proper SQL injection prevention
+-- Función `cms.build_where_clause`: construye una cláusula WHERE segura a
+-- partir de los filtros recibidos, validando cada columna y citando cada
+-- valor para impedir la inyección SQL.
 create or replace function cms.build_where_clause (p_schema text, p_table text, p_filters jsonb) RETURNS text
 set
   row_security = off
@@ -1526,8 +1544,8 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql STABLE security definer;
 
--- SECTION: BUILD SORT CLAUSE
--- In this section, we define the build sort clause function. This function is used to build the sort clause for a query.
+-- Función `cms.build_sort_clause`: construye la cláusula ORDER BY validando
+-- las columnas.
 create or replace function cms.build_sort_clause (p_schema text, p_table text, p_sort jsonb) RETURNS text
 set
   search_path = '' as $$
@@ -1564,8 +1582,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- SECTION: QUERY TABLE
--- In this section, we define the query table function. This function is used to query a table. We require SECURITY DEFINER because we need to access to the end application's tables. Access is verified by the has_data_permission function.
+-- Función `cms.query_table`: consulta paginada, filtrada y ordenada de una
+-- tabla; es el punto de entrada del explorador de datos. `security definer`;
+-- el acceso se verifica con has_data_permission.
 create or replace function cms.query_table (
   p_schema text,
   p_table text,

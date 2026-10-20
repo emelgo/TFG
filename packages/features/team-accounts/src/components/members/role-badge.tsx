@@ -8,6 +8,9 @@ type Role = string;
 
 const roles = {
   owner: '',
+  // Rol intermedio para pymes (ADR-024): gestiona al personal, no la facturación
+  manager:
+    'bg-amber-50 hover:bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:hover:bg-amber-500/10',
   member:
     'bg-blue-50 hover:bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:hover:bg-blue-500/10',
 };

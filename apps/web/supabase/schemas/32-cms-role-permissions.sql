@@ -1,5 +1,9 @@
 
--- Role-permission assignments
+/*
+ * -------------------------------------------------------
+ * Sección: Permisos asignados a cada rol del CMS
+ * -------------------------------------------------------
+ */
 create table if not exists cms.role_permissions (
   role_id UUID not null references cms.roles (id) on delete CASCADE,
   permission_id UUID not null references cms.permissions (id) on delete CASCADE,
@@ -10,7 +14,7 @@ create table if not exists cms.role_permissions (
   conditions JSONB default null,
   metadata JSONB default '{}'::jsonb,
   primary key (role_id, permission_id),
-  -- Ensure valid_from is before valid_until
+  -- valid_from debe ser anterior a valid_until.
   constraint valid_time_range check (
     valid_from is null
     or valid_until is null
@@ -36,7 +40,7 @@ comment on column cms.role_permissions.conditions is 'The conditions of the perm
 
 comment on column cms.role_permissions.metadata is 'The metadata of the permission';
 
--- Grant access to the role_permissions table
+-- Permisos de tabla; la RLS decide qué puede hacer cada usuario.
 grant
 select
 ,
@@ -45,10 +49,10 @@ update,
 delete on table cms.role_permissions to authenticated,
 service_role;
 
--- RLS
+-- RLS activada; las políticas están en 40-cms-permissions-rls.sql.
 alter table cms.role_permissions ENABLE row LEVEL SECURITY;
 
--- Indexes
+-- Índices por rol y por permiso.
 create index idx_role_permissions_role_id on cms.role_permissions (role_id);
 
 create index idx_role_permissions_permission_id on cms.role_permissions (permission_id);

@@ -1,3 +1,15 @@
+/**
+ * Servicio de facturación de cuentas de equipo.
+ *
+ * Crea las sesiones de pago (*checkout*) y del portal de facturación del
+ * proveedor (Stripe) para un equipo. Lo llaman las *server functions* de
+ * `billing.functions.ts`; antes de hablar con la pasarela comprueba de nuevo
+ * la sesión y el permiso `billing.manage`, de modo que la autorización no
+ * depende solo del *middleware*. La pasarela concreta la elige
+ * `getBillingGatewayProvider` según la configuración.
+ *
+ * [TFG] RF-07 Pagos y suscripciones.
+ */
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type * as z from 'zod';
@@ -18,30 +30,29 @@ import pathsConfig from '#/config/paths.config.ts';
 
 import type { TeamCheckoutSchema } from './schema/team-billing.schema';
 
+/** Crea el servicio con el cliente de Supabase de la petición. */
 export function createTeamBillingService(client: SupabaseClient<Database>) {
   return new TeamBillingService(client);
 }
 
-/**
- * @name TeamBillingService
- * @description Service for managing billing for team accounts.
- */
+/** Operaciones de facturación de una cuenta de equipo. */
 class TeamBillingService {
   private readonly namespace = 'billing.team-account';
 
   constructor(private readonly client: SupabaseClient<Database>) {}
 
   /**
-   * @name createCheckout
-   * @description Creates a checkout session for a Team account.
+   * Crea una sesión de pago para un plan del equipo.
    *
-   * Returns the hosted-checkout `url` and/or the embedded `checkoutToken`. The
-   * Next.js version called `redirect(url)` for the hosted page; TanStack's
-   * `redirect()` cannot target external URLs, so we return the url and let the
-   * client navigate via `window.location.assign(url)`.
+   * Devuelve la `url` del pago alojado por el proveedor y/o el
+   * `checkoutToken` del pago incrustado. No redirige desde el servidor porque
+   * `redirect()` de TanStack no admite URL externas: el cliente navega con
+   * `window.location.assign(url)`.
+   *
+   * @throws Si no hay sesión, si falta el permiso `billing.manage` o si la
+   *   pasarela no crea la sesión.
    */
   async createCheckout(params: z.output<typeof TeamCheckoutSchema>) {
-    // we require the user to be authenticated
     const { data: user } = await requireUser(this.client);
 
     if (!user) {
@@ -62,15 +73,14 @@ class TeamBillingService {
 
     const api = createTeamAccountsApi(this.client);
 
-    // verify permissions to manage billing
+    // Defensa en profundidad: se repite aquí la comprobación del permiso
+    // `billing.manage`, aunque la server function ya la haga.
     const hasPermission = await api.hasPermission({
       userId,
       accountId,
       permission: 'billing.manage',
     });
 
-    // if the user does not have permission to manage billing for the account
-    // then we should not proceed
     if (!hasPermission) {
       logger.warn(
         ctx,
@@ -80,21 +90,20 @@ class TeamBillingService {
       throw new Error('Permission denied');
     }
 
-    // here we have confirmed that the user has permission to manage billing for the account
-    // so we go on and create a checkout session
     const service = await getBillingGatewayProvider(this.client);
 
-    // retrieve the plan from the configuration
-    // so we can assign the correct checkout data
+    // El plan se toma de billing.config.ts, nunca de lo que envía el cliente,
+    // para que no se pueda manipular el precio.
     const { plan, product } = getPlanDetails(params.productId, params.planId);
 
-    // Determine trial eligibility at the identity level: if the user already
-    // has billing history on any account they own, do not grant another trial.
-    // This prevents farming free trials by creating additional accounts (the
-    // per-account customer-id check below only suppresses trials on accounts
-    // that have been billed before). Uses the admin client to read across the
-    // user's own accounts, scoped to the authenticated user id after the
-    // billing.manage permission check above.
+    // El periodo de prueba se concede por persona, no por cuenta: si el usuario
+    // ya tiene historial de cobro en alguna cuenta suya, no recibe otro. Así se
+    // evita encadenar pruebas gratuitas creando equipos nuevos (la comprobación
+    // del cliente por cuenta solo cubre cuentas ya cobradas).
+    // Se usa el cliente administrador porque hay que leer todas las cuentas del
+    // usuario, no solo las que la RLS deja ver en este contexto; la consulta se
+    // limita al id del usuario autenticado y se hace después de comprobar el
+    // permiso.
     const ownerHasBillingHistory = await createAccountsApi(
       getSupabaseServerAdminClient(),
     ).ownerHasBillingHistory(userId);
@@ -103,17 +112,13 @@ class TeamBillingService {
       ? { ...plan, trialDays: undefined }
       : plan;
 
-    // find the customer ID for the account if it exists
-    // (eg. if the account has been billed before)
+    // Si la cuenta ya se cobró antes, se reutiliza su cliente del proveedor.
     const customerId = await api.getCustomerId(accountId);
     const customerEmail = user.email;
 
-    // the return URL for the checkout session
     const returnUrl = getCheckoutSessionReturnUrl(params.slug);
 
-    // get variant quantities
-    // useful for setting an initial quantity value for certain line items
-    // such as per seat
+    // Cantidad inicial de las líneas por puesto (número actual de miembros).
     const variantQuantities = await this.getVariantQuantities(
       plan.lineItems,
       accountId,
@@ -131,7 +136,6 @@ class TeamBillingService {
     let url: string | null | undefined;
 
     try {
-      // call the payment gateway to create the checkout session
       const checkout = await service.createCheckoutSession({
         accountId,
         plan: checkoutPlan,
@@ -166,9 +170,8 @@ class TeamBillingService {
 
     logger.info(ctx, `Checkout session created. Returning result to client...`);
 
-    // Return the hosted-checkout url and/or the embedded checkout token. The
-    // client navigates to `url` for hosted checkout, or renders the embedded
-    // checkout with `checkoutToken`.
+    // El cliente navega a `url` (pago alojado) o pinta el pago incrustado con
+    // `checkoutToken`.
     return {
       url: url ?? null,
       checkoutToken: checkoutToken ?? null,
@@ -176,13 +179,14 @@ class TeamBillingService {
   }
 
   /**
-   * @name createBillingPortalSession
-   * @description Creates a new billing portal session for a team account.
+   * Crea una sesión del portal de facturación del proveedor, donde el equipo
+   * gestiona su suscripción, métodos de pago y facturas.
    *
-   * Returns the billing portal `url`; the action wraps it as `{ url }` and the
-   * client navigates via `window.location.assign(url)`.
-   * @param accountId
-   * @param slug
+   * Devuelve la `url` del portal; la server function la envuelve como
+   * `{ url }` y el cliente navega con `window.location.assign(url)`.
+   *
+   * @throws Si no hay sesión, si falta `billing.manage` o si la cuenta aún no
+   *   tiene cliente en el proveedor.
    */
   async createBillingPortalSession({
     accountId,
@@ -212,15 +216,13 @@ class TeamBillingService {
 
     const api = createTeamAccountsApi(client);
 
-    // we require the user to have permissions to manage billing for the account
+    // Defensa en profundidad: mismo permiso que en createCheckout.
     const hasPermission = await api.hasPermission({
       userId,
       accountId,
       permission: 'billing.manage',
     });
 
-    // if the user does not have permission to manage billing for the account
-    // then we should not proceed
     if (!hasPermission) {
       logger.warn(
         {
@@ -250,7 +252,6 @@ class TeamBillingService {
       `Creating billing portal session...`,
     );
 
-    // get the billing gateway provider
     const service = await getBillingGatewayProvider(client);
 
     try {
@@ -261,7 +262,6 @@ class TeamBillingService {
         returnUrl,
       });
 
-      // return the billing portal url to the caller
       return url;
     } catch (error) {
       logger.error(
@@ -280,7 +280,8 @@ class TeamBillingService {
   }
 
   /**
-   * Retrieves variant quantities for line items.
+   * Calcula la cantidad inicial de las líneas por puesto (`per_seat`): el
+   * número actual de miembros del equipo.
    */
   private async getVariantQuantities(
     lineItems: z.output<typeof LineItemSchema>[],
@@ -292,11 +293,9 @@ class TeamBillingService {
     }> = [];
 
     for (const lineItem of lineItems) {
-      // check if the line item is a per seat type
       const isPerSeat = lineItem.type === 'per_seat';
 
       if (isPerSeat) {
-        // get the current number of members in the account
         const quantity = await this.getCurrentMembersCount(accountId);
 
         const item = {
@@ -308,7 +307,6 @@ class TeamBillingService {
       }
     }
 
-    // set initial quantity for the line items
     return variantQuantities;
   }
 
@@ -343,10 +341,12 @@ function getBillingPortalReturnUrl(accountSlug: string) {
   return getAccountUrl(pathsConfig.app.settingsBilling, accountSlug);
 }
 
+/** Construye la URL absoluta de una página del equipo sustituyendo `[account]`. */
 function getAccountUrl(path: string, slug: string) {
   return new URL(path, appConfig.url).toString().replace('[account]', slug);
 }
 
+/** Busca el producto y el plan en la configuración de facturación. */
 function getPlanDetails(productId: string, planId: string) {
   const product = billingConfig.products.find(
     (product) => product.id === productId,

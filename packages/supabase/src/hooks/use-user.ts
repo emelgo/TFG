@@ -6,6 +6,10 @@ import { useSupabase } from './use-supabase';
 
 const queryKey = ['supabase:user'];
 
+/**
+ * Consulta los datos del usuario de la sesión (a partir del JWT). Admite los
+ * datos iniciales que ya cargó el servidor para no repetir la petición.
+ */
 export function useUser(initialData?: JWTUserData | null) {
   const client = useSupabase();
 

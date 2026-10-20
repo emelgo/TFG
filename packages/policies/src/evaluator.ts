@@ -1,3 +1,14 @@
+/**
+ * Evaluador de políticas.
+ *
+ * Ejecuta un conjunto de políticas sobre un contexto y combina sus
+ * resultados con lógica ALL (todas deben permitir) o ANY (basta con una),
+ * cortando en cuanto el resultado está decidido. Admite dos estilos: el
+ * registro de definiciones declarativas (`definePolicy` + `PolicyRegistry`) y
+ * funciones de política sueltas agrupadas en `PolicyGroup`. Lo usan, por
+ * ejemplo, las reglas de invitación y de creación de equipos de
+ * `@pymekit/team-accounts`.
+ */
 import type { FeaturePolicyDefinition, PolicyErrorCode } from './declarative';
 import type { PolicyRegistry } from './registry';
 import type { PolicyContext, PolicyResult, PolicyStage } from './types';
@@ -9,25 +20,19 @@ const OPERATORS = {
 
 type Operator = (typeof OPERATORS)[keyof typeof OPERATORS];
 
-/**
- * Simple policy function type
- */
+/** Política expresada como una función asíncrona simple. */
 export type PolicyFunction<TContext extends PolicyContext = PolicyContext> = (
   context: Readonly<TContext>,
   stage?: PolicyStage,
 ) => Promise<PolicyResult>;
 
-/**
- * Policy group - just an array of policies with an operator
- */
+/** Grupo de políticas que se combinan con un operador ALL o ANY. */
 export interface PolicyGroup<TContext extends PolicyContext = PolicyContext> {
   operator: Operator;
   policies: PolicyFunction<TContext>[];
 }
 
-/**
- * Evaluation result
- */
+/** Resultado agregado de una evaluación. */
 export interface EvaluationResult {
   allowed: boolean;
   reasons: string[];
@@ -35,7 +40,8 @@ export interface EvaluationResult {
 }
 
 /**
- * LRU Cache for policy definitions with size limit
+ * Caché LRU (se descarta lo menos usado recientemente) de definiciones de
+ * política, con tamaño máximo para acotar la memoria.
  */
 class LRUCache<K, V> {
   private cache = new Map<K, V>();
@@ -49,7 +55,8 @@ class LRUCache<K, V> {
     const value = this.cache.get(key);
 
     if (value !== undefined) {
-      // Move to end (most recently used)
+      // Un Map conserva el orden de inserción: reinsertar la clave la pasa al
+      // final (la más reciente).
       this.cache.delete(key);
       this.cache.set(key, value);
     }
@@ -61,7 +68,7 @@ class LRUCache<K, V> {
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size >= this.maxSize) {
-      // Remove least recently used (first entry)
+      // La primera clave es la usada hace más tiempo.
       const firstKey = this.cache.keys().next().value;
 
       if (firstKey) {
@@ -80,8 +87,10 @@ class LRUCache<K, V> {
   }
 }
 
+/** Evaluador de políticas con caché de definiciones por registro. */
 export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
-  // Use WeakMap for registry references to allow garbage collection
+  // WeakMap: si un registro deja de usarse, su caché puede liberarse junto a
+  // él.
   private registryPolicyCache = new WeakMap<
     PolicyRegistry,
     LRUCache<string, FeaturePolicyDefinition<TContext>>
@@ -116,14 +125,13 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
     return definition;
   }
 
-  /**
-   * Clear all cached policies (useful for testing or memory management)
-   */
+  /** Vacía la caché (útil en pruebas o para liberar memoria). */
   clearCache(): void {
-    // Create new WeakMap to clear all references
+    // Un WeakMap no se puede vaciar; se sustituye por uno nuevo.
     this.registryPolicyCache = new WeakMap();
   }
 
+  /** Indica si el registro tiene alguna política aplicable a la fase. */
   async hasPoliciesForStage(
     registry: PolicyRegistry,
     stage?: PolicyStage,
@@ -154,7 +162,8 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
   }
 
   /**
-   * Evaluate a registry with support for stages and AND/OR logic
+   * Evalúa todas las políticas del registro aplicables a la fase y combina
+   * sus resultados con ALL (por defecto) o ANY.
    */
   async evaluate(
     registry: PolicyRegistry,
@@ -195,7 +204,8 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
       }
     }
 
-    // Handle edge case: empty policy list with ANY operator
+    // Con ANY y ninguna política aplicable no hay nada que permita la acción,
+    // así que se rechaza.
     if (results.length === 0 && operator === OPERATORS.ANY) {
       return {
         allowed: false,
@@ -212,9 +222,7 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
     return { allowed, reasons: allowed ? [] : reasons, results };
   }
 
-  /**
-   * Evaluate a single group of policies
-   */
+  /** Evalúa un grupo de políticas con su operador. */
   async evaluateGroup(
     group: PolicyGroup<TContext>,
     context: TContext,
@@ -231,7 +239,8 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
         reasons.push(result.reason);
       }
 
-      // Short-circuit logic
+      // Cortocircuito: en cuanto el resultado está decidido se deja de
+      // evaluar.
       if (group.operator === OPERATORS.ALL && !result.allowed) {
         return {
           allowed: false,
@@ -249,7 +258,6 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
       }
     }
 
-    // Final evaluation
     const allowed =
       group.operator === OPERATORS.ALL
         ? results.every((r) => r.allowed)
@@ -262,9 +270,7 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
     };
   }
 
-  /**
-   * Evaluate multiple groups in sequence
-   */
+  /** Evalúa varios grupos en orden; todos deben permitir la acción. */
   async evaluateGroups(
     groups: PolicyGroup<TContext>[],
     context: TContext,
@@ -278,7 +284,7 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
       allResults.push(...groupResult.results);
       allReasons.push(...groupResult.reasons);
 
-      // Stop on first failure
+      // Se detiene en el primer grupo que rechaza.
       if (!groupResult.allowed) {
         return {
           allowed: false,
@@ -295,9 +301,7 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
     };
   }
 
-  /**
-   * Evaluate a simple array of policies with ALL/ANY logic
-   */
+  /** Evalúa una lista de funciones de política con ALL o ANY. */
   async evaluatePolicies(
     policies: PolicyFunction<TContext>[],
     context: TContext,
@@ -308,9 +312,7 @@ export class PoliciesEvaluator<TContext extends PolicyContext = PolicyContext> {
   }
 }
 
-/**
- * Helper to create a policy function
- */
+/** Crea una función de política (ayuda de tipado). */
 export function createPolicy<TContext extends PolicyContext = PolicyContext>(
   evaluate: (
     context: Readonly<TContext>,
@@ -320,15 +322,16 @@ export function createPolicy<TContext extends PolicyContext = PolicyContext>(
   return evaluate;
 }
 
-/**
- * Helper policy results
- */
+/** Crea un resultado que permite la acción. */
 export const allow = (metadata?: Record<string, unknown>): PolicyResult => ({
   allowed: true,
   metadata,
 });
 
-// Function overloads for deny() to support both string and structured errors
+/**
+ * Crea un resultado que rechaza la acción. Admite un motivo en texto o un
+ * error estructurado (sobrecargas).
+ */
 export function deny(
   reason: string,
   metadata?: Record<string, unknown>,
@@ -359,18 +362,14 @@ export function deny(
   }
 }
 
-/**
- * Create a policies evaluator with optional configuration
- */
+/** Crea un evaluador de políticas (opcionalmente, con otro tamaño de caché). */
 export function createPoliciesEvaluator<
   TContext extends PolicyContext = PolicyContext,
 >(options?: { maxCacheSize?: number }) {
   return new PoliciesEvaluator<TContext>(options);
 }
 
-/**
- * Convert a registry-based policy to a simple policy function
- */
+/** Convierte una política del registro en una función de política simple. */
 export async function createPolicyFromRegistry<
   TContext extends PolicyContext = PolicyContext,
 >(registry: PolicyRegistry, policyId: string, config?: unknown) {
@@ -384,7 +383,8 @@ export async function createPolicyFromRegistry<
 }
 
 /**
- * Create multiple policy functions from registry policy IDs
+ * Convierte varias políticas del registro en funciones; cada elemento es un
+ * identificador o una pareja `[identificador, configuración]`.
  */
 export async function createPoliciesFromRegistry<
   TContext extends PolicyContext = PolicyContext,
@@ -393,10 +393,8 @@ export async function createPoliciesFromRegistry<
 
   for (const spec of policySpecs) {
     if (typeof spec === 'string') {
-      // Simple policy ID
       policies.push(await createPolicyFromRegistry(registry, spec));
     } else {
-      // Policy ID with config
       const [policyId, config] = spec;
       policies.push(await createPolicyFromRegistry(registry, policyId, config));
     }

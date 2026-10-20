@@ -1,20 +1,32 @@
 /**
- * Replace this file with your own billing configuration.
- * Update the configuration to match your billing provider and products.
+ * Configuración de la facturación (Stripe): proveedor, productos y planes.
+ *
+ * Es el punto de reutilización de RF-07: cada pyme sustituye estos planes por
+ * los suyos sin tocar el código de la pasarela. Los planes de partida están
+ * pensados para una pyme (ADR-025): «Básico», «Profesional» y «Empresa», cada
+ * uno con pago mensual y anual (dos meses gratis), en euros.
+ *
+ * Los precios y los identificadores son DE EJEMPLO. Cada `lineItems[].id`
+ * debe ser el id de un precio (`price_...`) creado en el panel de Stripe; el
+ * webhook lo usa para saber qué plan se ha contratado. Se leen de variables
+ * `VITE_STRIPE_PRICE_*` (públicas: un id de precio no es un secreto) para no
+ * tener que editar este fichero en cada entorno. Si no están definidas se
+ * usa un valor de relleno `price_ejemplo_*`, que permite arrancar la web y
+ * ver la página de precios, pero con el que Stripe rechazará el pago.
+ * Ver `docs/CONFIGURACION.md`.
  */
 import { BillingProviderSchema, createBillingSchema } from '@pymekit/billing';
 
-// The billing provider to use. This should be set in the environment variables
-// and should match the provider in the database. We also add it here so we can validate
-// your configuration against the selected provider at build time.
+// El proveedor sale de `VITE_BILLING_PROVIDER` y debe coincidir con
+// `config.billing_provider` en la base de datos. Se valida aquí para que un
+// valor erróneo falle al construir, no al primer cobro.
 const provider = BillingProviderSchema.parse(
   import.meta.env.VITE_BILLING_PROVIDER,
 );
 
-// Providers registered in the billing gateway registry
+// Proveedores con estrategia registrada en la pasarela
 // (packages/billing/gateway/src/server/services/billing-gateway/billing-gateway-registry.server.ts).
-// The billing schema also accepts 'lemon-squeezy' and 'paddle', but those
-// strategies are not registered in this kit and would only fail at runtime.
+// El esquema admite otros nombres, pero sin estrategia fallarían en ejecución.
 const registeredProviders: Array<typeof provider> = ['stripe'];
 
 if (!registeredProviders.includes(provider)) {
@@ -27,141 +39,166 @@ if (!registeredProviders.includes(provider)) {
   );
 }
 
+/**
+ * Id del precio de Stripe de un plan: el de la variable de entorno si está
+ * definida o, si no, un valor de relleno marcado claramente como ejemplo.
+ */
+function priceId(envValue: string | undefined, example: string) {
+  return envValue && envValue.length > 0
+    ? envValue
+    : `price_ejemplo_${example}`;
+}
+
 export default createBillingSchema({
-  // also update config.billing_provider in the DB to match the selected
   provider,
-  // products configuration. Las descripciones, insignias y características son
-  // claves i18n (`billing.plans.*`): la tabla de precios las traduce con
-  // `<Trans>` y, si no existieran, mostraría el texto tal cual.
+  // Las descripciones, insignias y características son claves i18n
+  // (`billing.plans.*`); la tabla de precios las traduce con `<Trans>`. El
+  // `name` del producto se muestra tal cual donde no hay clave
+  // `billing.plans.<id>.name`, por eso ya va en español.
   products: [
     {
-      id: 'starter',
-      name: 'Starter',
-      description: 'billing.plans.starter.description',
-      currency: 'USD',
+      id: 'basic',
+      name: 'Básico',
+      description: 'billing.plans.basic.description',
+      currency: 'EUR',
       badge: 'billing.plans.badges.value',
       plans: [
         {
-          name: 'Starter Monthly',
-          id: 'starter-monthly',
+          name: 'Básico mensual',
+          id: 'basic-monthly',
           paymentType: 'recurring',
           interval: 'month',
           lineItems: [
             {
-              id: 'price_1PBZTjKgHmU99VeOMbvSb4pO',
-              name: 'Starter',
-              cost: 9.99,
+              id: priceId(
+                import.meta.env.VITE_STRIPE_PRICE_BASIC_MONTHLY,
+                'basico_mensual',
+              ),
+              name: 'Cuota',
+              cost: 19,
               type: 'flat' as const,
             },
           ],
         },
         {
-          name: 'Starter Yearly',
-          id: 'starter-yearly',
+          name: 'Básico anual',
+          id: 'basic-yearly',
           paymentType: 'recurring',
           interval: 'year',
           lineItems: [
             {
-              id: 'starter-yearly',
-              name: 'Base',
-              cost: 99.99,
+              id: priceId(
+                import.meta.env.VITE_STRIPE_PRICE_BASIC_YEARLY,
+                'basico_anual',
+              ),
+              name: 'Cuota',
+              cost: 190,
               type: 'flat' as const,
             },
           ],
         },
       ],
       features: [
-        'billing.plans.features.auth',
-        'billing.plans.features.teams',
+        'billing.plans.features.website',
         'billing.plans.features.blog',
+        'billing.plans.features.auth',
+        'billing.plans.features.cms',
       ],
     },
     {
       id: 'pro',
-      name: 'Pro',
+      name: 'Profesional',
       badge: 'billing.plans.badges.popular',
       highlighted: true,
       description: 'billing.plans.pro.description',
-      currency: 'USD',
+      currency: 'EUR',
       plans: [
         {
-          name: 'Pro Monthly',
+          name: 'Profesional mensual',
           id: 'pro-monthly',
           paymentType: 'recurring',
           interval: 'month',
           lineItems: [
             {
-              id: 'price_1PGOAVI1i3VnbZTqc69xaypm',
-              name: 'Base',
-              cost: 19.99,
-              type: 'flat',
+              id: priceId(
+                import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY,
+                'profesional_mensual',
+              ),
+              name: 'Cuota',
+              cost: 49,
+              type: 'flat' as const,
             },
           ],
         },
         {
-          name: 'Pro Yearly',
+          name: 'Profesional anual',
           id: 'pro-yearly',
           paymentType: 'recurring',
           interval: 'year',
           lineItems: [
             {
-              id: 'price_pro_yearly',
-              name: 'Base',
-              cost: 199.99,
-              type: 'flat',
+              id: priceId(
+                import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY,
+                'profesional_anual',
+              ),
+              name: 'Cuota',
+              cost: 490,
+              type: 'flat' as const,
             },
           ],
         },
       ],
       features: [
-        'billing.plans.features.auth',
+        'billing.plans.features.everythingBasic',
         'billing.plans.features.teams',
-        'billing.plans.features.blog',
         'billing.plans.features.roles',
-        'billing.plans.features.cms',
+        'billing.plans.features.staff',
       ],
     },
     {
       id: 'enterprise',
-      name: 'Enterprise',
+      name: 'Empresa',
       description: 'billing.plans.enterprise.description',
-      currency: 'USD',
+      currency: 'EUR',
       plans: [
         {
-          name: 'Enterprise Monthly',
+          name: 'Empresa mensual',
           id: 'enterprise-monthly',
           paymentType: 'recurring',
           interval: 'month',
           lineItems: [
             {
-              id: 'price_enterprise-monthly',
-              name: 'Base',
-              cost: 29.99,
-              type: 'flat',
+              id: priceId(
+                import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE_MONTHLY,
+                'empresa_mensual',
+              ),
+              name: 'Cuota',
+              cost: 99,
+              type: 'flat' as const,
             },
           ],
         },
         {
-          name: 'Enterprise Yearly',
+          name: 'Empresa anual',
           id: 'enterprise-yearly',
           paymentType: 'recurring',
           interval: 'year',
           lineItems: [
             {
-              id: 'price_enterprise_yearly',
-              name: 'Base',
-              cost: 299.9,
-              type: 'flat',
+              id: priceId(
+                import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE_YEARLY,
+                'empresa_anual',
+              ),
+              name: 'Cuota',
+              cost: 990,
+              type: 'flat' as const,
             },
           ],
         },
       ],
       features: [
-        'billing.plans.features.auth',
-        'billing.plans.features.teams',
-        'billing.plans.features.blog',
-        'billing.plans.features.roles',
-        'billing.plans.features.cms',
+        'billing.plans.features.everythingPro',
+        'billing.plans.features.dashboards',
         'billing.plans.features.prioritySupport',
         'billing.plans.features.onboarding',
       ],

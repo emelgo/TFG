@@ -1,7 +1,9 @@
-// Export core types and interfaces
+// API pública del paquete de políticas de negocio.
+
+// Tipos base.
 export type { PolicyContext, PolicyResult, PolicyStage } from './types';
 
-// Export primary registry-based API
+// Definición declarativa de políticas.
 export { definePolicy } from './declarative';
 export type {
   FeaturePolicyDefinition,
@@ -10,11 +12,11 @@ export type {
   PolicyReason,
 } from './declarative';
 
-// Export policy registry (primary API)
+// Registro de políticas.
 export { createPolicyRegistry } from './registry';
 export type { PolicyRegistry } from './registry';
 
-// Export evaluator and bridge functions
+// Evaluador y funciones puente entre el registro y las funciones simples.
 export {
   createPolicy,
   createPoliciesEvaluator,
@@ -28,5 +30,5 @@ export type {
   EvaluationResult,
 } from './evaluator';
 
-// Export helper functions (for policy implementations)
+// Ayudas para implementar políticas.
 export { allow, deny } from './evaluator';

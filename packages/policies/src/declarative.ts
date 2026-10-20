@@ -1,65 +1,64 @@
+/**
+ * API declarativa para definir políticas.
+ *
+ * `definePolicy` crea una definición con identificador, fases en las que se
+ * aplica y un esquema opcional de configuración. Al evaluarla, el contexto
+ * se clona y se congela, de modo que una política no puede modificar los
+ * datos que verán las siguientes, y cualquier excepción se convierte en un
+ * rechazo (la política falla en cerrado).
+ */
 import type { z } from 'zod';
 
 import type { PolicyContext, PolicyResult, PolicyStage } from './types';
 
-/**
- * Error code for structured policy failures
- */
+/** Error estructurado de una política que rechaza una acción. */
 export interface PolicyErrorCode {
-  /** Machine-readable error code */
+  /** Código para la máquina (por ejemplo, para elegir el mensaje i18n). */
   code: string;
-  /** Human-readable error message */
+  /** Mensaje legible. */
   message: string;
-  /** Optional remediation instructions */
+  /** Indicaciones opcionales para resolverlo. */
   remediation?: string;
-  /** Additional metadata */
+  /** Metadatos adicionales. */
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Enhanced policy result with structured error information
- */
+/** Motivo de rechazo con la política y la fase que lo produjeron. */
 export interface PolicyReason extends PolicyErrorCode {
-  /** Policy ID that generated this reason */
+  /** Identificador de la política. */
   policyId: string;
-  /** Stage at which this reason was generated */
+  /** Fase en la que se produjo. */
   stage?: PolicyStage;
 }
 
-/**
- * Policy evaluator function with immutable context
- */
+/** Evaluador de una política ya ligado a un contexto inmutable. */
 export interface PolicyEvaluator<TContext extends PolicyContext> {
-  /** Evaluate the policy for a specific stage */
+  /** Evalúa la política en la fase indicada. */
   evaluate(stage?: PolicyStage): Promise<PolicyResult>;
 
-  /** Get the immutable context */
+  /** Devuelve el contexto (congelado). */
   getContext(): Readonly<TContext>;
 }
 
-/**
- * Policy definition factory configuration
- */
+/** Definición de una política tal y como se guarda en el registro. */
 export interface FeaturePolicyDefinition<
   TContext extends PolicyContext = PolicyContext,
   TConfig = unknown,
 > {
-  /** Unique policy identifier */
+  /** Identificador único. */
   id: string;
 
-  /** Optional stages this policy applies to */
+  /** Fases en las que se aplica (si se omite, en todas). */
   stages?: PolicyStage[];
 
-  /** Optional configuration schema for validation */
+  /** Esquema opcional para validar la configuración. */
   configSchema?: z.ZodType<TConfig>;
 
-  /** Factory function to create evaluator instances */
+  /** Crea un evaluador para un contexto y una configuración concretos. */
   create(context: TContext, config?: TConfig): PolicyEvaluator<TContext>;
 }
 
-/**
- * Helper function to create a successful policy result
- */
+/** Crea un resultado que permite la acción. */
 export function allow(metadata?: Record<string, unknown>): PolicyResult {
   return {
     allowed: true,
@@ -67,9 +66,7 @@ export function allow(metadata?: Record<string, unknown>): PolicyResult {
   };
 }
 
-/**
- * Helper function to create a failed policy result with structured error
- */
+/** Crea un resultado que rechaza la acción con un error estructurado. */
 export function deny(error: PolicyErrorCode): PolicyResult {
   return {
     allowed: false,
@@ -82,21 +79,19 @@ export function deny(error: PolicyErrorCode): PolicyResult {
   };
 }
 
-/**
- * Deep freeze an object and all its nested properties
- */
+/** Congela un objeto y, recursivamente, todas sus propiedades. */
 function deepFreeze<T>(obj: T, visited = new WeakSet()): Readonly<T> {
-  // Prevent infinite recursion with circular references
+  // Se recuerdan los objetos visitados para no entrar en un bucle infinito
+  // con referencias circulares.
   if (visited.has(obj as object)) {
     return obj;
   }
 
   visited.add(obj as object);
 
-  // Get all property names
   const propNames = Reflect.ownKeys(obj as object);
 
-  // Freeze properties before freezing self
+  // Primero las propiedades y después el propio objeto.
   for (const name of propNames) {
     const value = (obj as Record<string, unknown>)[name as string];
 
@@ -109,24 +104,26 @@ function deepFreeze<T>(obj: T, visited = new WeakSet()): Readonly<T> {
 }
 
 /**
- * Safe cloning that handles functions and other non-cloneable objects
+ * Clona un objeto aunque contenga funciones u otros valores que
+ * `structuredClone` no admite.
  */
 function safeClone<T>(obj: T): T {
   try {
     return structuredClone(obj);
   } catch {
-    // If structuredClone fails (e.g., due to functions), create a shallow clone
-    // and recursively clone cloneable properties
+    // structuredClone falla si hay funciones (por ejemplo, un cliente de
+    // Supabase en el contexto): se hace una copia superficial clonando cada
+    // propiedad que se pueda.
     if (obj && typeof obj === 'object') {
       const cloned = Array.isArray(obj) ? ([] as unknown as T) : ({} as T);
 
       for (const [key, value] of Object.entries(obj)) {
         try {
-          // Try to clone individual properties
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (cloned as any)[key] = structuredClone(value);
         } catch {
-          // If individual property can't be cloned (like functions), keep as-is
+          // Lo que no se puede clonar (como las funciones) se copia por
+          // referencia.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (cloned as any)[key] = value;
         }
@@ -135,41 +132,43 @@ function safeClone<T>(obj: T): T {
       return cloned;
     }
 
-    // For primitives or non-cloneable objects, return as-is
+    // Primitivos y objetos no clonables se devuelven tal cual.
     return obj;
   }
 }
 
 /**
- * Creates an immutable context wrapper
+ * Devuelve una copia congelada del contexto, para que ninguna política pueda
+ * alterar lo que evalúan las demás ni el objeto original de quien llama.
  */
 function createImmutableContext<T extends PolicyContext>(
   context: T,
 ): Readonly<T> {
-  // Safely clone the context, handling functions and other edge cases
   const cloned = safeClone(context);
 
-  // Deep freeze the object to make it immutable
   return deepFreeze(cloned);
 }
 
 /**
- * Factory function to define a policy with metadata and configuration
+ * Define una política con su identificador, fases, esquema de configuración
+ * y función de evaluación.
+ *
+ * @throws Al crear el evaluador, si la configuración no cumple `configSchema`.
  */
 export function definePolicy<
   TContext extends PolicyContext = PolicyContext,
   TConfig = unknown,
 >(config: {
-  /** Unique policy identifier */
+  /** Identificador único. */
   id: string;
 
-  /** Optional stages this policy applies to */
+  /** Fases en las que se aplica (si se omite, en todas). */
   stages?: PolicyStage[];
 
-  /** Optional configuration schema for validation */
+  /** Esquema opcional para validar la configuración. */
   configSchema?: z.ZodType<TConfig>;
 
-  /** Policy implementation function */
+  /** Implementación de la regla. */
   evaluate: (
     context: Readonly<TContext>,
     config?: TConfig,
@@ -182,7 +181,6 @@ export function definePolicy<
     configSchema: config.configSchema,
 
     create(context: TContext, policyConfig?: TConfig) {
-      // Validate configuration if schema is provided
       if (config.configSchema && policyConfig !== undefined) {
         const validation = config.configSchema.safeParse(policyConfig);
 
@@ -193,12 +191,12 @@ export function definePolicy<
         }
       }
 
-      // Create immutable context
       const immutableContext = createImmutableContext(context);
 
       return {
         async evaluate(stage?: PolicyStage) {
-          // Check if this policy should run at this stage
+          // Fuera de sus fases la política no opina: se da por superada y se
+          // marca como omitida.
           if (stage && config.stages && !config.stages.includes(stage)) {
             return allow({
               skipped: true,
@@ -213,7 +211,8 @@ export function definePolicy<
               stage,
             );
 
-            // Ensure metadata includes policy ID and stage
+            // Se añaden la política y la fase a los metadatos para poder
+            // rastrear qué regla decidió.
             return {
               ...result,
               metadata: {
@@ -223,6 +222,8 @@ export function definePolicy<
               },
             };
           } catch (error) {
+            // Un error al evaluar se trata como rechazo: ante la duda, la
+            // acción no se permite.
             return deny({
               code: 'POLICY_EVALUATION_ERROR',
               message:

@@ -8,8 +8,8 @@
 En este capítulo se presentan los objetivos de negocio y del sistema, los
 actores que interactúan con PymeKit y el catálogo de requisitos funcionales,
 no funcionales y de información. Al final se relaciona cada requisito con el
-apartado de la propuesta del TFG del que procede y se resume la brecha entre
-esos requisitos y las bases de código de partida.
+apartado de la propuesta del TFG del que procede y con el módulo de PymeKit
+que lo implementa.
 
 Los identificadores (OBN, OBS, RF, RNF, RI) son estables: se citan en el
 código mediante etiquetas \texttt{[TFG]}, en la matriz de trazabilidad del
@@ -261,46 +261,36 @@ código y las pruebas que lo verifican, se presenta en el capítulo de Pruebas
 \end{table}
 
 % ---------------------------------------------------------------------
-\section{Análisis GAP}
+\section{Trazabilidad con los módulos}
 \label{sec:req-gap}
 
-% PENDIENTE (P-06): redacción neutra acordada con el tutor; no se nombran las
-% bases de código de partida (ADR-007).
-Como se justifica en el capítulo de Planificación (ADR-001), PymeKit no parte
-de cero: se apoya en dos bases de código existentes, utilizadas con licencia.
-La primera es una base SaaS sobre la misma pila tecnológica, que ya resolvía
-la autenticación, el modelo de cuentas multi-tenant, los equipos y la
-facturación. La segunda es un CMS de administración de datos para el mismo
-tipo de base de datos, distribuido como aplicación de página única con su
-propia API. La tabla~\ref{tab:req-gap} resume qué cubría cada una frente a
-los requisitos y qué ha tenido que aportar el proyecto.
+La tabla~\ref{tab:req-gap} relaciona cada requisito con el módulo de PymeKit
+que lo implementa y con la solución adoptada. El detalle de cada módulo se
+presenta en el capítulo de Diseño, y las aportaciones del trabajo se resumen
+en el capítulo de Construcción (sección~\ref{sec:imp-reutilizacion}).
 
 \begin{table}[htbp]
   \centering
   \footnotesize
-  \caption{Brecha entre los requisitos y las bases de partida («sí»: cubierto; «parcial»: cubierto en parte; «no»: no cubierto).}
+  \caption{Trazabilidad entre los requisitos y los módulos de PymeKit.}
   \label{tab:req-gap}
-  \begin{tabularx}{\textwidth}{@{}lccX@{}}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{4.6cm}X@{}}
     \toprule
-    \textbf{Req.} & \textbf{Base SaaS} & \textbf{Base CMS} & \textbf{Aportación del proyecto} \\
+    \textbf{Req.} & \textbf{Módulo} & \textbf{Solución} \\
     \midrule
-    RF-01 & parcial & no & Blog en la base de datos con lectura pública por RLS; marca e identidad propias \\
-    RF-02--RF-05 & sí & no & Comprobación de sesión viva en las rutas protegidas; textos en español \\
-    RF-06, RF-07 & sí & no & Integración y pruebas; configuración como módulos opcionales \\
-    RF-08 & sí & no & Consola compartida con el CMS y MFA obligatorio en ella \\
-    RF-09 & no & parcial & Integración total en la web, reescritura de las pantallas, consola por áreas, nombres en español, endurecimiento de seguridad \\
-    RF-10, RF-11 & no & parcial & Auditoría no falsificable, autor conservado, paneles sin dependencias nuevas \\
-    RF-13 & parcial & parcial & Un único sistema de traducción y toda la interfaz en español \\
-    RNF-02, RNF-03 & parcial & parcial & Revisiones adversariales y corrección de brechas heredadas \\
-    RNF-05 & no & no & Comentarios didácticos en español y controles automáticos del TFG \\
+    RF-01 & \texttt{apps/web} (rutas públicas y área privada) & Página de inicio, precios y blog en la base de datos con lectura pública por RLS (ADR-017); identidad propia \\
+    RF-02 & \texttt{apps/web}, \texttt{packages/function-middleware} & \textit{Server functions} tipadas y validadas con \textit{middleware} de autenticación y de permisos \\
+    RF-03, RF-04 & \texttt{packages/features/auth} & Contraseña, enlace mágico, MFA y OAuth configurables; comprobación de sesión viva en las rutas protegidas \\
+    RF-05, RF-06 & \texttt{packages/features/accounts}, \texttt{team-accounts} & Cuentas personales y de equipo con roles y permisos por funcionalidad, aplicados por RLS \\
+    RF-07 & \texttt{packages/billing/*} & Planes, \textit{checkout}, portal de cliente y \textit{webhooks}, como módulo opcional configurable \\
+    RF-08 & \texttt{packages/features/admin} & Consola de super-administración compartida con el CMS y con MFA obligatorio \\
+    RF-09 & \texttt{packages/cms/*}, rutas \texttt{/admin/cms} y \texttt{/api/cms} & CMS integrado en la consola (ADR-011), organizado por áreas de negocio con nombres en español (ADR-020) y con seguridad endurecida (ADR-015) \\
+    RF-10 & \texttt{packages/cms/audit-logs} & Auditoría no falsificable que conserva el autor (ADR-018) \\
+    RF-11 & \texttt{packages/cms/dashboards} & Paneles con \textit{widgets} sin dependencias nuevas (ADR-019) \\
+    RF-12 & \texttt{packages/features/notifications}, \texttt{mailers}, \texttt{email-templates} & Notificaciones en la aplicación y correos transaccionales en español \\
+    RF-13 & \texttt{packages/i18n} & Un único sistema de traducción y toda la interfaz en español (ADR-021) \\
+    RNF-02, RNF-03 & \texttt{apps/web/supabase} (esquemas, RLS y pgTAP) & Autorización en la base de datos, revisiones adversariales y pruebas de aislamiento \\
+    RNF-05 & \texttt{scripts/tfg}, integración continua & Comentarios didácticos en español y controles automáticos del repositorio \\
     \bottomrule
   \end{tabularx}
 \end{table}
-
-La brecha más importante no está en la funcionalidad, sino en la
-\emph{integración} y en la \emph{seguridad}: las dos bases tenían modelos de
-autorización, sistemas de formularios y de traducción y enrutadores distintos,
-y el CMS de partida contenía fallos de control de acceso que se describen en
-los capítulos de Diseño y Pruebas. La distinción detallada entre lo
-reutilizado, lo adaptado y lo propio se presenta en el capítulo de
-Construcción (sección~\ref{sec:imp-reutilizacion}).

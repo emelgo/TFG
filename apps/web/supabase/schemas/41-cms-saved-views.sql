@@ -1,6 +1,12 @@
 
--- SECTION: SAVED VIEWS
--- In this section, we define the saved views table and the functions to check if a user can modify a saved view.
+/*
+ * -------------------------------------------------------
+ * Sección: Vistas guardadas del CMS
+ * Filtros, columnas y configuraciones del explorador de datos que el
+ * personal guarda para reutilizarlas. Son personales y se pueden compartir
+ * con roles (42-cms-saved-view-roles.sql).
+ * -------------------------------------------------------
+ */
 create table if not exists cms.saved_views (
   id UUID primary key default gen_random_uuid (),
   name VARCHAR(255) not null,
@@ -11,9 +17,9 @@ create table if not exists cms.saved_views (
   schema_name VARCHAR(64) not null,
   table_name VARCHAR(64) not null,
   foreign KEY (schema_name, table_name) references cms.table_metadata (schema_name, table_name) on delete CASCADE,
-  -- Ensure schema_name is valid
+  -- schema_name debe ser un identificador válido.
   constraint saved_views_schema_name_check check (schema_name ~ '^[a-zA-Z_][a-zA-Z0-9_]*$'),
-  -- Ensure table_name is valid
+  -- table_name debe ser un identificador válido.
   constraint saved_views_table_name_check check (table_name ~ '^[a-zA-Z_][a-zA-Z0-9_]*$')
 );
 
@@ -35,7 +41,7 @@ comment on column cms.saved_views.schema_name is 'The schema of the saved view';
 
 comment on column cms.saved_views.table_name is 'The table of the saved view';
 
--- Grants
+-- Permisos de tabla; la RLS decide sobre qué filas.
 grant
 select
 ,
@@ -44,5 +50,5 @@ update,
 delete on table cms.saved_views to authenticated,
 service_role;
 
--- RLS
+-- RLS activada; las políticas están en 43-cms-saved-views-rls.sql.
 alter table cms.saved_views ENABLE row LEVEL SECURITY;

@@ -1,3 +1,11 @@
+/**
+ * *Server function* de la pantalla para unirse a un equipo mediante una
+ * invitación (`/join`).
+ *
+ * [TFG] RF-05 · RNF-02: la invitación solo es válida para el email al que se
+ * envió, y el token se lee con el cliente administrador porque la columna
+ * `invite_token` no es visible para los usuarios (07-invitations.sql).
+ */
 import { redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import * as z from 'zod';
@@ -23,14 +31,15 @@ const JoinSearchSchema = z.object({
 });
 
 /**
- * Resolves the team-invitation join screen.
+ * Prepara la pantalla de aceptación de una invitación a un equipo.
  *
- * Requires an authenticated session whose email matches the invitation. Anonymous
- * visitors are forwarded to sign-up (MFA-pending users to the verify screen),
- * preserving the invite token so they return here afterwards. Already-members are
- * sent home. On success it returns everything `AcceptInvitationContainer` needs,
- * including the post-accept `nextPath` (the /identities setup step for brand-new
- * accounts that still need an auth method, otherwise the team home).
+ * Exige una sesión cuyo email coincida con el de la invitación. A los
+ * visitantes sin sesión se les envía al registro (y a quien tiene la MFA
+ * pendiente, a verificarla) conservando el token para que vuelvan aquí; a
+ * quien ya es miembro, a la portada. Si todo es correcto devuelve lo que
+ * necesita `AcceptInvitationContainer`, incluida la ruta siguiente (el paso
+ * de configurar un método de acceso para cuentas nuevas que lo necesiten o,
+ * si no, la portada del equipo).
  */
 export const fetchJoinInvitation = createServerFn({ method: 'GET' })
   .middleware([errorMiddleware])
@@ -40,8 +49,8 @@ export const fetchJoinInvitation = createServerFn({ method: 'GET' })
     const client = getSupabaseServerClient();
     const auth = await requireUser(client);
 
-    // Not signed in (or MFA-pending): route through the auth flow, carrying the
-    // invite token so the user lands back here once authenticated.
+    // Sin sesión (o con la MFA pendiente): se pasa por el flujo de
+    // autenticación llevando el token, para volver aquí al terminar.
     if (auth.error ?? !auth.data) {
       if (auth.error instanceof MultiFactorAuthError) {
         const next = `${pathsConfig.app.joinTeam}?invite_token=${token}&email=${
@@ -60,12 +69,16 @@ export const fetchJoinInvitation = createServerFn({ method: 'GET' })
       });
     }
 
+    // Cliente administrador: el usuario aún no es miembro y la columna
+    // invite_token no se concede a authenticated, así que solo así se puede
+    // buscar la invitación por su token. Justo debajo se valida a mano que el
+    // email coincide antes de devolver nada.
     const adminClient = getSupabaseServerAdminClient();
     const api = createTeamAccountsApi(client);
 
     const invitation = await api.getInvitation(adminClient, token);
 
-    // The invitation must exist and belong to the signed-in user's email.
+    // La invitación debe existir y ser para el email del usuario con sesión.
     const isInvitationValid =
       invitation &&
       invitation.email.toLowerCase() === auth.data.email?.toLowerCase();
@@ -74,7 +87,7 @@ export const fetchJoinInvitation = createServerFn({ method: 'GET' })
       return { status: 'invalid' as const };
     }
 
-    // If the user can already read the account, they are already a member.
+    // Si ya comparte equipo con la cuenta, ya es miembro.
     const { data: isAlreadyTeamMember } = await client.rpc(
       'is_account_team_member',
       { target_account_id: invitation.account.id },
@@ -95,16 +108,17 @@ export const fetchJoinInvitation = createServerFn({ method: 'GET' })
       throw redirect({ href: pathsConfig.app.home });
     }
 
-    // Signing in with a different account re-enters the flow via sign-in.
+    // Si quiere entrar con otra cuenta, vuelve al flujo por el inicio de
+    // sesión.
     const signOutNext = `${pathsConfig.auth.signIn}?invite_token=${token}`;
 
-    // The accept flow sets the joined team as the active account, so the user
-    // lands on the dashboard in that workspace.
+    // Al aceptar, el equipo pasa a ser la cuenta activa, así que el usuario
+    // llega al panel ya dentro de él.
     const accountHome = pathsConfig.app.home;
 
-    // Show the account-setup step (Step 2) only for brand-new accounts, and only
-    // when email-only auth (magic link / OTP) is NOT supported — otherwise the
-    // user already has a usable sign-in method.
+    // El paso de configurar la cuenta (paso 2) solo se muestra a cuentas
+    // nuevas y solo si NO hay acceso únicamente por email (enlace mágico u
+    // OTP); en ese caso el usuario ya tiene un método de acceso válido.
     const supportsEmailOnlyAuth =
       authConfig.providers.magicLink || authConfig.providers.otp;
 

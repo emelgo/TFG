@@ -1,11 +1,15 @@
 /*
  * -------------------------------------------------------
- * Section: Roles
- * We create the schema for the roles. Roles are the roles for an account. For example, an account might have the roles 'owner', 'admin', and 'member'.
+ * Sección: Roles de equipo
+ * Catálogo de roles que puede tener un miembro dentro de una cuenta de
+ * equipo (por ejemplo `owner` y `member`). Cada rol tiene un nivel de
+ * jerarquía único: cuanto menor es el número, más poder tiene, y un miembro
+ * solo puede gestionar a otros de nivel inferior al suyo. Los permisos de
+ * cada rol se definen en `role_permissions` (06-roles-permissions.sql).
  * -------------------------------------------------------
  */
 
--- Roles Table
+-- Tabla de roles.
 create table if not exists
   public.roles (
     name varchar(50) not null,
@@ -14,18 +18,18 @@ create table if not exists
     unique (hierarchy_level)
   );
 
--- Revoke all on roles table from authenticated and service_role
+-- Se retiran todos los permisos para concederlos después de forma explícita.
 revoke all on public.roles
 from
   anon,
   authenticated,
   service_role;
 
--- Open up access to roles table for authenticated users and service_role
+-- Solo lectura: los roles se crean por migración o semilla, nunca desde la API.
 grant
 select
 on table public.roles to authenticated,
 service_role;
 
--- RLS
+-- La política de lectura se define en 05-memberships.sql.
 alter table public.roles enable row level security;

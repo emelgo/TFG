@@ -61,7 +61,9 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3100',
+    // Se puede apuntar a otro servidor (por ejemplo, una build de test en
+    // otro puerto) sin tocar el fichero: E2E_BASE_URL=http://localhost:3300
+    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3100',
 
     // take a screenshot when a test fails
     screenshot: 'only-on-failure',

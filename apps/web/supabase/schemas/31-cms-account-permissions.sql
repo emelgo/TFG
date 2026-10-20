@@ -1,8 +1,12 @@
 
--- SECTION: ACCOUNT PERMISSIONS
--- In this section, we define the account permissions table and the functions to check if a user has permission for a specific resource.
---
--- This function is used to check if a user has permission for a specific permission. It can be reused for both system and data permissions.
+/*
+ * -------------------------------------------------------
+ * Sección: Permisos por cuenta del CMS
+ * Excepciones individuales al rol: permiten conceder (`is_grant = true`) o
+ * denegar explícitamente (`false`) un permiso a una cuenta concreta. Una
+ * denegación explícita prevalece sobre lo que conceda su rol.
+ * -------------------------------------------------------
+ */
 create table cms.account_permissions (
   account_id UUID not null references cms.accounts (id) on delete CASCADE,
   permission_id UUID not null references cms.permissions (id) on delete CASCADE,
@@ -13,7 +17,7 @@ create table cms.account_permissions (
   valid_until TIMESTAMPTZ,
   metadata JSONB default '{}'::jsonb,
   primary key (account_id, permission_id),
-  -- Ensure valid_from is before valid_until
+  -- valid_from debe ser anterior a valid_until.
   constraint valid_time_range check (
     valid_from is null
     or valid_until is null
@@ -39,7 +43,7 @@ comment on column cms.account_permissions.valid_until is 'The time the permissio
 
 comment on column cms.account_permissions.metadata is 'The metadata of the permission';
 
--- Grant access to the account_permissions table
+-- Permisos de tabla; la RLS decide qué puede hacer cada usuario.
 grant
 select
 ,
@@ -48,5 +52,5 @@ update,
 delete on table cms.account_permissions to authenticated,
 service_role;
 
--- RLS
+-- RLS activada; las políticas están en 40-cms-permissions-rls.sql.
 alter table cms.account_permissions ENABLE row LEVEL SECURITY;

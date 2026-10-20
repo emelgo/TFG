@@ -285,6 +285,21 @@ test.describe('Team Member Role Management', () => {
         .locator('[data-testid="member-role-badge"]'),
     ).toHaveText('Propietario');
   });
+
+  // Rol intermedio para pymes (F5 · ADR-024)
+  test('owner can promote a member to manager («Encargado»)', async ({
+    page,
+  }) => {
+    const { teamAccounts, memberEmail } = await setupTeamWithMember(page);
+
+    await teamAccounts.updateMemberRole(memberEmail, 'manager');
+
+    await expect(
+      page
+        .getByRole('row', { name: memberEmail })
+        .locator('[data-testid="member-role-badge"]'),
+    ).toHaveText('Encargado');
+  });
 });
 
 test.describe('Team Ownership Transfer', () => {

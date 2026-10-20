@@ -457,9 +457,10 @@ BEGIN
   -- First check if admin role exists and create it if not
   IF NOT EXISTS (SELECT 1 FROM public.roles WHERE name = 'admin') THEN
     INSERT INTO public.roles (name, hierarchy_level)
+    -- El nivel libre se calcula sobre TODOS los roles: desde la F5 `member`
+    -- tiene el nivel 3 (ADR-024) y el 4 lo ocupa el rol personalizado del seed
     SELECT 'admin', COALESCE(MAX(hierarchy_level), 0) + 1
-    FROM public.roles
-    WHERE name IN ('owner', 'member');
+    FROM public.roles;
   END IF;
   
   -- Clear and set up permissions for the roles

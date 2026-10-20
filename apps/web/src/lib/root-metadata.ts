@@ -1,11 +1,10 @@
 import appConfig from '#/config/app.config.ts';
 
 /**
- * @name buildCanonicalLink
- * @description Absolute `<link rel="canonical">` for the current path, sourced
- * from `appConfig.url`. Prevents trailing-slash / query-string / www-vs-apex URL
- * variants from being indexed as separate duplicate documents. Single-locale, so
- * no `hreflang` alternates are emitted (unlike the multi-locale drizzle sibling).
+ * Construye el `<link rel="canonical">` absoluto de la ruta actual a partir de
+ * `appConfig.url`. Evita que los buscadores indexen como páginas duplicadas
+ * las variantes de una URL (barra final, parámetros, con o sin www). La web
+ * tiene un único idioma, así que no se emiten alternativas `hreflang`.
  */
 export function buildCanonicalLink(pathname: string) {
   const path = pathname === '/' ? '' : pathname;
@@ -14,10 +13,9 @@ export function buildCanonicalLink(pathname: string) {
 }
 
 /**
- * @name getRootHead
- * @description Build the default document `<head>` meta + links (title,
- * description, Open Graph, Twitter, icons). Returned from the root route
- * `head()`; individual routes override these per page.
+ * Construye los `meta` y `link` por defecto del `<head>` (título,
+ * descripción, Open Graph, Twitter e iconos). Lo devuelve el `head()` de la
+ * ruta raíz y cada ruta puede sobrescribirlos.
  */
 export function getRootHead() {
   const title = appConfig.title;
@@ -37,8 +35,8 @@ export function getRootHead() {
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
-      // TODO(migration): csrf-token meta (read x-csrf-token request header via
-      // CSP/csrf middleware — CSP not ported)
+      // TODO(futuro): meta csrf-token. Requiere un middleware CSRF que genere
+      // la cabecera x-csrf-token, que todavía no existe en la web.
     ],
     links: [
       { rel: 'icon', href: '/images/favicon/favicon.ico' },

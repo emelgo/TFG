@@ -1,7 +1,10 @@
 
--- SECTION: PERMISSION GROUPS PERMISSIONS
--- In this section, we define the permission groups permissions table and the functions to check if a user can modify a permission group.
---
+/*
+ * -------------------------------------------------------
+ * Sección: Permisos de cada grupo de permisos del CMS
+ * Tabla intermedia entre grupos y permisos.
+ * -------------------------------------------------------
+ */
 create table if not exists cms.permission_group_permissions (
   group_id UUID not null references cms.permission_groups (id) on delete CASCADE,
   permission_id UUID not null references cms.permissions (id) on delete CASCADE,
@@ -34,8 +37,8 @@ update,
 delete on table cms.permission_group_permissions to authenticated,
 service_role;
 
--- RLS
+-- RLS activada; las políticas están en 40-cms-permissions-rls.sql.
 alter table cms.permission_group_permissions ENABLE row LEVEL SECURITY;
 
--- Indexes
+-- Índice por grupo.
 create index idx_permission_group_permissions_group on cms.permission_group_permissions (group_id);

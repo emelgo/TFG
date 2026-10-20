@@ -77,10 +77,11 @@ test.describe('CMS: personal de soporte con MFA', () => {
     await expect(cms.managementGroup()).toBeVisible();
     await expect(cms.homeEntry()).toHaveCount(0);
 
-    // El rol «Soporte» solo lee dos tablas y la auditoría: ni usuarios de
-    // Auth ni almacenamiento.
+    // El rol «Soporte» (plantilla de la F5, ADR-026) lee dos tablas, los
+    // usuarios y la auditoría, pero no el almacenamiento.
     await cms.expectCmsSections([
       'resources',
+      'users',
       'auditLogs',
       'dashboards',
       'settings',
@@ -109,7 +110,7 @@ test.describe('CMS: personal de soporte con MFA', () => {
   }) => {
     const cms = new CmsPageObject(page);
 
-    await page.goto('/admin/cms/users');
+    await page.goto('/admin/cms/storage');
 
     await expect(cms.notFound()).toBeVisible();
   });

@@ -1,15 +1,24 @@
 
--- SECTION: PERMISSIONS
--- In this section, we define the permissions table and the functions to check if a user has permission for a specific resource.
---
+/*
+ * -------------------------------------------------------
+ * Sección: Permisos del CMS
+ * Catálogo de permisos del RBAC del panel de administración. Hay dos tipos:
+ *  - `system`: acción sobre un recurso del propio CMS (cuentas, roles,
+ *    registros...).
+ *  - `data`: acción sobre datos de la aplicación, con alcance de tabla, de
+ *    columna o de almacenamiento (bucket y patrón de ruta).
+ * Las restricciones CHECK garantizan que cada fila rellene solo los campos
+ * de su tipo, para que no haya permisos ambiguos.
+ * -------------------------------------------------------
+ */
 create table if not exists cms.permissions (
   id UUID primary key default gen_random_uuid (),
   name VARCHAR(100) not null unique,
   description varchar(500),
   permission_type cms.permission_type not null, -- 'system' or 'data'
-  -- For system permissions
+  -- Para permisos de sistema:
   system_resource cms.system_resource,
-  -- For data permissions
+  -- Para permisos de datos:
   scope cms.permission_scope,
   schema_name VARCHAR(64),
   table_name VARCHAR(64),
@@ -20,7 +29,7 @@ create table if not exists cms.permissions (
   metadata JSONB default '{}'::jsonb,
   created_at TIMESTAMPTZ not null default NOW(),
   updated_at TIMESTAMPTZ not null default NOW(),
-  -- Ensure appropriate fields are filled based on type
+  -- Cada tipo de permiso debe rellenar exactamente sus campos.
   constraint valid_permission_type check (
     (
       permission_type = 'system'
@@ -74,15 +83,15 @@ create table if not exists cms.permissions (
       )
     )
   ),
-  -- Ensure name is unique
+  -- El nombre es único.
   constraint permissions_name_unique unique (name),
-  -- Ensure schema_name is valid when scope is table or column
+  -- schema_name es obligatorio si el alcance es tabla o columna.
   constraint permissions_schema_name_check check (
     scope = 'storage'
     or schema_name ~ '^[a-zA-Z_][a-zA-Z0-9_]*$'
     or schema_name = '*'
   ),
-  -- Ensure column_name is valid when scope is table or column
+  -- column_name solo tiene sentido con alcance de columna.
   constraint permissions_column_name_check check (
     scope = 'storage'
     or column_name ~ '^[a-zA-Z_][a-zA-Z0-9_]*$'
@@ -122,7 +131,7 @@ comment on column cms.permissions.created_at is 'The creation time of the permis
 
 comment on column cms.permissions.updated_at is 'The last update time of the permission';
 
--- Grant access to the permissions table
+-- Permisos de tabla; la RLS decide qué puede hacer cada usuario.
 grant
 select
 ,
@@ -131,10 +140,10 @@ update,
 delete on table cms.permissions to authenticated,
 service_role;
 
--- Indexes
+-- Índices para las búsquedas de permisos por tipo y recurso, y por alcance.
 create index idx_permissions_type_resource on cms.permissions (permission_type, system_resource);
 
 create index idx_permissions_scope_schema_table on cms.permissions (scope, schema_name, table_name);
 
--- RLS
+-- RLS activada; las políticas están en 40-cms-permissions-rls.sql.
 alter table cms.permissions ENABLE row LEVEL SECURITY;

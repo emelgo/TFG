@@ -277,7 +277,10 @@ SELECT pg_catalog.setval('"public"."invitations_id_seq"', 19, true);
 -- Name: role_permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('"public"."role_permissions_id_seq"', 7, true);
+-- Se sincroniza con el máximo real en lugar de un valor fijo: las
+-- migraciones de datos (por ejemplo, el rol «Encargado» de la F5) añaden
+-- filas y un valor fijo más bajo haría chocar la siguiente inserción.
+SELECT pg_catalog.setval('"public"."role_permissions_id_seq"', (SELECT max(id) FROM public.role_permissions), true);
 
 
 --
@@ -325,7 +328,8 @@ select cms.sync_managed_tables('auth', 'users');
 --    sesión aal2 (el CMS exige MFA por defecto);
 --  - una cuenta activa en `cms.accounts` con el rol «Soporte» (rango 30, muy
 --    por debajo de Root, 100), que solo puede LEER dos tablas de `public`
---    (`accounts` y `accounts_memberships`) y el registro de auditoría.
+--    (`accounts` y `accounts_memberships`), los usuarios y el registro de
+--    auditoría.
 --
 -- Todo se inserta como `postgres` (propietario de las tablas), por eso las
 -- políticas RLS no intervienen; los identificadores son fijos para que las
@@ -370,30 +374,10 @@ insert into cms.accounts (id, auth_user_id, is_active, metadata)
 values ('6a0f3e2d-1c4b-4a59-8e7d-3b2c1a0f9e8d', 'd3c1a6f2-7b54-4e0a-9c8d-2f6e5b4a3c21', true,
         '{"username": "Soporte", "picture_url": ""}');
 
--- Rol «Soporte»: rango 30. El rango es único en `cms.roles` y decide la
--- jerarquía (un rol solo gestiona a los de rango inferior), así que este
--- personal no puede tocar a nadie con Root.
-insert into cms.roles (id, name, description, rank)
-values ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', 'Soporte',
-        'Personal de soporte: lectura de cuentas y del registro de auditoría', 30);
-
--- Permisos de solo lectura (`select`). Los de datos van por tabla concreta,
--- sin comodines: el explorador solo le mostrará estas dos tablas.
-insert into cms.permissions (id, name, description, permission_type, system_resource, scope, schema_name, table_name,
-                             action)
-values ('1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', 'Soporte: leer public.accounts',
-        'Lectura de las cuentas (personales y de equipo)', 'data', null, 'table', 'public', 'accounts', 'select'),
-       ('2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e', 'Soporte: leer public.accounts_memberships',
-        'Lectura de los miembros de las cuentas de equipo', 'data', null, 'table', 'public', 'accounts_memberships',
-        'select'),
-       ('3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f', 'Soporte: leer auditoría',
-        'Lectura del registro de auditoría del CMS', 'system', 'log', null, null, null, 'select');
-
-insert into cms.role_permissions (role_id, permission_id)
-values ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d'),
-       ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e'),
-       ('9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e', '3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f');
-
+-- El rol «Soporte» (rango 30) y sus permisos de solo lectura no se crean
+-- aquí: forman parte de la plantilla de roles del CMS, que llega también a
+-- producción con la migración `20261020120100_cms_role_templates.sql`
+-- (ADR-026). El *seed* solo le asigna el rol al usuario de pruebas.
 insert into cms.account_roles (account_id, role_id)
 values ('6a0f3e2d-1c4b-4a59-8e7d-3b2c1a0f9e8d', '9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e');
 

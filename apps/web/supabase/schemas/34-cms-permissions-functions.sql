@@ -1,6 +1,22 @@
 
--- SECTION: PERMISSIONS
--- This function is used to check if a user has permission for a specific permission. It can be reused for both system and data permissions. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+/*
+ * -------------------------------------------------------
+ * Sección: Funciones de autorización del CMS
+ * Núcleo del RBAC del panel de administración: deciden si una cuenta tiene
+ * un permiso (de sistema, de datos o de almacenamiento), si puede delegarlo
+ * a otros y si puede gestionar roles, cuentas y grupos de permisos. Casi
+ * todas son `security definer` porque las invocan las políticas RLS de las
+ * propias tablas de roles y permisos: si se ejecutaran con los permisos del
+ * usuario, volverían a disparar esas políticas y entrarían en recursión
+ * infinita. Para no convertirse en un oráculo, las que reciben una cuenta
+ * como parámetro solo responden sobre la cuenta de la sesión.
+ * -------------------------------------------------------
+ */
+
+-- Función `cms.has_permission`: indica si una cuenta tiene un permiso concreto,
+-- por su rol, por sus grupos o por una concesión individual, y sin una
+-- denegación explícita vigente. Sirve tanto para permisos de sistema como de
+-- datos. Es `security definer` para evitar la recursión con las políticas RLS.
 create or replace function cms.has_permission (p_account_id UUID, p_permission_id UUID) RETURNS BOOLEAN security definer
 set
   row_security = off
@@ -67,8 +83,10 @@ revoke execute on function cms.has_permission (uuid, uuid) from public, anon, au
 
 grant execute on function cms.has_permission (uuid, uuid) to service_role;
 
--- SECTION: SYSTEM PERMISSIONS
--- This function is used to check if a user has system permission for a specific system resource. System resources are resources that belong to CMS itself, not the end application being managed. For example: table, role, permission, etc. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+-- Función `cms.has_admin_permission`: indica si el usuario actual tiene un
+-- permiso de sistema sobre un recurso del propio CMS (cuentas, roles,
+-- permisos, registros...), no sobre los datos de la aplicación gestionada.
+-- Es `security definer` para evitar la recursión con las políticas RLS.
 create or replace function cms.has_admin_permission (
   p_resource cms.system_resource,
   p_action cms.system_action
@@ -491,8 +509,11 @@ grant
 execute on FUNCTION cms.storage_capability_is_grantable to authenticated;
 
 
--- SECTION: DATA PERMISSIONS
--- This function is used to check if a user has data permission for a specific data resource. Data resources are data that belongs to the end application being managed, not CMS itself. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+-- Función `cms.has_data_permission`: indica si el usuario actual puede hacer
+-- una acción sobre una tabla o columna de la aplicación gestionada (no del
+-- propio CMS). Es la comprobación que usan las funciones CRUD dinámicas y la
+-- búsqueda global. Es `security definer` para evitar la recursión con las
+-- políticas RLS.
 create or replace function cms.has_data_permission (
   p_action cms.system_action,
   p_schema_name VARCHAR,
@@ -706,8 +727,8 @@ execute on FUNCTION cms.can_grant_permission to authenticated,
 service_role;
 
 
--- SECTION: GET USER MAX ROLE rank
--- In this section, we define the get user max role rank function. This function is used to get the maximum role rank for a specific account.
+-- Función `cms.get_user_max_role_rank`: devuelve el rango máximo de los roles
+-- vigentes de una cuenta.
 --
 -- [TFG] RNF-02 · B-47: con una sesión de la API (`authenticated`) solo
 -- responde sobre la cuenta de la sesión, salvo que quien pregunta pueda
@@ -869,8 +890,9 @@ grant
 execute on FUNCTION cms.can_view_permission_group to authenticated,
 service_role;
 
--- SECTION: LOCK ORDERING UTILITIES
--- Create a function to lock multiple resources in a consistent order
+-- Función `cms.lock_resources_ordered`: bloquea varias filas (cuentas, roles,
+-- permisos, grupos) siempre en el mismo orden para evitar interbloqueos
+-- cuando dos transacciones modifican recursos relacionados a la vez.
 create or replace function cms.lock_resources_ordered (
   p_accounts UUID[] default '{}'::UUID[],
   p_roles UUID[] default '{}'::UUID[],
@@ -927,8 +949,10 @@ $$ LANGUAGE plpgsql;
 -- `authenticated`.
 revoke execute on function cms.lock_resources_ordered (uuid[], uuid[], uuid[], uuid[]) from public, anon, authenticated;
 
--- SECTION: CAN ACTION ACCOUNT
--- In this section, we define the can action account function. This function is used to check if a user can action a specific account. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+-- Función `cms.can_action_account`: indica si el usuario actual puede hacer
+-- una acción sobre otra cuenta del CMS (exige el permiso y un rango superior
+-- al de la cuenta afectada). Es `security definer` para evitar la recursión
+-- con las políticas RLS.
 create or replace function cms.can_action_account (
   p_target_account_id uuid,
   p_action cms.system_action
@@ -982,8 +1006,9 @@ grant
 execute on FUNCTION cms.can_action_account to authenticated,
 service_role;
 
--- SECTION: CAN MODIFY PERMISSION
--- In this section, we define the can modify permission function. This function is used to check if a user can modify a specific permission. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+-- Función `cms.can_modify_permission`: indica si el usuario actual puede
+-- modificar un permiso (regla de rango sobre quienes lo tienen asignado). Es
+-- `security definer` para evitar la recursión con las políticas RLS.
 create or replace function cms.can_modify_permission (
   p_permission_id UUID,
   p_action cms.system_action default 'update'
@@ -1065,15 +1090,17 @@ $$ LANGUAGE plpgsql;
 grant
 execute on FUNCTION cms.can_modify_permission to authenticated;
 
--- SECTION: CAN DELETE PERMISSION
--- In this section, we define the can delete permission function. This function is used to check if a user can delete a specific permission.
--- SECURITY DEFINER + row_security = off (bug-hunt 12x01): the in-use EXISTS probes
--- below (permission_group_permissions / role_permissions / account_permissions)
--- must see ALL linkage rows. Without DEFINER they ran RLS-on as the caller, so a
--- low-rank admin could not see higher-rank usage of the permission -> the guard
--- reported "not in use" -> the delete proceeded and ON DELETE CASCADE silently
--- stripped the permission from higher-rank roles/groups/accounts. Matches the
--- DEFINER posture of its sibling can_modify_permission.
+-- Función `cms.can_delete_permission`: indica si el usuario actual puede
+-- borrar un permiso.
+-- `security definer` con row_security = off (corrección de la revisión de
+-- bugs 12x01): las comprobaciones EXISTS de uso que hay dentro
+-- (permission_group_permissions, role_permissions, account_permissions) deben
+-- ver TODAS las filas de asignación. Sin `security definer` se ejecutaban con
+-- la RLS del usuario, de modo que un administrador de rango bajo no veía que
+-- el permiso lo usaban roles superiores; la comprobación informaba de "no se
+-- usa", el borrado seguía adelante y ON DELETE CASCADE quitaba en silencio el
+-- permiso a roles, grupos o cuentas de rango superior. Sigue el mismo enfoque
+-- que su función hermana can_modify_permission.
 create or replace function cms.can_delete_permission (p_permission_id UUID) RETURNS BOOLEAN security definer
 set
   row_security = off
@@ -1133,7 +1160,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Grant execute permissions
+-- Permiso de ejecución para usuarios autenticados.
 grant
 execute on FUNCTION cms.can_delete_permission to authenticated;
 
@@ -1215,10 +1242,12 @@ $$ LANGUAGE plpgsql;
 -- *triggers* no comprueban el EXECUTE de quien modifica la tabla).
 revoke execute on function cms.enforce_permission_reshape_grantable () from public, anon, authenticated;
 
--- SECTION: CAN GRANT PERMISSION GROUP
--- role_permission_groups is the fourth capability-attachment edge. The other three carry
--- can_grant_permission; this one could not, because can_modify_role_permission_group takes
--- no group_id and so never inspects what is being attached.
+-- Función `cms.can_grant_permission_group`: indica si el usuario puede asignar
+-- un grupo de permisos a un rol.
+-- role_permission_groups es la cuarta vía para colgar capacidades. Las otras
+-- tres usan can_grant_permission; esta no podía, porque
+-- can_modify_role_permission_group no recibe el group_id y nunca examina qué
+-- se está asignando. Esta función cubre ese hueco.
 create or replace function cms.can_grant_permission_group (p_group_id UUID) RETURNS BOOLEAN security definer
 set
   row_security = off
@@ -1240,8 +1269,9 @@ $$ LANGUAGE plpgsql;
 grant
 execute on FUNCTION cms.can_grant_permission_group to authenticated;
 
--- SECTION: CAN MODIFY PERMISSION GROUP PERMISSIONS
--- In this section, we define the can modify permission group permissions function. This function is used to check if a user can modify the permissions of a specific permission group. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+-- Función `cms.can_modify_permission_group_permissions`: indica si el usuario
+-- actual puede cambiar los permisos de un grupo. Es `security definer` para
+-- evitar la recursión con las políticas RLS.
 create or replace function cms.can_modify_permission_group_permissions (p_group_id UUID, p_action cms.system_action) RETURNS BOOLEAN security definer
 set
   row_security = off
@@ -1281,8 +1311,9 @@ $$ LANGUAGE plpgsql;
 grant
 execute on function cms.can_modify_permission_group_permissions to authenticated;
 
--- SECTION: CAN MODIFY PERMISSION GROUP
--- In this section, we define the can modify permission group function. This function is used to check if a user can modify a specific permission group. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+-- Función `cms.can_modify_permission_group`: indica si el usuario actual puede
+-- modificar un grupo de permisos. Es `security definer` para evitar la
+-- recursión con las políticas RLS.
 create or replace function cms.can_modify_permission_group (p_group_id UUID, p_action cms.system_action) RETURNS BOOLEAN SECURITY DEFINER
 set
   row_security = off
@@ -1449,8 +1480,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- SECTION: CAN DELETE ROLE
--- In this section, we define the can delete role function. This function is used to check if a user can delete a specific role.
+-- Función `cms.can_delete_role`: indica si el usuario actual puede borrar un
+-- rol (permiso, rango superior y que el rol no esté en uso).
 create or replace function cms.can_delete_role (p_role_id UUID) RETURNS BOOLEAN
 set
   search_path = '' as $$
@@ -1510,13 +1541,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- Grant execute permissions
+-- Permiso de ejecución para usuarios autenticados.
 grant
 execute on FUNCTION cms.can_delete_role to authenticated;
 
 
--- SECTION: UPDATE ACCOUNT ROLES rank CHECK
--- In this section, we define the update account roles rank check function. This function is used to check if the user can update the rank of a role.
+-- Función `cms.update_account_roles_rank_check`: disparador que impide cambiar
+-- el rango de un rol a un valor igual o superior al del propio usuario, lo que
+-- sería una escalada de privilegios.
 create or replace function cms.update_account_roles_rank_check () RETURNS trigger SECURITY DEFINER
 set
   row_security = off
@@ -1544,14 +1576,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add a trigger to check if the user can update the rank of a role
+-- Se ejecuta antes de cada UPDATE de un rol.
 create trigger update_account_roles_rank_check before
 update on cms.roles for each row
 execute function cms.update_account_roles_rank_check ();
 
--- SECTION: GET AUTH USERS PERMISSIONS
--- In this section, we define the get auth users permissions function. This function is used to get the permissions for the Auth users in Supabase.
--- Add can_insert permission to the get_current_user_auth_users_permissions function
+-- Función `cms.get_current_user_auth_users_permissions`: devuelve qué puede
+-- hacer el usuario actual con los usuarios de Supabase Auth (ver, crear,
+-- editar, borrar), para que la interfaz muestre solo las acciones permitidas.
 create or replace function cms.get_current_user_auth_users_permissions () returns jsonb language plpgsql
 set
   search_path = '' as $$

@@ -346,7 +346,12 @@ A esta configuración por ficheros se suma la configuración \emph{como datos}
 de la consola ---nombres de tablas y columnas, áreas, formatos, diseño de las
 fichas y roles del personal---, que se cambia desde la propia interfaz
 (sección~\ref{sec:dg-tabla}). El puerto de la aplicación (3100) se fija en
-\texttt{vite.config.ts} y en la variable \texttt{PORT}.
+\texttt{vite.config.ts} y en la variable \texttt{PORT}. La guía
+\texttt{docs/CONFIGURACION.md} del repositorio detalla cada fichero, cada
+variable de entorno, los interruptores de módulos, cómo cambiar la identidad
+visual (nombre, logo y colores de \texttt{apps/web/src/styles/theme.css}),
+los roles y planes de partida y el generador de paquetes
+(\texttt{pnpm turbo gen package}).
 
 \section{Internacionalización}
 \label{sec:dg-i18n}
@@ -388,8 +393,8 @@ Las pruebas E2E se lanzan contra la \textit{build} de test porque el inicio de
 sesión automatizado falla contra el servidor de desarrollo (B-13); con
 \texttt{pnpm --filter web-e2e test:ui} se abre la interfaz gráfica de Playwright.
 Antes de dar por terminado un cambio se completa además la verificación del
-proyecto: \texttt{node scripts/tfg/check-branding.mjs} (ninguna referencia a la
-marca del código de partida), revisión del cambio y, si se tocó la base de
+proyecto: los controles automáticos del repositorio (\texttt{scripts/tfg/}),
+revisión del cambio y, si se tocó la base de
 datos, revisión de RLS. La integración continua
 (\texttt{.github/workflows/ci.yml}) repite los controles, los tipos, el
 \textit{lint}, el formato y las pruebas unitarias en cada \textit{push}, y la

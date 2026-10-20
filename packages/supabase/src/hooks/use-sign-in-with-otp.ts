@@ -7,6 +7,10 @@ import { useMutation } from '@tanstack/react-query';
 
 import { useSupabase } from './use-supabase';
 
+/**
+ * Mutación de inicio de sesión sin contraseña (enlace mágico o código OTP
+ * por email o SMS).
+ */
 export function useSignInWithOtp() {
   const client = useSupabase();
   const mutationKey = ['auth', 'sign-in-with-otp'];
@@ -45,12 +49,13 @@ function shouldIgnoreError(
     return true;
   }
 
-  // On the sign-in path (shouldCreateUser === false), GoTrue returns an
-  // "otp_disabled" / "Signups not allowed for otp" error for a non-existent
-  // account but succeeds for an existing one — an account-enumeration oracle.
-  // Swallow it ONLY when not creating a user so the UX is identical regardless
-  // of whether the account exists. The sign-up path (shouldCreateUser !== false)
-  // still surfaces genuine "signups disabled" errors.
+  // [TFG] RNF-02: en el inicio de sesión (shouldCreateUser === false), Supabase
+  // Auth devuelve "otp_disabled" / "Signups not allowed for otp" si la cuenta
+  // no existe y tiene éxito si existe; sería un oráculo para averiguar qué
+  // emails están registrados. Se ignora el error SOLO cuando no se crea
+  // usuario, para que la respuesta sea idéntica exista o no la cuenta. En el
+  // registro (shouldCreateUser !== false) sí se muestran los errores reales de
+  // "registro desactivado".
   if (
     credentials.options?.shouldCreateUser === false &&
     isOtpSignupsDisabledError(error)

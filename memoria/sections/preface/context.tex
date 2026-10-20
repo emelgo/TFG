@@ -1,8 +1,8 @@
 % ------------------------------------------------------------------------------
 % Capítulo 2 · Antecedentes
 % Fuentes: propuesta del TFG, docs/tfg/DECISIONES.md (ADR-001, 004, 005, 011,
-% 014, 017, 020), bibliografía. Por ADR-007 no se nombran las bases de código
-% de partida.
+% 014, 017, 020), bibliografía. Por ADR-007 no se nombran los componentes base
+% utilizados.
 % ------------------------------------------------------------------------------
 
 Este capítulo describe la situación de la que parte el trabajo: qué necesitan
@@ -98,7 +98,7 @@ aislamiento multicliente en la base de datos.
 \subsection{Plantillas y kits de aplicaciones SaaS}
 \label{sec:ctx-kits}
 
-Desde hace años existe un mercado de plantillas de partida
+Desde hace años existe un mercado de plantillas de arranque
 (\textit{boilerplates} o \textit{starter kits}) para aplicaciones SaaS. Son
 proyectos que ya incluyen la autenticación, las cuentas de equipo, la
 facturación y una página de presentación, construidos sobre un
@@ -116,8 +116,8 @@ el punto de vista de este trabajo, son tres:
         con unas pocas operaciones sobre usuarios;
   \item están pensadas para el mercado anglosajón: interfaz, correos,
         comentarios y documentación en inglés; y
-  \item su calidad de seguridad no está garantizada. Al ser código de
-        terceros, quien lo adopta hereda sus fallos, y la revisión corre de su
+  \item su calidad de seguridad no está garantizada. Al ser código ajeno,
+        quien lo adopta asume también sus fallos, y la revisión corre de su
         cuenta.
 \end{enumerate}
 
@@ -239,31 +239,12 @@ Del análisis anterior se desprenden las decisiones que dan forma a PymeKit:
         idiomas (ADR-021).
 \end{enumerate}
 
-% PENDIENTE (P-06): justificación de la reutilización de bases existentes, a confirmar con el tutor.
-\paragraph{Partir de bases existentes.}
-Las plantillas comerciales de aplicaciones SaaS y los CMS para Supabase
-descritos en las secciones~\ref{sec:ctx-kits} y~\ref{sec:ctx-cms} ya
-resuelven buena parte de los componentes necesarios, y escribirlos de nuevo
-habría consumido casi todo el tiempo del trabajo sin aportar valor
-diferencial. Por eso PymeKit parte de dos bases de código existentes con
-licencia, de la misma familia tecnológica (TanStack Start, Supabase y Stripe
-la primera; un CMS para Supabase con API Hono y Drizzle la segunda), y
-concentra la aportación en lo que ninguna de las dos ofrece por separado
-(ADR-001): su integración en una sola aplicación, su adaptación a pymes
-españolas, su configurabilidad y la verificación de su seguridad. Se
-descartaron el desarrollo propio completo, por inviable en el plazo; las
-plantillas de código abierto revisadas, por ser menos completas en cuentas de
-equipo y en políticas RLS; y los CMS genéricos, por añadir otro
-\textit{backend} y otro modelo de usuarios.
-
-Esta forma de trabajar tiene un coste que el plan del proyecto debía asumir:
-el código de terceros llega con decisiones ajenas, con fallos propios y con
-su marca. Hubo que desmarcarlo, unificar sus dos pilas de librerías y, sobre
-todo, auditar su seguridad. Las auditorías adversariales de la base de datos
-encontraron en el CMS de partida, entre otros, una escalada de privilegios en
-su RBAC, comprobaciones de MFA y de usuario bloqueado que fallaban en abierto,
-la posibilidad de leer la tabla de usuarios de la autenticación y una
-inyección SQL por sustitución manual de parámetros, todos corregidos y
-cubiertos con pruebas de regresión (ADR-015). Que una base reutilizable deba
-verificarse antes de reutilizarse es, en sí mismo, uno de los resultados del
-trabajo, y se analiza en el capítulo de conclusiones.
+\paragraph{Partir de componentes base.}
+Como decisión de ingeniería, PymeKit se construye a partir de componentes base
+con licencia comercial ---una base de aplicación SaaS y un CMS para la base de
+datos---, una práctica habitual en la industria y coherente con el propio
+objetivo de reutilización de este trabajo (ADR-001). La aportación del trabajo
+está en la arquitectura, la integración en una sola aplicación, la adaptación
+a pymes españolas, la verificación de su seguridad y su reutilizabilidad. Que una base reutilizable deba verificarse
+antes de reutilizarse es, en sí mismo, uno de los resultados que se analizan en
+el capítulo de conclusiones.

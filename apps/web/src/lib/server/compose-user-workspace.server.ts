@@ -11,15 +11,12 @@ import featureFlagsConfig from '#/config/feature-flags.config.ts';
 const shouldLoadAccounts = featureFlagsConfig.enableTeamAccounts;
 
 /**
- * @name composeUserWorkspace
- * @description
- * Pure data-loader that composes the user workspace data from an authenticated
- * client + user.
+ * Compone el espacio de trabajo personal del usuario: sus cuentas, los datos
+ * de su cuenta personal y si puede crear equipos.
  *
- * Returns null when the user has no accessible workspace (invalid/expired JWT
- * or deleted user); the caller decides how to surface the missing case.
- *
- * Callable from any server-only context (server functions, route loaders).
+ * Devuelve `null` si no hay espacio accesible (JWT no válido o caducado, o
+ * usuario borrado); quien llama decide qué hacer. Se puede usar desde
+ * cualquier contexto de servidor.
  */
 export async function composeUserWorkspace(
   client: SupabaseClient<Database>,
@@ -55,9 +52,9 @@ export async function composeUserWorkspace(
 }
 
 /**
- * Check if the user can create a team account based on policies.
- * Preliminary checks run without account name - name validation happens during
- * submission.
+ * Comprueba con las políticas de negocio si el usuario puede crear un equipo.
+ * Solo se evalúa la fase `preliminary` (sin nombre de equipo), para avisar en
+ * la interfaz; la validación del nombre se hace al enviar el formulario.
  */
 async function checkCanCreateTeamAccount(userId: string) {
   const evaluator = createAccountCreationPolicyEvaluator();

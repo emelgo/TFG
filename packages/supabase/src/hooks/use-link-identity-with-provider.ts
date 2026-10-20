@@ -6,6 +6,9 @@ import { getSafeRedirectPath } from '@pymekit/shared/utils';
 
 import { useSupabase } from './use-supabase';
 
+/**
+ * Mutación que vincula un proveedor OAuth adicional a la cuenta del usuario.
+ */
 export function useLinkIdentityWithProvider(
   props: {
     redirectToPath?: string;
@@ -17,7 +20,7 @@ export function useLinkIdentityWithProvider(
   const mutationFn = async (provider: Provider) => {
     const origin = window.location.origin;
 
-    // Validate the redirect path to prevent open redirect attacks
+    // Se valida la ruta de retorno para impedir redirecciones abiertas.
     const redirectToPath = getSafeRedirectPath(
       props.redirectToPath,
       '/settings',

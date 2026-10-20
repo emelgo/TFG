@@ -1,3 +1,16 @@
+/**
+ * Servicio de retorno de autenticación (*auth callback*).
+ *
+ * Procesa los enlaces que Supabase Auth envía por correo (confirmación de
+ * email, enlace mágico, restablecer contraseña, invitaciones) y el retorno de
+ * los proveedores OAuth: verifica el token o canjea el código por una sesión
+ * y decide a qué página redirigir. Lo usan las rutas `/auth/callback` y
+ * `/auth/confirm` de la web.
+ *
+ * Toda ruta de destino que llega por la URL se valida con
+ * `isSafeRedirectPath` para impedir redirecciones abiertas (*open redirect*)
+ * hacia dominios externos.
+ */
 import {
   AuthError,
   type EmailOtpType,
@@ -7,27 +20,22 @@ import {
 import { isSafeRedirectPath } from '@pymekit/shared/utils';
 
 /**
- * @name createAuthCallbackService
- * @description Creates an instance of the AuthCallbackService
- * @param client
+ * Crea el servicio de retorno de autenticación con el cliente de la
+ * petición.
  */
 export function createAuthCallbackService(client: SupabaseClient) {
   return new AuthCallbackService(client);
 }
 
-/**
- * @name AuthCallbackService
- * @description Service for handling auth callbacks in Supabase
- */
+/** Lógica de los retornos de autenticación de Supabase. */
 class AuthCallbackService {
   constructor(private readonly client: SupabaseClient) {}
 
   /**
-   * @name verifyTokenHash
-   * @description Verifies the token hash and type and redirects the user to the next page
-   * This should be used when using a token hash to verify the user's email
-   * @param request
-   * @param params
+   * Verifica el `token_hash` de un enlace enviado por correo y devuelve la URL
+   * a la que redirigir: la página de destino si todo va bien o la página de
+   * error con el motivo. Conserva los parámetros útiles del destino (por
+   * ejemplo, `invite_token`) y elimina los propios de la autenticación.
    */
   async verifyTokenHash(
     request: Request,
@@ -42,7 +50,9 @@ class AuthCallbackService {
 
     const host = request.headers.get('host');
 
-    // set the host to the request host since outside of Vercel it gets set as "localhost" or "0.0.0.0"
+    // Detrás de algunos proxies la URL de la petición llega con host
+    // "localhost" o "0.0.0.0"; se usa la cabecera Host para construir la
+    // redirección con el dominio real.
     this.adjustUrlHostForLocalDevelopment(url, host);
 
     url.pathname = params.redirectPath;
@@ -56,12 +66,11 @@ class AuthCallbackService {
 
     let nextPath: string | null = null;
 
-    // if we have a valid redirect destination
     if (redirectInfo) {
       nextPath = redirectInfo.path;
 
-      // preserve any query params from the redirect URL (e.g., invite_token)
-      // but exclude 'next' to avoid duplication
+      // Se conservan los parámetros del destino (por ejemplo, invite_token),
+      // salvo 'next', para no duplicarlo.
       redirectInfo.params.forEach((value, key) => {
         if (key !== 'next') {
           url.searchParams.set(key, value);
@@ -71,13 +80,12 @@ class AuthCallbackService {
 
     const errorPath = params.errorPath ?? '/auth/callback/error';
 
-    // remove the auth-related query params from the url
+    // El token no debe quedar en la URL final (historial, cabecera Referer).
     searchParams.delete('token_hash');
     searchParams.delete('type');
     searchParams.delete('next');
     searchParams.delete('callback');
 
-    // if we have a next path, we redirect to that path
     if (nextPath) {
       url.pathname = nextPath;
     }
@@ -104,17 +112,17 @@ class AuthCallbackService {
       url.searchParams.set('error', errorMessage);
     }
 
-    // return the user to an error page with some instructions
+    // Sin token o con un token no válido, se muestra la página de error con
+    // instrucciones.
     url.pathname = errorPath;
 
     return url;
   }
 
   /**
-   * @name exchangeCodeForSession
-   * @description Exchanges the auth code for a session and redirects the user to the next page or an error page
-   * @param request
-   * @param params
+   * Canjea el código de autorización (flujo PKCE de OAuth o del enlace
+   * mágico) por una sesión y devuelve la ruta siguiente: el destino validado
+   * o la página de error.
    */
   async exchangeCodeForSession(
     request: Request,
@@ -134,7 +142,7 @@ class AuthCallbackService {
     const nextUrlPathFromParams = searchParams.get('next');
     const errorPath = params.errorPath ?? '/auth/callback/error';
 
-    // Validate the next URL to prevent open redirect attacks
+    // Se valida el destino para impedir redirecciones abiertas.
     const nextUrl =
       nextUrlPathFromParams && isSafeRedirectPath(nextUrlPathFromParams)
         ? nextUrlPathFromParams
@@ -145,7 +153,6 @@ class AuthCallbackService {
         const { error } =
           await this.client.auth.exchangeCodeForSession(authCode);
 
-        // if we have an error, we redirect to the error page
         if (error) {
           return onError({
             code: error.code,
@@ -192,9 +199,10 @@ class AuthCallbackService {
   }
 
   /**
-   * Parses a redirect URL and extracts the destination path and query params
-   * Handles nested 'next' parameters for chained redirects
-   * Validates paths to prevent open redirect attacks
+   * Interpreta el parámetro de redirección y extrae la ruta de destino y sus
+   * parámetros. Admite una ruta relativa o una URL completa (como la que pone
+   * Supabase en `callback`) con un `next` anidado para redirecciones
+   * encadenadas. Solo acepta rutas que superan `isSafeRedirectPath`.
    */
   private parseRedirectDestination(redirectParam: string | null): {
     path: string;
@@ -204,7 +212,7 @@ class AuthCallbackService {
       return null;
     }
 
-    // First, try as a simple relative path with optional query string
+    // Primero se prueba como ruta relativa con una query string opcional.
     const [pathPart, queryPart] = redirectParam.split('?') as [
       string,
       string | undefined,
@@ -217,11 +225,11 @@ class AuthCallbackService {
       };
     }
 
-    // Handle full URLs (e.g., from Supabase callback parameter)
+    // Después, como URL completa (por ejemplo, el parámetro callback).
     try {
       const url = new URL(redirectParam);
 
-      // Check for nested 'next' parameter - this is the final destination
+      // Un 'next' anidado es el destino final.
       const nestedNext = url.searchParams.get('next');
 
       if (nestedNext && isSafeRedirectPath(nestedNext)) {
@@ -231,7 +239,7 @@ class AuthCallbackService {
         };
       }
 
-      // No nested next, use pathname if safe
+      // Sin 'next' anidado, se usa la ruta de la URL si es segura.
       if (isSafeRedirectPath(url.pathname)) {
         return {
           path: url.pathname,
@@ -239,7 +247,7 @@ class AuthCallbackService {
         };
       }
     } catch {
-      // Invalid URL, ignore
+      // URL no válida: se ignora.
     }
 
     return null;
@@ -290,30 +298,28 @@ function onError({
 }
 
 /**
- * Checks if the given error message indicates a verifier error.
- * We check for this specific error because it's highly likely that the
- * user is trying to sign in using a different browser than the one they
- * used to request the sign in link. This is a common mistake, so we
- * want to provide a helpful error message.
+ * Indica si el error se debe a que falta el *code verifier* de PKCE. Casi
+ * siempre significa que el usuario abre el enlace en un navegador distinto
+ * del que lo pidió; es un error habitual, así que merece un mensaje propio.
  */
 function isVerifierError(error: string) {
   return error.includes('both auth code and code verifier should be non-empty');
 }
 
+/** Traduce un error de Supabase Auth a una clave i18n para la interfaz. */
 function getAuthErrorMessage(params: { error: string; code?: string }) {
-  // this error arises when the user tries to sign in with an expired email link
+  // Enlace de correo caducado.
   if (params.code) {
     if (params.code === 'otp_expired') {
       return 'auth.errors.otp_expired';
     }
   }
 
-  // this error arises when the user is trying to sign in with a different
-  // browser than the one they used to request the sign in link
+  // Enlace abierto en un navegador distinto del que lo solicitó.
   if (isVerifierError(params.error)) {
     return 'auth.errors.codeVerifierMismatch';
   }
 
-  // fallback to the default error message
+  // Cualquier otro error: mensaje genérico.
   return `auth.authenticationErrorAlertBody`;
 }

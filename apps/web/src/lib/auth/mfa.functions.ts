@@ -1,3 +1,10 @@
+/**
+ * *Server functions* de las guardas de autenticación y MFA.
+ *
+ * Las usan los `beforeLoad` de las rutas privadas y la pantalla de
+ * verificación del segundo factor para decidir, en el servidor, si el
+ * usuario tiene sesión válida y si le falta completar la MFA.
+ */
 import {
   isAuthApiError,
   isAuthSessionMissingError,
@@ -10,12 +17,13 @@ import { checkRequiresMultiFactorAuthentication } from '@pymekit/supabase/check-
 import { getSupabaseServerClient } from '@pymekit/supabase/server-client';
 
 /**
- * Resolves the current user for the MFA challenge screen.
+ * Resuelve el usuario para la pantalla de verificación MFA.
  *
- * Supabase gives a user with MFA enrolled an `aal1` session immediately after
- * password sign-in, so a session already exists here — we gate on the assurance
- * level instead. Returns `{ userId: null }` when there is no session or MFA is
- * not required; the route loader turns that into a redirect back to sign-in.
+ * Tras iniciar sesión con contraseña, Supabase ya da una sesión `aal1` al
+ * usuario con MFA, así que aquí siempre hay sesión: lo que se comprueba es el
+ * nivel de garantía. Devuelve `{ userId: null }` si no hay sesión o no hace
+ * falta MFA, y el *loader* de la ruta lo convierte en una redirección al
+ * inicio de sesión.
  */
 export const fetchMfaChallenge = createServerFn({ method: 'GET' }).handler(
   async (): Promise<{ userId: string | null }> => {
@@ -37,12 +45,10 @@ export const fetchMfaChallenge = createServerFn({ method: 'GET' }).handler(
 );
 
 /**
- * Boolean MFA gate for the authenticated route guard.
- *
- * Returns `true` when the current session is authenticated but sits at a lower
- * assurance level than the user's enrolled factors require (i.e. an `aal1`
- * session that must step up to `aal2`). Returns `false` when there is no session
- * — the route's auth gate handles the sign-in redirect in that case.
+ * Indica si la sesión actual debe completar la MFA: está autenticada pero en
+ * un nivel inferior al que exigen los factores del usuario (una sesión `aal1`
+ * que debe subir a `aal2`). Sin sesión devuelve `false`, porque de eso se
+ * encarga la guarda de autenticación de la ruta.
  */
 export const fetchRequiresMfa = createServerFn({ method: 'GET' }).handler(
   async (): Promise<boolean> => {

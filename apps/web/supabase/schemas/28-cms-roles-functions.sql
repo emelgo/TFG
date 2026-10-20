@@ -1,5 +1,13 @@
--- SECTION: CAN ACTION ROLE
--- In this section, we define the can action role function. This function is used to check if a user can modify a role. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+/*
+ * -------------------------------------------------------
+ * Sección: Funciones de roles del CMS
+ * -------------------------------------------------------
+ */
+
+-- Función `cms.can_action_role`: indica si el usuario actual puede realizar
+-- una acción sobre un rol (solo sobre roles de rango inferior al suyo).
+-- Es `security definer` para evitar la recursión infinita que se produciría
+-- al llamarla desde las políticas RLS de las propias tablas de roles.
 create or replace function cms.can_action_role (p_role_id UUID, p_action cms.system_action) RETURNS BOOLEAN VOLATILE SECURITY DEFINER
 set
   row_security = off
@@ -51,8 +59,10 @@ $$ LANGUAGE plpgsql;
 grant
 execute on FUNCTION cms.can_action_role to authenticated;
 
--- SECTION: CAN MODIFY ACCOUNT ROLE
--- This function checks if a user can modify the role of a specific account with proper privilege escalation prevention. Uses SECURITY DEFINER to avoid infinite loops when the function is used within RLS policies.
+-- Función `cms.can_modify_account_role`: indica si el usuario puede cambiar el
+-- rol de una cuenta, impidiendo la escalada de privilegios (no se puede
+-- asignar un rol igual o superior al propio ni tocar a alguien de rango
+-- superior). Es `security definer` por el mismo motivo de recursión.
 create or replace function cms.can_modify_account_role (
   p_account_id UUID,
   p_target_account_id UUID,
@@ -157,11 +167,11 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- Grant execute permissions
+-- Permiso de ejecución para usuarios autenticados.
 grant
 execute on FUNCTION cms.can_modify_account_role to authenticated;
 
--- Indexes
+-- Índices de la tabla de asignaciones.
 create index idx_account_roles_account_id on cms.account_roles (account_id);
 
 create index idx_account_roles_role_id on cms.account_roles (role_id);
@@ -206,8 +216,8 @@ grant
 execute on FUNCTION cms.account_has_role to authenticated,
 service_role;
 
--- SECTION: GET CURRENT USER ROLE
--- In this section, we define the function to get the current user's role.
+-- Función `cms.get_current_user_role`: devuelve el rol vigente del usuario
+-- actual en el CMS.
 --
 create or replace function cms.get_current_user_role () RETURNS cms.roles LANGUAGE plpgsql
 set
