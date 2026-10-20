@@ -1,0 +1,201 @@
+% =====================================================================
+% Capítulo · Despliegue del Sistema (borrador, fase F7)
+% Lo incluye \chapter{Despliegue del Sistema}; aquí solo van secciones.
+% Fuentes: apps/web/Dockerfile, docker-compose.yml,
+%   docker-compose.supabase-local.yml, .env.docker.example, railway.json,
+%   docs/DESPLIEGUE.md y docs/tfg/DECISIONES.md (ADR-011, ADR-022).
+% Paquetes necesarios: booktabs, tabularx, listings, tikz
+%   (bibliotecas: positioning, arrows.meta, fit).
+% =====================================================================
+
+Este capítulo describe cómo se empaqueta y se pone en producción PymeKit. El
+objetivo de la fase de despliegue era doble: que cualquier persona pudiera
+reproducir la plataforma completa en su equipo con un único comando, y que la
+misma configuración sirviera para publicar una instancia de demostración
+accesible desde Internet. Ambos objetivos se apoyan en una decisión de diseño
+previa: el CMS de datos forma parte de la aplicación web y no es un servicio
+aparte (ADR-011), de modo que el sistema que hay que desplegar consta de una
+sola aplicación más los servicios gestionados de los que depende.
+
+\section{Arquitectura de despliegue}
+\label{sec:despliegue-arquitectura}
+
+La Figura~\ref{fig:despliegue} muestra los nodos que intervienen en una
+instalación de PymeKit. El único componente propio es el servidor de la
+aplicación, un proceso Node.js sin estado que sirve tanto las páginas
+renderizadas en el servidor como las rutas de API (\emph{server functions},
+\emph{webhooks} y la API del CMS). Todo el estado persistente reside en la
+plataforma de base de datos como servicio (Postgres, autenticación y
+almacenamiento de ficheros), y los pagos se delegan en la pasarela externa.
+
+\begin{figure}[htbp]
+  \centering
+  % Se escala al ancho de línea para que encaje en cualquier plantilla.
+  \resizebox{\textwidth}{!}{%
+  \begin{tikzpicture}[
+      node distance=1.4cm and 2.2cm,
+      box/.style={draw, rounded corners, align=center, minimum width=3.4cm,
+                  minimum height=1.1cm, font=\small},
+      group/.style={draw, dashed, rounded corners, inner sep=0.35cm},
+      arr/.style={-{Stealth[length=2.2mm]}, thick},
+      lbl/.style={font=\scriptsize, midway, fill=white, inner sep=1pt}
+    ]
+    \node[box] (browser) {Navegador\\(usuario o administrador)};
+    \node[box, right=of browser] (web) {Servidor de la aplicación\\Node.js (contenedor)\\\texttt{/}, \texttt{/admin/cms}, \texttt{/api/*}};
+    \node[box, above right=0.6cm and 2.2cm of web] (db) {Postgres\\(RLS, esquema \texttt{cms})};
+    \node[box, right=2.2cm of web] (auth) {Auth y Storage};
+    \node[box, below right=0.6cm and 2.2cm of web] (stripe) {Pasarela de pagos\\(modo test)};
+    \node[group, fit=(db)(auth), label={[font=\scriptsize]above:Plataforma BaaS}] {};
+
+    \draw[arr] (browser) -- node[lbl]{HTTPS} (web);
+    \draw[arr] (web) -- node[lbl, sloped]{SQL / REST} (db);
+    \draw[arr] (web) -- node[lbl]{REST} (auth);
+    \draw[arr] (web) -- node[lbl, sloped]{API} (stripe);
+    \draw[arr, dashed] (stripe.west) to[bend left=25] node[lbl, sloped]{\emph{webhook}} (web.south);
+    \draw[arr, dashed] (browser.north) to[bend left=20] node[lbl, sloped]{sesión (clave pública)} (auth.north west);
+  \end{tikzpicture}%
+  }
+  \caption{Diagrama de despliegue de PymeKit.}
+  \label{fig:despliegue}
+\end{figure}
+
+La Tabla~\ref{tab:componentes-despliegue} resume la función de cada componente
+y el artefacto que lo configura dentro del repositorio.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{@{}lXl@{}}
+    \toprule
+    \textbf{Componente} & \textbf{Función} & \textbf{Configuración} \\
+    \midrule
+    Servidor de la aplicación & Renderizado, \emph{server functions}, API del CMS y \emph{webhooks} & \texttt{apps/web/Dockerfile} \\
+    Orquestación local & Construye la imagen y la arranca con sus variables & \texttt{docker-compose.yml} \\
+    Base de datos & Esquemas, políticas RLS y RBAC del CMS & \texttt{apps/web/supabase/migrations} \\
+    Autenticación y ficheros & Sesiones, MFA, URLs de redirección, \emph{buckets} & \texttt{config.toml} / panel \\
+    Pasarela de pagos & Suscripciones; notifica cambios por \emph{webhook} & variables \texttt{STRIPE\_*} \\
+    Plataforma de alojamiento & Build, arranque y sonda de salud en la nube & \texttt{railway.json} \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Componentes del despliegue y su configuración.}
+  \label{tab:componentes-despliegue}
+\end{table}
+
+\section{Contenerización de la aplicación}
+\label{sec:despliegue-imagen}
+
+La aplicación se empaqueta en una imagen de contenedor definida mediante un
+\emph{Dockerfile} de tres etapas. Construir por etapas permite que las
+herramientas de compilación, que ocupan cientos de megabytes, no lleguen a la
+imagen final:
+
+\begin{enumerate}
+  \item \textbf{Recorte del monorepo.} La herramienta de orquestación del
+    monorepo calcula el subconjunto de paquetes del que depende la aplicación
+    web y separa sus manifiestos del resto del código. Así, la capa que
+    instala dependencias solo se invalida cuando cambian estas, y no con cada
+    modificación del código fuente.
+  \item \textbf{Compilación.} Se instalan las dependencias a partir del
+    fichero de bloqueo (instalación reproducible) y se ejecuta la build de
+    producción. El servidor resultante queda autocontenido: el empaquetador
+    incluye en la carpeta de salida las librerías que el servidor necesita,
+    de forma que no hace falta copiar el directorio de dependencias.
+  \item \textbf{Ejecución.} La imagen final parte de una distribución mínima
+    de Node.js y solo contiene la carpeta de salida. El proceso se ejecuta
+    con un usuario sin privilegios y la imagen declara una sonda de salud
+    sobre la ruta \texttt{/api/healthcheck}, que el motor de contenedores usa
+    para marcar el servicio como sano o reiniciarlo.
+\end{enumerate}
+
+Un aspecto que condiciona el diseño es la distinción entre variables
+\emph{de compilación} y \emph{de ejecución}. Las variables públicas (prefijo
+\texttt{VITE\_}: URL del sitio, URL y clave pública de la base de datos, clave
+publicable de la pasarela) se incrustan en el código durante la build, por lo
+que se pasan como argumentos de construcción. Los secretos de servidor (clave
+secreta de la base de datos, cadena de conexión de la API del CMS, claves de
+la pasarela y del correo) se inyectan únicamente al arrancar el contenedor y
+nunca quedan dentro de la imagen, lo que permite publicarla o reutilizarla sin
+exponer credenciales. Para que los argumentos vacíos no anulen los valores por
+defecto versionados en el repositorio, la build solo escribe los que llegan
+con valor y falla de forma explícita si falta alguno de los obligatorios.
+
+\section{Orquestación con Docker Compose}
+\label{sec:despliegue-compose}
+
+El fichero \texttt{docker-compose.yml} de la raíz describe el servicio de la
+aplicación. No levanta la base de datos: la aplicación se conecta a una
+instancia ya existente, sea la del entorno de desarrollo local o un proyecto
+en la nube, y el mismo fichero sirve para ambos casos. El
+Listado~\ref{lst:compose} recoge su parte esencial.
+
+\begin{lstlisting}[language=bash, caption={Servicio de la aplicación en \texttt{docker-compose.yml} (extracto).}, label={lst:compose}, basicstyle=\ttfamily\footnotesize]
+services:
+  web:
+    image: pymekit-web:latest
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:            # publicas: se incrustan en la build
+        VITE_SITE_URL: ${VITE_SITE_URL:?Falta VITE_SITE_URL}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Falta VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLIC_KEY: ${...:?Falta}
+    env_file:          # de servidor: se leen al arrancar
+      - path: .env.docker
+        required: true
+    ports:
+      - '${WEB_PORT:-3200}:3000'
+    restart: unless-stopped
+\end{lstlisting}
+
+Todas las variables se documentan en una plantilla versionada,
+\texttt{.env.docker.example}, sin valores secretos; el fichero real con las
+credenciales está excluido tanto del control de versiones como del contexto
+de construcción de la imagen. Para el entorno local se añade un segundo
+fichero de ajuste que ejecuta el contenedor con la red del anfitrión. La razón
+es que la URL de la base de datos se incrusta en la build y la usan tanto el
+navegador como el servidor: con la red del anfitrión, la dirección local
+designa el mismo servicio para ambos y no es necesario mantener dos URLs
+distintas.
+
+\section{Despliegue en la nube}
+\label{sec:despliegue-nube}
+
+La instancia de demostración combina tres servicios gestionados:
+
+\begin{itemize}
+  \item \textbf{Base de datos como servicio.} Se crea un proyecto y se le
+    aplican las migraciones del repositorio con la interfaz de línea de
+    órdenes de la plataforma (\texttt{supabase db push}), que incluyen tanto
+    el esquema de la aplicación como el del CMS. Después se configuran las
+    URLs autorizadas de autenticación, un servidor de correo propio y el
+    \emph{webhook} de base de datos que avisa a la aplicación cuando se borra
+    una suscripción. Los datos de ejemplo (\emph{seed}) no se aplican en este
+    entorno.
+  \item \textbf{Pasarela de pagos en modo test.} Se registra un
+    \emph{webhook} público que apunta a \texttt{/api/billing/webhook}; la
+    aplicación verifica la firma de cada evento con el secreto compartido
+    antes de actualizar las suscripciones en la base de datos.
+  \item \textbf{Plataforma de alojamiento.} El fichero \texttt{railway.json}
+    declara la orden de build, la de arranque, la ruta de la sonda de salud y
+    la política de reinicio ante fallos. Las variables se definen en el panel
+    del servicio y cada integración en la rama principal produce un nuevo
+    despliegue.
+\end{itemize}
+
+El procedimiento completo, junto con la actualización y las copias de
+seguridad, se recoge en el manual de instalación (Anexo~\ref{anx:manual-instalacion}).
+% PENDIENTE: crear la etiqueta anx:manual-instalacion al pasar
+% docs/DESPLIEGUE.md al anexo de la memoria (F8).
+
+\section{Verificación}
+\label{sec:despliegue-verificacion}
+
+La imagen se construyó y se arrancó contra la base de datos del entorno local,
+comprobando que la página de inicio y la de inicio de sesión responden con
+código 200 y que la sonda de salud informa de que la base de datos es
+accesible. La imagen final ocupa unos 265~MB en disco
+(medido el 20/10/2026), frente a los varios gigabytes que suponen las dependencias de
+desarrollo del monorepo.
+
+% PENDIENTE: completar con la URL y la fecha de la instancia de demostración
+% cuando se publique (F7, tareas 3–5), y con la prueba del manual desde cero.

@@ -1,0 +1,55 @@
+\newpage{\ }
+\thispagestyle{empty}
+\chapter*{Resumen}
+
+\noindent Las pequeñas y medianas empresas (pymes) necesitan cada vez más
+aplicaciones web propias, pero rara vez pueden asumir el coste de construir
+desde cero los componentes que casi cualquier aplicación SaaS
+(\textit{Software as a Service}) repite: autenticación segura, gestión de
+usuarios y equipos con roles, cobro de suscripciones y una herramienta para
+administrar los datos sin programar. Este Trabajo Fin de Grado diseña,
+implementa y valida PymeKit, una arquitectura software reutilizable que reúne
+esos componentes en una base común sobre la que desarrollar de forma ágil
+nuevas aplicaciones SaaS orientadas a pymes.
+
+% PENDIENTE (P-06): forma de presentar la parte reutilizada, a confirmar con el tutor.
+PymeKit no parte de cero. Integra dos bases de código existentes con
+licencia ---una base de aplicación SaaS y un gestor de contenidos (CMS) para
+la base de datos--- y las adapta y extiende hasta formar un único producto. Las
+aportaciones del trabajo son la integración del CMS dentro de la consola de
+administración de la aplicación, con un solo servicio, un solo inicio de
+sesión y una sola pila de librerías; la reorganización de la consola por
+áreas de negocio comprensibles para una pyme; la interfaz íntegramente en
+español sobre una infraestructura de internacionalización extensible; la
+centralización de la configuración reutilizable; la corrección documentada de
+numerosos fallos de seguridad heredados; y un proceso de desarrollo asistido
+por agentes de inteligencia artificial, controlado mediante directrices,
+comprobaciones automáticas y revisiones adversariales.
+
+La solución se organiza como un monorepo de paquetes desacoplados con
+TypeScript estricto. La aplicación web usa TanStack Start y React; los datos,
+la autenticación y el almacenamiento se apoyan en Supabase (PostgreSQL); los
+pagos, en Stripe; y la API del CMS, en Hono y Drizzle, montada dentro del
+propio servidor web. La autorización se aplica en la base de datos mediante
+seguridad a nivel de fila (RLS), de modo que el aislamiento entre clientes
+(\textit{multi-tenancy}) no depende solo del código de la aplicación. El
+acceso a la consola exige un segundo factor de autenticación, y las acciones
+realizadas desde el CMS quedan registradas en un registro de auditoría que el
+propio personal no puede falsificar.
+
+La calidad se verifica con pruebas unitarias, más de dos mil pruebas de base
+de datos con pgTAP ---incluidas pruebas de ataque entre clientes--- y pruebas
+de extremo a extremo con Playwright, ejecutadas en integración continua. El
+proceso dejó documentadas en una bitácora más de cincuenta incidencias, buena
+parte de ellas fallos de seguridad del código de partida que se detectaron y
+corrigieron durante la integración. La memoria describe la planificación, el
+análisis, el diseño, la construcción, las pruebas y el despliegue de la
+plataforma, la evaluación de su reutilización y los manuales de usuario y de
+desarrollador.
+
+\vspace{.5cm}
+
+% Añadir una serie de palabras clave que aparezcan en el texto
+\noindent \textbf{Palabras clave:} SaaS, pymes, arquitectura reutilizable,
+\textit{multi-tenancy}, seguridad a nivel de fila (RLS), Supabase, PostgreSQL,
+CMS, TanStack Start, desarrollo asistido por IA.

@@ -1,0 +1,306 @@
+% =====================================================================
+% Capítulo: Requisitos del Sistema
+% Fuentes: propuesta del TFG (Objetivo, Descripción y Alcance),
+% docs/tfg/REQUISITOS.md, DECISIONES.md (ADR-004, 005, 011, 017, 020, 021)
+% y borradores/04-analisis.tex. Estado de las fuentes: F3c cerrada.
+% =====================================================================
+
+En este capítulo se presentan los objetivos de negocio y del sistema, los
+actores que interactúan con PymeKit y el catálogo de requisitos funcionales,
+no funcionales y de información. Al final se relaciona cada requisito con el
+apartado de la propuesta del TFG del que procede y se resume la brecha entre
+esos requisitos y las bases de código de partida.
+
+Los identificadores (OBN, OBS, RF, RNF, RI) son estables: se citan en el
+código mediante etiquetas \texttt{[TFG]}, en la matriz de trazabilidad del
+repositorio y en esta memoria, y no se renumeran. Si un requisito cambia, se
+modifica su redacción y se registra la decisión que lo justifica.
+
+% ---------------------------------------------------------------------
+\section{Objetivos de negocio}
+\label{sec:req-objetivos-negocio}
+
+Quien desarrolla un producto SaaS para pymes debe resolver, antes de escribir
+su lógica de negocio, un conjunto de problemas que se repiten en casi todos
+los productos de este tipo: identidad, aislamiento entre clientes, equipos y
+permisos, cobro, administración interna y calidad transversal. Estos
+componentes no aportan valor diferencial, pero consumen gran parte del
+esfuerzo y concentran el riesgo de seguridad. De ahí se derivan los objetivos
+de negocio de la tabla~\ref{tab:req-obn}.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Objetivos de negocio.}
+  \label{tab:req-obn}
+  \begin{tabularx}{\textwidth}{@{}lX@{}}
+    \toprule
+    \textbf{ID} & \textbf{Objetivo} \\
+    \midrule
+    OBN-01 & Reducir el tiempo de puesta en marcha de un nuevo producto SaaS para pymes, partiendo de una base que ya resuelve los componentes comunes. \\
+    OBN-02 & Estandarizar buenas prácticas de seguridad, control de acceso y persistencia, de modo que cada producto nuevo las herede sin reimplementarlas. \\
+    OBN-03 & Permitir que una pyme administre su web pública, su contenido y sus datos desde una consola, sin acceder directamente a la base de datos ni depender de un desarrollador para cada cambio. \\
+    OBN-04 & Facilitar la monetización mediante suscripciones con una pasarela de pago estándar. \\
+    OBN-05 & Servir como material didáctico y técnico documentado para quien reutilice la plataforma (código comentado en español, decisiones registradas y manuales). \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Durante el desarrollo se precisó el enfoque del producto (ADR-020): PymeKit es
+la base de la web de \emph{una} pyme, con una página pública, un blog
+gestionado desde la consola y un inicio de sesión que puede corresponder a un
+super-administrador, a personal interno o a un cliente. Los módulos SaaS
+(equipos, invitaciones y suscripciones) se conservan como opcionales, porque
+permiten tanto ese escenario como el de un SaaS multi-cliente.
+
+% ---------------------------------------------------------------------
+\section{Objetivos del sistema}
+\label{sec:req-objetivos-sistema}
+
+Los objetivos del sistema concretan los componentes que enumera el objetivo de
+la propuesta (tabla~\ref{tab:req-obs}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Objetivos del sistema y objetivos de negocio a los que contribuyen.}
+  \label{tab:req-obs}
+  \begin{tabularx}{\textwidth}{@{}lXl@{}}
+    \toprule
+    \textbf{ID} & \textbf{Objetivo del sistema} & \textbf{OBN} \\
+    \midrule
+    OBS-01 & Ofrecer un \textit{frontend} web con página pública, precios, blog y área privada. & 01, 03 \\
+    OBS-02 & Ofrecer un \textit{backend} con API tipada y validada para la lógica de negocio y el acceso a datos. & 01 \\
+    OBS-03 & Autenticar a los usuarios y autorizar cada acceso, con segundo factor y aislamiento entre cuentas aplicado en la base de datos. & 02 \\
+    OBS-04 & Gestionar usuarios, cuentas de equipo, invitaciones, roles y permisos. & 01, 02 \\
+    OBS-05 & Integrar una pasarela de pago para suscripciones. & 04 \\
+    OBS-06 & Proporcionar una consola de administración con un CMS de datos y contenidos, con permisos y auditoría propios. & 03 \\
+    OBS-07 & Ser reutilizable por configuración y estar documentado y verificado de forma automática. & 01, 05 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\section{Actores}
+\label{sec:req-actores}
+
+\begin{description}[style=nextline]
+  \item[Visitante.] Persona no identificada que consulta la web pública
+        (inicio, precios y blog) y puede registrarse.
+  \item[Usuario.] Persona registrada. Dispone de una cuenta personal y puede
+        pertenecer a una o varias cuentas de equipo.
+  \item[Propietario del equipo.] Usuario con el rol de mayor nivel en una
+        cuenta de equipo; gestiona sus miembros y su suscripción.
+  \item[Miembro.] Usuario de un equipo con un rol de menor nivel y, por
+        tanto, con permisos limitados.
+  \item[Super-administrador.] Personal del proveedor con control total de la
+        plataforma y, por extensión, del CMS (ADR-014). Debe usar siempre
+        segundo factor.
+  \item[Personal del CMS.] Personal de la pyme o del proveedor (gestor de
+        contenidos, soporte) que accede a la consola con los permisos
+        limitados que le asigna el control de acceso propio del CMS
+        (ADR-014, ADR-016).
+  \item[Desarrollador.] Quien reutiliza PymeKit para construir un producto
+        nuevo; interactúa con el repositorio, la configuración y los
+        manuales, no con la interfaz.
+  \item[Pasarela de pago.] Sistema externo (Stripe) que procesa los cobros y
+        notifica los cambios de suscripción mediante \textit{webhooks}
+        (peticiones HTTP que el sistema externo envía a la aplicación cuando
+        ocurre un evento).
+\end{description}
+
+% ---------------------------------------------------------------------
+\section{Requisitos funcionales}
+\label{sec:req-rf}
+
+La prioridad es \textbf{M} (imprescindible: forma parte del prototipo mínimo
+que exige la propuesta) o \textbf{D} (deseable). La última columna indica el
+objetivo del sistema que desarrolla cada requisito.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Requisitos funcionales.}
+  \label{tab:req-rf}
+  \begin{tabularx}{\textwidth}{@{}lXcl@{}}
+    \toprule
+    \textbf{ID} & \textbf{Requisito} & \textbf{Prior.} & \textbf{OBS} \\
+    \midrule
+    RF-01 & Interfaz web para el usuario final: página de inicio pública (\textit{landing}), precios, blog público y área privada con navegación. & M & 01 \\
+    RF-02 & API de \textit{backend} para la lógica de negocio y el acceso a datos mediante funciones de servidor (\textit{server functions}) tipadas y validadas. & M & 02 \\
+    RF-03 & Registro e inicio de sesión (contraseña y enlace mágico), recuperación de contraseña y verificación del correo electrónico. & M & 03 \\
+    RF-04 & Segundo factor de autenticación (MFA) y proveedores OAuth configurables. & D & 03 \\
+    RF-05 & Gestión de la cuenta personal: perfil, correo, contraseña y baja. & M & 04 \\
+    RF-06 & Cuentas de equipo: crear equipos, invitar miembros, asignar roles y aplicar permisos por funcionalidad. & M & 04 \\
+    RF-07 & Suscripciones con pasarela de pago: planes, pago (\textit{checkout}), portal de cliente y sincronización mediante \textit{webhooks}. & M & 05 \\
+    RF-08 & Panel de super-administración: listar y gestionar usuarios y cuentas, bloquear, suplantar y restablecer. & M & 06 \\
+    RF-09 & CMS de datos y contenidos integrado en la consola de administración: explorar y editar tablas, gestionar usuarios y almacenamiento, publicar el contenido del blog, con permisos propios. & M & 06 \\
+    RF-10 & Registro de auditoría de las acciones realizadas desde el CMS. & D & 06 \\
+    RF-11 & Paneles (\textit{dashboards}) configurables en el CMS. & D & 06 \\
+    RF-12 & Notificaciones dentro de la aplicación y correos transaccionales. & D & 04 \\
+    RF-13 & Interfaz en español, con la infraestructura de internacionalización preparada para añadir otros idiomas. & M & 07 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Dos requisitos han cambiado de redacción durante el proyecto, y ambos cambios
+están registrados como decisiones:
+
+\begin{itemize}
+  \item \textbf{RF-09} se planteó al principio como un CMS en una aplicación
+        separada que compartía la base de datos. Tras evaluar alternativas se
+        decidió integrarlo en la consola de administración (ADR-011) y,
+        después, usarlo también para gestionar el contenido del blog que
+        publica la web (ADR-017), que es el caso de uso de «administración de
+        contenidos» que pide la propuesta.
+  \item \textbf{RF-13} pedía en origen una interfaz en español por defecto y
+        en inglés. A petición del autor, la interfaz pasó a ofrecer
+        \emph{solo} español, conservando claves, mensajes y configuración de
+        idiomas como punto de extensión documentado (ADR-021).
+\end{itemize}
+
+RF-11 se identificó desde el principio como el primer candidato a recortar si
+el plazo lo exigía; finalmente se implementó (ADR-019).
+
+% ---------------------------------------------------------------------
+\section{Requisitos no funcionales}
+\label{sec:req-rnf}
+
+Los requisitos no funcionales se clasifican según las características de
+calidad de la norma ISO/IEC 25010~\cite{iso25010}. Cada uno se acompaña del
+modo en que se verifica, para que sea comprobable y no una mera declaración
+de intenciones.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Requisitos no funcionales, característica ISO/IEC 25010 y forma de verificarlos.}
+  \label{tab:req-rnf}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}p{2.2cm}X@{}}
+    \toprule
+    \textbf{ID} & \textbf{Requisito} & \textbf{ISO 25010} & \textbf{Verificación} \\
+    \midrule
+    RNF-01 & \textbf{Reutilización y configurabilidad}: la plataforma se adapta a un producto nuevo cambiando la configuración (ficheros \texttt{*.config.ts} y variables de entorno), sin tocar el núcleo. & Mantenibilidad (reusabilidad), flexibilidad & Evaluación de la reutilización: pasos y tiempo para arrancar un proyecto nuevo \\
+    RNF-02 & \textbf{Seguridad}: la autorización se aplica en la base de datos (RLS) además de en la aplicación; secretos fuera del repositorio; validación de todas las entradas. & Seguridad & Pruebas pgTAP y revisiones adversariales de RLS y del código \\
+    RNF-03 & \textbf{Aislamiento multi-tenant}: los datos de una cuenta no son accesibles desde otra. & Seguridad (confidencialidad) & Pruebas pgTAP de aislamiento \\
+    RNF-04 & \textbf{Modularidad}: monorepo de paquetes desacoplados con dependencias explícitas y exportaciones separadas para cliente y servidor. & Mantenibilidad (modularidad) & Estructura del monorepo, comprobación de dependencias y de tipos \\
+    RNF-05 & \textbf{Mantenibilidad}: TypeScript estricto, \textit{lint} y formato automáticos y código comentado en español didáctico. & Mantenibilidad (analizabilidad) & Integración continua y revisión de comentarios \\
+    RNF-06 & \textbf{Calidad verificable}: pruebas unitarias, de base de datos y E2E de los casos de uso principales. & Mantenibilidad (capacidad de prueba) & Integración continua en verde \\
+    RNF-07 & \textbf{Desplegabilidad}: despliegue reproducible con contenedores y en la nube, con manual de instalación. & Flexibilidad (instalabilidad) & Despliegue de prueba \\
+    RNF-08 & \textbf{Usabilidad y accesibilidad}: interfaz adaptable, componentes accesibles, tema claro/oscuro y ayuda contextual en la consola. & Capacidad de interacción & Revisión manual y E2E \\
+    RNF-09 & \textbf{Rendimiento razonable}: carga de datos en el servidor, caché de consultas y paginación en el CMS. & Eficiencia de desempeño & Revisión manual y pruebas puntuales \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+% VERIFICAR: nombres de las características según la edición de la norma que
+% se cite (2011 o 2023; en 2023 «usabilidad» pasa a «capacidad de
+% interacción» y «portabilidad» a «flexibilidad»).
+
+% ---------------------------------------------------------------------
+\section{Requisitos de información}
+\label{sec:req-ri}
+
+La tabla~\ref{tab:req-ri} recoge la información que el sistema debe almacenar.
+Su modelo conceptual se desarrolla en el capítulo de Análisis
+(sección~\ref{sec:ana-modelo-datos}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Requisitos de información.}
+  \label{tab:req-ri}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.1cm}Xl@{}}
+    \toprule
+    \textbf{ID} & \textbf{Información} & \textbf{Datos principales} & \textbf{RF} \\
+    \midrule
+    RI-01 & Usuarios & Identidad, correo, factores MFA, estado de bloqueo (gestionados por el servicio de autenticación) & 03--05 \\
+    RI-02 & Cuentas & Cuenta personal o de equipo, nombre, identificador legible (\textit{slug}), propietario principal & 05, 06 \\
+    RI-03 & Membresías y roles & Pertenencia de un usuario a una cuenta, rol con nivel jerárquico y permisos por funcionalidad & 06 \\
+    RI-04 & Invitaciones & Correo invitado, rol ofrecido, testigo (\textit{token}), caducidad, quién invita & 06 \\
+    RI-05 & Facturación & Cliente de la pasarela, suscripciones y sus líneas, pedidos de pago único & 07 \\
+    RI-06 & Notificaciones & Destinatario, tipo, texto, enlace, leída o no & 12 \\
+    RI-07 & Contenido del blog & Entradas (título, \textit{slug}, cuerpo en Markdown, estado, fecha de publicación, autor), categorías y etiquetas & 01, 09 \\
+    RI-08 & Personal y permisos del CMS & Cuentas del CMS, roles con rango, grupos de permisos, permisos de datos, de sistema y de almacenamiento, con vigencia & 09 \\
+    RI-09 & Metadatos del CMS & Por tabla: nombre visible, descripción, área de navegación, formato de visualización, configuración de columnas y diseño de la ficha; vistas guardadas & 09 \\
+    RI-10 & Auditoría & Operación, tabla, registro, datos antes y después, gravedad, instantánea del autor & 10 \\
+    RI-11 & Paneles & Panel, propietario, compartición por rol, \textit{widgets} y su posición en la cuadrícula & 11 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\section{Trazabilidad con la propuesta}
+\label{sec:req-trazabilidad}
+
+La tabla~\ref{tab:req-traza-propuesta} relaciona los apartados de la
+propuesta del TFG con los requisitos que los cubren y el capítulo de la
+memoria donde se desarrollan. La relación inversa, de cada requisito con el
+código y las pruebas que lo verifican, se presenta en el capítulo de Pruebas
+(sección~\ref{sec:pru-resultados}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Trazabilidad entre la propuesta del TFG, los requisitos y la memoria.}
+  \label{tab:req-traza-propuesta}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.2cm}@{}}
+    \toprule
+    \textbf{Apartado de la propuesta} & \textbf{Requisitos} & \textbf{Capítulo} \\
+    \midrule
+    Objetivo: \textit{frontend}, \textit{backend}, autenticación, usuarios y roles, pagos y CMS & RF-01--RF-09 & Requisitos, Diseño \\
+    Descripción: estructura desacoplada y configurable & RNF-01, RNF-04 & Diseño, Construcción \\
+    Descripción: prototipo con gestión de usuarios, autenticación, persistencia, CMS y flujo de pago & RF-03, RF-05, RF-06, RF-07, RF-09 & Construcción, Pruebas \\
+    Alcance 1: análisis y requisitos & Todo el catálogo & Requisitos, Análisis \\
+    Alcance 2: arquitectura, autenticación, roles, pagos y CMS & RF-02--RF-04, RF-06--RF-09, RNF-02 & Diseño \\
+    Alcance 3: modelo de datos y mecanismos de acceso & RI-01--RI-11, RNF-02, RNF-03 & Análisis, Diseño \\
+    Alcance 4: implementación del prototipo y configuración para su reutilización & RF-01--RF-13, RNF-01, RNF-05 & Construcción \\
+    Alcance 5: verificación de casos de uso, integración y evaluación de la reutilización & RNF-06, RNF-01 & Pruebas \\
+    Alcance 6: memoria, documentación técnica y manuales & RNF-05, RNF-07 & Despliegue, anexos \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\section{Análisis GAP}
+\label{sec:req-gap}
+
+% PENDIENTE (P-06): redacción neutra acordada con el tutor; no se nombran las
+% bases de código de partida (ADR-007).
+Como se justifica en el capítulo de Planificación (ADR-001), PymeKit no parte
+de cero: se apoya en dos bases de código existentes, utilizadas con licencia.
+La primera es una base SaaS sobre la misma pila tecnológica, que ya resolvía
+la autenticación, el modelo de cuentas multi-tenant, los equipos y la
+facturación. La segunda es un CMS de administración de datos para el mismo
+tipo de base de datos, distribuido como aplicación de página única con su
+propia API. La tabla~\ref{tab:req-gap} resume qué cubría cada una frente a
+los requisitos y qué ha tenido que aportar el proyecto.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Brecha entre los requisitos y las bases de partida («sí»: cubierto; «parcial»: cubierto en parte; «no»: no cubierto).}
+  \label{tab:req-gap}
+  \begin{tabularx}{\textwidth}{@{}lccX@{}}
+    \toprule
+    \textbf{Req.} & \textbf{Base SaaS} & \textbf{Base CMS} & \textbf{Aportación del proyecto} \\
+    \midrule
+    RF-01 & parcial & no & Blog en la base de datos con lectura pública por RLS; marca e identidad propias \\
+    RF-02--RF-05 & sí & no & Comprobación de sesión viva en las rutas protegidas; textos en español \\
+    RF-06, RF-07 & sí & no & Integración y pruebas; configuración como módulos opcionales \\
+    RF-08 & sí & no & Consola compartida con el CMS y MFA obligatorio en ella \\
+    RF-09 & no & parcial & Integración total en la web, reescritura de las pantallas, consola por áreas, nombres en español, endurecimiento de seguridad \\
+    RF-10, RF-11 & no & parcial & Auditoría no falsificable, autor conservado, paneles sin dependencias nuevas \\
+    RF-13 & parcial & parcial & Un único sistema de traducción y toda la interfaz en español \\
+    RNF-02, RNF-03 & parcial & parcial & Revisiones adversariales y corrección de brechas heredadas \\
+    RNF-05 & no & no & Comentarios didácticos en español y controles automáticos del TFG \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La brecha más importante no está en la funcionalidad, sino en la
+\emph{integración} y en la \emph{seguridad}: las dos bases tenían modelos de
+autorización, sistemas de formularios y de traducción y enrutadores distintos,
+y el CMS de partida contenía fallos de control de acceso que se describen en
+los capítulos de Diseño y Pruebas. La distinción detallada entre lo
+reutilizado, lo adaptado y lo propio se presenta en el capítulo de
+Construcción (sección~\ref{sec:imp-reutilizacion}).

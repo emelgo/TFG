@@ -1,0 +1,193 @@
+% ------------------------------------------------------------------------------
+% Capítulo · Conclusiones
+% Fuentes: docs/tfg/{PROGRESO,BITACORA,TRAZABILIDAD,DECISIONES}.md.
+% Estado de las fuentes: 20/10/2026 (F0–F3 cerradas; F4–F7 pendientes).
+% Las filas marcadas como parciales o pendientes deben actualizarse al cerrar
+% las fases F4–F7.
+% ------------------------------------------------------------------------------
+
+Este capítulo valora el grado de cumplimiento de los objetivos planteados en
+la introducción, recoge las lecciones aprendidas durante el proyecto y
+enumera las líneas de trabajo futuro.
+
+\section{Objetivos alcanzados}
+\label{sec:concl-objetivos}
+
+El objetivo general era diseñar, implementar y validar una arquitectura
+software reutilizable para el desarrollo ágil de aplicaciones SaaS orientadas
+a pymes, con \textit{frontend}, \textit{backend}, autenticación, gestión de
+usuarios y roles, pagos y un CMS para la administración de contenidos y datos.
+PymeKit reúne todos esos componentes en un único monorepo y un único servicio
+web, sobre una sola base de datos en la que se aplica la autorización. La
+tabla~\ref{tab:concl-objetivos} detalla el resultado de cada objetivo
+específico (tabla~\ref{tab:intro-objetivos}).
+
+\todo{Actualizar el estado de OE-4, OE-7, OE-8 y OE-9 al cerrar las fases
+F4--F7.}
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Grado de cumplimiento de los objetivos específicos.}
+  \label{tab:concl-objetivos}
+  \begin{tabularx}{\textwidth}{@{}lX>{\raggedright\arraybackslash}p{2cm}@{}}
+    \toprule
+    \textbf{Obj.} & \textbf{Resultado} & \textbf{Estado} \\
+    \midrule
+    OE-1 & Contexto analizado, componentes comunes identificados y requisitos definidos: 13 funcionales, 9 no funcionales y 7 casos de uso, trazados al código, a las pruebas y a la memoria. & Cumplido \\
+    OE-2 & Monorepo de paquetes desacoplados con exportaciones separadas de cliente y servidor; la API del CMS se monta dentro del servidor web, sin servicios adicionales (ADR-011). & Cumplido \\
+    OE-3 & Registro, verificación de correo, contraseña, enlace mágico y MFA; cuentas personales y de equipo con invitaciones, roles y permisos; MFA obligatorio en la consola. Autorización aplicada en la base de datos mediante RLS. & Cumplido; roles adaptados a pymes pendientes (F5) \\
+    OE-4 & Suscripciones con Stripe (planes, \textit{checkout}, portal del cliente y \textit{webhooks}) operativas en modo de pruebas. & Parcial: planes de ejemplo y pruebas E2E de pago pendientes (F5, F6) \\
+    OE-5 & CMS de datos integrado en la consola: explorador de tablas con CRUD, relaciones y vistas guardadas, gestión de usuarios y archivos, auditoría no falsificable, búsqueda global, RBAC propio y paneles configurables (RF-08 a RF-11). & Cumplido \\
+    OE-6 & Modelo multicliente con tablas compartidas y RLS; más de dos mil pruebas pgTAP, incluidas pruebas de ataque entre clientes; las auditorías posteriores a cada corrección concluyeron que el aislamiento se mantiene. & Cumplido \\
+    OE-7 & Configuración centralizada en ficheros \texttt{*.config.ts} y variables \texttt{VITE\_*}; consola por áreas configurable desde la propia interfaz; interfaz solo en español con la traducción como punto de extensión documentado. & Parcial: documentación de la configuración (F5) y comentarios didácticos (F4) pendientes \\
+    OE-8 & Pruebas unitarias, de base de datos y E2E en integración continua. & Parcial: E2E de CU-01 a CU-06 y evaluación de la reutilización (F6) pendientes \\
+    OE-9 & Memoria y manuales redactados; configuración de despliegue en la nube preparada. & En curso (F7, F8) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% PENDIENTE (P-06): valoración de la aportación propia frente a la reutilizada.
+Más allá de la tabla, el resultado principal del trabajo es haber convertido
+dos bases de código independientes, con pilas, sesiones y modelos de permisos
+distintos, en un único producto coherente: un solo inicio de sesión, una sola
+consola, una sola forma de escribir formularios y textos, y una sola base de
+datos cuya seguridad se ha auditado y reforzado. La integración del CMS en la
+consola ---la decisión de mayor riesgo del proyecto--- se completó sin
+recurrir al recorte previsto.
+
+\section{Lecciones aprendidas}
+\label{sec:concl-lecciones}
+
+\subsection{Esfuerzo dedicado}
+
+Hasta la fecha de corte (20/10/2026) el repositorio registra 54
+\textit{commits}, 21 decisiones de arquitectura y 55 incidencias documentadas
+en la bitácora. Las fases F0 a F3 ---arnés, base SaaS, integración completa
+del CMS, desmarcado y español--- se ejecutaron en tres jornadas de trabajo con
+un total de 23 horas del autor (tabla~\ref{tab:plan-dedicacion}). Al cierre de
+la F2 la base de datos contaba con más de dos mil pruebas pgTAP y la suite E2E
+superaba las 140 pruebas.
+\todo{Completar con la dedicación total del proyecto y las cifras finales de
+pruebas al cerrar F6.}
+
+\subsection{Sobre reutilizar código de terceros}
+
+\begin{itemize}
+  \item \textbf{Reutilizar no exime de verificar.} De las 55 incidencias, 29
+        son de seguridad y 25 de ellas venían del código de partida: escalada
+        de privilegios por un \texttt{UPDATE} sin \texttt{WITH CHECK} (B-05),
+        comprobaciones de MFA y de bloqueo que fallaban en abierto (B-06,
+        B-23), lectura de tablas internas (B-07, B-08, B-28), inyección SQL
+        (B-24), auditoría falsificable (B-27) o escape de denegaciones por
+        delegación (B-47). Una base reutilizable solo acelera si se ha
+        verificado antes; en caso contrario, multiplica sus fallos en cada
+        proyecto que la usa.
+  \item \textbf{Un test en verde no demuestra corrección.} Un test heredado
+        afirmaba precisamente el comportamiento inseguro (B-11). Hay que leer
+        las aserciones, no solo los nombres de las pruebas.
+  \item \textbf{El inventario de lo que se porta debe hacerse ruta a ruta.} La
+        búsqueda global del CMS no figuraba en el plan inicial porque el
+        inventario se hizo por paquetes (B-30).
+  \item \textbf{El desmarcado es más que un \texttt{grep}.} La marca aparecía
+        en expresiones regulares escapadas (B-01), en nombres de carpetas y
+        rutas de importación (B-40) y en imágenes que ningún control textual
+        puede leer (B-46). Los controles automáticos deben cubrir todas las
+        variantes, y aun así hace falta una revisión visual.
+\end{itemize}
+
+\subsection{Sobre seguridad en la base de datos}
+
+\begin{itemize}
+  \item \textbf{Fallar en cerrado.} Toda comprobación de seguridad que
+        encuentra un error debe denegar (B-06, B-23).
+  \item \textbf{«Sin error» no es «éxito».} Una escritura filtrada por RLS
+        afecta a cero filas sin producir ningún error, y hay que comprobarlo
+        (B-49).
+  \item \textbf{Defensa en profundidad.} Las reglas deben aplicarse en la
+        base de datos y no solo en la API (B-31); una operación pensada para un
+        registro debe comprobar que su condición identifica exactamente uno
+        (B-19).
+  \item \textbf{Las herramientas de diferencias no ven la seguridad.} La
+        generación automática de migraciones omite opciones como
+        \texttt{security\_invoker} de las vistas y los privilegios por columna
+        (B-35); esas propiedades se verifican con pruebas, no con la
+        herramienta.
+  \item \textbf{«Local» no significa privado.} En un servidor con IP pública,
+        el motor de contenedores puede saltarse el cortafuegos (B-04).
+\end{itemize}
+
+\subsection{Sobre el desarrollo asistido por IA}
+
+\begin{itemize}
+  \item \textbf{El cuello de botella se desplaza a la verificación.} La
+        integración del CMS se estimó en semanas de desarrollo convencional y
+        se ejecutó en días (sección~\ref{sec:plan-estimado-real}), pero buena
+        parte del tiempo del autor se dedicó a revisar, probar y decidir.
+  \item \textbf{La revisión humana sigue siendo necesaria.} El autor detectó
+        con una prueba manual que la consola se cargaba sin segundo factor
+        (B-14); una inyección SQL heredada pasó desapercibida en varias
+        pasadas de los agentes por el mismo fichero (B-24), y otra latente,
+        introducida al portar el código, solo la encontró una revisión
+        posterior que buscaba otra cosa (B-45).
+  \item \textbf{El nivel de revisión se decide por riesgo.} La verificación
+        exhaustiva con varios agentes encontró brechas reales, pero su coste
+        obligó a ajustarla (B-48); al reducirla, aparecieron pruebas
+        desactualizadas en zonas no revisadas (B-51, B-54). La regla resultante
+        es ejecutar siempre la suite completa antes de fusionar.
+  \item \textbf{Las directrices escritas son el mecanismo de control.} Las
+        reglas del arnés (leer el progreso antes de empezar, no reabrir
+        decisiones sin un ADR, verificar antes de cerrar, registrar cada
+        incidencia) son las que hacen que el trabajo de los agentes sea
+        evaluable y que esta memoria pueda apoyarse en evidencias.
+  \item \textbf{Cada incremento, su \textit{commit}.} Un corte de conexión
+        con un agente trabajando dejó cambios de distinta naturaleza mezclados
+        en el árbol de trabajo (B-15).
+\end{itemize}
+
+\todo{El autor añade su valoración personal: qué ha aprendido, qué haría de
+otra manera y cómo ha cambiado su forma de trabajar con agentes de IA.}
+
+\section{Trabajo futuro}
+\label{sec:concl-futuro}
+
+Las líneas de trabajo futuro se dividen entre lo que queda del plan del
+proyecto y las mejoras detectadas durante su desarrollo.
+
+\paragraph{Fases pendientes del plan.}
+\begin{itemize}
+  \item \textbf{F4, comentarios didácticos}: reescribir en español los
+        comentarios heredados de todos los módulos, empezando por los
+        esquemas de la base de datos y el \textit{middleware} de
+        autorización.
+  \item \textbf{F5, adaptación a pymes}: roles y permisos de equipo
+        orientados a pymes, planes de suscripción de ejemplo, una plantilla de
+        permisos inicial del CMS (soporte y gestor de contenidos) y la
+        documentación completa de la configuración reutilizable.
+  \item \textbf{F6, validación}: pruebas E2E de los casos de uso CU-01 a
+        CU-06, pruebas de integración con los \textit{webhooks} de Stripe y la
+        evaluación de la reutilización (CU-07).
+  \item \textbf{F7, despliegue}: despliegue de demostración en la nube y
+        manual de instalación probado desde cero.
+\end{itemize}
+
+\paragraph{Mejoras del producto.}
+\begin{itemize}
+  \item Completar el CMS: renombrar carpetas en el explorador de archivos,
+        editores de texto enriquecido y de ficheros en los formularios, una
+        interfaz para definir relaciones virtuales y ajustes por tipo de
+        formato (moneda, fichero).
+  \item Cerrar los pendientes heredados documentados: el total incorrecto de
+        la lista de paneles y la denegación de almacenamiento sobre una
+        subruta.
+  \item Plantillas de correo en español para todos los mensajes y fechas
+        del CMS según el idioma activo.
+  \item Estabilizar las pruebas E2E inestables bajo carga.
+  \item Ofrecer otros idiomas siguiendo el punto de extensión documentado.
+  \item Un generador que cree un proyecto nuevo a partir de PymeKit con su
+        configuración inicial, para reducir aún más el tiempo de puesta en
+        marcha.
+  \item Explorar una variante de PymeKit pensada para dar servicio a muchas
+        pymes desde una sola instalación, apoyada en las cuentas de equipo
+        que ya ofrece.
+\end{itemize}

@@ -3,6 +3,22 @@ import { Trans } from '@pymekit/ui/trans';
 
 import { AppLogo } from '#/components/app-logo.tsx';
 import appConfig from '#/config/app.config.ts';
+import tfgConfig from '#/config/tfg.config.ts';
+
+/**
+ * Enlace al bloque académico de la landing; solo existe mientras la web se
+ * presenta como TFG (ver `tfg.config.ts`).
+ */
+const tfgSection = tfgConfig.enabled
+  ? [
+      {
+        heading: <Trans i18nKey="marketing.footerTfg" />,
+        links: [
+          { href: '/#tfg', label: <Trans i18nKey="marketing.footerTfgLink" /> },
+        ],
+      },
+    ]
+  : [];
 
 export function SiteFooter() {
   return (
@@ -51,6 +67,7 @@ export function SiteFooter() {
             },
           ],
         },
+        ...tfgSection,
       ]}
     />
   );

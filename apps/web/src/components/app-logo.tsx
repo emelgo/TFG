@@ -3,6 +3,8 @@ import { useTranslations } from 'use-intl';
 
 import { cn } from '@pymekit/ui/utils';
 
+import appConfig from '#/config/app.config.ts';
+
 /**
  * Símbolo de PymeKit: una «P» sobre un bloque redondeado, que evoca una pieza
  * de un kit. Se dibuja con un solo trazo (regla par-impar para el hueco de la
@@ -49,9 +51,16 @@ export function LogoImage({
       )}
     >
       <LogoMark />
-      <span>
-        Pyme<span className="text-primary">Kit</span>
-      </span>
+      {/* Una pyme que reutiliza la plantilla pone su nombre en
+          VITE_PRODUCT_NAME; solo el nombre de la plantilla lleva el
+          estilo en dos colores. */}
+      {appConfig.name === 'PymeKit' ? (
+        <span>
+          Pyme<span className="text-primary">Kit</span>
+        </span>
+      ) : (
+        <span>{appConfig.name}</span>
+      )}
     </span>
   );
 }

@@ -1,0 +1,508 @@
+% =====================================================================
+% Capítulo: Construcción del Sistema
+% Fuentes: docs/tfg/{PLAN,PROGRESO,BITACORA,DECISIONES,TRAZABILIDAD}.md,
+% MAPA-REFERENCIAS.md (solo como guía; no se nombran las referencias),
+% AGENTS.md, .claude/{settings.json,hooks,skills,agents},
+% apps/web/supabase/{schemas,migrations}, packages/cms/*,
+% packages/function-middleware, apps/web/src. Estado: F3c cerrada.
+% =====================================================================
+
+% Estilo de los extractos de código de este capítulo: letra pequeña, marco
+% y sustitución de los caracteres acentuados (listings no admite UTF-8
+% multibyte de forma nativa).
+\lstdefinestyle{pymekit}{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=6pt,
+  xleftmargin=1.2em,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+           {ñ}{{\~n}}1 {Ñ}{{\~N}}1 {ü}{{\"u}}1 {¿}{{?`}}1 {¡}{{!`}}1
+           {«}{{\guillemotleft}}1 {»}{{\guillemotright}}1
+}
+
+Este capítulo describe cómo se ha construido PymeKit: el entorno y las
+herramientas, la estructura del código, qué parte se ha reutilizado y qué
+parte es propia, la secuencia de incrementos (fases F0 a F3c), una selección
+de extractos de código representativos, el uso de agentes de IA en el
+desarrollo y los problemas más relevantes que se resolvieron.
+
+% ---------------------------------------------------------------------
+\section{Entorno y herramientas}
+\label{sec:imp-entorno}
+
+El desarrollo se ha realizado en un servidor Linux remoto, accedido por SSH,
+con las herramientas de la tabla~\ref{tab:imp-herramientas}. La base de datos
+local (PostgreSQL, autenticación y almacenamiento) se ejecuta en contenedores
+con la CLI de Supabase; como el servidor tiene IP pública, sus puertos se
+filtran explícitamente y la aplicación se consulta a través de un túnel SSH
+(ADR-010).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Herramientas del entorno de desarrollo.}
+  \label{tab:imp-herramientas}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.4cm}X@{}}
+    \toprule
+    \textbf{Ámbito} & \textbf{Herramienta} \\
+    \midrule
+    Lenguaje y ejecución & TypeScript en modo estricto, Node.js (versión LTS) \\
+    Monorepo & pnpm (con catálogo de versiones compartido) y Turborepo~\cite{turborepo} \\
+    Aplicación & TanStack Start, Router y Query; React 19; Vite; Tailwind CSS 4 \\
+    CMS & Hono, Drizzle ORM, Zod \\
+    Base de datos & Supabase CLI (PostgreSQL, Auth, Storage) en contenedores Docker \\
+    Pagos & Stripe en modo de pruebas y su CLI para reenviar \textit{webhooks} \\
+    Pruebas & Vitest (unitarias), pgTAP~\cite{pgtap} (base de datos), Playwright~\cite{playwright} (E2E) \\
+    Calidad & ESLint, Prettier, comprobación de tipos y de dependencias del monorepo \\
+    Control de versiones & Git, GitHub (repositorio privado) y GitHub Actions; mensajes según Conventional Commits~\cite{conventionalcommits} \\
+    Asistencia de IA & Claude Code~\cite{claudecode} con un \textit{harness} propio (sección~\ref{sec:imp-agentes}) \\
+    Memoria & \LaTeX{} con la plantilla oficial de la escuela \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La integración continua (\texttt{.github/workflows/ci.yml}) tiene tres
+trabajos: \emph{Controles del TFG} (control de marca, bloqueante, e informe de
+comentarios en inglés), \emph{TypeScript} (tipos, \textit{lint}, formato y
+pruebas unitarias en cada \textit{push} a la rama principal y en cada \textit{pull request}) y
+\emph{Supabase + E2E} (base de datos local, pgTAP, \textit{build} de pruebas y
+Playwright), que por su coste solo se ejecuta en las \textit{pull requests}
+hacia la rama principal o a mano.
+
+% ---------------------------------------------------------------------
+\section{Estructura del código}
+\label{sec:imp-estructura}
+
+La figura~\ref{fig:imp-arbol} muestra la estructura del repositorio. La
+aplicación web es la única aplicación desplegable; todo lo demás son paquetes
+que la componen o herramientas de verificación.
+
+\begin{figure}[htbp]
+  \centering
+\begin{lstlisting}[style=pymekit, numbers=none, frame=none]
+apps/
+  web/                      TanStack Start + React 19 (una sola aplicación)
+    src/routes/             rutas por fichero
+      _marketing/           web pública: inicio, precios, blog, legales
+      _authenticated/       área privada (sesión viva y MFA)
+      admin/                consola: plataforma (super-admin) y cms/ (CMS)
+      api/                  rutas de servidor: cms/$, billing/webhook, db/...
+    src/lib/                server functions (*.functions.ts), servicios (*.server.ts)
+    src/config/             configuración reutilizable (*.config.ts)
+    supabase/               schemas/ (00-55), migrations/, tests/database (pgTAP)
+  e2e/                      pruebas Playwright de la web y del CMS
+packages/
+  ui, i18n, shared, supabase, function-middleware, policies, otp, ...
+  features/{auth,accounts,team-accounts,admin,notifications}
+  billing/{core,gateway,stripe}
+  cms/                      27 paquetes @pymekit/cms-*: api, auth, data-explorer,
+                            filters, query-builder, audit-logs, dashboards, ...
+                            y sus paquetes cliente *-ui
+docs/tfg/                   plan, requisitos, decisiones, bitácora, trazabilidad
+scripts/tfg/                controles del TFG (marca, comentarios, etiquetas)
+.claude/                    harness de desarrollo asistido (skills, agentes, hooks)
+memoria/                    esta memoria
+\end{lstlisting}
+  \caption{Estructura simplificada del repositorio.}
+  \label{fig:imp-arbol}
+\end{figure}
+
+Las convenciones más importantes, recogidas en las directrices del
+repositorio (\texttt{AGENTS.md}), son:
+
+\begin{itemize}
+  \item las \textit{server functions} se definen en ficheros
+        \texttt{*.functions.ts} con la cadena
+        \texttt{.middleware(\ldots).validator(Esquema).handler(\ldots)};
+  \item los módulos solo de servidor llevan el sufijo \texttt{.server.ts} y
+        un \textit{plugin} de Vite impide que lleguen al navegador;
+  \item en el CMS, cada funcionalidad es un paquete con un servicio Drizzle
+        (clase y fábrica \texttt{createXService()}), sus rutas Hono y
+        funciones puras en \texttt{utils/};
+  \item ningún texto visible se escribe en el código (todo pasa por i18n), y
+        los registros usan el \textit{logger} compartido, nunca
+        \texttt{console.log};
+  \item los puntos clave se marcan con comentarios \texttt{[TFG] RF-xx} que
+        un script recopila en la matriz de trazabilidad (275 etiquetas en su
+        última generación).
+\end{itemize}
+
+% ---------------------------------------------------------------------
+\section{Reutilización: qué se ha heredado y qué es propio}
+\label{sec:imp-reutilizacion}
+
+% PENDIENTE (P-06): redacción neutra; confirmar con el tutor la forma de
+% presentar la base reutilizada sin nombrarla (ADR-007).
+Como se decidió al planificar el proyecto (ADR-001), PymeKit no se ha escrito
+desde cero. Parte de dos bases de código existentes, utilizadas conforme a su
+licencia: una \textbf{base SaaS} sobre la misma pila tecnológica (aplicación
+web, autenticación, cuentas y equipos, facturación y panel de
+super-administración) y un \textbf{CMS de administración de datos} para el
+mismo tipo de base de datos (aplicación de página única con su propia API y
+su esquema de base de datos). Ambas se han \emph{integrado} en un único
+producto, \emph{adaptadas} a sus requisitos y \emph{extendidas} con
+funcionalidad nueva. El origen está documentado en el repositorio, que es
+privado, y todo el código importado ha seguido el mismo flujo: copiar,
+retirar las marcas originales, comentar en español, verificar y registrar.
+
+% PENDIENTE (P-06)
+La tabla~\ref{tab:imp-reutilizacion} distingue las tres categorías. La
+aportación del TFG no está en reescribir lo que ya existía, sino en la
+integración de dos sistemas con arquitecturas distintas, en la corrección de
+su seguridad, en la adaptación al caso de una pyme y en la verificación y la
+documentación del conjunto.
+
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{12.2cm}@{}}
+  \caption{Código reutilizado, adaptado y propio.}\label{tab:imp-reutilizacion}\\
+  \toprule
+  \textbf{Tipo} & \textbf{Elementos} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Tipo} & \textbf{Elementos} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Reutilizado & Biblioteca de componentes de interfaz; clientes de base de datos; \textit{middleware} de las \textit{server functions}; módulos de autenticación, cuentas, equipos, notificaciones, correo y facturación; esquema \texttt{public} de cuentas, roles, invitaciones y facturación con sus pruebas pgTAP; servicios y rutas de la API del CMS; utilidades del CMS (filtros, constructor de consultas, formateadores). \\
+  \midrule
+  Adaptado & Aplicación web (sin el CMS de contenidos basado en ficheros, el registro de cambios ni la documentación de la base; con comprobación de sesión viva); esquema del CMS renombrado a \texttt{cms} y endurecido (ADR-012, ADR-015); migración de unos 64 formularios y unos 183 ficheros con textos del CMS a la pila de la web (ADR-013); reescritura de las aproximadamente treinta pantallas del CMS como rutas de la web; pruebas E2E heredadas; internacionalización (solo español, ADR-021). \\
+  \midrule
+  Propio & Integración del CMS en la web (montaje de la API, llamada en proceso durante el SSR, guardas de la consola; ADR-011, ADR-016); pegamento entre super-administrador y rol raíz del CMS (ADR-014); corrección de 38 fallos heredados, 25 de ellos de seguridad (bitácora); blog en la base de datos y rutas públicas (ADR-017); instantánea del autor en la auditoría (ADR-018); cuadrícula propia de los paneles (ADR-019); consola por áreas de negocio, nombres en español como datos, ayuda contextual «?» y resúmenes (ADR-020); bloque académico configurable; identidad visual; 25 de las 26 migraciones añadidas durante el proyecto (la primera incorpora el esquema del CMS de partida) y las pruebas pgTAP de aislamiento escritas en las revisiones de RLS; el \textit{harness} de desarrollo y los controles del TFG. \\
+\end{longtable}
+\todo{Confirmar con el tutor (P-06) la forma de presentar la parte
+reutilizada y, si procede, cuantificarla (ficheros o líneas reutilizados,
+adaptados y nuevos).}
+
+% ---------------------------------------------------------------------
+\section{Construcción por incrementos}
+\label{sec:imp-fases}
+
+El sistema se ha construido en incrementos, cada uno funcional y verificado
+antes de pasar al siguiente, con su rama de trabajo y su
+\textit{pull request}. La tabla~\ref{tab:imp-fases} resume el contenido de
+cada incremento y el estado de las pruebas a su cierre; la planificación
+temporal se presenta en el capítulo de Planificación.
+
+\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{9.6cm}>{\raggedright\arraybackslash}p{3.0cm}@{}}
+  \caption{Incrementos de construcción y estado de las pruebas al cerrarlos.}\label{tab:imp-fases}\\
+  \toprule
+  \textbf{Fase} & \textbf{Contenido} & \textbf{Pruebas al cierre} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Fase} & \textbf{Contenido} & \textbf{Pruebas al cierre} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  F0 & \textit{Harness} de desarrollo: directrices, plan, requisitos, guías, \textit{skills}, agentes, \textit{hooks}, controles del TFG e integración continua mínima & --- \\
+  F1 & Base SaaS importada: renombrado del ámbito de paquetes a \texttt{@pymekit/*}, retirada de módulos no necesarios, base de datos local, puerto propio, CI completa & 61 unit.; pgTAP 27/396; E2E 43 \\
+  F2.1 & Base de datos del CMS: esquema \texttt{cms}, pegamento super-administrador $\rightarrow$ Root, MFA obligatorio; primera revisión adversarial de RLS y corrección de dos brechas heredadas & pgTAP 57/1.550 \\
+  F2.2 & API del CMS: 19 paquetes de servidor, Hono en \texttt{/api/cms}, autenticación con la sesión de la web & 1.130 unit.; 11 E2E de la API \\
+  F2.3 & Base de la interfaz: consola compartida, guardas con \texttt{aal2}, cliente RPC, \textit{fetch} isomorfo & E2E 60 \\
+  F2.4 & Explorador de datos: listado con filtros, orden, búsqueda, columnas y vistas; ficha con relaciones; creación, edición y borrado & 1.313 unit.; E2E 86 \\
+  F2.5 & Exploradores de usuarios y de almacenamiento & E2E 102 \\
+  F2.6 & Auditoría y búsqueda global; auditoría no falsificable y redactada según permisos & pgTAP 60/1.652; E2E 108 \\
+  F2.6b & Blog en la base de datos gestionado desde el CMS y rutas públicas; formatos legibles & pgTAP 62/1.730; E2E 129 \\
+  F2.7 & Ajustes: general, autenticación, miembros, RBAC (roles, grupos y permisos), recursos y diseñador de fichas & pgTAP 67/2.049; E2E 141 \\
+  F2.8 & Paneles con \textit{widgets} de métrica, gráfica y tabla & pgTAP 2.060 \\
+  F2.9 & Cierre de la integración del CMS: suite E2E completa, \textit{skills} actualizadas & E2E 149 \\
+  F3a--b & Desmarcado completo, español por defecto (unas 1.770 claves), correos y plantillas en español, identidad visual, etiquetas legibles de enumerados, sesión caducada & E2E 150 \\
+  F3c & Consola por áreas de negocio, nombres en español de las tablas, retirada del esquema de demostración (ADR-020); solo español (ADR-021); ayuda «?» y resúmenes; bloque académico en la página de inicio & 1.691 unit.; pgTAP 70/2.073; E2E 156 \\
+\end{longtable}
+
+Las cifras de pgTAP se expresan como ficheros/pruebas. Las fases F4
+(comentarios didácticos), F5 (adaptación a pymes), F6 (validación) y F7
+(despliegue) quedan fuera de este capítulo en la fecha de redacción.
+\todo{Actualizar la tabla~\ref{tab:imp-fases} al cerrar F4--F7.}
+
+% ---------------------------------------------------------------------
+\section{Extractos de código significativos}
+\label{sec:imp-extractos}
+
+Se presentan cinco extractos breves que ilustran las decisiones del capítulo
+de Diseño. Se han recortado los comentarios y las líneas no esenciales.
+
+\subsection{Una política RLS condicionada al permiso}
+
+El extracto~\ref{lst:imp-rls} muestra la política que permite borrar una
+invitación. No basta con pertenecer a la cuenta: hace falta además el permiso
+\texttt{invites.manage} en ella. La llamada a \texttt{auth.uid()} va dentro de
+\texttt{(select \ldots)} para que PostgreSQL la evalúe una sola vez por
+consulta y no por cada fila.
+
+\begin{lstlisting}[style=pymekit, language=SQL, caption={Política de borrado de invitaciones (\texttt{07-invitations.sql}).}, label={lst:imp-rls}]
+create policy invitations_delete on public.invitations
+  for delete to authenticated
+  using (
+    has_role_on_account (account_id)
+    and public.has_permission (
+      (select auth.uid ()),
+      account_id,
+      'invites.manage'::public.app_permissions
+    )
+  );
+\end{lstlisting}
+
+El blog (extracto~\ref{lst:imp-blog}) combina tres mecanismos: se revocan
+todos los privilegios, se concede la lectura \emph{por columnas} (la web no
+necesita saber qué usuario creó una entrada) y la política solo devuelve lo
+publicado. La escritura no se concede a ningún rol de la API: se hace desde
+el CMS, con sus funciones que comprueban el permiso.
+
+\begin{lstlisting}[style=pymekit, language=SQL, caption={Lectura pública del blog (\texttt{19-blog.sql}, recortado).}, label={lst:imp-blog}]
+alter table public.blog_posts enable row level security;
+revoke all on public.blog_posts from anon, authenticated, service_role;
+grant select, insert, update, delete on table public.blog_posts to service_role;
+
+grant select (id, slug, title, excerpt, content, status,
+              published_at, category_id /* ... */)
+  on table public.blog_posts to anon, authenticated;
+
+create policy blog_posts_read_published on public.blog_posts
+  for select to anon, authenticated
+  using (status = 'published' and published_at <= now());
+\end{lstlisting}
+
+\subsection{Una \textit{server function} protegida por \textit{middleware}}
+
+El extracto~\ref{lst:imp-sfn} es la función que crea una sesión de pago para
+un equipo; es la que materializa la segunda barrera del caso CU-04. La cadena
+de \textit{middleware} gestiona los errores, exige sesión y comprueba el
+permiso \texttt{billing.manage} sobre la cuenta indicada (consultando
+\texttt{has\_permission} en la base de datos) antes de ejecutar el
+manejador. Los datos de entrada se validan con un esquema Zod.
+
+\begin{lstlisting}[style=pymekit, caption={Server function de pago de equipo (\texttt{billing.functions.ts}, recortado).}, label={lst:imp-sfn}]
+const billingManageMiddleware = [
+  errorMiddleware,
+  authMiddleware,
+  withFeaturePermission('billing.manage'),
+];
+
+export const createTeamAccountCheckoutSession = createServerFn({
+  method: 'POST',
+})
+  .middleware(billingManageMiddleware)
+  .validator(TeamCheckoutSchema)
+  .handler(async ({ data }) => {
+    if (!featureFlagsConfig.enableTeamAccountBilling) {
+      throw new Error('Team account billing is not enabled');
+    }
+
+    const client = getSupabaseServerClient(); // cliente con RLS
+    const service = createTeamBillingService(client);
+
+    return service.createCheckout(data);
+  });
+\end{lstlisting}
+
+\subsection{Montaje de la API del CMS y una ruta Hono}
+
+La integración del CMS en la web (ADR-011) se reduce a una ruta de servidor
+que reenvía cualquier petición bajo \texttt{/api/cms/} a la aplicación Hono
+(extracto~\ref{lst:imp-montaje}). La importación dinámica dentro del
+manejador garantiza que el código del CMS ---con el controlador de PostgreSQL
+y la clave secreta--- nunca forme parte de un fragmento del navegador.
+
+\begin{lstlisting}[style=pymekit, caption={Montaje de la API del CMS (\texttt{routes/api/cms/\$.ts}).}, label={lst:imp-montaje}]
+async function handleCmsApiRequest({ request }: { request: Request }) {
+  const { getCmsApiApp } = await import('#/lib/cms/cms-api-app.server.ts');
+  const app = await getCmsApiApp();
+
+  return app.fetch(request);
+}
+
+export const Route = createFileRoute('/api/cms/$')({
+  server: {
+    handlers: {
+      GET: handleCmsApiRequest,
+      POST: handleCmsApiRequest,
+      // ... PUT, PATCH, DELETE y OPTIONS igual
+    },
+  },
+});
+\end{lstlisting}
+
+Cada funcionalidad del CMS registra sus rutas en la aplicación Hono
+(extracto~\ref{lst:imp-hono}): valida la entrada, delega la autorización y la
+consulta en su servicio y traduce cualquier error a un código estable, sin
+exponer el mensaje interno.
+
+\begin{lstlisting}[style=pymekit, caption={Ruta del registro de auditoría (\texttt{get-audit-logs-route.ts}, recortado).}, label={lst:imp-hono}]
+export function registerAuditLogsRoute(router: Hono) {
+  return router.get(
+    '/v1/audit-logs',
+    zValidator('query', AuditLogsQuerySchema, invalidAuditLogsInput),
+    async (c) => {
+      const { cursor, limit, ...filters } = c.req.valid('query');
+
+      try {
+        const data = await createAuditLogsService(c).getAuditLogs({
+          cursor, limit, filters,
+        });
+        return c.json(data);
+      } catch (error) {
+        // 4xx/5xx con código estable (AUDIT_LOG_*); el detalle va al log
+        return respondWithAuditLogsError(c, error, { route: 'list' });
+      }
+    },
+  );
+}
+\end{lstlisting}
+
+El servicio ejecuta cada consulta dentro de una transacción en la que antes
+fija la identidad del usuario (extracto~\ref{lst:imp-claims}). Los valores se
+pasan como \emph{parámetros enlazados}, nunca concatenados en el texto SQL, y
+el rol se limita a los que puede llevar un JWT de usuario. Así, las políticas
+RLS del esquema \texttt{cms} se aplican a la API igual que a cualquier otro
+cliente.
+
+\begin{lstlisting}[style=pymekit, caption={Identidad del usuario en cada transacción del CMS (\texttt{drizzle-client.ts}, recortado).}, label={lst:imp-claims}]
+const role = ALLOWED_DB_ROLES.has(token.role) ? token.role : 'anon';
+const claims = JSON.stringify(token);
+
+return rlsClient.transaction(async (tx) => {
+  await tx.execute(sql`select set_config('request.jwt.claims', ${claims}, true)`);
+  await tx.execute(sql`select set_config('request.jwt.claim.sub', ${sub}, true)`);
+  await tx.execute(sql`select set_config('role', ${role}, true)`);
+
+  return await transaction(tx);
+});
+\end{lstlisting}
+
+\subsection{La migración de las áreas de la consola}
+
+La consola por áreas (ADR-020) no necesitó cambios de estructura: el área de
+cada tabla se guarda en el campo \texttt{ui\_config} de sus metadatos, que ya
+existía. La migración (extracto~\ref{lst:imp-areas}) carga los valores por
+defecto en una tabla temporal y los aplica \emph{solo} donde no hay un valor
+propio, de modo que nunca pisa lo que una pyme haya personalizado desde
+Ajustes $\rightarrow$ Recursos y puede ejecutarse de nuevo sin efectos.
+
+\begin{lstlisting}[style=pymekit, language=SQL, caption={Áreas de navegación del CMS (\texttt{20261002140000\_cms\_navigation\_groups.sql}, recortado).}, label={lst:imp-areas}]
+insert into cms_navigation_defaults
+    (schema_name, table_name, navigation_group, display_name, previous_names, ordering)
+values
+    ('public', 'blog_posts', 'Blog', 'Entradas', array['Blog: entradas'], 100),
+    ('public', 'accounts', 'Cuentas', 'Cuentas', array['Cuentas'], 200),
+    ('public', 'subscriptions', 'Facturación', 'Suscripciones',
+     array['Facturación: suscripciones'], 310),
+    ('public', 'config', 'Sistema', 'Configuración',
+     array['Configuración de la plataforma'], 400);
+    -- ... resto de tablas
+
+-- Área: solo si la tabla todavía no tiene una.
+update cms.table_metadata as meta
+set ui_config = coalesce(meta.ui_config, '{}'::jsonb)
+        || jsonb_build_object('navigation_group', defaults.navigation_group)
+from cms_navigation_defaults as defaults
+where meta.schema_name = defaults.schema_name
+  and meta.table_name = defaults.table_name
+  and nullif(btrim(meta.ui_config ->> 'navigation_group'), '') is null;
+\end{lstlisting}
+
+% ---------------------------------------------------------------------
+\section{Desarrollo asistido por agentes de IA}
+\label{sec:imp-agentes}
+
+El proyecto se ha desarrollado con la asistencia de un agente de
+programación de IA (Claude Code~\cite{claudecode}). El autor fija el alcance,
+toma las decisiones y revisa los resultados; el agente implementa, prueba y
+documenta bajo unas reglas explícitas. Para que esa asistencia sea
+controlable y reproducible se construyó, antes de escribir código, un
+\textbf{\textit{harness}}: el conjunto de directrices, procedimientos y
+controles automáticos que gobiernan el trabajo del agente
+(tabla~\ref{tab:imp-harness}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Componentes del \textit{harness} de desarrollo asistido.}
+  \label{tab:imp-harness}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}X@{}}
+    \toprule
+    \textbf{Componente} & \textbf{Contenido} \\
+    \midrule
+    Directrices & \texttt{AGENTS.md} raíz (fuente única) y uno por aplicación o paquete: pila, patrones, reglas de seguridad de la base de datos, convenciones e idioma, y una lista de verificación obligatoria al terminar cada cambio \\
+    Registros & Plan, progreso, requisitos, decisiones (ADR), bitácora de incidencias, trazabilidad y mapa de reutilización en \texttt{docs/tfg/}, que el agente actualiza en cada cambio \\
+    \textit{Skills} & Procedimientos reutilizables: incorporar un módulo de una base de partida, comentar un módulo en español, registrar una decisión, redactar una sección de la memoria, revisión adversarial del \textit{diff}, búsqueda de fallos, revisión de RLS, experto en PostgreSQL y patrones de servicios, formularios y E2E \\
+    Subagentes & Revisor de calidad, revisor de comentarios y redactor de la memoria, con instrucciones y herramientas propias \\
+    \textit{Hooks} & Al iniciar la sesión, muestran la fase actual y sus pendientes; tras cada edición, ejecutan el control de marca sobre el fichero; antes de terminar, exigen actualizar el progreso si hay cambios de código \\
+    Permisos & Lectura permitida y escritura denegada sobre las bases de partida; lectura denegada sobre ficheros de secretos \\
+    Controles en CI & Control de marca bloqueante e informe de comentarios en inglés; un script aparte regenera la tabla de etiquetas de trazabilidad \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+El procedimiento de revisión de RLS merece mención aparte porque es el que
+más hallazgos ha producido. Su premisa es que leer las políticas no basta:
+hay que \emph{demostrar} el aislamiento. Tras un inventario y una auditoría
+estática con un catálogo de ataques, cada hallazgo plausible se convierte en
+una prueba pgTAP que ejecuta el ataque como el usuario atacante y comprueba
+que falla; después, un agente distinto, que solo recibe la política, la
+prueba y la afirmación, intenta \emph{refutarla}. Una brecha solo se acepta
+si el refutador la reproduce, y un aprobado, solo si no encuentra un vector
+abierto. La refutación encontró, por ejemplo, la lectura del catálogo de
+roles de PostgreSQL que la primera auditoría había dado por buena (B-08). Sus
+resultados se presentan en el capítulo de Pruebas.
+
+La experiencia también mostró los límites del enfoque. La verificación
+exhaustiva con varios agentes por paso (implementador, revisor de seguridad y
+refutador, y la suite E2E completa en cada paso) encontró brechas reales
+(B-45, B-47), pero su coste en \textit{tokens} resultó excesivo, y el autor
+pidió reducirlo (B-48). Desde entonces se trabaja en un «modo ahorro»: un
+agente por paso, E2E completos solo al cerrar cada fase y revisión de RLS
+solo en cambios importantes de permisos. El riesgo se traslada al cierre de
+fase, como mostraron dos pruebas desactualizadas que solo detectó la suite
+completa (B-51, B-54). Además, ninguna revisión automática es exhaustiva: una
+inyección SQL heredada pasó por varias revisiones de agentes sin ser vista y
+la encontró la revisión crítica de sus informes (B-24), y algunos fallos solo
+los descubrió el autor con pruebas manuales (B-14, B-40, B-52).
+\todo{Valorar en las Conclusiones el efecto de la asistencia de IA con los
+datos de dedicación (horas del autor frente a tiempo de reloj).}
+
+% ---------------------------------------------------------------------
+\section{Problemas relevantes resueltos}
+\label{sec:imp-problemas}
+
+Todas las incidencias se registraron en una bitácora en el momento de
+producirse, con el formato «qué pasó, causa, solución, evidencia y lección».
+Hasta la fase F3c se registraron 55. La tabla~\ref{tab:imp-bitacora} recoge
+una selección de las no relacionadas directamente con el control de acceso;
+las de seguridad se analizan en el capítulo de Pruebas
+(sección~\ref{sec:pru-seguridad}).
+
+\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{4.8cm}>{\raggedright\arraybackslash}p{7.4cm}@{}}
+  \caption{Selección de problemas resueltos y lecciones aprendidas (bitácora del proyecto).}\label{tab:imp-bitacora}\\
+  \toprule
+  \textbf{ID} & \textbf{Problema} & \textbf{Solución y lección} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{ID} & \textbf{Problema} & \textbf{Solución y lección} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  B-01 & El renombrado masivo del ámbito de paquetes no alcanzó una expresión regular donde aparecía escapado & Se corrigió y el control de marca detecta ahora también las variantes escapadas. Un renombrado masivo se verifica buscando variantes, no solo la forma literal. \\
+  B-04 & La base de datos local quedó accesible desde Internet porque los contenedores se saltan el cortafuegos & Regla de filtrado específica para contenedores y acceso por túnel SSH (ADR-010). En un servidor con IP pública, «local» no significa privado. \\
+  B-10 & Esquema declarativo y migraciones del CMS de partida desincronizados (nueve funciones distintas) & Se alinearon con las migraciones. La comparación de esquemas forma parte de la verificación de cualquier cambio de base de datos. \\
+  B-11 & Una prueba heredada se titulaba «MFA obligatorio por defecto», pero su aserción comprobaba que se concedía el acceso & Se reescribió. Una prueba en verde solo demuestra que el sistema hace lo que dice la prueba: hay que leer las aserciones. \\
+  B-16 & Ciclo de dependencias al poner componentes y API del explorador en el mismo paquete & Paquete cliente separado. Separar cliente y servidor también evita ciclos. \\
+  B-17, B-29 & La API respondía 500 a registros inexistentes porque el envoltorio de errores perdía el código de PostgreSQL & Se conserva la causa y se traduce el código SQLSTATE a 403/404. Sin la causa no se distingue «no existe» de «ha fallado». \\
+  B-35 & La herramienta de comparación de esquemas omitía la opción \texttt{security\_invoker} de una vista y los permisos por columna & Esa parte de la migración se escribe a mano y pgTAP comprueba ambas propiedades. Que la comparación salga limpia no demuestra que la migración sea segura. \\
+  B-36 & La sincronización de tablas del CMS duplicaba las relaciones en cada ejecución & Función idempotente, cubierta por pgTAP. \\
+  B-40, B-46 & El control de marca solo miraba el contenido de los ficheros, no sus rutas, y no podía ver la marca dibujada en imágenes & Se comprueban también las rutas; logotipo y capturas propias generadas con un script. Un control automático solo cubre lo que se le dice que mire. \\
+  B-52 & Tras cambiar de rama, el servidor de desarrollo conservaba un árbol de rutas sin el CMS & Reinicio limpiando cachés. Que las pruebas pasen contra la \textit{build} no garantiza que el entorno de desarrollo esté sano. \\
+  B-53 & Una sesión revocada pero con firma válida rompía la consola & Comprobación con estado de la sesión en la entrada de las rutas protegidas. Verificar la firma de un JWT no demuestra que la sesión exista. \\
+  B-55 & La lista de miembros superaba el tiempo máximo con unos cientos de cuentas (función volátil evaluada por fila) & Envolver la llamada en \texttt{(select \ldots)}; véase la sección~\ref{sec:pru-rendimiento}. \\
+\end{longtable}

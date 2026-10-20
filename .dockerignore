@@ -1,0 +1,39 @@
+# Ficheros que NO entran en el contexto de build de Docker.
+# Un contexto pequeño acelera la build y, sobre todo, evita colar en la imagen
+# secretos locales o artefactos generados en el equipo del desarrollador.
+
+# Dependencias y artefactos: se regeneran dentro de la imagen
+**/node_modules
+**/.output
+**/.nitro
+**/.tanstack
+**/.turbo
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+
+# Secretos y variables solo de desarrollo o pruebas (nunca a una imagen)
+**/.env*.local
+**/.env.development
+**/.env.test
+.env.docker
+.env.docker.*
+!.env.docker.example
+
+# Control de versiones, editores y herramientas de IA
+.git
+.github
+.claude
+.idea
+.vscode
+**/.DS_Store
+
+# Documentación y memoria del TFG: no forman parte de la app
+docs
+memoria
+
+# Datos locales de la CLI de Supabase
+apps/web/supabase/.temp
+apps/web/supabase/.branches
