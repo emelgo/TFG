@@ -15,8 +15,9 @@ import { createClient } from '@supabase/supabase-js';
  *    CMS, ni siquiera el propio super-admin;
  *  - ningún *endpoint* acepta `app_metadata` (con `role` o `cms_access`): un
  *    campo de más se rechaza con 400;
- *  - el personal de soporte (sin permisos sobre usuarios) no ve la sección y
- *    la API le responde 403 a todo.
+ *  - el personal de soporte (rol «Soporte», que solo LEE usuarios: ADR-025)
+ *    ve el listado y la ficha sin acciones, y la API le responde 403 a
+ *    cualquier acción.
  *
  * Cada ejecución usa correos con una marca única y `afterAll` borra con la
  * clave de servicio lo que quede.
@@ -27,7 +28,6 @@ import { expect, test } from '@playwright/test';
 
 import { AuthPageObject } from '../authentication/auth.po';
 import { AUTH_STATES } from '../utils/auth-state';
-import { CmsPageObject } from './cms.po';
 import { UsersExplorerPageObject } from './users-explorer.po';
 
 /** Usuarios del *seed*. */
@@ -309,20 +309,28 @@ test.describe('API del explorador de usuarios: protecciones', () => {
 test.describe('Explorador de usuarios: personal de soporte', () => {
   AuthPageObject.setupSession(AUTH_STATES.CMS_STAFF);
 
-  test('la ficha de un usuario responde 404 sin permiso', async ({ page }) => {
-    const cms = new CmsPageObject(page);
+  test('ve la ficha de un usuario, pero sin acciones', async ({ page }) => {
+    const users = new UsersExplorerPageObject(page);
 
-    await page.goto(`/admin/cms/users/${SEED_USERS.owner}`);
+    await users.gotoUser(SEED_USERS.owner);
 
-    await expect(cms.notFound()).toBeVisible();
+    await expect(page.getByTestId('user-details')).toBeVisible();
+    await expect(page.locator('[data-testid^="user-action-"]')).toHaveCount(0);
   });
 
-  test('la API responde 403 a leer y a cualquier acción', async ({ page }) => {
+  test('la API le deja leer y responde 403 a cualquier acción', async ({
+    page,
+  }) => {
     await page.goto('/admin/cms');
 
-    const requests = [
+    for (const response of await Promise.all([
       page.request.get('/api/cms/v1/users'),
       page.request.get(`/api/cms/v1/users/${SEED_USERS.owner}`),
+    ])) {
+      expect(response.status(), response.url()).toBe(200);
+    }
+
+    const requests = [
       // Sin cuerpo, el filtro CSRF exige la cabecera `Origin`, que el
       // navegador siempre envía; aquí se añade a mano.
       page.request.post(`/api/cms/v1/admin/users/${SEED_USERS.owner}/ban`, {
