@@ -255,6 +255,19 @@
       "full_time": "Jornada completa",
       "part_time": "Media jornada",
       "contractor": "Autónomo"
+    },
+    "appointment_service": {
+      "physiotherapy": "Fisioterapia general",
+      "sports_injury": "Lesión deportiva",
+      "back_pain": "Dolor de espalda",
+      "pelvic_floor": "Suelo pélvico",
+      "rehabilitation": "Rehabilitación"
+    },
+    "appointment_request_status": {
+      "pending": "Pendiente",
+      "confirmed": "Confirmada",
+      "cancelled": "Cancelada",
+      "completed": "Atendida"
     }
   },
   "ui": {

@@ -1,4 +1,27 @@
 /*
-* custom.css
-Add your custom styles here
+ * custom.css
+ *
+ * Punto de extensión visual de la app: aquí cada pyme redefine los tokens de
+ * diseño (variables CSS de `theme.css`) sin tocar los componentes ni los
+ * paquetes de la plataforma. Se importa el último en `styles.css`, así que
+ * sus valores ganan a los de serie.
+ *
+ * [Escenario de evaluación F6] Colores de «Fisioterapia Bahía»: un verde
+ * azulado (el mar de la bahía) como color principal en el tema claro y una
+ * versión más luminosa en el oscuro, para mantener el contraste del texto.
  */
+:root {
+  --primary: oklch(0.52 0.1 195);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.52 0.1 195);
+  --sidebar-primary: oklch(0.52 0.1 195);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}
+
+.dark {
+  --primary: oklch(0.78 0.11 195);
+  --primary-foreground: oklch(0.2 0.03 195);
+  --ring: oklch(0.78 0.11 195);
+  --sidebar-primary: oklch(0.78 0.11 195);
+  --sidebar-primary-foreground: oklch(0.2 0.03 195);
+}

@@ -138,6 +138,51 @@ export type Database = {
           },
         ]
       }
+      appointment_requests: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          internal_notes: string | null
+          message: string | null
+          phone: string
+          preferred_date: string
+          privacy_accepted_at: string
+          service: Database["public"]["Enums"]["appointment_service"]
+          status: Database["public"]["Enums"]["appointment_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          internal_notes?: string | null
+          message?: string | null
+          phone: string
+          preferred_date: string
+          privacy_accepted_at?: string
+          service: Database["public"]["Enums"]["appointment_service"]
+          status?: Database["public"]["Enums"]["appointment_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          internal_notes?: string | null
+          message?: string | null
+          phone?: string
+          preferred_date?: string
+          privacy_accepted_at?: string
+          service?: Database["public"]["Enums"]["appointment_service"]
+          status?: Database["public"]["Enums"]["appointment_request_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_customers: {
         Row: {
           account_id: string
@@ -1231,6 +1276,17 @@ export type Database = {
         | "settings.manage"
         | "members.manage"
         | "invites.manage"
+      appointment_request_status:
+        | "pending"
+        | "confirmed"
+        | "cancelled"
+        | "completed"
+      appointment_service:
+        | "physiotherapy"
+        | "sports_injury"
+        | "back_pain"
+        | "pelvic_floor"
+        | "rehabilitation"
       billing_provider: "stripe"
       blog_post_status: "draft" | "published" | "archived"
       notification_channel: "in_app" | "email"
@@ -1942,6 +1998,19 @@ export const Constants = {
         "settings.manage",
         "members.manage",
         "invites.manage",
+      ],
+      appointment_request_status: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+      ],
+      appointment_service: [
+        "physiotherapy",
+        "sports_injury",
+        "back_pain",
+        "pelvic_floor",
+        "rehabilitation",
       ],
       billing_provider: ["stripe"],
       blog_post_status: ["draft", "published", "archived"],

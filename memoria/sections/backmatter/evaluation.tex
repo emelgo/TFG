@@ -1,0 +1,311 @@
+% =====================================================================
+% Capítulo · Evaluación de la reutilización (F6, P-01, CU-07, RNF-01)
+% Fuente: docs/tfg/EVALUACION.md y la rama fase-6/escenario-ejemplo.
+% El fichero padre ya abre \chapter{Evaluación de la reutilización}.
+% Paquetes necesarios: booktabs, tabularx.
+% =====================================================================
+
+La propuesta de este trabajo exige evaluar la reutilización de la plataforma
+en un escenario de ejemplo. Este capítulo presenta esa evaluación como un
+\emph{caso de estudio}: un método de evaluación observacional del marco de la
+investigación en ciencia del diseño, en el que el artefacto se aplica a una
+situación realista y se estudia en profundidad lo que ocurre
+\cite{hevner2004}. Se construye un escenario verosímil, se registran el
+esfuerzo y los cambios necesarios y se contrastan con una estimación razonada
+del mismo resultado sin la plataforma.
+
+\section{Pregunta de evaluación y escenario}
+\label{sec:eval-escenario}
+
+La pregunta que guía la evaluación es: \emph{¿cuánto trabajo cuesta que una
+pyme concreta adopte PymeKit y añada una funcionalidad de negocio propia, y
+qué parte de ese trabajo resuelve la plataforma sin modificar su código?}
+
+El escenario es una pyme ficticia, \emph{Fisioterapia Bahía}, una clínica
+pequeña de Cádiz que quiere publicar su web con un formulario para pedir cita
+y gestionar las solicitudes desde la consola de administración. La
+tabla~\ref{tab:eval-necesidades} recoge sus necesidades y el criterio con el
+que se considera cubierta cada una.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Necesidades del escenario y criterios de aceptación}
+  \label{tab:eval-necesidades}
+  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.6cm}X@{}}
+    \toprule
+    \# & Necesidad & Criterio de aceptación \\
+    \midrule
+    a & Identidad propia & Nombre, título, descripción y colores de la
+      clínica sin modificar los paquetes de la plataforma \\
+    b & Tabla de solicitudes de cita & Datos del paciente, servicio, fecha
+      preferida, estado y notas internas; seguridad a nivel de fila; el
+      público no puede leer y el alta está controlada \\
+    c & Gestión en el CMS & Área propia «Citas» con nombres y ayudas en
+      español \\
+    d & Formulario público & Página de la web con validación, textos
+      internacionalizados y ayuda contextual \\
+    e & Pruebas & Pruebas de las políticas en la base de datos y una prueba
+      de extremo a extremo del flujo completo \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Procedimiento}
+\label{sec:eval-procedimiento}
+
+El experimento se realizó en una rama independiente que no se integra en la
+línea principal. El procedimiento fue el siguiente:
+
+\begin{enumerate}
+  \item Se fijó la versión de partida del repositorio y se tomó una
+    instantánea de la base de datos local (metadatos del CMS, objetos del
+    esquema público, migraciones, políticas y registro de auditoría).
+  \item Se registró la hora de inicio y fin de cada paso.
+  \item Se desarrolló siguiendo solo los patrones ya documentados en el
+    repositorio: la plantilla de tabla con seguridad a nivel de fila, las
+    migraciones de metadatos del CMS y el formulario de contacto existente
+    como modelo.
+  \item Se contaron los cambios respecto a la versión de partida y se
+    clasificó cada fichero como nuevo, de configuración, generado o código
+    existente de la plataforma.
+  \item Se ejecutaron las pruebas del escenario, las de regresión más
+    cercanas y las comprobaciones estáticas del repositorio.
+  \item Se retiraron de la base de datos local los objetos creados y se
+    comparó con la instantánea inicial.
+\end{enumerate}
+
+El desarrollo lo realizó un asistente de programación basado en IA que ya
+conocía el repositorio. Por eso los tiempos medidos no se presentan como
+tiempos de una persona, y la comparación con un desarrollo desde cero
+(sección~\ref{sec:eval-comparacion}) se hace con estimaciones para un
+desarrollador humano en ambos lados.
+
+\section{Solución construida}
+\label{sec:eval-solucion}
+
+La identidad se resolvió con variables de entorno (nombre, título y
+descripción) y redefiniendo los \emph{tokens} de color en la hoja de estilos
+prevista como punto de extensión. La tabla de solicitudes sigue la plantilla
+de la plataforma: seguridad a nivel de fila activa, privilegios retirados a
+todos los roles de la API y restricciones de formato en la propia base de
+datos. Su registro en el CMS consiste en una llamada a la función de
+sincronización y en datos de configuración: nombre visible, área de
+navegación, orden y, para cada columna, nombre, texto de ayuda y si es
+editable.
+
+La decisión de diseño más relevante fue cómo permitir el alta pública sin
+lectura. Conceder la inserción al rol anónimo habría ampliado la superficie
+pública de la base de datos, que la plataforma limita deliberadamente a la
+lectura del blog, y habría obligado a modificar una prueba de la plataforma.
+Se optó por una función de servidor que valida los datos con el mismo
+esquema que usa el formulario e inserta con el rol de servicio solo las
+columnas que rellena el visitante. El estado de la solicitud y las notas
+internas nunca proceden del formulario.
+
+\section{Métricas}
+\label{sec:eval-metricas}
+
+\subsection{Tiempo}
+
+La tabla~\ref{tab:eval-tiempos} muestra el tiempo de reloj de cada paso. La
+mayor parte del tiempo de las pruebas de extremo a extremo se dedicó a
+resolver fricciones del entorno (sección~\ref{sec:eval-fricciones}), no a
+escribir la prueba.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Tiempo de reloj por paso del experimento}
+  \label{tab:eval-tiempos}
+  \begin{tabularx}{0.8\textwidth}{@{}Xr@{}}
+    \toprule
+    Paso & Minutos \\
+    \midrule
+    Lectura de directrices y patrones & 3 \\
+    Identidad (a) & 3 \\
+    Base de datos, metadatos del CMS y pruebas de políticas (b, c, e) & 4 \\
+    Formulario, función de servidor y textos (d) & 3 \\
+    Prueba de extremo a extremo (e) & 21 \\
+    Verificación global y limpieza & 3 \\
+    \midrule
+    \textbf{Total} & \textbf{$\approx$ 36} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Volumen de cambios}
+
+El experimento añadió 1415 líneas y eliminó 10 en 18 ficheros. La
+tabla~\ref{tab:eval-cambios} las clasifica. Sin contar comentarios ni líneas
+en blanco, el código escrito suma unas 830 líneas, de las que casi la mitad
+son pruebas.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Cambios respecto a la versión de partida}
+  \label{tab:eval-cambios}
+  \begin{tabularx}{\textwidth}{@{}Xrrr@{}}
+    \toprule
+    Clase de fichero & Ficheros & Líneas & De código \\
+    \midrule
+    Nuevos: interfaz y servidor web & 4 & 501 & 370 \\
+    Nuevos: esquema y migración SQL & 2 & 317 & 187 \\
+    Nuevos: pruebas de la base de datos & 1 & 228 & 156 \\
+    Nuevos: pruebas de extremo a extremo & 3 & 189 & 120 \\
+    Configuración y textos & 5 & 92 & --- \\
+    Generados automáticamente & 2 & 90 & --- \\
+    Código existente modificado & 1 & 8 & 8 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Impacto sobre la plataforma}
+
+No se modificó la lógica de ningún paquete de la plataforma, ni sus
+esquemas, migraciones o pruebas de base de datos. Se añadieron textos en los
+ficheros de mensajes, que es donde la plataforma sitúa todos los textos de
+la interfaz, y se regeneraron los tipos de la base de datos. El único cambio
+en código existente fue el componente del logotipo, que mostraba el nombre
+de la plataforma escrito en el propio código en lugar de leerlo de la
+configuración; el experimento sacó a la luz así un punto de configuración
+que faltaba.
+
+\subsection{Funcionalidad obtenida sin desarrollo}
+
+La tabla~\ref{tab:eval-gratis} resume lo que el escenario recibió de la
+plataforma y lo que tuvo que aportar a cambio.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Capacidades reutilizadas y aportación del escenario}
+  \label{tab:eval-gratis}
+  \begin{tabularx}{\textwidth}{@{}X>{\raggedright\arraybackslash}p{5cm}@{}}
+    \toprule
+    Capacidad reutilizada & Aportación del escenario \\
+    \midrule
+    Inicio de sesión del personal con doble factor & Ninguna \\
+    Listado, búsqueda, filtros, ficha y edición de las solicitudes en el CMS
+      & Registro de la tabla y dos actualizaciones de metadatos \\
+    Área propia en la navegación de la consola & Un valor de configuración \\
+    Ayuda contextual en los formularios del CMS & Doce textos \\
+    Etiquetas legibles de los valores enumerados & Nueve textos \\
+    Autorización del personal (raíz y roles limitados) & Ninguna \\
+    Auditoría de los cambios hechos desde el CMS & Ninguna \\
+    Componentes de formulario, CAPTCHA, gestión de errores y registro
+      & Ninguna \\
+    Diseño público, temas e internacionalización & Ninguna \\
+    Utilidades de pruebas (sesiones, objetos de página, ayudantes SQL)
+      & Ninguna \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Comparación con un desarrollo desde cero}
+\label{sec:eval-comparacion}
+
+La comparación no es una medida, sino una estimación para un desarrollador
+con experiencia media en las mismas tecnologías que construyera solo lo
+imprescindible para el escenario, sin un CMS genérico
+(tabla~\ref{tab:eval-estimacion}).
+
+\begin{table}[htbp]
+  \centering
+  \caption{Estimación del esfuerzo sin la plataforma}
+  \label{tab:eval-estimacion}
+  \begin{tabularx}{\textwidth}{@{}Xr@{}}
+    \toprule
+    Componente & Horas \\
+    \midrule
+    Autenticación del personal con doble factor y protección de rutas & 12--20 \\
+    Panel de gestión de la tabla (listado, búsqueda, ficha, edición) & 16--32 \\
+    Roles del personal aplicados en la base de datos & 8--14 \\
+    Auditoría de cambios & 6--10 \\
+    Componentes de formulario, ayuda contextual e internacionalización & 6--12 \\
+    Identidad visual configurable & 2--4 \\
+    Tabla, seguridad a nivel de fila y sus pruebas & 4--8 \\
+    Formulario público y función de servidor validada & 3--5 \\
+    Infraestructura de pruebas & 6--10 \\
+    \midrule
+    \textbf{Total} & \textbf{63--115} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Con la plataforma, el escenario solo tuvo que realizar el trabajo de las
+filas de la tabla, el formulario y sus pruebas, que desde cero supondrían
+entre 7 y 13 horas; el resto lo aportó PymeKit. Para una persona que ya
+conozca la plataforma se estima un esfuerzo de 6 a 10 horas, frente a las
+63--115 del desarrollo desde cero: una reducción de aproximadamente un orden
+de magnitud.
+
+\section{Fricciones detectadas}
+\label{sec:eval-fricciones}
+
+El caso de estudio también reveló puntos en los que la reutilización no fue
+inmediata (tabla~\ref{tab:eval-fricciones}). Son el resultado más útil del
+experimento, porque señalan mejoras concretas para la plataforma.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Fricciones detectadas y mejora propuesta}
+  \label{tab:eval-fricciones}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{6.2cm}X@{}}
+    \toprule
+    Fricción & Mejora propuesta \\
+    \midrule
+    El logotipo no leía el nombre de la configuración & Nombre y logotipo
+      configurables \\
+    Una prueba de la plataforma supone un número fijo de áreas en la
+      consola & Comprobar la presencia de las áreas propias, no su total \\
+    Falta un patrón documentado de alta pública sin lectura & Documentar el
+      patrón de función de servidor con validación \\
+    La migración se escribió a mano repitiendo el esquema declarativo &
+      Mantener el flujo de generación o comprobar su equivalencia \\
+    Puerto del servidor y dirección de las pruebas fijados en la
+      configuración & Leerlos de variables de entorno documentadas \\
+    Las pruebas de inicio de sesión fallan contra el servidor de desarrollo
+      por enviar antes de la hidratación & Esperar a la hidratación en el
+      objeto de página \\
+    Configurar el CMS por migración exige conocer su estructura JSON &
+      Una función auxiliar o la pantalla de ajustes \\
+    Los textos y los tipos de la pyme viven en paquetes de la plataforma &
+      Espacios propios de la aplicación \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Resultados de las pruebas}
+\label{sec:eval-pruebas}
+
+Las 37 aserciones de la prueba de políticas pasaron: el rol anónimo y los
+usuarios autenticados no pueden leer, insertar, modificar ni borrar
+solicitudes por la API de datos; el rol de servicio inserta y la solicitud
+nace pendiente; las restricciones rechazan correos, teléfonos y nombres mal
+formados; el super-administrador lee y confirma una cita desde el CMS, el
+cambio queda auditado, y el personal de soporte sin permiso no puede leerla
+ni modificarla. Las pruebas de regresión sobre la superficie pública, los
+privilegios y el blog siguieron pasando sin cambios. La prueba de extremo a
+extremo envió el formulario como visitante y comprobó que el
+super-administrador veía la solicitud en el área «Citas», con las etiquetas
+en español. Las comprobaciones de tipos, estilo y ausencia de referencias
+prohibidas también pasaron.
+
+Al terminar se retiraron de la base de datos local la tabla, sus tipos y sus
+metadatos; la comparación con la instantánea inicial fue idéntica salvo
+cuatro entradas del registro de auditoría, que es de solo inserción por
+diseño y se conservaron.
+
+\section{Conclusiones y limitaciones}
+\label{sec:eval-conclusiones}
+
+El escenario se cubrió por completo sin modificar la lógica de ningún
+paquete: la gestión de los datos, los permisos, la auditoría y la ayuda del
+CMS se obtuvieron mediante configuración expresada como datos. El punto
+fuerte de la reutilización es esa configuración; los puntos débiles están en
+los bordes, como el logotipo, las pruebas que suponen datos de la propia
+plataforma y la ergonomía del entorno de pruebas.
+
+La evaluación tiene limitaciones que conviene explicitar: se basa en un único
+escenario, sencillo y diseñado por el propio autor; el desarrollo lo realizó
+un asistente que ya conocía el repositorio; y el esfuerzo desde cero es una
+estimación, no una medida. Repetir el experimento con otros escenarios y con
+desarrolladores ajenos al proyecto reforzaría las conclusiones.

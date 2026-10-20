@@ -112,5 +112,43 @@
     "stepAdminDescription": "Solo para super-admin o personal: gestión de cuentas y un CMS por áreas con explorador de datos, archivos y auditoría."
   },
   "footerTfg": "Proyecto académico",
-  "footerTfgLink": "TFG · ESI · Universidad de Cádiz"
+  "footerTfgLink": "TFG · ESI · Universidad de Cádiz",
+  "appointments": {
+    "navLabel": "Pedir cita",
+    "title": "Pedir cita",
+    "subtitle": "Cuéntanos qué te pasa y qué día te viene mejor: te llamaremos para confirmar la hora.",
+    "heading": "Solicitud de cita",
+    "subheading": "Rellena el formulario y el equipo de la clínica te contestará en menos de 24 horas laborables.",
+    "fullName": "Nombre y apellidos",
+    "fullNameHelp": "El nombre de la persona que vendrá a la consulta.",
+    "email": "Correo electrónico",
+    "emailHelp": "Te enviaremos aquí la confirmación de la cita.",
+    "phone": "Teléfono",
+    "phoneHelp": "Te llamaremos a este número si hay que cambiar la hora. Puedes poner el prefijo internacional (por ejemplo, +34).",
+    "service": "Servicio",
+    "servicePlaceholder": "Elige un servicio",
+    "serviceHelp": "Si no sabes cuál elegir, marca «Fisioterapia general» y nos lo cuentas en el comentario.",
+    "preferredDate": "Fecha preferida",
+    "preferredDateHelp": "El día que mejor te viene. La hora exacta la acordamos contigo al confirmar.",
+    "message": "Comentario (opcional)",
+    "messageHelp": "Describe brevemente el motivo de la consulta: dónde te duele, desde cuándo, si vienes derivado…",
+    "privacy": "He leído y acepto la política de privacidad",
+    "privacyHelp": "Necesitamos tu consentimiento para tratar tus datos de salud con el único fin de gestionar la cita.",
+    "submit": "Enviar solicitud",
+    "submitting": "Enviando…",
+    "successTitle": "Solicitud recibida",
+    "successDescription": "Gracias. Te llamaremos o escribiremos para confirmar la hora de tu cita.",
+    "errorTitle": "No hemos podido enviar tu solicitud",
+    "errorDescription": "Inténtalo de nuevo en unos minutos o llámanos por teléfono.",
+    "errors": {
+      "fullNameRequired": "Escribe tu nombre.",
+      "emailInvalid": "Escribe un correo electrónico válido.",
+      "phoneInvalid": "Escribe un teléfono válido (al menos 9 dígitos).",
+      "serviceRequired": "Elige un servicio.",
+      "dateRequired": "Elige una fecha.",
+      "dateInPast": "La fecha no puede ser anterior a hoy.",
+      "dateTooFar": "Solo se puede pedir cita para los próximos 90 días.",
+      "privacyRequired": "Debes aceptar la política de privacidad para enviar la solicitud."
+    }
+  }
 }

@@ -21,6 +21,7 @@ import { Route as AuthenticatedCreateTeamRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardRouteRouteImport } from './routes/_authenticated/dashboard/route'
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
+import { Route as MarketingAppointmentsRouteImport } from './routes/_marketing/appointments'
 import { Route as MarketingContactRouteImport } from './routes/_marketing/contact'
 import { Route as MarketingCookiePolicyRouteImport } from './routes/_marketing/cookie-policy'
 import { Route as MarketingFaqRouteImport } from './routes/_marketing/faq'
@@ -144,6 +145,11 @@ const AuthenticatedSettingsRouteRoute =
 const MarketingIndexRoute = MarketingIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => MarketingRouteRoute,
+} as any)
+const MarketingAppointmentsRoute = MarketingAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
   getParentRoute: () => MarketingRouteRoute,
 } as any)
 const MarketingContactRoute = MarketingContactRouteImport.update({
@@ -505,6 +511,7 @@ export interface FileRoutesByFullPath {
   '/admin/accounts': typeof AdminAccountsRouteRouteWithChildren
   '/admin/cms': typeof AdminCmsRouteRouteWithChildren
   '/create-team': typeof AuthenticatedCreateTeamRoute
+  '/appointments': typeof MarketingAppointmentsRoute
   '/contact': typeof MarketingContactRoute
   '/cookie-policy': typeof MarketingCookiePolicyRoute
   '/faq': typeof MarketingFaqRoute
@@ -576,6 +583,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/update-password': typeof UpdatePasswordRoute
   '/create-team': typeof AuthenticatedCreateTeamRoute
+  '/appointments': typeof MarketingAppointmentsRoute
   '/contact': typeof MarketingContactRoute
   '/cookie-policy': typeof MarketingCookiePolicyRoute
   '/faq': typeof MarketingFaqRoute
@@ -652,6 +660,7 @@ export interface FileRoutesById {
   '/admin/accounts': typeof AdminAccountsRouteRouteWithChildren
   '/admin/cms': typeof AdminCmsRouteRouteWithChildren
   '/_authenticated/create-team': typeof AuthenticatedCreateTeamRoute
+  '/_marketing/appointments': typeof MarketingAppointmentsRoute
   '/_marketing/contact': typeof MarketingContactRoute
   '/_marketing/cookie-policy': typeof MarketingCookiePolicyRoute
   '/_marketing/faq': typeof MarketingFaqRoute
@@ -731,6 +740,7 @@ export interface FileRouteTypes {
     | '/admin/accounts'
     | '/admin/cms'
     | '/create-team'
+    | '/appointments'
     | '/contact'
     | '/cookie-policy'
     | '/faq'
@@ -802,6 +812,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/update-password'
     | '/create-team'
+    | '/appointments'
     | '/contact'
     | '/cookie-policy'
     | '/faq'
@@ -877,6 +888,7 @@ export interface FileRouteTypes {
     | '/admin/accounts'
     | '/admin/cms'
     | '/_authenticated/create-team'
+    | '/_marketing/appointments'
     | '/_marketing/contact'
     | '/_marketing/cookie-policy'
     | '/_marketing/faq'
@@ -1044,6 +1056,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof MarketingIndexRouteImport
+      parentRoute: typeof MarketingRouteRoute
+    }
+    '/_marketing/appointments': {
+      id: '/_marketing/appointments'
+      path: '/appointments'
+      fullPath: '/appointments'
+      preLoaderRoute: typeof MarketingAppointmentsRouteImport
       parentRoute: typeof MarketingRouteRoute
     }
     '/_marketing/contact': {
@@ -1583,6 +1602,7 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface MarketingRouteRouteChildren {
+  MarketingAppointmentsRoute: typeof MarketingAppointmentsRoute
   MarketingContactRoute: typeof MarketingContactRoute
   MarketingCookiePolicyRoute: typeof MarketingCookiePolicyRoute
   MarketingFaqRoute: typeof MarketingFaqRoute
@@ -1595,6 +1615,7 @@ interface MarketingRouteRouteChildren {
 }
 
 const MarketingRouteRouteChildren: MarketingRouteRouteChildren = {
+  MarketingAppointmentsRoute: MarketingAppointmentsRoute,
   MarketingContactRoute: MarketingContactRoute,
   MarketingCookiePolicyRoute: MarketingCookiePolicyRoute,
   MarketingFaqRoute: MarketingFaqRoute,
