@@ -106,11 +106,12 @@
 | `apps/e2e`, `tooling` | ⬜ | ⬜ |
 
 ## F5 · Adaptación a pymes
-- [ ] Roles y permisos (ADR + pgTAP)
-- [ ] Planes de Stripe (ADR)
-- [ ] Plantilla de permisos del CMS
-- [ ] Configuración reutilizable documentada
-- [ ] Generadores revisados
+- [x] Roles y permisos (ADR + pgTAP): rol intermedio «Encargado» (`manager`, nivel 2; `member` pasa al 3) con miembros, roles, invitaciones y ajustes, sin facturación (ADR-023). `team-roles-manager.test.sql` y E2E de promoción a encargado
+- [x] Planes de Stripe (ADR): «Básico», «Profesional» y «Empresa» en euros, mensual y anual, con ids de precio por `VITE_STRIPE_PRICE_*` y relleno `price_ejemplo_*` (ADR-024)
+- [x] Plantilla de permisos del CMS: «Soporte» (solo lectura de cuentas, miembros, usuarios y auditoría) y «Gestor de contenidos» (grupo «Contenidos»: blog y archivos) en una migración de datos idempotente (ADR-025). `cms-role-templates.test.sql`
+- [x] Configuración reutilizable documentada: `docs/CONFIGURACION.md` (ficheros `*.config.ts`, variables de entorno, interruptores de módulos, identidad, roles, planes, tablas propias en el CMS y generadores)
+- [x] Generadores revisados: retirados `docker` y `cloudflare` (de otro *framework*); `package` en español, con tipo funcionalidad/paquete y dependencias del catálogo; probado
+- [ ] Pendiente (F5): verificar los planes con Stripe real en modo test (F6/F7, cuenta del autor); `playwright.config.ts` ya acepta `E2E_BASE_URL`, pero `i18n.po.ts`, `cms-settings-auth.spec.ts` y las cabeceras `Origin` de varios E2E del CMS siguen con `localhost:3100` fijo (en otro puerto, los del CMS necesitan una *build* con `VITE_SITE_URL` en 3100 y los de equipos e invitaciones, una con el puerto real, porque los enlaces de los correos salen de esa variable); restos sin uso en `.env` (`VITE_KEYSTATIC_CONTENT_PATH`, `VITE_LOCALES_PATH`)
 
 ## F6 · Validación
 - [ ] E2E de CU-01 a CU-06
@@ -164,6 +165,7 @@ Se distinguen dos medidas:
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
+| 2026-10-20 | F5 | Adaptación a pymes (modo ahorro, rama `fase-5/adaptacion-pymes`): rol «Encargado» (ADR-023), planes en euros (ADR-024), plantilla de roles del CMS (ADR-025), `docs/CONFIGURACION.md` y generador `package` revisado. Incidencias B-56 y B-57 |
 | 2026-10-02 | F3c | F3 fusionada (PR #2, B-54). El autor aclara el enfoque: base para la web de una pyme (landing, blog y login de super-admin, personal o cliente), conservando equipos y Stripe como módulos. Tablas del CMS en español, demo retirada y consola por áreas (ADR-020) |
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |

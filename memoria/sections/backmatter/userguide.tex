@@ -157,10 +157,14 @@ equipo solo son visibles para sus miembros.
   \item \textbf{Aceptar una invitación.} La persona invitada recibe un correo
         con un enlace (\texttt{/join}). Si no tiene cuenta, se registra; si ya
         la tiene, inicia sesión y pulsa «Aceptar invitación».
-  \item \textbf{Roles.} Por defecto existen dos: «Propietario», con todos los
-        permisos (gestionar roles, facturación, ajustes, miembros e
-        invitaciones), y «Miembro», que puede usar el equipo pero no
-        administrarlo. Un miembro sin permiso de facturación no puede
+  \item \textbf{Roles.} Por defecto existen tres: «Propietario», con todos
+        los permisos (gestionar roles, facturación, ajustes, miembros e
+        invitaciones); «Encargado», pensado para quien lleva un local o un
+        equipo de trabajo, que gestiona a los miembros, sus roles y las
+        invitaciones pero no la facturación, y solo actúa sobre roles
+        inferiores al suyo; y «Miembro», que puede usar el equipo y editar
+        sus ajustes, pero no gestionar a otras personas. Borrar el equipo o
+        transferir su propiedad queda reservado al propietario principal. Un miembro sin permiso de facturación no puede
         gestionar la suscripción: la interfaz no se lo ofrece y la base de
         datos lo rechaza aunque lo intente por otra vía.
   \item \textbf{Otras acciones.} Desde «Ajustes» del equipo se cambian su
@@ -384,9 +388,12 @@ anteriores, dispone de:
         «Cambiar rol», activar o desactivar a un miembro y consultar su
         auditoría. Nadie puede cambiar sus propios roles ni asignar un rol de
         rango superior al suyo.
-  \item \textbf{Roles y permisos}: roles del CMS (por ejemplo, «Soporte»),
-        grupos de permisos y permisos individuales sobre tablas,
-        almacenamiento y herramientas. Un permiso puede conceder o denegar
+  \item \textbf{Roles y permisos}: roles del CMS, grupos de permisos y
+        permisos individuales sobre tablas, almacenamiento y herramientas.
+        Vienen dos roles de partida que se pueden editar: «Soporte» (solo
+        lectura de cuentas, miembros, usuarios y auditoría) y «Gestor de
+        contenidos» (todo el blog y los archivos, a través del grupo
+        «Contenidos»). Un permiso puede conceder o denegar
         explícitamente una acción.
   \item \textbf{Recursos}: la configuración de cada tabla en la consola.
         \begin{itemize}

@@ -250,3 +250,36 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Consecuencias:** cambiar una `VITE_*` obliga a reconstruir la imagen. La prueba local con Docker necesita Linux (red del anfitrión) y `VITE_CI=true` para aceptar `http://`. La imagen no contiene secretos y se puede publicar.
 - **Nota de numeración:** en `main` ya existen ADR-020 y ADR-021 (otra rama); por eso esta es la 022.
 - **Requisitos relacionados:** RNF-02, RNF-07.
+
+## ADR-023 · Rol intermedio «Encargado» en los equipos
+- **Fecha:** 2026-10-20 · **Fase:** F5 · **Estado:** Aceptada
+- **Contexto:** los equipos solo tenían dos roles: `owner` (nivel 1, todos los permisos) y `member` (nivel 2, ajustes e invitaciones). En una pyme que usa los equipos para varios locales o tiendas hace falta alguien que gestione al personal sin poder tocar la facturación ni borrar el equipo, y con dos roles había que elegir entre darle todo o casi nada.
+- **Decisión:**
+  - Nuevo rol `manager` («Encargado») en el nivel 2; `member` pasa al nivel 3. Permisos de `manager`: `members.manage`, `roles.manage`, `invites.manage` y `settings.manage`, sin `billing.manage`.
+  - No se añade ningún permiso al enumerado `app_permissions` ni se toca ninguna política: la jerarquía existente (`can_action_account_member`, `has_more_elevated_role`, `has_same_role_hierarchy_level`) ya limita al encargado a actuar sobre rangos inferiores y a asignar como mucho el suyo. Borrar el equipo y transferir su propiedad dependen del propietario principal (`primary_owner_user_id`), no de un permiso.
+  - Migración de datos idempotente `20261020120000_team_role_manager.sql` (mueve `member` al nivel 3 antes de insertar, por el `unique` de `hierarchy_level`) y el mismo cambio en `schemas/18-roles-seed.sql`. Las membresías apuntan al nombre del rol, así que no cambian.
+  - Nombre visible en `common.roles.manager.label` y color propio en la insignia.
+  - Los permisos de `member` no cambian, para no alterar los flujos ni las pruebas existentes; una pyme puede recortarlos en `role_permissions`.
+- **Alternativas consideradas:** dejar solo dos roles (no cubre al responsable de un local); dar más permisos a `member` (todo el personal podría echar a otros); renombrar `member` y crear otro rol por debajo (rompería datos y pruebas que usan `member`).
+- **Consecuencias:** `team-roles-manager.test.sql` (17 pruebas) fija la jerarquía, los permisos exactos de los tres roles y lo que el encargado puede y no puede hacer; `team-accounts.test.sql` calculaba un nivel libre a partir de `owner`/`member` y chocaba con el rol personalizado del *seed* (nivel 4): ahora usa el máximo de todos los roles. El *seed* sincroniza la secuencia de `role_permissions` con su máximo real en lugar de un valor fijo (con más filas, el valor fijo 7 haría chocar la siguiente inserción). Nuevo E2E: el propietario promociona a un miembro a «Encargado».
+- **Requisitos relacionados:** RF-06, RNF-01, RNF-02.
+
+## ADR-024 · Planes de pago de ejemplo para una pyme, con ids de precio por variables de entorno
+- **Fecha:** 2026-10-20 · **Fase:** F5 · **Estado:** Aceptada
+- **Contexto:** `billing.config.ts` traía los planes heredados («Starter», «Pro», «Enterprise», en dólares) con identificadores de precio de una cuenta de Stripe ajena, escritos en el fichero.
+- **Decisión:** tres productos en euros, cada uno mensual y anual (dos meses gratis): «Básico» (19 €/190 €), «Profesional» (49 €/490 €, destacado) y «Empresa» (99 €/990 €). Los importes son ficticios. El id de precio de cada plan se lee de `VITE_STRIPE_PRICE_<PRODUCTO>_<PERIODO>` (públicas, documentadas vacías en `apps/web/.env`) y, si falta, se usa un relleno `price_ejemplo_*`: la página de precios funciona desde el primer arranque y Stripe rechaza el pago hasta que se configuran. Nombres de producto en español y descripciones y características como claves `billing.plans.*` orientadas a pyme (web y blog; equipos para varios locales y roles; paneles y acompañamiento). Los ids de producto (`basic`, `pro`, `enterprise`) no se usan en ningún otro sitio.
+- **Alternativas consideradas:** ids fijos en el fichero (obliga a editar código por entorno y arrastra los de otra cuenta); fallar al construir si faltan las variables (impediría arrancar la demo sin Stripe); planes por asiento (`per_seat`, más difícil de explicar a una pyme pequeña).
+- **Consecuencias:** la verificación con Stripe real en modo test sigue pendiente (F6/F7, necesita la cuenta del autor). Los E2E de facturación solo eligen el plan por posición, así que no dependen de los nombres.
+- **Requisitos relacionados:** RF-07, RNF-01.
+
+## ADR-025 · Plantilla inicial de roles del CMS en una migración de datos
+- **Fecha:** 2026-10-20 · **Fase:** F5 · **Estado:** Aceptada. Desarrolla ADR-014.
+- **Contexto:** el RBAC del CMS empieza vacío salvo el rol raíz. El único rol limitado, «Soporte», se creaba en el *seed*, que solo se aplica en local (`supabase db reset`), así que una instalación nueva no tenía ningún perfil de personal de partida.
+- **Decisión:**
+  - Migración de datos `20261020120100_cms_role_templates.sql`, idempotente (ids fijos y `on conflict do nothing` sin columna objetivo, para cubrir también los `unique` de nombre y rango). Si la pyme ya tiene un rol con ese nombre o rango, se respeta el suyo.
+  - «Soporte» (rango 30): permisos directos de solo lectura sobre `public.accounts`, `public.accounts_memberships`, usuarios (`auth_user:select`, nuevo) y auditoría (`log:select`). Conserva los ids que usaba el *seed*.
+  - «Gestor de contenidos» (rango 35): sin permisos directos; recibe el grupo «Contenidos», con todas las acciones (`*`) sobre las cuatro tablas del blog y sobre el almacenamiento (cualquier *bucket*: hoy solo existe el de imágenes de cuenta; se documenta acotarlo cuando la pyme cree uno propio para la web).
+  - No son objetos de sistema: la raíz los puede editar o borrar. Nadie los tiene asignados; el *seed* solo asigna «Soporte» al usuario de pruebas `cms-staff`.
+- **Alternativas consideradas:** mantenerlo en el *seed* (no llega a producción); marcarlos como roles de sistema (la pyme no podría adaptarlos); un permiso de almacenamiento solo para un *bucket* nuevo de contenidos (habría que crear el *bucket* y sus políticas, fuera del alcance).
+- **Consecuencias:** no cambia ninguna política, `grant` ni función, por eso no se pasa `/rls-review`. Al poder leer usuarios, el personal de soporte ve ahora el explorador de usuarios (sin acciones: la API le responde 403 a bloquear, restablecer, borrar, crear o dar acceso); se actualizaron los E2E `cms-ui.spec.ts` y `cms-users-explorer.spec.ts`. `cms-role-templates.test.sql` (8 pruebas) comprueba los dos roles y sus permisos efectivos exactos (directos y por grupo).
+- **Requisitos relacionados:** RF-09, RNF-01, RNF-02.

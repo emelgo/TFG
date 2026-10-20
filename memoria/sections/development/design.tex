@@ -259,7 +259,13 @@ conectarlos en lugar de sustituir uno por otro:
   \item \textbf{El RBAC del CMS da acceso limitado a otro personal}
         (soporte, gestión de contenidos). Se descartó dejar solo al
         super-administrador porque incumpliría RF-09 («con permisos
-        propios»).
+        propios»). Para que una instalación nueva no empiece con el RBAC
+        vacío, una migración de datos idempotente deja preparados dos roles
+        de partida, editables y sin nadie asignado (ADR-025): «Soporte»,
+        que solo lee cuentas, miembros, usuarios y la auditoría, y «Gestor
+        de contenidos», que gestiona el blog y los archivos a través de un
+        grupo de permisos «Contenidos». Se eligió una migración y no el
+        \textit{seed} porque este solo se aplica en desarrollo.
 \end{itemize}
 
 \begin{table}[htbp]
@@ -461,8 +467,16 @@ la pasarela notifica cada cambio a la ruta \texttt{/api/billing/webhook}, que
 verifica la firma y sincroniza clientes, suscripciones y pedidos con el
 cliente de servicio. Ningún usuario escribe esas tablas con su sesión
 (RN-07): la fuente de verdad de un cobro es la pasarela.
-\todo{Completar con el diseño de los planes orientados a pymes (F5) y con la
-verificación con la pasarela en modo de pruebas.}
+
+Los planes de partida están pensados para una pyme (ADR-024): «Básico»,
+«Profesional» y «Empresa», en euros, cada uno con pago mensual y anual. Los
+importes son ficticios y los identificadores de precio de la pasarela se
+leen de variables de entorno (\texttt{VITE\_STRIPE\_PRICE\_*}); si faltan,
+se usan valores de relleno marcados como ejemplo, de modo que la página de
+precios funciona desde el primer arranque y la pyme solo tiene que crear sus
+precios en Stripe y copiar sus identificadores. Los textos de cada plan son
+claves de traducción.
+\todo{Completar con la verificación con la pasarela en modo de pruebas (F6/F7).}
 
 % ---------------------------------------------------------------------
 \section{Diseño de la interfaz}
@@ -636,6 +650,9 @@ valer.
   019 & Paneles con cuadrícula propia, sin librería & Librería de cuadrícula (más dependencias; arrastrar sin teclado no es accesible) & RF-11, RNF-08 \\
   020 & Consola por áreas de negocio, nombres en español como datos y sin esquema de demostración & Traducir nombres en el cliente; áreas fijas en un fichero; quitar equipos y pagos & RF-09, RNF-01, 08 \\
   021 & Interfaz solo en español conservando la infraestructura i18n & Mantener dos idiomas (doble mantenimiento); eliminar la i18n (impide traducir) & RF-13, RNF-01 \\
+  023 & Rol intermedio «Encargado» en los equipos & Mantener solo propietario y miembro; dar al miembro más permisos & RF-06, RNF-01 \\
+  024 & Planes de ejemplo para pymes en euros con ids de precio por variables & Ids fijos en el fichero; planes sin precios & RF-07, RNF-01 \\
+  025 & Plantilla de roles del CMS en una migración de datos idempotente & Solo en el \textit{seed} (no llega a producción); roles de sistema no editables & RF-09, RNF-01 \\
 \end{longtable}
 
 % ---------------------------------------------------------------------
@@ -704,6 +721,13 @@ del personal; y las preferencias globales, como la obligatoriedad del MFA.
 
 Finalmente, el monorepo incluye generadores para crear paquetes nuevos con la
 estructura y las dependencias correctas, de modo que la lógica propia de un
-producto se añade como un paquete más sin modificar el núcleo.
-\todo{Confirmar en F5 la documentación de la configuración reutilizable y la
-revisión de los generadores.}
+producto se añade como un paquete más sin modificar el núcleo. El
+generador \texttt{package} (\texttt{pnpm turbo gen package}) pregunta si se
+trata de una funcionalidad de negocio (\texttt{packages/features}) o de un
+paquete de infraestructura y crea su \texttt{package.json},
+\texttt{tsconfig.json} y punto de entrada, tomando las versiones del catálogo
+del monorepo. Los generadores heredados para otras plataformas de despliegue
+se retiraron porque producían configuración de otro \textit{framework}. Toda
+esta configuración ---ficheros, variables de entorno, interruptores de
+módulos, identidad visual, roles, planes y tablas propias en el CMS--- está
+documentada en la guía \texttt{docs/CONFIGURACION.md} del repositorio.
