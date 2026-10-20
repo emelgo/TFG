@@ -1,42 +1,54 @@
 /**
- * Base context interface that all policy contexts must extend.
- * Provides common metadata and identifiers used across all policy types.
+ * Tipos base del motor de políticas de negocio.
+ *
+ * Una *política* es una regla de negocio que decide si una acción está
+ * permitida (por ejemplo, "un plan gratuito no puede invitar a más de tres
+ * miembros"). Complementa a la RLS: la base de datos garantiza quién puede
+ * tocar qué fila, y las políticas expresan reglas configurables por cada
+ * aplicación que reutilice PymeKit sin tocar el código de las
+ * funcionalidades.
+ */
+
+/**
+ * Contexto mínimo que reciben todas las políticas; cada funcionalidad lo
+ * amplía con sus propios datos (usuario, cuenta, invitaciones...).
  */
 export interface PolicyContext {
-  /** Timestamp when the policy evaluation was initiated */
+  /** Momento en que empezó la evaluación. */
   timestamp: string;
 
-  /** Additional metadata for debugging and logging */
+  /** Metadatos adicionales para depuración y registro. */
   metadata?: Record<string, unknown>;
 }
 
 /**
- * Standard result interface returned by all policy evaluations.
- * Provides consistent structure for policy decisions across all features.
+ * Resultado común de toda evaluación de política, para que todas las
+ * funcionalidades traten las decisiones igual.
  */
 export interface PolicyResult {
-  /** Whether the action is allowed by this policy */
+  /** Si la política permite la acción. */
   allowed: boolean;
 
-  /** Human-readable reason when action is not allowed */
+  /** Motivo legible cuando la acción no está permitida. */
   reason?: string;
 
-  /** Whether this policy failure requires manual review */
+  /** Si el rechazo requiere revisión manual. */
   requiresManualReview?: boolean;
 
-  /** Additional metadata for debugging, logging, and UI customization */
+  /** Metadatos para depuración, registro o personalizar la interfaz. */
   metadata?: Record<string, unknown>;
 }
 
 /**
- * Policy evaluation stages are user-defined strings for multi-phase validation.
- * Allows policies to run at different points in the user workflow.
+ * Fase de evaluación: un texto libre que permite ejecutar distintas
+ * políticas en distintos momentos del flujo.
  *
- * Common examples:
- * - 'preliminary' - runs before user input/form submission
- * - 'submission' - runs during form submission with actual user data
- * - 'post_action' - runs after the action has been completed
+ * Ejemplos habituales:
+ * - 'preliminary': antes de que el usuario envíe el formulario (para avisar
+ *   pronto en la interfaz);
+ * - 'submission': al enviar, con los datos reales;
+ * - 'post_action': después de completar la acción.
  *
- * You can define your own stages like 'validation', 'authorization', 'audit', etc.
+ * Cada aplicación puede definir las suyas ('validation', 'audit'...).
  */
 export type PolicyStage = string;
