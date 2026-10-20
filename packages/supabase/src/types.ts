@@ -4,8 +4,11 @@ import type {
 } from '@supabase/supabase-js';
 
 /**
- * @name JWTUserData
- * @description The user data mapped from the JWT claims.
+ * Datos del usuario extraídos de los *claims* del JWT de la sesión.
+ *
+ * Es lo que `requireUser` devuelve y lo que los *middleware* exponen como
+ * `context.user`. Como sale del JWT verificado, no hace falta consultar la
+ * base de datos en cada petición.
  */
 export type JWTUserData = {
   is_anonymous: boolean;

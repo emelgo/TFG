@@ -4,15 +4,19 @@ import { type Database } from '../database.types';
 import { getSupabaseClientKeys } from '../get-supabase-client-keys';
 
 /**
- * @name getSupabaseBearerClient
- * @description Creates a Supabase server-side client authenticated via a bearer JWT
- * (no cookies). Used by `enhanceRouteHandler` when an `Authorization: Bearer` header
- * is present — i.e. mobile / native API consumers that hold their session in
- * SecureStore rather than cookies.
+ * Cliente de Supabase de servidor autenticado con un JWT *bearer* (sin
+ * *cookies*).
  *
- * The JWT is attached as a global request header so every PostgREST call carries
- * the user's identity; RLS continues to enforce access exactly as it does for
- * cookie-based callers.
+ * Está pensado para clientes de API que no usan *cookies*, como una app móvil
+ * o nativa que guarda la sesión en su propio almacenamiento seguro y envía la
+ * cabecera `Authorization: Bearer`. Hoy ninguna ruta de la web lo usa; se
+ * mantiene como punto de extensión.
+ *
+ * El JWT se adjunta como cabecera global, de modo que cada llamada a PostgREST
+ * lleva la identidad del usuario y la RLS se aplica igual que con las
+ * *cookies*.
+ *
+ * @param token JWT de acceso del usuario.
  */
 export function getSupabaseBearerClient<GenericSchema = Database>(
   token: string,

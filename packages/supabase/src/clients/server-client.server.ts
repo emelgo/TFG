@@ -6,18 +6,21 @@ import { type Database } from '../database.types';
 import { getSupabaseClientKeys } from '../get-supabase-client-keys';
 
 /**
- * @name getSupabaseServerClient
- * @description Creates a Supabase client for use on the server. Reads cookies
- * from the incoming request and persists refreshed session cookies on the
- * response — collapsing the old server-client + middleware-client split.
+ * Cliente de Supabase de servidor con la sesión del usuario.
+ *
+ * Lee las *cookies* de la petición entrante y, si Supabase refresca la sesión,
+ * escribe las *cookies* nuevas en la respuesta, todo con las utilidades de
+ * TanStack Start. Usa la clave pública, así que sus consultas se ejecutan con
+ * la identidad del usuario y están sujetas a la RLS. Es el cliente por defecto
+ * de las *server functions*, los *loaders* y los *middleware*.
  */
 export function getSupabaseServerClient<GenericSchema = Database>() {
   const keys = getSupabaseClientKeys();
 
   return createServerClient<GenericSchema>(keys.url, keys.publicKey, {
     cookieOptions: {
-      // Mark session cookies as Secure in production (HTTPS). Gated to
-      // production so local dev over http://localhost keeps working.
+      // Las cookies de sesión solo se marcan como Secure en producción (HTTPS),
+      // para que el desarrollo local sobre http://localhost siga funcionando.
       secure: process.env.NODE_ENV === 'production',
     },
     cookies: {

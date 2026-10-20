@@ -1,3 +1,13 @@
+/**
+ * Comprobación de sesión obligatoria en el servidor.
+ *
+ * `requireUser` es la puerta de entrada de toda petición autenticada: lo usan
+ * el *middleware* de autenticación de las *server functions*, los *loaders*
+ * de las rutas privadas y la API del CMS. Verifica el JWT con `getClaims`
+ * (que comprueba la firma, no solo lee la *cookie*), exige completar la MFA
+ * cuando el usuario la tiene activada y devuelve los datos del usuario o la
+ * ruta a la que hay que redirigirle.
+ */
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import {
@@ -23,19 +33,23 @@ type MultiAuthErrorResult = {
   redirectTo: string;
 };
 
-// Defaults — match the values in apps/web/config/paths.config.ts.
+// Rutas por defecto; deben coincidir con las de apps/web/src/config/paths.config.ts.
 const DEFAULT_SIGN_IN_PATH = '/auth/sign-in';
 const DEFAULT_MFA_VERIFY_PATH = '/auth/verify';
 
 /**
- * @name requireUser
- * @description Require a session to be present in the request
- * @param client
- * @param options
- * @param options.verifyMfa
- * @param options.next
- * @param options.signInPath - Override the default sign-in redirect path.
- * @param options.mfaVerifyPath - Override the default MFA verification redirect path.
+ * Exige que la petición tenga una sesión válida.
+ *
+ * @param client Cliente de Supabase con la sesión de la petición.
+ * @param options.verifyMfa Si es `true` (por defecto), un usuario con MFA
+ *   activada y sesión `aal1` se trata como no autenticado y se le envía a
+ *   verificar el segundo factor.
+ * @param options.next Ruta a la que volver tras iniciar sesión.
+ * @param options.signInPath Sustituye la ruta de inicio de sesión por defecto.
+ * @param options.mfaVerifyPath Sustituye la ruta de verificación MFA por
+ *   defecto.
+ * @returns `{ data }` con los datos del JWT, o `{ error, redirectTo }` si falta
+ *   la sesión o el segundo factor.
  */
 export async function requireUser(
   client: SupabaseClient,
@@ -43,7 +57,8 @@ export async function requireUser(
     verifyMfa?: boolean;
     next?: string;
     /**
-     * Explicit JWT to verify, used by bearer-token callers (mobile / native).
+     * JWT explícito que verificar, para clientes con token *bearer* (por
+     * ejemplo, una app móvil o nativa).
      */
     token?: string;
     signInPath?: string;
@@ -70,8 +85,8 @@ export async function requireUser(
       ? await checkTokenRequiresMultiFactorAuthentication(client, options.token)
       : await checkRequiresMultiFactorAuthentication(client);
 
-    // If the user requires multi-factor authentication,
-    // redirect them to the page where they can verify their identity.
+    // Si el usuario tiene MFA y aún no la ha completado en esta sesión, se le
+    // envía a la página de verificación del segundo factor.
     if (requiresMfa) {
       return {
         data: null,
@@ -81,6 +96,8 @@ export async function requireUser(
     }
   }
 
+  // `app_metadata` solo lo puede escribir el servidor, así que el rol que
+  // contiene es fiable. El superadministrador exige además una sesión `aal2`.
   const role = data.claims.app_metadata?.role;
 
   return {

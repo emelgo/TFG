@@ -1,8 +1,11 @@
 import * as z from 'zod';
 
 /**
- * Returns and validates the Supabase client keys from the environment.
- * Public vars use the VITE_ prefix and are inlined by Vite (client + server).
+ * Devuelve y valida la URL y la clave pública de Supabase.
+ *
+ * Son variables públicas con el prefijo `VITE_`, que Vite incrusta en el
+ * código tanto del cliente como del servidor. La clave pública no es un
+ * secreto: lo que protege los datos es la RLS.
  */
 export function getSupabaseClientKeys() {
   return z

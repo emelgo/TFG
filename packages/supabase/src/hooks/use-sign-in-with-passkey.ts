@@ -5,13 +5,11 @@ import { useMutation } from '@tanstack/react-query';
 import { useSupabase } from './use-supabase';
 
 /**
- * @name useSignInWithPasskey
- * @description
- * Sign in an existing user with a passkey (WebAuthn). Handles the full
- * browser credential ceremony and creates a session on success.
+ * Mutación de inicio de sesión con *passkey* (WebAuthn): hace la ceremonia
+ * con el navegador y crea la sesión si tiene éxito.
  *
- * Requires the `experimental.passkey` flag to be enabled on the Supabase
- * client and WebAuthn to be enabled in the Supabase project.
+ * Necesita la opción `experimental.passkey` del cliente y WebAuthn activado
+ * en el proyecto de Supabase.
  *
  * @see https://supabase.com/docs/guides/auth/passkeys
  */

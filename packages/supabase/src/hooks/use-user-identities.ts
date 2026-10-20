@@ -8,6 +8,10 @@ import { useSupabase } from './use-supabase';
 
 export const USER_IDENTITIES_QUERY_KEY = ['user-identities'];
 
+/**
+ * Consulta las identidades vinculadas al usuario (email, proveedores OAuth)
+ * para la pantalla de gestión de métodos de acceso.
+ */
 export function useUserIdentities() {
   const supabase = useSupabase();
 

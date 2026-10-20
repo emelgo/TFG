@@ -6,13 +6,11 @@ import { useSupabase } from './use-supabase';
 import { usePasskeysQueryKey } from './use-user-passkeys-query-key';
 
 /**
- * @name useRegisterPasskey
- * @description
- * Register a new passkey (WebAuthn credential) for the currently
- * authenticated user. Handles the full browser credential ceremony.
+ * Mutación que registra una nueva *passkey* (credencial WebAuthn) para el
+ * usuario autenticado, incluida toda la ceremonia con el navegador.
  *
- * Requires an active session and the `experimental.passkey` flag enabled
- * on the Supabase client.
+ * Necesita una sesión activa y la opción `experimental.passkey` del cliente
+ * de Supabase.
  *
  * @see https://supabase.com/docs/guides/auth/passkeys
  */

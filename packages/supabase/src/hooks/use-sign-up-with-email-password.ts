@@ -13,6 +13,11 @@ const _WeakPasswordReasons = ['length', 'characters', 'pwned'] as const;
 
 export type WeakPasswordReason = (typeof _WeakPasswordReasons)[number];
 
+/**
+ * Error que se lanza cuando Supabase rechaza la contraseña por débil, con los
+ * motivos (longitud, caracteres o aparición en filtraciones conocidas) para
+ * que el formulario pueda explicarlos.
+ */
 export class WeakPasswordError extends Error {
   readonly code = 'weak_password';
   readonly reasons: WeakPasswordReason[];
@@ -24,6 +29,7 @@ export class WeakPasswordError extends Error {
   }
 }
 
+/** Mutación de registro con email y contraseña. */
 export function useSignUpWithEmailAndPassword() {
   const client = useSupabase();
   const mutationKey = ['auth', 'sign-up-with-email-password'];
@@ -40,7 +46,8 @@ export function useSignUpWithEmailAndPassword() {
     });
 
     if (response.error) {
-      // Handle weak password errors specially (AuthWeakPasswordError from Supabase)
+      // La contraseña débil (AuthWeakPasswordError) se convierte en un error
+      // propio para conservar los motivos.
       if (response.error.code === 'weak_password') {
         const errorObj = response.error as unknown as {
           reasons?: WeakPasswordReason[];
@@ -55,7 +62,8 @@ export function useSignUpWithEmailAndPassword() {
     const user = response.data?.user;
     const identities = user?.identities ?? [];
 
-    // if the user has no identities, it means that the email is taken
+    // Si el email ya está registrado, Supabase devuelve un usuario sin
+    // identidades (en lugar de un error, para no revelarlo).
     if (identities.length === 0) {
       throw new Error('User already registered');
     }
