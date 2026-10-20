@@ -96,14 +96,16 @@
 ## F4 · Comentarios en español
 | Módulo | Estado | Revisado |
 |---|---|---|
-| `apps/web/supabase` (incluidas 5 funciones del CMS cuya única deriva frente a las migraciones son los comentarios: al reescribirlos hay que redefinirlas en una migración) | ⬜ | ⬜ |
-| `packages/function-middleware`, `supabase`, `policies` | ⬜ | ⬜ |
-| `packages/features/*` | ⬜ | ⬜ |
-| `packages/billing/*` | ⬜ | ⬜ |
-| `apps/web/src` | ⬜ | ⬜ |
+| `apps/web/supabase/schemas` (solo los comentarios fuera de los cuerpos de función; los de dentro de `$$ … $$` y los `comment on` se mantienen para no crear deriva frente a las migraciones; incluidas 5 funciones del CMS cuya única deriva son los comentarios: al reescribirlos hay que redefinirlas en una migración) | ✅ | ⬜ |
+| `packages/function-middleware`, `supabase`, `policies` | ✅ | ⬜ |
+| `packages/features/*` | ⬜ (trabajo futuro) | ⬜ |
+| `packages/billing/*` | ⬜ (trabajo futuro) | ⬜ |
+| `apps/web/src` | 🟡 solo `src/lib` (*server functions* y servicios); rutas y componentes, trabajo futuro | ⬜ |
 | `packages/cms/*`, `apps/web/src/routes/{admin,api}/cms` (incluye quitar 27 `console.*` heredados y arreglar los tipos de los tests heredados, hoy excluidos del typecheck) | ⬜ | ⬜ |
 | Resto de `packages/*` | ⬜ | ⬜ |
-| `apps/e2e`, `tooling` | ⬜ | ⬜ |
+| `apps/e2e`, `tooling` | ⬜ (trabajo futuro) | ⬜ |
+
+> **F4 recortada al núcleo (ADR-023).** Por decisión de presupuesto, la F4 se limita al núcleo de la arquitectura: esquemas SQL, *middleware* de autorización, clientes de Supabase, motor de políticas y *server functions*/servicios de `apps/web/src/lib`. Los demás módulos conservan comentarios heredados en inglés y quedan como trabajo futuro (se miden con `node scripts/tfg/report-comments.mjs`).
 
 ## F5 · Adaptación a pymes
 - [ ] Roles y permisos (ADR + pgTAP)
@@ -164,6 +166,7 @@ Se distinguen dos medidas:
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
+| 2026-10-20 | F4 | F4 recortada al núcleo (ADR-023, modo ahorro, un agente): comentarios didácticos en `schemas/*.sql` (fuera de los cuerpos de función), `function-middleware`, `supabase`, `policies` y `apps/web/src/lib`; `report-comments` a 0 en los TS del núcleo. Rama `fase-4/comentarios-nucleo` |
 | 2026-10-02 | F3c | F3 fusionada (PR #2, B-54). El autor aclara el enfoque: base para la web de una pyme (landing, blog y login de super-admin, personal o cliente), conservando equipos y Stripe como módulos. Tablas del CMS en español, demo retirada y consola por áreas (ADR-020) |
 | 2026-09-29 | F0 | Creado el harness: directrices, plan, requisitos, guías, skills, agentes, hooks, scripts y CI |
 | 2026-09-29 | F0 | La memoria no nombrará las referencias (ADR-007). Remoto configurado. F0 cerrada; se pasa a F1 |

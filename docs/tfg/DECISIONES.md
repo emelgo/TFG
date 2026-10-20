@@ -250,3 +250,20 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Consecuencias:** cambiar una `VITE_*` obliga a reconstruir la imagen. La prueba local con Docker necesita Linux (red del anfitrión) y `VITE_CI=true` para aceptar `http://`. La imagen no contiene secretos y se puede publicar.
 - **Nota de numeración:** en `main` ya existen ADR-020 y ADR-021 (otra rama); por eso esta es la 022.
 - **Requisitos relacionados:** RNF-02, RNF-07.
+
+## ADR-023 · F4 recortada al núcleo
+- **Fecha:** 2026-10-20 · **Fase:** F4 · **Estado:** Aceptada
+- **Contexto:** la F4 preveía reescribir en español didáctico todos los comentarios heredados del código reutilizado. Al empezar, `report-comments` estimaba unos 4.100 comentarios sospechosos de estar en inglés repartidos por más de 1.300 ficheros. Hacerlo entero, con lectura de cada fichero para escribir cabeceras con sentido, supone un coste de tiempo y de tokens desproporcionado frente al resto de fases pendientes (validación, despliegue y memoria), y el autor ya pidió trabajar en modo ahorro (B-48). La propuesta del TFG no exige que todo el código esté comentado en español; sí exige que la arquitectura se pueda entender y defender.
+- **Decisión:**
+  - La F4 se limita al **núcleo** de la arquitectura, que es lo que el tribunal revisará y lo que un desarrollador necesita entender para reutilizar PymeKit: los esquemas SQL (`apps/web/supabase/schemas`), el *middleware* de autorización (`packages/function-middleware`), los clientes de Supabase (`packages/supabase`), el motor de políticas (`packages/policies`) y las *server functions* y servicios de `apps/web/src/lib`.
+  - En SQL solo se reescriben los comentarios **fuera** de los cuerpos de función. Los `--` dentro de `$$ … $$` forman parte de la definición almacenada y los `comment on` son DDL: cambiarlos crearía deriva frente a las migraciones, que son históricas e inmutables.
+  - El resto de módulos (`packages/features/*`, `packages/billing/*`, `packages/cms/*`, rutas y componentes de `apps/web/src`, `apps/e2e`, `tooling` y demás paquetes) queda como **trabajo futuro**.
+- **Alternativas consideradas:**
+  - completar la F4 entera: es lo más coherente con la guía, pero consume el presupuesto de las fases que sí exige la propuesta;
+  - traducir de forma automática y literal: la guía lo prohíbe porque produce comentarios obvios o incorrectos;
+  - reescribir también los comentarios de dentro de las funciones SQL con una migración que las redefina: añade riesgo de cambios funcionales y pruebas pgTAP adicionales a cambio de poco valor didáctico.
+- **Consecuencias:**
+  - Los módulos fuera del núcleo conservan comentarios en inglés (3.435 sospechosos según `report-comments` al cerrar, incluidos los de las funciones SQL). No se puede activar `--strict` de `report-comments` en la CI hasta completarlos.
+  - Quedan sin tocar unos 770 comentarios dentro de cuerpos de función SQL (unos 200 en inglés según la heurística), además de los `comment on` heredados y 24 comentarios al final de líneas de código.
+  - La memoria describirá la F4 como parcial y justificará el alcance con esta decisión.
+- **Requisitos relacionados:** RNF-05 (cumplimiento parcial: el código del núcleo queda comentado en español), RNF-01.
