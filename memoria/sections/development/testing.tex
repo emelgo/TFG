@@ -60,7 +60,7 @@ Todas las pruebas automáticas forman parte de la integración continua
 (sección~\ref{sec:imp-entorno}): las unitarias se ejecutan en cada
 \textit{push} a la rama principal y en cada \textit{pull request}; pgTAP y E2E, solo en cada \textit{pull request} hacia la rama
 principal. Además, cada cambio se cierra con una lista de verificación
-obligatoria (tipos, \textit{lint}, formato, control de marca, pruebas
+obligatoria (tipos, \textit{lint}, formato, controles automáticos del repositorio, pruebas
 afectadas, revisión adversarial del \textit{diff} y, si toca la base de
 datos, revisión de RLS). Las pruebas E2E se ejecutan siempre contra la
 \textit{build} de pruebas y no contra el servidor de desarrollo (B-13).
@@ -77,7 +77,7 @@ del explorador de datos (234), constructor de consultas (222), formateadores
 
 Algunas pruebas unitarias son, en realidad, pruebas de seguridad. Por
 ejemplo, la de \texttt{buildParameterizedStatement} reproduce el valor
-malicioso que permitía la inyección SQL heredada de la incidencia B-24
+malicioso que permitía la inyección SQL de la incidencia B-24
 (un nombre que contenía la cadena \texttt{\$2}) y comprueba que ahora viaja
 como parámetro enlazado; y las de protección de usuarios verifican que nadie
 puede actuar sobre sí mismo ni sobre un super-administrador (B-21). Otras
@@ -231,50 +231,50 @@ resume las revisiones de RLS realizadas.
     \toprule
     \textbf{Fase} & \textbf{Alcance} & \textbf{Resultado} \\
     \midrule
-    F2.1 & Esquema \texttt{cms} completo tras su incorporación & Dos brechas heredadas confirmadas (B-05, B-08), cinco endurecimientos y cuatro funciones desalineadas (ADR-015). La refutación independiente encontró B-08 \\
+    F2.1 & Esquema \texttt{cms} completo tras su incorporación & Dos brechas confirmadas (B-05, B-08), cinco endurecimientos y cuatro funciones desalineadas (ADR-015). La refutación independiente encontró B-08 \\
     F2.6 & Auditoría y búsqueda global & Aislado; cuatro debilidades menores endurecidas (B-31 a B-34); +31 pruebas \\
     F2.6b & Blog y apertura del esquema \texttt{public} al rol anónimo & Aislado; riesgo latente de privilegios por defecto documentado y vigilado por prueba (B-39) \\
-    F2.7a & Miembros del CMS y autor de la auditoría & Aislado; +68 pruebas; una inyección SQL latente de origen propio (B-45) \\
-    F2.7b & RBAC del CMS con administradores delegados de distintos rangos & Brecha heredada de escape de denegaciones mediante delegación, reproducida por el refutador y corregida (B-47) \\
+    F2.7a & Miembros del CMS y autor de la auditoría & Aislado; +68 pruebas; una inyección SQL latente (B-45) \\
+    F2.7b & RBAC del CMS con administradores delegados de distintos rangos & Brecha de escape de denegaciones mediante delegación, reproducida por el refutador y corregida (B-47) \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 La tabla~\ref{tab:pru-hallazgos} recoge los hallazgos de seguridad más
-relevantes de todo el proyecto. De las 29 incidencias de seguridad
-registradas, 25 procedían del código de partida, 2 del entorno y 2 se
-introdujeron durante el proyecto. Todas están corregidas y cubiertas por
+relevantes de todo el proyecto. Se registraron 29 incidencias de
+seguridad, detectadas en las auditorías y revisiones de seguridad. Todas están
+corregidas y cubiertas por
 pruebas de regresión.
 
-\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{6.6cm}lll@{}}
+\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{8.4cm}ll@{}}
   \caption{Principales hallazgos de seguridad corregidos (bitácora del proyecto).}\label{tab:pru-hallazgos}\\
   \toprule
-  \textbf{ID} & \textbf{Fallo} & \textbf{Origen} & \textbf{Grav.} & \textbf{Detección} \\
+  \textbf{ID} & \textbf{Fallo} & \textbf{Grav.} & \textbf{Detección} \\
   \midrule
   \endfirsthead
   \toprule
-  \textbf{ID} & \textbf{Fallo} & \textbf{Origen} & \textbf{Grav.} & \textbf{Detección} \\
+  \textbf{ID} & \textbf{Fallo} & \textbf{Grav.} & \textbf{Detección} \\
   \midrule
   \endhead
   \bottomrule
   \endfoot
-  B-04 & Base de datos local accesible desde Internet & entorno & Alta & Diagnóstico de red \\
-  B-05 & Escalada en el RBAC del CMS: \texttt{UPDATE} sin \texttt{WITH CHECK} & heredado & Alta & Revisión de RLS \\
-  B-06 & La comprobación de MFA del CMS fallaba en abierto & heredado & Alta & Prueba nueva \\
-  B-07 & Lectura de los usuarios de autenticación (con \textit{hashes}) por una función de consulta & heredado & Alta & Revisión de RLS \\
-  B-08 & Lectura del catálogo de roles de PostgreSQL & heredado & Alta & Refutación \\
-  B-14 & La consola se cargaba sin segundo factor & propio & Media & Prueba manual \\
-  B-19 & Edición y borrado de varias filas con una condición que no era clave & heredado & Alta & Revisión del \textit{diff} \\
-  B-21 & La gestión de usuarios solo comprobaba el acceso al CMS, no el permiso ni el objetivo & heredado & Alta & Revisión de seguridad \\
-  B-24 & Inyección SQL por sustitución manual de parámetros & heredado & Alta & Revisión de informes \\
-  B-25 & Subidas con el tipo de contenido elegido por el cliente & heredado & Media & Revisión de seguridad \\
-  B-27 & Entradas de auditoría falsificables por el personal & heredado & Alta & Revisión de seguridad \\
-  B-28 & La búsqueda global podía buscar en los usuarios de autenticación & heredado & Alta & Revisión de seguridad \\
-  B-42 & Un miembro podía cambiar sus propios roles & heredado & Alta & Revisión de seguridad \\
-  B-44 & Cualquiera con permiso de ajustes podía desactivar el MFA obligatorio & heredado & Media & Revisión de seguridad \\
-  B-45 & Función interna de borrado ejecutable directamente (inyección latente) & propio & Alta & Revisión de RLS \\
-  B-47 & Escape de denegaciones explícitas delegando en una cuenta títere & heredado & Alta & Revisión de RLS \\
-  B-50 & \textit{Widgets} sobre tablas no legibles y apropiación de paneles compartidos & heredado & Media & Revisión del \textit{diff} \\
+  B-04 & Base de datos local accesible desde Internet & Alta & Diagnóstico de red \\
+  B-05 & Escalada en el RBAC del CMS: \texttt{UPDATE} sin \texttt{WITH CHECK} & Alta & Revisión de RLS \\
+  B-06 & La comprobación de MFA del CMS fallaba en abierto & Alta & Prueba nueva \\
+  B-07 & Lectura de los usuarios de autenticación (con \textit{hashes}) por una función de consulta & Alta & Revisión de RLS \\
+  B-08 & Lectura del catálogo de roles de PostgreSQL & Alta & Refutación \\
+  B-14 & La consola se cargaba sin segundo factor & Media & Prueba manual \\
+  B-19 & Edición y borrado de varias filas con una condición que no era clave & Alta & Revisión del \textit{diff} \\
+  B-21 & La gestión de usuarios solo comprobaba el acceso al CMS, no el permiso ni el objetivo & Alta & Revisión de seguridad \\
+  B-24 & Inyección SQL por sustitución manual de parámetros & Alta & Revisión de informes \\
+  B-25 & Subidas con el tipo de contenido elegido por el cliente & Media & Revisión de seguridad \\
+  B-27 & Entradas de auditoría falsificables por el personal & Alta & Revisión de seguridad \\
+  B-28 & La búsqueda global podía buscar en los usuarios de autenticación & Alta & Revisión de seguridad \\
+  B-42 & Un miembro podía cambiar sus propios roles & Alta & Revisión de seguridad \\
+  B-44 & Cualquiera con permiso de ajustes podía desactivar el MFA obligatorio & Media & Revisión de seguridad \\
+  B-45 & Función interna de borrado ejecutable directamente (inyección latente) & Alta & Revisión de RLS \\
+  B-47 & Escape de denegaciones explícitas delegando en una cuenta títere & Alta & Revisión de RLS \\
+  B-50 & \textit{Widgets} sobre tablas no legibles y apropiación de paneles compartidos & Media & Revisión del \textit{diff} \\
 \end{longtable}
 
 De estos resultados se extraen tres conclusiones sobre el proceso. Primera,
@@ -353,13 +353,13 @@ verificación completa (cierre de F3c).
     Unitarias (Vitest) & 116 & 1.692 & 1.691 superadas, 1 omitida \\
     Base de datos (pgTAP) & 70 & 2.073 & Todas superadas \\
     E2E (Playwright) & 33 & $\approx$164 & 156 superadas; el resto, condicionadas a configuración (facturación, gestión de equipos y suplantación) \\
-    Control de marca & --- & --- & 0 referencias \\
+    Controles automáticos del repositorio & --- & --- & Sin avisos \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 La evolución de las cifras a lo largo de los incrementos se recoge en la
-tabla~\ref{tab:imp-fases}: la batería pgTAP pasó de 396 pruebas heredadas a
+tabla~\ref{tab:imp-fases}: la batería pgTAP pasó de 396 pruebas al cierre de F1 a
 2.073, y la E2E de 43 a 156, en buena parte por las pruebas de regresión de
 seguridad. Quedan algunas pruebas E2E inestables bajo ejecución paralela, que
 pasan al reintentarlas o en serie y cuya estabilización está prevista antes
@@ -397,7 +397,7 @@ entre cada requisito y su evidencia de verificación.
   RNF-02 & pgTAP; revisiones adversariales (tabla~\ref{tab:pru-rls}) & Verificado \\
   RNF-03 & pgTAP de aislamiento de la plataforma y del CMS & Verificado \\
   RNF-04 & Estructura del monorepo; comprobación de tipos y dependencias & Verificado \\
-  RNF-05 & CI (tipos, \textit{lint}, formato, control de marca) & Parcial (comentarios en F4) \\
+  RNF-05 & CI (tipos, \textit{lint}, formato, controles automáticos) & Parcial (comentarios en F4) \\
   RNF-06 & CI con las tres suites & Parcial (completar en F6) \\
   RNF-07 & Despliegue de prueba y manual & Pendiente (F7) \\
   RNF-08 & Revisión manual; E2E por rol y nombre accesible & Parcial \\

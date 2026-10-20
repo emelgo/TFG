@@ -61,7 +61,7 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Consecuencias:** el desarrollo local no depende de la red, y el proyecto no llama a servicios de terceros no documentados.
 
 ## ADR-007 · La memoria no nombra los proyectos de referencia
-- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada (forma concreta pendiente de P-06)
+- **Fecha:** 2026-09-29 · **Fase:** F0 · **Estado:** Aceptada; forma concreta decidida por el autor el 2026-10-20: mención mínima (Antecedentes, Construcción y licencia), sin nombrar los productos
 - **Contexto:** PymeKit se construye sobre bases comerciales con licencia (ADR-001). El autor decide que el TFG presente PymeKit como producto propio, sin nombrarlas.
 - **Decisión:** ni el código, ni la UI, ni la memoria mencionan los proyectos de referencia. Solo la documentación interna (`docs/tfg/`) los nombra. `check-branding` también analiza `memoria/`.
 - **Consecuencias:** la redacción de la memoria (Estado del arte, Implementación) debe ser coherente con esta decisión. Cómo se presenta la parte reutilizada frente a la propia se confirma con el tutor (P-06).

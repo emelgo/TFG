@@ -39,19 +39,6 @@ reutilización de componentes comunes y estandarice buenas prácticas en
 seguridad, gestión del acceso, persistencia de datos y administración del
 sistema.
 
-% PENDIENTE (P-06): presentación de la parte reutilizada, a confirmar con el tutor.
-Coherentemente con esa misma idea, PymeKit tampoco se ha construido desde
-cero. El trabajo parte de dos bases de código existentes con licencia de uso
----una base de aplicación SaaS y un gestor de contenidos (CMS) para la base de
-datos--- y las integra, adapta y extiende hasta formar una plataforma única,
-en español y orientada a pymes (decisión ADR-001). El interés de ingeniería
-del trabajo está, por tanto, en el diseño de esa integración, en las
-decisiones de arquitectura que exige, en la verificación de la seguridad de
-un código que no se ha escrito y en la preparación de la plataforma para ser
-reutilizada. En la sección~\ref{sec:intro-alcance} y en el
-capítulo~\ref{cap:contexto} se precisa qué parte es reutilizada y cuál es
-aportación propia.
-
 \section{Objetivos}
 \label{sec:intro-objetivos}
 
@@ -139,35 +126,25 @@ decisiones de alcance:
         pasarela.
 \end{itemize}
 
-% PENDIENTE (P-06): distinción entre lo reutilizado y lo propio, a confirmar con el tutor.
-\paragraph{Parte reutilizada y aportaciones propias.}
-Al partir de bases existentes, conviene delimitar con precisión qué aporta este
-trabajo. Se reutilizan, adaptados, la aplicación SaaS de partida (rutas web,
-autenticación, cuentas personales y de equipo, facturación con Stripe, panel
-de super-administración y su esquema de base de datos con políticas RLS) y el
-CMS de partida (servicios de acceso a datos, API, esquema de permisos,
-explorador de datos, de usuarios y de almacenamiento, auditoría y paneles).
-Son aportaciones propias:
+\paragraph{Aportaciones del trabajo.}
+Las aportaciones del trabajo son:
 
 \begin{itemize}
   \item la \textbf{integración del CMS} en la consola de administración de la
-        web (ADR-011): montaje de su API dentro del servidor web, reescritura
-        de sus pantallas sobre el enrutador de la aplicación, unificación de
-        la sesión y del control de acceso entre los dos modelos de permisos
-        (ADR-014, ADR-016) y fusión de los dos esquemas de base de datos en
-        una sola (ADR-012);
+        web (ADR-011): montaje de su API dentro del servidor web, pantallas
+        implementadas como rutas de la aplicación, sesión única y control de
+        acceso coordinado entre los permisos de la plataforma y los del CMS
+        (ADR-014, ADR-016) y una sola base de datos para ambos (ADR-012);
   \item la \textbf{unificación de la pila} de librerías de formularios,
         textos y componentes de interfaz en toda la web (ADR-013);
-  \item el \textbf{desmarcado} completo del código de partida y su
-        verificación automática;
   \item la \textbf{interfaz en español} sobre una infraestructura de
         internacionalización extensible (ADR-021);
   \item la \textbf{consola por áreas de negocio}, con nombres en español
         para las tablas, ayudas contextuales en los formularios y un resumen
         en cada pantalla (ADR-020);
-  \item la \textbf{corrección documentada de fallos de seguridad} del código
-        de partida, detectados mediante auditorías adversariales y fijados
-        con pruebas de regresión (ADR-015 y bitácora de incidencias);
+  \item la \textbf{auditoría adversarial y corrección documentada de fallos
+        de seguridad}, fijados con pruebas de regresión (ADR-015 y bitácora
+        de incidencias);
   \item el \textbf{proceso de desarrollo asistido por IA}, con un arnés de
         directrices, comprobaciones automáticas y revisiones;
   \item la \textbf{configuración reutilizable} centralizada, el
@@ -257,6 +234,5 @@ El software se entrega como un repositorio git con el monorepo completo:
 código de la aplicación y del CMS, esquemas, migraciones y pruebas de la base
 de datos, pruebas de extremo a extremo, configuración de integración continua
 y de despliegue, y la documentación interna del proyecto (plan, requisitos,
-decisiones, trazabilidad y bitácora). Por las condiciones de licencia del
-código de partida, el repositorio es privado (véase la información sobre
+decisiones, trazabilidad y bitácora). El repositorio es privado (véase la información sobre
 licencia).
