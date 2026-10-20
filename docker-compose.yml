@@ -1,0 +1,42 @@
+# docker-compose de PymeKit: levanta la app web (con el CMS integrado en
+# /admin/cms y su API en /api/cms) a partir de apps/web/Dockerfile.
+#
+# La base de datos, Auth y Storage NO se levantan aquí: la app se conecta a un
+# proyecto de Supabase ya existente, ya sea en la nube o el local de
+# `supabase start`. Así el mismo fichero sirve para los dos escenarios.
+#
+# Uso (ver docs/DESPLIEGUE.md):
+#   cp .env.docker.example .env.docker   # y rellenar los valores
+#   docker compose --env-file .env.docker up -d --build
+#
+# Con la Supabase LOCAL se añade el fichero de ajuste para Linux:
+#   docker compose --env-file .env.docker \
+#     -f docker-compose.yml -f docker-compose.supabase-local.yml up -d --build
+
+services:
+  web:
+    image: pymekit-web:latest
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      # Variables PÚBLICAS: Vite las incrusta en el código al construir, así
+      # que cambiar cualquiera de ellas obliga a reconstruir la imagen.
+      args:
+        VITE_SITE_URL: ${VITE_SITE_URL:?Falta VITE_SITE_URL}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Falta VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLIC_KEY: ${VITE_SUPABASE_PUBLIC_KEY:?Falta VITE_SUPABASE_PUBLIC_KEY}
+        VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-}
+        VITE_BILLING_PROVIDER: ${VITE_BILLING_PROVIDER:-}
+        VITE_PRODUCT_NAME: ${VITE_PRODUCT_NAME:-}
+        VITE_DEFAULT_LOCALE: ${VITE_DEFAULT_LOCALE:-}
+        VITE_ACCOUNT_MODE: ${VITE_ACCOUNT_MODE:-}
+        VITE_CAPTCHA_SITE_KEY: ${VITE_CAPTCHA_SITE_KEY:-}
+        VITE_CI: ${VITE_CI:-}
+    # Variables de SERVIDOR (secretos incluidos): se leen al arrancar, nunca
+    # quedan dentro de la imagen.
+    env_file:
+      - path: .env.docker
+        required: true
+    ports:
+      - '${WEB_PORT:-3200}:3000'
+    restart: unless-stopped

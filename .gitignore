@@ -29,6 +29,8 @@ yarn-error.log*
 # Los .env, .env.development, .env.test y .env.production sí se versionan:
 # solo contienen valores públicos o de desarrollo local.
 .env*.local
+# Variables reales de docker compose (la plantilla .env.docker.example sí se sube)
+.env.docker
 
 # Vercel / Turbo / TypeScript
 .vercel

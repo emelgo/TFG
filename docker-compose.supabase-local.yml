@@ -1,0 +1,16 @@
+# Ajuste para usar la Supabase LOCAL (la de `supabase start`) desde Docker.
+#
+# Problema: la URL de Supabase se incrusta en la build y la usan a la vez el
+# navegador y el servidor. Si es http://127.0.0.1:54321, dentro de un
+# contenedor normal «127.0.0.1» es el propio contenedor y el servidor no llega
+# a Supabase. Con la red del anfitrión (solo Linux) 127.0.0.1 significa lo
+# mismo para el navegador y para el contenedor, y no hace falta tocar la URL.
+#
+# Con red de anfitrión no se publican puertos: el servidor escucha
+# directamente en WEB_PORT del equipo.
+services:
+  web:
+    network_mode: host
+    ports: !reset []
+    environment:
+      PORT: ${WEB_PORT:-3200}
