@@ -2,7 +2,7 @@
 
 <!-- El hook SessionStart lee la línea «Fase actual» y las casillas sin marcar de la fase actual. Mantén este formato. -->
 
-**Fase actual:** F4
+**Fase actual:** F6
 
 ## F0 · Harness y planificación
 - [x] Directrices (`AGENTS.md`, `CLAUDE.md`)
@@ -14,7 +14,7 @@
 - [x] Primer commit y push a `main`
 
 ## Pendientes transversales (no bloquean el avance de fase)
-- [ ] P-04 · Plantilla LaTeX de Overleaf: el autor pasará el `.zip` → integrarla en `memoria/` (ver `memoria/README.md`)
+- [x] P-04 · Plantilla LaTeX de Overleaf integrada en `memoria/` el 2026-10-20 (ver `memoria/README.md`)
 - [x] P-01 · Escenario de ejemplo «Fisioterapia Bahía» en la rama `fase-6/escenario-ejemplo` (no se fusiona); resultados en `docs/tfg/EVALUACION.md`
 - [x] P-06 · Confirmar con el tutor cómo presenta la memoria la parte reutilizada sin nombrar las referencias (ADR-007) — resuelto el 2026-10-20: el autor decide una mención mínima (Antecedentes, Construcción y licencia), sin nombrar los productos; el resto de la memoria habla solo de las aportaciones
 
@@ -91,7 +91,8 @@
 - [x] F3c · Barra lateral: bloques «Gestión» y «Datos», «Gestión de cuentas» fuera de la carpeta Cuentas, iconos solo en el primer nivel y nombres sin truncar (petición del autor)
 - [x] F3c · Solo español (ADR-021): retirar el locale `en`, el selector de idioma y los mensajes en inglés, conservar la infraestructura i18n como punto de extensión documentado y pasar los E2E a español
 - [x] F3c · Ayuda contextual «?» (solo en español) junto a cada campo de los formularios de la consola (componente reutilizable en `@pymekit/ui` + textos es/en), petición del autor
-- [ ] Plantillas de email solo tienen locale `en`: añadir `es`; revisar `EMAIL_TEMPLATE_RENDERERS` (no tiene consumidores)
+- [x] Plantillas de email en `es` (`packages/email-templates/src/locales/es`, comprobado el 2026-10-29)
+- [ ] `EMAIL_TEMPLATE_RENDERERS` no tiene consumidores; el texto de vista previa del correo de invitación sigue en inglés (`invite.email.tsx:45`, sin i18n)
 
 ## F4 · Comentarios en español
 | Módulo | Estado | Revisado |
@@ -125,9 +126,9 @@
 ## F7 · Despliegue
 - [x] Dockerfile único de la web (incluye el CMS y su API; ADR-022) + `docker-compose.yml`, ajuste para la Supabase local y `.env.docker.example`; imagen construida y arrancada contra la Supabase local
 - [x] Manual de instalación y despliegue (`docs/DESPLIEGUE.md`) y borrador del capítulo de la memoria (`memoria/sections/development/deployment.tex`)
-- [ ] Railway + Supabase en la nube (necesita las cuentas del autor; pasos en `docs/DESPLIEGUE.md` §4 y §6)
-- [ ] Stripe en modo test con webhook público
-- [ ] Manual de instalación probado desde cero
+- [x] ~~Railway + Supabase en la nube~~ y ~~Stripe con webhook público~~: documentados y no ejecutados; pasan a trabajo futuro (ADR-027, la propuesta no exige una instancia pública)
+- [x] Manual probado desde cero (2026-10-29): clon limpio, Supabase nueva (32 migraciones + *seed*), imagen sin caché *healthy* y E2E completa contra la imagen (167 ✔, 1 omitido). Encontró B-58 (500 en todas las rutas con la plantilla de variables) y la falta de `VITE_STRIPE_PRICE_*`/`VITE_SHOW_TFG_INFO` en la imagen; corregidos
+- [x] Manual en la memoria: anexo B «Manual de instalación y puesta en marcha» (`memoria/sections/backmatter/installguide.tex`) y capítulo 9 actualizado
 
 ## F8 · Memoria
 - [x] Plantilla oficial integrada y capítulos 1–9 redactados (compila: ~151 páginas; quedan `\todo` del autor)
@@ -168,6 +169,7 @@ Se distinguen dos medidas:
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
+| 2026-10-29 | F7 / F8 | Revisión completa del PDF y de la app (`docs/tfg/REVISION-2026-10-29.md`). F7 cerrada con ADR-027: manual probado desde cero en un clon limpio, B-58 corregido (imagen Docker con 500 por `VITE_*` vacías) y anexo B de instalación en la memoria. Rama `fase-7/despliegue-local` |
 | 2026-10-20 | F5 | Adaptación a pymes (modo ahorro, rama `fase-5/adaptacion-pymes`): rol «Encargado» (ADR-024), planes en euros (ADR-025), plantilla de roles del CMS (ADR-026), `docs/CONFIGURACION.md` y generador `package` revisado. Incidencias B-56 y B-57 |
 | 2026-10-20 | F4 | F4 recortada al núcleo (ADR-023, modo ahorro, un agente): comentarios didácticos en `schemas/*.sql` (fuera de los cuerpos de función), `function-middleware`, `supabase`, `policies` y `apps/web/src/lib`; `report-comments` a 0 en los TS del núcleo. Rama `fase-4/comentarios-nucleo` |
 | 2026-10-02 | F3c | F3 fusionada (PR #2, B-54). El autor aclara el enfoque: base para la web de una pyme (landing, blog y login de super-admin, personal o cliente), conservando equipos y Stripe como módulos. Tablas del CMS en español, demo retirada y consola por áreas (ADR-020) |

@@ -68,6 +68,11 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-51 | 2026-10-02 | F2.9 | proceso | propio | Un test de otra zona quedó desactualizado al verificar solo los E2E afectados | Baja |
 | B-52 | 2026-10-02 | F2.9 | herramientas | entorno | El servidor de desarrollo perdió las rutas del CMS tras cambiar de rama | Media |
 | B-53 | 2026-10-02 | F3b | calidad | heredado | Una sesión caducada rompía la consola en lugar de llevar al inicio de sesión | Media |
+| B-54 | 2026-10-02 | F3 | proceso | propio | Un E2E del CMS esperaba el valor crudo de un enumerado | Baja |
+| B-55 | 2026-10-02 | F3c | calidad | heredado | La lista de miembros superaba el tiempo máximo con unos cientos de cuentas | Media |
+| B-56 | 2026-10-20 | F5 | calidad | heredado | Un borrado de membresía falla entero si la política evalúa la fila del propietario principal | Baja |
+| B-57 | 2026-10-20 | F5 | calidad | heredado | Pequeñas roturas al añadir el rol «Encargado» y la plantilla del CMS | Baja |
+| B-58 | 2026-10-29 | F7 | infraestructura | propio | La imagen Docker construida con la plantilla de variables respondía 500 en todas las rutas | Alta |
 
 ---
 
@@ -427,3 +432,11 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Solución:** (1) el nivel libre se calcula sobre todos los roles; (2) `setval(..., (select max(id) ...))`; (3) se retiran los dos generadores (el despliegue usa `apps/web/Dockerfile`, ADR-022) y se rehace en español el generador `package`, probado creando y borrando un paquete de prueba.
 - **Evidencia:** pgTAP completo en verde; `pnpm turbo gen package --args feature gen-check zod` genera un paquete que pasa `tsc`.
 - **Lección:** los datos de partida (roles, secuencias) forman parte del contrato de las pruebas; al añadir filas por migración hay que buscar quién asume que no existen.
+
+## B-58 · La imagen Docker construida con la plantilla de variables respondía 500 en todas las rutas
+- **Qué pasó:** al probar el manual de instalación desde un clon limpio (F7, 2026-10-29), la imagen se construyó y arrancó, pero respondía 500 en todas las rutas y la sonda de salud la marcaba como *unhealthy*. El log mostraba un `ZodError` («expected "stripe"») al validar el proveedor de pagos. Además, los ids de precio de Stripe (`VITE_STRIPE_PRICE_*`, ADR-025) y `VITE_SHOW_TFG_INFO` no se podían pasar a la imagen: ni el `Dockerfile` ni el *compose* los recibían y `turbo.json` no los declaraba, así que con Docker los planes siempre tendrían precios de relleno.
+- **Causa:** `.env.docker.example` deja vacías las `VITE_*` opcionales y el *compose* las pasa como `${VAR:-}`. Un `ARG` que llega vacío también existe como variable de entorno vacía dentro de cada `RUN`, y Vite da prioridad al entorno sobre `apps/web/.env`, así que `VITE_BILLING_PROVIDER=""` (y el nombre del producto, el idioma y el modo de cuentas) anulaban los valores por defecto. El `Dockerfile` evitaba escribirlas en `.env.production.local`, pero no las quitaba del entorno de la *build*. La verificación del 2026-10-20 no lo detectó porque se hizo con un `.env.docker` con más valores rellenos que la plantilla.
+- **Solución:** el `RUN` de la *build* elimina del entorno las `VITE_*` vacías antes de llamar a Turborepo; se añaden los seis `VITE_STRIPE_PRICE_*` y `VITE_SHOW_TFG_INFO` al `Dockerfile`, al *compose*, a la plantilla y a `globalEnv` de `turbo.json` (donde se retiran dos variables de planes de la base que ya no usa nadie). `docs/DESPLIEGUE.md` completa el apartado 3.1 (`SUPABASE_DB_WEBHOOK_SECRET`, `CONTACT_EMAIL`) y el 5 (los precios ya no se editan en `billing.config.ts`).
+- **Evidencia:** imagen reconstruida sin caché desde el clon limpio: *healthy*, `BillingProviderSchema.parse("stripe")` en el *bundle* y rutas públicas en 200; suite E2E contra la imagen en la sección de verificación del anexo del manual de instalación de la memoria.
+- **Lección:** un manual solo está probado si se sigue al pie de la letra desde cero, con la plantilla tal cual; probarlo con el entorno de quien lo escribió oculta justo los valores por defecto que fallan.
+

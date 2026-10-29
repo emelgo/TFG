@@ -135,6 +135,8 @@ Se avanza por incrementos. Cada uno cierra con typecheck, lint, tests y revisió
 
 **Hecho cuando:** hay un despliegue de demostración accesible y el manual se ha probado desde cero.
 
+> **Cambiado por ADR-027 (2026-10-29):** las tareas 3–5 (Railway, Supabase en la nube y *webhook* público) quedan documentadas pero no se ejecutan. F7 está hecha cuando la imagen se construye y arranca desde un clon limpio siguiendo el manual, la BD se crea desde cero con las migraciones, la suite E2E pasa contra esa imagen y el manual está en un anexo de la memoria.
+
 ## F8 · Memoria y manuales
 Estructura prevista de la memoria (se ajustará a la plantilla de la ESI):
 
