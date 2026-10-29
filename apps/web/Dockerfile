@@ -74,9 +74,26 @@ ARG VITE_AUTH_PASSWORD
 ARG VITE_AUTH_MAGIC_LINK
 ARG VITE_CAPTCHA_SITE_KEY
 ARG VITE_MONITORING_PROVIDER
+ARG VITE_SHOW_TFG_INFO
+# Ids de los precios de Stripe de cada plan (ADR-025). Sin ellos la página de
+# precios usa valores de relleno y Stripe rechaza el pago.
+ARG VITE_STRIPE_PRICE_BASIC_MONTHLY
+ARG VITE_STRIPE_PRICE_BASIC_YEARLY
+ARG VITE_STRIPE_PRICE_PRO_MONTHLY
+ARG VITE_STRIPE_PRICE_PRO_YEARLY
+ARG VITE_STRIPE_PRICE_ENTERPRISE_MONTHLY
+ARG VITE_STRIPE_PRICE_ENTERPRISE_YEARLY
 # VITE_CI=true relaja la validación que exige HTTPS en VITE_SITE_URL; solo
 # tiene sentido para probar la imagen en local con http://localhost.
 ARG VITE_CI
+
+ENV VITE_BUILD_VARS="VITE_SITE_URL VITE_SUPABASE_URL VITE_SUPABASE_PUBLIC_KEY \
+VITE_STRIPE_PUBLISHABLE_KEY VITE_BILLING_PROVIDER VITE_PRODUCT_NAME \
+VITE_DEFAULT_LOCALE VITE_ACCOUNT_MODE VITE_AUTH_PASSWORD VITE_AUTH_MAGIC_LINK \
+VITE_CAPTCHA_SITE_KEY VITE_MONITORING_PROVIDER VITE_SHOW_TFG_INFO \
+VITE_STRIPE_PRICE_BASIC_MONTHLY VITE_STRIPE_PRICE_BASIC_YEARLY \
+VITE_STRIPE_PRICE_PRO_MONTHLY VITE_STRIPE_PRICE_PRO_YEARLY \
+VITE_STRIPE_PRICE_ENTERPRISE_MONTHLY VITE_STRIPE_PRICE_ENTERPRISE_YEARLY VITE_CI"
 
 RUN set -eu; \
     if [ -z "${VITE_SUPABASE_URL:-}" ] || [ -z "${VITE_SUPABASE_PUBLIC_KEY:-}" ] || [ -z "${VITE_SITE_URL:-}" ]; then \
@@ -84,17 +101,23 @@ RUN set -eu; \
       exit 1; \
     fi; \
     out=apps/web/.env.production.local; : > "$out"; \
-    for name in VITE_SITE_URL VITE_SUPABASE_URL VITE_SUPABASE_PUBLIC_KEY \
-                VITE_STRIPE_PUBLISHABLE_KEY VITE_BILLING_PROVIDER VITE_PRODUCT_NAME \
-                VITE_DEFAULT_LOCALE VITE_ACCOUNT_MODE VITE_AUTH_PASSWORD \
-                VITE_AUTH_MAGIC_LINK VITE_CAPTCHA_SITE_KEY VITE_MONITORING_PROVIDER VITE_CI; do \
+    for name in $VITE_BUILD_VARS; do \
       value="$(printenv "$name" || true)"; \
       if [ -n "$value" ]; then printf '%s=%s\n' "$name" "$value" >> "$out"; fi; \
     done
 
 # `.env.production.local` tiene la máxima prioridad entre los ficheros que
 # Vite carga en modo producción, así que estos valores ganan a los del repo.
-RUN pnpm exec turbo run build --filter=web
+# Ojo: un `ARG` que llega vacío (compose pasa `${VAR:-}` aunque no tenga valor)
+# también existe como variable de entorno vacía dentro de cada `RUN`, y Vite da
+# prioridad al entorno sobre los ficheros. Por eso se eliminan las vacías antes
+# de construir; si no, `VITE_BILLING_PROVIDER=""` anulaba el `stripe` de
+# `apps/web/.env` y la app respondía 500 en todas las rutas (B-58).
+RUN set -eu; \
+    for name in $VITE_BUILD_VARS; do \
+      if [ -z "$(printenv "$name" || true)" ]; then unset "$name"; fi; \
+    done; \
+    pnpm exec turbo run build --filter=web
 
 # ---------------------------------------------------------------------------
 # Etapa 3 · runner: imagen final mínima

@@ -11,9 +11,9 @@ Esta guía explica cómo poner en marcha PymeKit fuera del entorno de desarrollo
 ## 1. Requisitos
 
 - **Docker** 24 o superior con Docker Compose v2.24 o superior.
-- **Node.js** 20.10 o superior y **pnpm** 10 o superior (con `corepack enable` basta). Solo hacen falta para aplicar migraciones o para el despliegue sin Docker.
+- **Node.js** 20.10 o superior y **pnpm** 11 (con `corepack enable` basta; la versión exacta está en `packageManager` del `package.json` raíz). Solo hacen falta para aplicar migraciones o para el despliegue sin Docker.
 - **CLI de Supabase**. Viene como dependencia de `apps/web`, así que se ejecuta con `pnpm --filter web supabase …`.
-- Una cuenta de Supabase y otra de Stripe (en modo test) para el despliegue en la nube.
+- Una cuenta de Supabase y otra de Stripe (en modo test) para el despliegue en la nube. Para la instalación local basta con Docker; Stripe solo hace falta si se activan los pagos.
 
 ## 2. Variables de entorno
 
@@ -57,7 +57,9 @@ Los valores por defecto que no son secretos (nombre del producto, idioma, *featu
    - `VITE_SUPABASE_URL=http://127.0.0.1:54321` y la clave *publishable*.
    - `SUPABASE_SECRET_KEY` (clave *secret* de `supabase status`).
    - `SUPABASE_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`.
-   - Correo: `EMAIL_HOST=localhost`, `EMAIL_PORT=54325`, `EMAIL_TLS=false` (el buzón de pruebas de la Supabase local).
+   - `SUPABASE_DB_WEBHOOK_SECRET=WEBHOOKSECRET` (el valor del *webhook* de BD que crea el `seed.sql`).
+   - Correo: `EMAIL_HOST=localhost`, `EMAIL_PORT=54325`, `EMAIL_TLS=false` (el buzón de pruebas de la Supabase local) y un `CONTACT_EMAIL` para el formulario de contacto.
+   - Las `VITE_*` opcionales pueden quedarse vacías: la imagen usa entonces los valores de `apps/web/.env` (B-58).
 3. Construye y arranca. En Linux se añade el fichero de ajuste, que usa la red del anfitrión para que `127.0.0.1` signifique lo mismo dentro y fuera del contenedor:
    ```bash
    docker compose --env-file .env.docker \
@@ -87,6 +89,8 @@ docker run -d --name pymekit-web -p 3200:3000 --env-file .env.docker pymekit-web
 
 ## 4. Proyecto Supabase en la nube
 
+> Los apartados 4 y 6 describen el despliegue en la nube. Está preparado y documentado, pero no se ejecutó en el TFG: el despliegue de referencia es el local con Docker del apartado 3.1 (ADR-027).
+
 1. Crea el proyecto en el panel de Supabase y apunta su *Project ref*, la URL, la clave *publishable* y la *secret* (Project Settings → API Keys).
 2. Aplica todas las migraciones de `apps/web/supabase/migrations` (incluyen el esquema `cms` del CMS):
    ```bash
@@ -110,7 +114,7 @@ docker run -d --name pymekit-web -p 3200:3000 --env-file .env.docker pymekit-web
 ## 5. Stripe en modo test
 
 1. En el panel de Stripe, en **modo test**, copia `pk_test_…` (→ `VITE_STRIPE_PUBLISHABLE_KEY`) y `sk_test_…` (→ `STRIPE_SECRET_KEY`).
-2. Crea los productos y precios y pon sus identificadores en `apps/web/src/config/billing.config.ts`.
+2. Crea los productos y precios de los tres planes (mensual y anual) y copia cada id (`price_…`) en su variable `VITE_STRIPE_PRICE_*` (ADR-025): en `.env.docker` para la imagen Docker o en `apps/web/.env.local` para el servidor de desarrollo. Son de *build*: si cambian, hay que reconstruir.
 3. **Webhook público**: Developers → Webhooks → *Add endpoint* con la URL `https://mi-dominio.es/api/billing/webhook` y, como mínimo, los eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted` e `invoice.paid` (los que trata el manejador del *webhook*). Copia el *signing secret* (`whsec_…`) a `STRIPE_WEBHOOK_SECRET`.
 4. En local, en lugar del webhook público se usa la CLI de Stripe: `pnpm stripe:listen`, que reenvía los eventos a la app y muestra el `whsec_…` temporal.
 5. Para probar un pago, usa la tarjeta `4242 4242 4242 4242` con cualquier fecha futura y CVC.
