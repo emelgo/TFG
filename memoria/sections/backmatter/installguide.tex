@@ -1,0 +1,339 @@
+% ------------------------------------------------------------------------------
+% Anexo · Manual de instalación y puesta en marcha
+% Fuentes: docs/DESPLIEGUE.md, docker-compose*.yml, .env.docker.example,
+% apps/web/Dockerfile, apps/web/supabase/config.toml, ADR-022 y ADR-027.
+% Verificado desde un clon limpio el 29/10/2026 (sección de verificación).
+% Los bloques lstlisting solo contienen caracteres ASCII (listings no admite
+% UTF-8 multibyte sin configuración adicional).
+% ------------------------------------------------------------------------------
+\label{anx:manual-instalacion}
+
+% Texto técnico con muchos identificadores en monoespaciada: se permite más
+% holgura entre palabras para que ninguno se salga del margen.
+\sloppy
+
+\lstdefinestyle{instalacion}{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+}
+
+Este manual explica cómo instalar PymeKit y ponerlo en marcha fuera del
+entorno de desarrollo, a partir del código del repositorio. Se dirige a quien
+administra la instalación; para programar sobre la plataforma, véase el manual
+del desarrollador (anexo~\ref{cap:manual-desarrollador}), y para usarla, el
+manual de usuario (anexo~\ref{cap:manual-usuario}). La arquitectura de
+despliegue y las decisiones que hay detrás se describen en el capítulo de
+Despliegue del Sistema (capítulo~\ref{cap:despliegue}).
+
+\section{Qué se instala}
+\label{sec:ig-piezas}
+
+PymeKit es una sola aplicación web que incluye la web pública, el área
+privada, la consola de administración y el CMS con su API. Depende de un
+proyecto de Supabase (PostgreSQL, autenticación y almacenamiento) y, si se
+activan los pagos, de Stripe (tabla~\ref{tab:ig-piezas}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Piezas de una instalación de PymeKit.}
+  \label{tab:ig-piezas}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.4cm}X>{\raggedright\arraybackslash}p{4.2cm}@{}}
+    \toprule
+    \textbf{Pieza} & \textbf{Qué es} & \textbf{Dónde se configura} \\
+    \midrule
+    Aplicación web y CMS & Servidor Node.js generado con la \textit{build} de producción y empaquetado en una imagen de contenedor & \texttt{apps/web/Dockerfile}, \texttt{docker-compose.yml} \\
+    Base de datos, autenticación y almacenamiento & Proyecto de Supabase, local o en la nube & \texttt{apps/web/supabase/} (migraciones y \texttt{config.toml}) \\
+    Pagos (opcional) & Stripe en modo de pruebas & Panel de Stripe y variables \texttt{STRIPE\_*} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Requisitos}
+\label{sec:ig-requisitos}
+
+\begin{itemize}
+  \item Un equipo Linux con Docker~24 o superior y Docker Compose~2.24 o
+        superior. El usuario debe poder ejecutar Docker sin \texttt{sudo}.
+  \item Node.js~20.10 o superior y pnpm~11 (basta con
+        \texttt{corepack enable}), para instalar las dependencias y la CLI de
+        Supabase, que se ejecuta como dependencia de \texttt{apps/web}.
+  \item Git y acceso al repositorio del proyecto.
+  \item Unos 10~GB libres en disco para las imágenes de Supabase y la
+        \textit{build}.
+\end{itemize}
+
+\paragraph{Advertencia de seguridad.} Si el equipo tiene una IP pública, los
+puertos que publica Docker pueden quedar expuestos a Internet aunque haya un
+cortafuegos, porque Docker inserta sus propias reglas. Antes de arrancar
+Supabase hay que bloquear sus puertos (del 54321 al 54327) en la cadena
+\texttt{DOCKER-USER} y acceder a la aplicación mediante un túnel SSH
+(ADR-010).
+
+\section{Variables de entorno}
+\label{sec:ig-variables}
+
+Hay dos clases de variables y conviene no confundirlas:
+
+\begin{itemize}
+  \item \textbf{De construcción} (prefijo \texttt{VITE\_}): son públicas y
+        quedan incrustadas en el código que recibe el navegador. Cambiarlas
+        obliga a reconstruir la imagen.
+  \item \textbf{De ejecución} (el resto): son de servidor, algunas secretas,
+        y se leen al arrancar el contenedor. Nunca quedan dentro de la imagen.
+\end{itemize}
+
+Todas están documentadas en la plantilla \texttt{.env.docker.example} de la
+raíz del repositorio. La tabla~\ref{tab:ig-variables} recoge las
+imprescindibles.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Variables de entorno imprescindibles.}
+  \label{tab:ig-variables}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{2.0cm}X@{}}
+    \toprule
+    \textbf{Variable} & \textbf{Clase} & \textbf{Para qué} \\
+    \midrule
+    \texttt{VITE\_SITE\_URL} & Construcción & URL pública de la aplicación; en producción, con \texttt{https://} \\
+    \texttt{VITE\_SUPABASE\_URL} & Construcción & URL del proyecto de Supabase \\
+    \texttt{VITE\_SUPABASE\_PUBLIC\_KEY} & Construcción & Clave pública del proyecto (\texttt{sb\_publishable\_\ldots}) \\
+    \texttt{VITE\_STRIPE\_PUBLISHABLE\_KEY} & Construcción & Clave publicable de Stripe; vacía si no hay pagos \\
+    \texttt{VITE\_CI} & Construcción & \texttt{true} solo para probar en local con \texttt{http://} \\
+    \texttt{SUPABASE\_SECRET\_KEY} & Ejecución, secreta & Clave secreta de Supabase; ignora RLS y solo la usa el servidor \\
+    \texttt{SUPABASE\_DATABASE\_URL} & Ejecución, secreta & Conexión a PostgreSQL de la API del CMS \\
+    \texttt{SUPABASE\_DB\_WEBHOOK\_SECRET} & Ejecución, secreta & Firma de los avisos (\textit{webhooks}) de la base de datos \\
+    \texttt{STRIPE\_SECRET\_KEY}, \texttt{STRIPE\_WEBHOOK\_SECRET} & Ejecución, secretas & API de Stripe y firma de sus avisos \\
+    \texttt{MAILER\_PROVIDER}, \texttt{EMAIL\_*}, \texttt{CONTACT\_EMAIL} & Ejecución & Envío de correo y destinatario del formulario de contacto \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Los valores que no son secretos (nombre del producto, idioma, interruptores de
+módulos) tienen un valor por defecto en \texttt{apps/web/.env} y
+\texttt{apps/web/.env.production}, que sí se versionan.
+
+\section{Instalación local con Docker}
+\label{sec:ig-local}
+
+Este es el procedimiento de referencia del trabajo (ADR-027): la imagen de
+producción de la aplicación se ejecuta contra una instancia de Supabase creada
+desde cero en el mismo equipo.
+
+\paragraph{1. Código y dependencias.}
+
+\begin{lstlisting}[style=instalacion,language=bash]
+git clone <url-del-repositorio> pymekit && cd pymekit
+pnpm install
+\end{lstlisting}
+
+\paragraph{2. Base de datos.} El primer arranque de Supabase descarga sus
+imágenes, crea la base de datos y le aplica todas las migraciones del
+repositorio, incluidas las del CMS, y los datos de ejemplo (\textit{seed}):
+
+\begin{lstlisting}[style=instalacion,language=bash]
+pnpm supabase:web:start
+pnpm --filter web supabase status    # URLs y claves de la instancia
+\end{lstlisting}
+
+\paragraph{3. Variables.} Se crea \texttt{.env.docker} a partir de la
+plantilla:
+
+\begin{lstlisting}[style=instalacion,language=bash]
+cp .env.docker.example .env.docker
+\end{lstlisting}
+
+\noindent y se rellenan las variables siguientes, con las claves que muestra
+\texttt{supabase status}:
+
+\begin{lstlisting}[style=instalacion]
+WEB_PORT=3100
+VITE_SITE_URL=http://localhost:3100
+VITE_CI=true
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_PUBLIC_KEY=sb_publishable_...     # clave publishable de status
+SUPABASE_SECRET_KEY=sb_secret_...               # clave secret de status
+SUPABASE_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+SUPABASE_DB_WEBHOOK_SECRET=WEBHOOKSECRET        # el del aviso que crea el seed
+EMAIL_HOST=localhost                            # buzon de pruebas de Supabase
+EMAIL_PORT=54325
+EMAIL_TLS=false
+CONTACT_EMAIL=contacto@ejemplo.es
+\end{lstlisting}
+
+El puerto 3100 es el que la configuración de autenticación local admite para
+redirigir tras el inicio de sesión. Las demás variables pueden quedarse
+vacías: la imagen usa entonces los valores por defecto de
+\texttt{apps/web/.env}.
+
+\paragraph{4. Construcción y arranque.} La imagen se construye desde la raíz
+del monorepo. Con la Supabase local se añade el fichero de ajuste, que ejecuta
+el contenedor con la red del anfitrión para que \texttt{127.0.0.1} designe el
+mismo servicio para el navegador y para el servidor:
+
+\begin{lstlisting}[style=instalacion,language=bash]
+docker compose --env-file .env.docker \
+  -f docker-compose.yml -f docker-compose.supabase-local.yml up -d --build
+docker compose ps                     # estado "healthy"
+curl http://localhost:3100/api/healthcheck
+\end{lstlisting}
+
+Si se prefiere otro puerto (por ejemplo, para no chocar con el servidor de
+desarrollo), hay que añadir su URL a \texttt{additional\_redirect\_urls} en
+\texttt{apps/web/supabase/config.toml} y reiniciar Supabase; si no, el inicio
+de sesión no redirige.
+
+\section{Puesta en marcha}
+\label{sec:ig-puesta-en-marcha}
+
+\paragraph{Usuarios de ejemplo.} En una instalación local, el \textit{seed}
+crea los usuarios de desarrollo descritos en el manual del desarrollador
+(sección~\ref{sec:dg-entorno}), con la contraseña \texttt{testingpassword}. Para entrar en la
+consola con \texttt{super-admin@pymekit.test} hay que dar de alta su factor
+TOTP, cuyo secreto está en \texttt{apps/web/supabase/seed.sql}, en una
+aplicación de códigos.
+
+\paragraph{Primer super-administrador.} En una instalación sin datos de
+ejemplo, la primera persona que vaya a administrar se registra en la web y,
+desde el editor SQL de Supabase, se le asigna el rol en los metadatos de la
+aplicación:
+
+\begin{lstlisting}[style=instalacion,language=SQL]
+update auth.users
+   set raw_app_meta_data = raw_app_meta_data || '{"role": "super-admin"}'
+ where email = 'correo-de-la-persona@ejemplo.es';
+\end{lstlisting}
+
+Después debe configurar un segundo factor en «Ajustes de la cuenta», porque la
+consola lo exige (sección~\ref{sec:ug-mfa}). Al ser super-administrador,
+recibe automáticamente el rol raíz del CMS (ADR-014), y desde «Ajustes»
+$\rightarrow$ «Miembros» puede dar acceso al resto del personal con los roles
+de partida «Soporte» y «Gestor de contenidos» (ADR-026).
+
+\paragraph{Identidad de la pyme.} El nombre, el título, la descripción, los
+colores y los módulos activos se cambian con las variables y los ficheros de
+configuración descritos en el manual del desarrollador
+(sección~\ref{sec:dg-configuracion}). El bloque académico de la página de
+inicio se retira con \texttt{VITE\_SHOW\_TFG\_INFO=false}.
+
+\section{Pagos en modo de pruebas}
+\label{sec:ig-pagos}
+
+Los pagos son opcionales. Para activarlos con Stripe en modo de pruebas, que
+no realiza cargos reales:
+
+\begin{enumerate}
+  \item En el panel de Stripe, en modo de pruebas, se copian la clave
+        publicable (\texttt{pk\_test\_\ldots}) a
+        \texttt{VITE\_STRIPE\_PUBLISHABLE\_KEY} y la secreta
+        (\texttt{sk\_test\_\ldots}) a \texttt{STRIPE\_SECRET\_KEY}.
+  \item Se crean los productos y precios de los planes y se copian sus
+        identificadores a las variables \texttt{VITE\_STRIPE\_PRICE\_*}
+        (ADR-025).
+  \item En local, la CLI de Stripe reenvía los avisos de pago a la aplicación
+        sin necesidad de una URL pública (\texttt{pnpm stripe:listen}) y
+        muestra el secreto de firma temporal que va en
+        \texttt{STRIPE\_WEBHOOK\_SECRET}.
+  \item El pago se prueba con la tarjeta \texttt{4242 4242 4242 4242}, una
+        fecha de caducidad futura y cualquier CVC.
+\end{enumerate}
+
+\section{Despliegue en la nube}
+\label{sec:ig-nube}
+
+El despliegue en la nube \emph{no} se ha ejecutado en este trabajo (ADR-027),
+pero la plataforma está preparada para él y el procedimiento se resume a
+continuación; el detalle está en \texttt{docs/DESPLIEGUE.md}.
+
+\begin{enumerate}
+  \item \textbf{Proyecto de Supabase.} Se crea el proyecto y se le aplican las
+        migraciones con la CLI (\texttt{supabase link} y
+        \texttt{supabase db push}, o \texttt{pnpm --filter web
+        supabase:deploy}). El \textit{seed} no se aplica. En la configuración
+        de autenticación se fijan la URL del sitio y las de redirección
+        (\texttt{/auth/callback} y \texttt{/update-password}) y un servidor
+        de correo propio, y se crea el aviso \texttt{AFTER DELETE} sobre
+        \texttt{public.subscriptions} hacia \texttt{/api/db/webhook}.
+  \item \textbf{Aplicación.} La misma imagen se ejecuta en cualquier
+        plataforma de contenedores, con \texttt{VITE\_SITE\_URL} en
+        \texttt{https://} y \texttt{VITE\_CI} vacía. El repositorio incluye
+        además un \texttt{railway.json} con la construcción, el arranque y la
+        sonda de salud para la plataforma Railway.
+  \item \textbf{Stripe.} En lugar de la CLI, se registra un aviso público
+        hacia \texttt{/api/billing/webhook} con los eventos de
+        \textit{checkout}, suscripción y factura.
+\end{enumerate}
+
+\section{Actualización y copias de seguridad}
+\label{sec:ig-mantenimiento}
+
+Para actualizar una instalación se descarga la nueva versión del código, se
+aplican \emph{antes} las migraciones nuevas y después se reconstruye y
+reinicia la imagen:
+
+\begin{lstlisting}[style=instalacion,language=bash]
+git pull
+pnpm --filter web supabase db push       # solo si hay migraciones nuevas
+docker compose --env-file .env.docker up -d --build
+\end{lstlisting}
+
+Una migración ya aplicada nunca se edita: para deshacer un cambio se escribe
+otra migración. La aplicación no guarda estado en el contenedor, así que lo
+único que hay que copiar es la base de datos y los ficheros del
+almacenamiento. Con la CLI de Supabase se vuelcan el esquema y los datos
+(\texttt{supabase db dump}, con \texttt{--data-only} para los datos) y se
+restauran con \texttt{psql} sobre un proyecto vacío; los ficheros de los
+contenedores de almacenamiento se descargan aparte, porque no van en el
+volcado.
+
+\section{Problemas frecuentes}
+\label{sec:ig-problemas}
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Problemas frecuentes de la instalación y su causa.}
+  \label{tab:ig-problemas}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{6.2cm}X@{}}
+    \toprule
+    \textbf{Síntoma} & \textbf{Causa probable} \\
+    \midrule
+    La construcción falla con «Faltan build args obligatorios» & No se han pasado \texttt{VITE\_SITE\_URL}, \texttt{VITE\_SUPABASE\_URL} o \texttt{VITE\_SUPABASE\_PUBLIC\_KEY} \\
+    Error «Please provide a valid HTTPS URL» al arrancar & \texttt{VITE\_SITE\_URL} con \texttt{http://} sin \texttt{VITE\_CI=true} \\
+    La web carga, pero el inicio de sesión no redirige & La URL no está entre las de redirección de la autenticación de Supabase \\
+    La consola del CMS da un error de conexión & Falta \texttt{SUPABASE\_DATABASE\_URL} o el servidor no llega a la base de datos \\
+    El servidor no llega a \texttt{127.0.0.1:54321} con la Supabase local & Falta el fichero \texttt{docker-compose.supabase-local.yml} \\
+    Los pagos no actualizan la suscripción & El aviso de Stripe no llega o \texttt{STRIPE\_WEBHOOK\_SECRET} no coincide \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Verificación del manual}
+\label{sec:ig-verificacion}
+
+El procedimiento de la sección~\ref{sec:ig-local} se siguió al pie de la
+letra el 29/10/2026 en un clon limpio del repositorio, con una instancia de
+Supabase nueva (sin datos previos) y la plantilla de variables tal cual:
+
+\begin{itemize}
+  \item la instalación de dependencias y la creación de la base de datos, con
+        sus 32 migraciones y los datos de ejemplo, terminaron sin errores;
+  \item la imagen de producción (unos 265~MB) se construyó sin caché y el
+        contenedor pasó a estado \textit{healthy}, con la sonda de salud
+        informando de que la base de datos es accesible;
+  \item la suite E2E completa se ejecutó contra esa imagen: 167 pruebas
+        superadas y una omitida (la suplantación de usuarios, desactivada
+        también en el entorno de desarrollo).
+\end{itemize}
+
+La primera ejecución de la prueba desde cero encontró un fallo que la
+verificación anterior, hecha con un fichero de variables más completo, no
+había detectado: con las variables opcionales vacías de la plantilla, la
+imagen respondía con un error en todas las páginas. Se corrigió en el
+\textit{Dockerfile} antes de dar el manual por bueno (capítulo de Despliegue
+del Sistema, sección~\ref{sec:despliegue-verificacion}).
+
+\fussy

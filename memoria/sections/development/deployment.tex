@@ -3,16 +3,16 @@
 % Lo incluye \chapter{Despliegue del Sistema}; aquí solo van secciones.
 % Fuentes: apps/web/Dockerfile, docker-compose.yml,
 %   docker-compose.supabase-local.yml, .env.docker.example, railway.json,
-%   docs/DESPLIEGUE.md y docs/tfg/DECISIONES.md (ADR-011, ADR-022).
+%   docs/DESPLIEGUE.md y docs/tfg/DECISIONES.md (ADR-011, ADR-022, ADR-027).
 % Paquetes necesarios: booktabs, tabularx, listings, tikz
 %   (bibliotecas: positioning, arrows.meta, fit).
 % =====================================================================
 
 Este capítulo describe cómo se empaqueta y se pone en producción PymeKit. El
-objetivo de la fase de despliegue era doble: que cualquier persona pudiera
-reproducir la plataforma completa en su equipo con un único comando, y que la
-misma configuración sirviera para publicar una instancia de demostración
-accesible desde Internet. Ambos objetivos se apoyan en una decisión de diseño
+objetivo de la fase de despliegue es que cualquier persona pueda reproducir la
+plataforma completa a partir del repositorio, con la misma imagen que se
+usaría en producción, y que esa configuración sirva sin cambios para publicarla
+en la nube. Ambos objetivos se apoyan en una decisión de diseño
 previa: el CMS de datos forma parte de la aplicación web y no es un servicio
 aparte (ADR-011), de modo que el sistema que hay que desplegar consta de una
 sola aplicación más los servicios gestionados de los que depende.
@@ -147,8 +147,8 @@ services:
     restart: unless-stopped
 \end{lstlisting}
 
-Todas las variables se documentan en una plantilla versionada,
-\texttt{.env.docker.example}, sin valores secretos; el fichero real con las
+Todas las variables se documentan, sin valores secretos, en la plantilla
+versionada \texttt{.env.docker.example}; el fichero real con las
 credenciales está excluido tanto del control de versiones como del contexto
 de construcción de la imagen. Para el entorno local se añade un segundo
 fichero de ajuste que ejecuta el contenedor con la red del anfitrión. La razón
@@ -160,7 +160,14 @@ distintas.
 \section{Despliegue en la nube}
 \label{sec:despliegue-nube}
 
-La instancia de demostración combina tres servicios gestionados:
+La propuesta del trabajo pide definir los mecanismos de despliegue y puesta en
+marcha y un manual de instalación, pero no una instancia pública. Por eso el
+despliegue de referencia es el local de la sección anterior, verificado desde
+cero (sección~\ref{sec:despliegue-verificacion}), y la publicación en la nube
+queda preparada y documentada, pero no se ha ejecutado (ADR-027): exigiría
+cuentas de pago y publicar la API de la base de datos, sin aportar nada que el
+despliegue local no demuestre. Una instancia en la nube combinaría tres
+servicios gestionados:
 
 \begin{itemize}
   \item \textbf{Base de datos como servicio.} Se crea un proyecto y se le
@@ -183,19 +190,36 @@ La instancia de demostración combina tres servicios gestionados:
 \end{itemize}
 
 El procedimiento completo, junto con la actualización y las copias de
-seguridad, se recoge en el manual de instalación (Anexo~\ref{anx:manual-instalacion}).
-% PENDIENTE: crear la etiqueta anx:manual-instalacion al pasar
-% docs/DESPLIEGUE.md al anexo de la memoria (F8).
+seguridad, se recoge en el manual de instalación y puesta en marcha
+(anexo~\ref{anx:manual-instalacion}).
 
 \section{Verificación}
 \label{sec:despliegue-verificacion}
 
-La imagen se construyó y se arrancó contra la base de datos del entorno local,
-comprobando que la página de inicio y la de inicio de sesión responden con
-código 200 y que la sonda de salud informa de que la base de datos es
-accesible. La imagen final ocupa unos 265~MB en disco
-(medido el 20/10/2026), frente a los varios gigabytes que suponen las dependencias de
-desarrollo del monorepo.
+El despliegue se verificó en dos momentos. El 20/10/2026, la imagen se
+construyó y se arrancó contra la base de datos del entorno de desarrollo, y
+la página de inicio, la de inicio de sesión y la sonda de salud respondieron
+correctamente. El 29/10/2026 se siguió el manual de instalación al pie de la
+letra desde un clon limpio del repositorio, con una base de datos nueva
+creada solo con las migraciones y la plantilla de variables sin completar más
+que lo imprescindible (anexo~\ref{anx:manual-instalacion},
+sección~\ref{sec:ig-verificacion}).
 
-% PENDIENTE: completar con la URL y la fecha de la instancia de demostración
-% cuando se publique (F7, tareas 3–5), y con la prueba del manual desde cero.
+Esa segunda prueba encontró un fallo que la primera no había visto (B-58): la
+imagen arrancaba, pero respondía con un error en todas las páginas. La
+plantilla deja vacías las variables públicas opcionales y el fichero de
+orquestación las pasa igualmente a la construcción; dentro de ella, una
+variable vacía sigue existiendo en el entorno, y la herramienta de
+construcción da prioridad al entorno sobre los ficheros de configuración del
+repositorio, de modo que el proveedor de pagos, el nombre del producto o el
+idioma quedaban en blanco y la validación de la configuración fallaba al
+arrancar. La corrección elimina del entorno las variables vacías antes de
+construir. La misma prueba mostró que los identificadores de precio de la
+pasarela no se podían pasar a la imagen, lo que también se corrigió.
+
+Con la corrección, la imagen ---de unos 265~MB, frente a los varios
+gigabytes de las dependencias de desarrollo del monorepo--- pasó a estado
+sano y la suite E2E completa se ejecutó contra ella con 167 pruebas
+superadas y una omitida. La lección es que un manual de instalación solo está
+probado cuando se sigue desde cero con la plantilla tal cual: probarlo con el
+entorno de quien lo escribió oculta precisamente los valores por defecto.
