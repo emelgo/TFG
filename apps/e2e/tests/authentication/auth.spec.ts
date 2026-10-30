@@ -51,10 +51,17 @@ test.describe('Auth flow', () => {
   test('will sign out using the dropdown', async ({ page }) => {
     const auth = new AuthPageObject(page);
 
+    // Usuario propio de la prueba: con el compartido (test@pymekit.test),
+    // otras pruebas en paralelo le cambiaban la cuenta activa o le cerraban
+    // la sesión a mitad de esta, y fallaba según el orden de ejecución.
+    const email = auth.createRandomEmail();
+
+    await auth.bootstrapUser({ email, name: 'Sign Out User' });
+
     await page.goto('/settings');
 
     await auth.signIn({
-      email: 'test@pymekit.test',
+      email,
       password: 'testingpassword',
     });
 
