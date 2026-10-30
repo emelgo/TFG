@@ -54,6 +54,7 @@
   "home": {
     "pillLabel": "Nuevo",
     "pillText": "La base SaaS reutilizable para pymes",
+    "pillActionLabel": "Crear una cuenta",
     "heroTitle": "Lanza el software de tu pyme sin empezar de cero.",
     "heroSubtitle": "PymeKit reúne lo que todo SaaS necesita (registro, equipos con roles, suscripciones con Stripe, un CMS integrado y un blog) para que dediques tu tiempo a lo que hace único a tu negocio.",
     "heroImageAlt": "Captura del panel de PymeKit",

@@ -113,6 +113,8 @@ export function NotificationsPopover(params: {
     <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={<Button size="icon-lg" variant="ghost" className="relative" />}
+        // Botón con solo un icono: el nombre accesible lo describe.
+        aria-label={t('common.notifications')}
       >
         <Bell className={'size-4 min-h-3 min-w-3'} />
 

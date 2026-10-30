@@ -11,6 +11,7 @@
     "test:ui": "ENABLE_BILLING_TESTS=true playwright test --ui"
   },
   "devDependencies": {
+    "@axe-core/playwright": "catalog:",
     "@playwright/test": "catalog:",
     "@supabase/supabase-js": "catalog:",
     "dotenv": "catalog:",

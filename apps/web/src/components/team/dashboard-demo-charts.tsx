@@ -485,12 +485,13 @@ function CustomersTable() {
 function BadgeWithTrend(props: React.PropsWithChildren<{ trend: string }>) {
   const className = useMemo(() => {
     switch (props.trend) {
+      // Tonos con contraste suficiente en ambos temas (WCAG 1.4.3).
       case 'up':
-        return 'text-green-500';
+        return 'text-green-700 dark:text-green-400';
       case 'down':
         return 'text-destructive';
       case 'stale':
-        return 'text-orange-500';
+        return 'text-orange-700 dark:text-orange-400';
     }
   }, [props.trend]);
 

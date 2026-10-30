@@ -58,8 +58,9 @@ export const PillActionButton: React.FC<
         'text-secondary-foreground bg-input active:bg-primary active:text-primary-foreground hover:bg-muted rounded-full p-1 text-center text-xs font-medium ring ring-transparent transition-colors',
         className,
       ),
+      // Solo lleva un icono: quien lo usa le da su nombre accesible
+      // (aria-label) ya traducido, que llega en `props`.
       children,
-      'aria-label': 'Action button',
     },
   });
 };

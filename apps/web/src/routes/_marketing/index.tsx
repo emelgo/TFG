@@ -46,6 +46,7 @@ function Home() {
             <Pill label={t('pillLabel')}>
               <span>{t('pillText')}</span>
               <PillActionButton
+                aria-label={t('pillActionLabel')}
                 render={
                   <Link to={'/auth/sign-up'}>
                     <ArrowRightIcon className={'h-4 w-4'} />
@@ -178,27 +179,35 @@ const FEATURES = [
 function MainCallToActionButton() {
   return (
     <div className={'flex space-x-2.5'}>
-      <CtaButton className="h-10 text-sm">
-        <Link to={'/auth/sign-up'}>
-          <span className={'flex items-center space-x-0.5'}>
-            <span>
-              <Trans i18nKey={'common.getStarted'} />
-            </span>
-
-            <ArrowRightIcon
-              className={
-                'animate-in fade-in slide-in-from-left-8 h-4' +
-                ' zoom-in fill-mode-both delay-1000 duration-1000'
-              }
-            />
+      {/* El botón se pinta como el propio enlace (render): un enlace dentro de
+          un <button> es un control interactivo anidado, que los lectores de
+          pantalla y el teclado no tratan bien (WCAG 4.1.2). */}
+      <CtaButton
+        className="h-10 text-sm"
+        nativeButton={false}
+        render={<Link to={'/auth/sign-up'} />}
+      >
+        <span className={'flex items-center space-x-0.5'}>
+          <span>
+            <Trans i18nKey={'common.getStarted'} />
           </span>
-        </Link>
+
+          <ArrowRightIcon
+            className={
+              'animate-in fade-in slide-in-from-left-8 h-4' +
+              ' zoom-in fill-mode-both delay-1000 duration-1000'
+            }
+          />
+        </span>
       </CtaButton>
 
-      <CtaButton variant={'link'} className="h-10 text-sm">
-        <Link to={'/pricing'}>
-          <Trans i18nKey={'common.pricing'} />
-        </Link>
+      <CtaButton
+        variant={'link'}
+        className="h-10 text-sm"
+        nativeButton={false}
+        render={<Link to={'/pricing'} />}
+      >
+        <Trans i18nKey={'common.pricing'} />
       </CtaButton>
     </div>
   );

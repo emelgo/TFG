@@ -79,7 +79,10 @@ export function PersonalAccountDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={t('openProfileMenu')}
+        // Si se ve el nombre del perfil, ese texto es el nombre accesible
+        // (WCAG 2.5.3: lo que se ve es lo que se puede decir por voz); si
+        // solo se ve el avatar, hace falta una etiqueta que diga qué abre.
+        aria-label={showProfileName ? undefined : t('openProfileMenu')}
         data-testid={'account-dropdown-trigger'}
         className={cn(
           'group/trigger fade-in focus:outline-primary flex cursor-pointer items-center group-data-[collapsible=icon]:px-0',

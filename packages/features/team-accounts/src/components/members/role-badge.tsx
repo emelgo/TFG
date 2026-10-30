@@ -6,13 +6,15 @@ import { Trans } from '@pymekit/ui/trans';
 
 type Role = string;
 
+// Los tonos 800 sobre fondo 50 (y 400 sobre el fondo oscuro) cumplen el
+// contraste mínimo de 4,5:1 de WCAG 1.4.3; los 500/600 originales no.
 const roles = {
   owner: '',
   // Rol intermedio para pymes (ADR-024): gestiona al personal, no la facturación
   manager:
-    'bg-amber-50 hover:bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:hover:bg-amber-500/10',
+    'bg-amber-50 hover:bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:hover:bg-amber-500/10 dark:text-amber-400',
   member:
-    'bg-blue-50 hover:bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:hover:bg-blue-500/10',
+    'bg-blue-50 hover:bg-blue-50 text-blue-800 dark:bg-blue-500/10 dark:hover:bg-blue-500/10 dark:text-blue-400',
 };
 
 const roleClassNameBuilder = cva('font-medium capitalize shadow-none', {

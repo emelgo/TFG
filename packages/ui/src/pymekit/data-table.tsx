@@ -28,6 +28,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
+import { useTranslations } from 'use-intl';
 
 import { cn } from '../lib/utils/cn';
 import { Button } from '../shadcn/button';
@@ -537,6 +538,10 @@ function Pagination<T>({
   const currentPageSize = table.getState().pagination.pageSize;
   const rows = table.getRowModel().rows;
 
+  // Los botones de paginación solo llevan un icono: el nombre accesible
+  // (aria-label) es lo que anuncia un lector de pantalla.
+  const t = useTranslations('common.ui');
+
   // Calculate what records are being shown on this page
   const startRecord = currentPageIndex * currentPageSize + 1;
   const endRecord = startRecord + rows.length - 1;
@@ -563,6 +568,7 @@ function Pagination<T>({
           size={'icon'}
           variant={'outline'}
           data-testid="data-table-first-page"
+          aria-label={t('goToFirstPage')}
           onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage()}
         >
@@ -575,6 +581,7 @@ function Pagination<T>({
           size={'icon'}
           variant={'outline'}
           data-testid="data-table-previous-page"
+          aria-label={t('goToPreviousPage')}
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
@@ -587,6 +594,7 @@ function Pagination<T>({
           size={'icon'}
           variant={'outline'}
           data-testid="data-table-next-page"
+          aria-label={t('goToNextPage')}
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
@@ -599,6 +607,7 @@ function Pagination<T>({
           size={'icon'}
           variant={'outline'}
           data-testid="data-table-last-page"
+          aria-label={t('goToLastPage')}
           onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
         >
@@ -608,7 +617,11 @@ function Pagination<T>({
 
       <If condition={totalCount && rows.length > 0}>
         <span className="text-muted-foreground flex items-center text-xs">
-          Showing {startRecord} to {endRecord} of {totalCount} rows
+          {t('showingRows', {
+            start: startRecord,
+            end: endRecord,
+            total: totalCount ?? 0,
+          })}
         </span>
       </If>
     </div>

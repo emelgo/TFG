@@ -25,6 +25,7 @@
   "personalAccount": "Cuenta personal",
   "searchAccount": "Buscar cuenta...",
   "membersTabLabel": "Miembros",
+  "memberActions": "Acciones sobre {name}",
   "memberName": "Nombre",
   "youLabel": "Tú",
   "emailLabel": "Correo electrónico",
