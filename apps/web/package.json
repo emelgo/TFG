@@ -12,7 +12,7 @@
     "build:test": "vite build --mode test",
     "preview": "vite preview",
     "start": "node --env-file-if-exists=.env .output/server/index.mjs",
-    "start:test": "node --env-file-if-exists=.env.test .output/server/index.mjs",
+    "start:test": "node --env-file-if-exists=.env.test --env-file-if-exists=.env.test.local .output/server/index.mjs",
     "typecheck": "tsc --noEmit",
     "supabase": "supabase",
     "supabase:start": "supabase status || supabase start",
