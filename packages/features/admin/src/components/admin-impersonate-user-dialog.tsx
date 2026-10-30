@@ -217,8 +217,13 @@ function useSetSession(tokens: { accessToken: string; refreshToken: string }) {
     queryKey: ['impersonate-user', tokens.accessToken, tokens.refreshToken],
     gcTime: 0,
     queryFn: async () => {
-      await supabase.auth.signOut();
-
+      // No se cierra antes la sesión del super-admin: `setSession` ya la
+      // sustituye en el navegador. Un `signOut()` previo emitía SIGNED_OUT y
+      // el oyente de sesión (useAuthChangeListener), al ver una ruta privada
+      // sin usuario, mandaba a la página de inicio antes de que se fijara la
+      // sesión del usuario suplantado: la suplantación nunca llegaba a
+      // completarse (B-61). Además, el `signOut()` global revocaba las
+      // sesiones del super-admin en todos sus dispositivos.
       await supabase.auth.setSession({
         refresh_token: tokens.refreshToken,
         access_token: tokens.accessToken,
