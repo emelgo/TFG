@@ -1,7 +1,7 @@
 -- Las políticas RLS no evalúan por fila las funciones que no dependen de ella.
 --
--- `is_super_admin()`, `is_mfa_compliant()` (de `public` y de `cms`) e
--- `is_aal2()` no reciben argumentos: su resultado es el mismo para todas las
+-- `is_super_admin()`, `is_mfa_compliant()` (de `public` y de `cms`),
+-- `is_aal2()`, `auth.uid()` y `auth.jwt()` no reciben argumentos: su resultado es el mismo para todas las
 -- filas de una consulta. Si una política las llama directamente, PostgreSQL
 -- las vuelve a ejecutar en cada fila; envueltas en `(select …)`, las evalúa
 -- una sola vez (InitPlan). Con 10.000 cuentas, la diferencia en la lista de
@@ -34,12 +34,12 @@ select is_empty(
       )
       and regexp_replace(
             coalesce(qual, '') || ' ' || coalesce(with_check, ''),
-            'SELECT (public\.|cms\.)?(is_super_admin|is_mfa_compliant|is_aal2)\(\)',
+            'SELECT (public\.|cms\.|auth\.)?(is_super_admin|is_mfa_compliant|is_aal2|uid|jwt)\(\)',
             '',
             'g'
-          ) ~ '(is_super_admin|is_mfa_compliant|is_aal2)\(\)'
+          ) ~ '(is_super_admin|is_mfa_compliant|is_aal2|auth\.uid|auth\.jwt)\(\)'
   $$,
-  'Ninguna política RLS evalúa por fila is_super_admin, is_mfa_compliant ni is_aal2'
+  'Ninguna política RLS evalúa por fila is_super_admin, is_mfa_compliant, is_aal2, auth.uid ni auth.jwt'
 );
 
 select * from finish();

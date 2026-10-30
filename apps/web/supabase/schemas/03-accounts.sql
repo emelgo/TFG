@@ -559,7 +559,7 @@ create policy delete_team_account
     for delete
     to authenticated
     using (
-        auth.uid() = primary_owner_user_id
+        (select auth.uid()) = primary_owner_user_id
         and is_personal_account = false
     );
 
