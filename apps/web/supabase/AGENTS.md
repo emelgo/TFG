@@ -147,9 +147,11 @@ create policy "feature_insert" on public.feature for insert
   to authenticated with check (public.has_role_on_account(account_id));
 
 -- Igual que en 13-mfa.sql: sin esta política, una sesión sin elevar de un
--- usuario con MFA activado podría seguir accediendo a la tabla
+-- usuario con MFA activado podría seguir accediendo a la tabla. La función va
+-- en `(select …)` para que se evalúe una vez por consulta y no por fila
+-- (B-60; `rls-initplan.test.sql` falla si falta el envoltorio)
 create policy "restrict_mfa_feature" on public.feature
-  as restrictive to authenticated using (public.is_mfa_compliant());
+  as restrictive to authenticated using ((select public.is_mfa_compliant()));
 ```
 
 No añadas `unique` sobre `id` junto a `primary key (id)`. Es redundante y migra no genera esa restricción extra, así que la migración diverge del esquema en silencio.

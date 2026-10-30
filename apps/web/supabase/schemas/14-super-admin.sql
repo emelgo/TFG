@@ -5,7 +5,8 @@
  * SaaS, no el de una pyme) acceso de solo lectura a todas las tablas de
  * negocio para tareas de soporte. Son políticas permisivas: se suman con OR
  * a las de cada tabla. La condición `is_super_admin()` exige el rol en
- * `app_metadata` y una sesión `aal2` (ver 13-mfa.sql).
+ * `app_metadata` y una sesión `aal2` (ver 13-mfa.sql). Se envuelve en
+ * `(select …)` para que se evalúe una vez por consulta y no por fila (B-60).
  * -------------------------------------------------------
  */
 
@@ -15,7 +16,7 @@ create policy super_admins_access_accounts
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Membresías.
 create policy super_admins_access_accounts_memberships
@@ -23,7 +24,7 @@ create policy super_admins_access_accounts_memberships
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Suscripciones.
 create policy super_admins_access_subscriptions
@@ -31,7 +32,7 @@ create policy super_admins_access_subscriptions
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Líneas de suscripción.
 create policy super_admins_access_subscription_items
@@ -39,7 +40,7 @@ create policy super_admins_access_subscription_items
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Invitaciones.
 create policy super_admins_access_invitations
@@ -47,7 +48,7 @@ create policy super_admins_access_invitations
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Pedidos.
 create policy super_admins_access_orders
@@ -55,7 +56,7 @@ create policy super_admins_access_orders
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Líneas de pedido.
 create policy super_admins_access_order_items
@@ -63,7 +64,7 @@ create policy super_admins_access_order_items
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Permisos de los roles.
 create policy super_admins_access_role_permissions
@@ -71,7 +72,7 @@ create policy super_admins_access_role_permissions
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Clientes de facturación.
 create policy super_admins_access_billing_customers
@@ -79,7 +80,7 @@ create policy super_admins_access_billing_customers
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
 
 -- Notificaciones.
 create policy super_admins_access_notifications
@@ -87,4 +88,4 @@ create policy super_admins_access_notifications
     as permissive
     for select
     to authenticated
-    using (public.is_super_admin());
+    using ((select public.is_super_admin()));
