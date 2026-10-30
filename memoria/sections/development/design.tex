@@ -469,7 +469,16 @@ se usan valores de relleno marcados como ejemplo, de modo que la página de
 precios funciona desde el primer arranque y la pyme solo tiene que crear sus
 precios en Stripe y copiar sus identificadores. Los textos de cada plan son
 claves de traducción.
-\todo{Completar con la verificación con la pasarela en modo de pruebas (F6/F7).}
+
+El flujo completo se verificó con una cuenta de Stripe en modo de pruebas:
+los planes se crearon en la pasarela con sus importes en euros, la CLI de
+Stripe reenvió los avisos de pago a la aplicación local sin necesidad de una
+URL pública, y las pruebas E2E de facturación de equipo y personal pagaron
+con la tarjeta de prueba y comprobaron que la suscripción quedaba activa en
+la aplicación tras recibir \texttt{checkout.session.completed} e
+\texttt{invoice.paid}. Las pruebas heredadas suponían una cuenta con solo
+pago con tarjeta y hubo que adaptarlas a una cuenta europea, que ofrece
+varios métodos de pago (B-62).
 
 % ---------------------------------------------------------------------
 \section{Diseño de la interfaz}
@@ -478,7 +487,8 @@ claves de traducción.
 \subsection{Web pública y área privada}
 
 La web pública ofrece inicio, precios, blog, preguntas frecuentes, contacto y
-textos legales; el área privada, el panel de la cuenta activa, sus ajustes,
+textos legales (plantillas con los apartados que exigen el RGPD y la LSSI-CE,
+que cada pyme completa con sus datos); el área privada, el panel de la cuenta activa, sus ajustes,
 miembros y facturación. La identidad visual es propia (logotipo, iconos y
 capturas generadas a partir de la propia aplicación, B-46). La interfaz es
 adaptable a dispositivos móviles, admite tema claro y oscuro y se construye

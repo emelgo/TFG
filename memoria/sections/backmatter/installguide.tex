@@ -233,10 +233,12 @@ no realiza cargos reales:
   \item Se crean los productos y precios de los planes y se copian sus
         identificadores a las variables \texttt{VITE\_STRIPE\_PRICE\_*}
         (ADR-025).
-  \item En local, la CLI de Stripe reenvía los avisos de pago a la aplicación
-        sin necesidad de una URL pública (\texttt{pnpm stripe:listen}) y
-        muestra el secreto de firma temporal que va en
-        \texttt{STRIPE\_WEBHOOK\_SECRET}.
+  \item En local, la CLI de Stripe reenvía a la aplicación los seis eventos
+        que trata el aviso de pagos, sin necesidad de una URL pública
+        (\texttt{pnpm stripe:listen}), y muestra el secreto de firma que va
+        en \texttt{STRIPE\_WEBHOOK\_SECRET}. Para las pruebas de
+        facturación, las claves y los ids de precio se guardan en
+        \texttt{apps/web/.env.test.local}, que no se versiona.
   \item El pago se prueba con la tarjeta \texttt{4242 4242 4242 4242}, una
         fecha de caducidad futura y cualquier CVC.
 \end{enumerate}

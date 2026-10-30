@@ -75,6 +75,8 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 | B-58 | 2026-10-29 | F7 | infraestructura | propio | La imagen Docker construida con la plantilla de variables respondía 500 en todas las rutas | Alta |
 | B-59 | 2026-10-30 | F6 | calidad | heredado | La auditoría automática de accesibilidad encontró infracciones graves en todas las pantallas | Media |
 | B-60 | 2026-10-30 | F6 | calidad | heredado | 36 políticas RLS evaluaban por fila funciones que no dependen de ella | Media |
+| B-61 | 2026-10-30 | F6 | calidad | heredado | La suplantación de usuarios no funcionaba: el super-admin acababa en la portada sin sesión | Media |
+| B-62 | 2026-10-30 | F6 | herramientas | heredado | Las pruebas y el script de Stripe no funcionaban con una cuenta europea ni con la CLI actual | Baja |
 
 ---
 
@@ -456,4 +458,19 @@ Cada entrada se añade **en el momento** en que ocurre, no al final de la fase.
 - **Evidencia:** `db diff` sin cambios; pgTAP completo; medición repetida: la gestión de cuentas con 10.000 cuentas vuelve a 1,2 s.
 - **Lección:** la regla «envolver en `(select …)`» se había aplicado a `auth.uid()` pero no a las funciones propias; solo una medición con volumen real lo saca a la luz. Y un cambio de rendimiento en RLS también necesita la suite completa: el plan de PostgreSQL cambia de forma, y con él lo que comprueba.
 - **Pendiente menor:** cinco políticas (`delete_team_account` y las cuatro `account_image_*` de `storage.objects`) siguen con `auth.uid()` sin envolver; afectan a operaciones sobre una sola fila.
+- **Ampliación (mismo día):** las cinco políticas pendientes (`delete_team_account` y las cuatro `account_image_*` de `storage.objects`) se envolvieron también (`(select auth.uid())`) con la migración `20261030130000_rls_auth_uid_initplan.sql`, y `rls-initplan.test.sql` comprueba ya `auth.uid()` y `auth.jwt()`.
+
+## B-61 · La suplantación de usuarios no funcionaba: el super-admin acababa en la portada sin sesión
+- **Qué pasó:** el E2E heredado «can sign in as a user» estaba desactivado con `test.skip` y el comentario «unclear why it fails in the CI». Al activarlo, tras confirmar la suplantación la página terminaba en `/` sin sesión, en lugar de en el panel del usuario suplantado (CU-05).
+- **Causa:** `useSetSession` (`admin-impersonate-user-dialog.tsx`) hacía `supabase.auth.signOut()` antes de `setSession(...)`. El `signOut` emite `SIGNED_OUT` y `useAuthChangeListener`, al ver una ruta privada (`/admin`) sin usuario, redirige a `/` antes de que se fije la sesión nueva. Además, el `signOut()` global revocaba las sesiones del super-admin en todos sus dispositivos.
+- **Solución:** se quita el `signOut()` previo: `setSession` ya sustituye la sesión del navegador. Test reactivado.
+- **Evidencia:** `admin.spec.ts` › «can sign in as a user» 3/3 con `--repeat-each=3`.
+- **Lección:** un test desactivado «porque falla sin causa conocida» puede estar señalando un fallo real de la funcionalidad, no de la prueba.
+
+## B-62 · Las pruebas y el script de Stripe no funcionaban con una cuenta europea ni con la CLI actual
+- **Qué pasó:** al verificar los pagos con la cuenta de pruebas del autor (F6), los E2E de facturación heredados no encontraban el formulario de la tarjeta, y `pnpm stripe:listen` no arrancaba.
+- **Causa:** (1) en una cuenta española Stripe ofrece varios métodos de pago (tarjeta, Klarna, Satispay, Amazon Pay…) en un acordeón y los campos de la tarjeta solo aparecen al elegirla; los E2E suponían una cuenta con solo tarjeta. (2) La CLI actual exige `--events` en `stripe listen`. (3) En Linux, `host.docker.internal` no existe sin `--add-host`. (4) `start:test` no cargaba `.env.test.local`, así que las claves locales no llegaban al servidor de pruebas.
+- **Solución:** `StripePageObject.waitForForm` elige la tarjeta si hace falta; el script de `stripe:listen` añade `--add-host=host.docker.internal:host-gateway` y los seis eventos que trata el *webhook*; `start:test` carga también `.env.test.local`. Las claves y los ids de precio del autor viven en `apps/web/.env.test.local` (ignorado por git).
+- **Evidencia:** E2E de facturación de equipo y personal en verde; la CLI registra `checkout.session.completed` e `invoice.paid` con respuesta 200 y las suscripciones quedan `active` en la base de datos (19 € al mes).
+- **Lección:** las pruebas de integración con un servicio externo dependen de la configuración de la cuenta (país, métodos de pago) y de la versión de sus herramientas; hasta que no se ejecutan con una cuenta real, no están probadas.
 

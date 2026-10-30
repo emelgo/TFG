@@ -34,11 +34,11 @@ específico (tabla~\ref{tab:intro-objetivos}).
     OE-1 & Contexto analizado, componentes comunes identificados y requisitos definidos: 13 funcionales, 9 no funcionales y 8 casos de uso, trazados al código, a las pruebas y a la memoria. & Cumplido \\
     OE-2 & Monorepo de paquetes desacoplados con exportaciones separadas de cliente y servidor; la API del CMS se monta dentro del servidor web, sin servicios adicionales (ADR-011). & Cumplido \\
     OE-3 & Registro, verificación de correo, contraseña, enlace mágico y MFA; cuentas personales y de equipo con invitaciones, roles y permisos; MFA obligatorio en la consola. Autorización aplicada en la base de datos mediante RLS; rol intermedio «Encargado» pensado para pymes (ADR-024). & Cumplido \\
-    OE-4 & Suscripciones con Stripe (planes, \textit{checkout}, portal del cliente y \textit{webhooks}) detrás de una pasarela abstracta, con planes de ejemplo para pymes en euros (ADR-025). & Parcial: falta verificar el pago completo con la pasarela en modo de pruebas (F6) \\
+    OE-4 & Suscripciones con Stripe (planes, \textit{checkout}, portal del cliente y \textit{webhooks}) detrás de una pasarela abstracta, con planes de ejemplo para pymes en euros (ADR-025). & Cumplido: pago verificado de punta a punta con la pasarela en modo de pruebas \\
     OE-5 & CMS de datos integrado en la consola: explorador de tablas con CRUD, relaciones y vistas guardadas, gestión de usuarios y archivos, auditoría no falsificable, búsqueda global, RBAC propio y paneles configurables (RF-08 a RF-11). & Cumplido \\
     OE-6 & Modelo multicliente con tablas compartidas y RLS; más de dos mil pruebas pgTAP, incluidas pruebas de ataque entre clientes; las auditorías posteriores a cada corrección concluyeron que el aislamiento se mantiene. & Cumplido \\
     OE-7 & Configuración centralizada en ficheros \texttt{*.config.ts} y variables \texttt{VITE\_*}; consola por áreas configurable desde la propia interfaz; interfaz solo en español con la traducción como punto de extensión documentado; guía de configuración y comentarios didácticos en el núcleo de la arquitectura (ADR-023). & Cumplido \\
-    OE-8 & Pruebas unitarias, de base de datos y E2E en integración continua; evaluación de la reutilización en un caso de estudio (anexo~\ref{cap:evaluacion}); auditoría de accesibilidad WCAG~2.1~AA de quince pantallas y medición del rendimiento con 10.000 cuentas. & Parcial: E2E del pago (CU-03), de la denegación en la interfaz (CU-04) y de la suplantación (CU-05) pendientes (F6) \\
+    OE-8 & Pruebas unitarias, de base de datos y E2E en integración continua; evaluación de la reutilización en un caso de estudio (anexo~\ref{cap:evaluacion}); auditoría de accesibilidad WCAG~2.1~AA de dieciocho pantallas y medición del rendimiento con 10.000 cuentas. & Cumplido\\
     OE-9 & Memoria y manuales de desarrollador, instalación y usuario; despliegue con contenedores verificado desde cero y despliegue en la nube documentado (ADR-027). & Cumplido \\
     \bottomrule
   \end{tabularx}
@@ -61,7 +61,7 @@ Hasta la fecha de corte (30/10/2026) el repositorio registra más de 80
 \textit{commits}, 27 decisiones de arquitectura y 60 incidencias documentadas
 en la bitácora. El resultado es un monorepo de 51 paquetes, 27 de ellos del
 CMS, verificado por 1.691 pruebas unitarias, 2.099 pruebas de base de datos
-y 183 pruebas de extremo a extremo, además de la auditoría de accesibilidad,
+y 189 pruebas de extremo a extremo, además de la auditoría de accesibilidad,
 la medición del rendimiento y la evaluación de la reutilización.
 
 \subsection{Sobre reutilización y verificación}
@@ -179,6 +179,8 @@ proyecto y las mejoras detectadas durante su desarrollo.
         la lista de paneles y la denegación de almacenamiento sobre una
         subruta.
   \item Estabilizar las pruebas E2E inestables bajo carga.
+  \item Paginar la lista de miembros de un equipo, que crece con su tamaño
+        (2,1~s con 300 miembros, sección~\ref{sec:pru-rendimiento}).
   \item Ofrecer otros idiomas siguiendo el punto de extensión documentado.
   \item Un generador que cree un proyecto nuevo a partir de PymeKit con su
         configuración inicial, para reducir aún más el tiempo de puesta en

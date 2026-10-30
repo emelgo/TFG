@@ -176,8 +176,8 @@ no se sabe por qué se produjo (B-26).
 \subsection{Pruebas funcionales por caso de uso}
 \label{sec:pru-funcionales}
 
-Las pruebas E2E se organizan en 34 ficheros, 19 de ellos del CMS; la última
-ejecución completa ejecutó 183 pruebas. Se ejecutan en español, el único idioma
+Las pruebas E2E se organizan en 35 ficheros, 19 de ellos del CMS; la última
+ejecución completa, con las de facturación, ejecutó 189 pruebas. Se ejecutan en español, el único idioma
 de la interfaz, y un fichero específico comprueba que no queda ningún texto
 en inglés visible. La tabla~\ref{tab:pru-cu} relaciona cada caso de uso con
 las pruebas que lo cubren.
@@ -193,9 +193,9 @@ las pruebas que lo cubren.
     \midrule
     CU-01 & \texttt{authentication/*} (registro, acceso, recuperación de contraseña, redirecciones, sesión caducada), \texttt{account} & Cubierto \\
     CU-02 & \texttt{team-accounts/*}, \texttt{invitations} (incluida la aceptación con MFA) & Cubierto, incluida la promoción a «Encargado» \\
-    CU-03 & \texttt{team-billing}, \texttt{user-billing} & Escritos; se ejecutan con las claves de la pasarela en modo de pruebas, pendientes (F6) \\
-    CU-04 & pgTAP de facturación y permisos (capa de datos) & Parcial: falta la prueba E2E de la interfaz y de la \textit{server function} (F6) \\
-    CU-05 & \texttt{admin} (404 sin permiso, MFA obligatorio, bloquear, reactivar, borrar) & Parcial: la prueba de suplantación está desactivada \\
+    CU-03 & \texttt{team-billing}, \texttt{user-billing} (pago con la tarjeta de prueba y suscripción activa tras el aviso de la pasarela) & Cubierto con la cuenta de pruebas de Stripe \\
+    CU-04 & \texttt{billing-permissions} (aviso en la interfaz y petición de pago rechazada por el servidor); pgTAP de facturación (base de datos) & Cubierto en las tres capas \\
+    CU-05 & \texttt{admin} (404 sin permiso, MFA obligatorio, bloquear, reactivar, borrar, suplantar) & Cubierto; la suplantación se reactivó tras corregir B-61 \\
     CU-06 & \texttt{cms-data-explorer*}, \texttt{cms-audit-logs}, \texttt{cms-settings-*}, \texttt{cms-ui}, \texttt{cms-sidebar-areas}, \texttt{cms-field-help}, \texttt{cms-page-summaries} & Cubierto \\
     CU-07 & --- (caso de estudio, anexo~\ref{cap:evaluacion}) & Evaluado \\
     CU-08 & \texttt{blog} (lectura anónima, borradores invisibles, Markdown seguro, publicación desde el CMS, \textit{sitemap}) & Cubierto \\
@@ -348,8 +348,9 @@ restrictivas de MFA y las de lectura del super-administrador llamaban a
 \texttt{is\_mfa\_compliant()} e \texttt{is\_super\_admin()}, que no
 dependen de la fila, sin envolverlas en \texttt{(select \ldots)}, de modo
 que PostgreSQL las evaluaba en cada una de las 10.000 filas (B-60). Una
-migración envolvió las 34 políticas afectadas: la consulta de la lista pasó
-de unos 900~ms a unos 7~ms y la pantalla volvió a cargar en 1,2~s. Dos
+migración envolvió las 34 políticas afectadas ---y otra, cinco más que
+llamaban igual a \texttt{auth.uid()}---: la consulta de la lista pasó de
+unos 900~ms a unos 7~ms y la pantalla volvió a cargar en 1,2~s. Dos
 políticas del CMS se quedaron como estaban, porque sus tablas se consultan
 mutuamente y la subconsulta hacía que PostgreSQL detectara una recursión; una
 prueba pgTAP falla si alguna otra política vuelve a llamar a estas funciones
@@ -368,14 +369,14 @@ nombre accesible, de modo que fallan si un control pierde su etiqueta; la
 prueba de solo español revisa también los atributos accesibles.
 
 Además, una prueba E2E específica (\texttt{accessibility.spec.ts}) audita
-quince pantallas ---siete de la web pública, tres del área privada y cinco de
+dieciocho pantallas ---diez de la web pública, tres del área privada y cinco de
 la consola--- con axe-core~\cite{axe-core}, el motor de reglas de
 accesibilidad más extendido, contra las reglas de WCAG~2.1~\cite{wcag21} de
 nivel A y AA, y falla ante cualquier infracción de gravedad seria o crítica.
 La primera ejecución encontró infracciones en todas las pantallas, aunque
 procedían de pocos componentes compartidos (tabla~\ref{tab:pru-accesibilidad}).
-Se corrigieron en esos componentes, y la auditoría pasa ahora en las quince
-pantallas sin ninguna infracción, ni siquiera de gravedad menor. Al
+Se corrigieron en esos componentes, y la auditoría pasa ahora en las
+dieciocho pantallas sin ninguna infracción, ni siquiera de gravedad menor. Al
 corregirlas aparecieron además dos textos en inglés escritos en el código,
 uno de ellos visible en las tablas de datos, que se pasaron al catálogo de
 mensajes. Una auditoría automática no sustituye a la evaluación con personas,
@@ -432,7 +433,7 @@ verificación completa (30/10/2026).
     \midrule
     Unitarias (Vitest) & 116 & 1.692 & 1.691 superadas, 1 omitida \\
     Base de datos (pgTAP) & 73 & 2.099 & Todas superadas \\
-    E2E (Playwright) & 34 & 183 & 182 superadas (3 al reintentarlas) y 1 omitida (suplantación); las 2 de facturación necesitan las claves de la pasarela \\
+    E2E (Playwright) & 35 & 189 & 188 superadas y 1 inestable conocida, que pasó al reintentarla; incluye los pagos con la cuenta de pruebas de Stripe \\
     Controles automáticos del repositorio & --- & --- & Sin avisos \\
     \bottomrule
   \end{tabularx}
@@ -440,11 +441,13 @@ verificación completa (30/10/2026).
 
 La evolución de las cifras a lo largo de los incrementos se recoge en la
 tabla~\ref{tab:imp-fases}: la batería pgTAP pasó de 396 pruebas al cierre de F1 a
-2.099, y la E2E de 43 a 183, en buena parte por las pruebas de regresión de
+2.099, y la E2E de 43 a 189, en buena parte por las pruebas de regresión de
 seguridad. Con tres procesos en paralelo, algunas pruebas que inician sesión
 fallan de vez en cuando por tiempo de espera y pasan al reintentarlas; la
 última ejecución completa contra la imagen de producción construida desde
-cero (anexo~\ref{anx:manual-instalacion}) no tuvo ninguna inestable.
+cero (anexo~\ref{anx:manual-instalacion}) no tuvo ninguna inestable. Una prueba de cierre de sesión que compartía el usuario de
+pruebas con otras y fallaba según el orden de ejecución se aisló con su
+propio usuario.
 
 La tabla~\ref{tab:pru-trazabilidad} cierra el capítulo con la trazabilidad
 entre cada requisito y su evidencia de verificación.
@@ -467,8 +470,8 @@ entre cada requisito y su evidencia de verificación.
   RF-04 & pgTAP \texttt{super-admin}, \texttt{cms-verify-admin-access}; E2E \texttt{admin}, \texttt{team-invitation-mfa}, \texttt{cms-settings-auth} & MFA verificado; OAuth configurable sin prueba \\
   RF-05 & E2E \texttt{account} & Verificado \\
   RF-06 & pgTAP de cuentas, membresías, invitaciones y permisos; E2E \texttt{team-accounts}, \texttt{invitations}; pgTAP \texttt{team-roles-manager} & Verificado \\
-  RF-07 & pgTAP de facturación; E2E de facturación sin ejecutar & Parcial: pago pendiente (F6) \\
-  RF-08 & E2E \texttt{admin}, \texttt{cms-ui} & Parcial (suplantación sin E2E) \\
+  RF-07 & pgTAP de facturación; E2E de pago con la cuenta de pruebas de Stripe y de permisos (CU-03, CU-04) & Verificado \\
+  RF-08 & E2E \texttt{admin} (incluida la suplantación), \texttt{cms-ui} & Verificado \\
   RF-09 & pgTAP del CMS (41 ficheros); unitarias del CMS; E2E del CMS (19 ficheros) & Verificado \\
   RF-10 & pgTAP de auditoría e integridad; E2E \texttt{cms-audit-logs} & Verificado \\
   RF-11 & pgTAP de paneles; unitarias de paneles; E2E \texttt{cms-dashboards} & Verificado \\
@@ -479,8 +482,8 @@ entre cada requisito y su evidencia de verificación.
   RNF-03 & pgTAP de aislamiento de la plataforma y del CMS & Verificado \\
   RNF-04 & Estructura del monorepo; comprobación de tipos y dependencias & Verificado \\
   RNF-05 & CI (tipos, \textit{lint}, formato, controles automáticos); comentarios del núcleo & Verificado en el núcleo (ADR-023) \\
-  RNF-06 & CI con las tres suites & Parcial: E2E de pagos pendientes (F6) \\
+  RNF-06 & CI con las tres suites; E2E de pagos con la cuenta de pruebas & Verificado \\
   RNF-07 & Despliegue desde un clon limpio y E2E contra la imagen (anexo~\ref{anx:manual-instalacion}) & Verificado \\
-  RNF-08 & Auditoría automática WCAG 2.1 AA de 15 pantallas (\texttt{accessibility.spec.ts}); E2E por rol y nombre accesible; revisión manual & Verificado (sin evaluación con usuarios) \\
+  RNF-08 & Auditoría automática WCAG 2.1 AA de 18 pantallas (\texttt{accessibility.spec.ts}); E2E por rol y nombre accesible; revisión manual & Verificado (sin evaluación con usuarios) \\
   RNF-09 & Medición con 10.000 cuentas (tabla~\ref{tab:pru-rendimiento}); pgTAP \texttt{rls-initplan}; B-55, B-60 & Verificado \\
 \end{longtable}
