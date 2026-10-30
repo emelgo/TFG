@@ -121,6 +121,9 @@
 - [ ] pgTAP de aislamiento
 - [ ] Integración con Stripe
 - [x] Evaluación de la reutilización (CU-07): `docs/tfg/EVALUACION.md` y anexo de la memoria
+- [x] Auditoría automática de accesibilidad WCAG 2.1 AA de 15 pantallas (`apps/e2e/tests/accessibility/`, axe-core): infracciones en todas, corregidas en los componentes compartidos; 15/15 sin infracciones (B-59)
+- [x] Medición de rendimiento con 10.000 cuentas (`apps/e2e/scripts/measure-performance.mjs`): 34 políticas RLS evaluaban funciones por fila; migración `20261030120000_rls_policies_initplan.sql` y `rls-initplan.test.sql` (B-60). Gestión de cuentas: 3,7 s → 1,2 s
+- [ ] Pendiente menor (B-60): `delete_team_account` y las cuatro `account_image_*` de `storage.objects` con `auth.uid()` sin envolver; la lista de miembros de un equipo no se pagina (2,1 s con 300 miembros)
 - [ ] Resultados documentados
 
 ## F7 · Despliegue
@@ -169,6 +172,7 @@ Se distinguen dos medidas:
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
+| 2026-10-30 | F6 / F8 | Memoria maquetada (rama `fase-8/maquetacion-memoria`): sin páginas en blanco (132–133 págs.), frontmatter en romanos, portadillas propias, *Abstract*, riesgos con matriz, bibliografía verificada y en español, IA reducida a una mención (decisión del autor), capturas reales de la consola. Accesibilidad WCAG 2.1 AA (B-59) y rendimiento con 10.000 cuentas (B-60). pgTAP 73/2.099, E2E 183 |
 | 2026-10-29 | F7 / F8 | Revisión completa del PDF y de la app (`docs/tfg/REVISION-2026-10-29.md`). F7 cerrada con ADR-027: manual probado desde cero en un clon limpio, B-58 corregido (imagen Docker con 500 por `VITE_*` vacías) y anexo B de instalación en la memoria. Rama `fase-7/despliegue-local` |
 | 2026-10-20 | F5 | Adaptación a pymes (modo ahorro, rama `fase-5/adaptacion-pymes`): rol «Encargado» (ADR-024), planes en euros (ADR-025), plantilla de roles del CMS (ADR-026), `docs/CONFIGURACION.md` y generador `package` revisado. Incidencias B-56 y B-57 |
 | 2026-10-20 | F4 | F4 recortada al núcleo (ADR-023, modo ahorro, un agente): comentarios didácticos en `schemas/*.sql` (fuera de los cuerpos de función), `function-middleware`, `supabase`, `policies` y `apps/web/src/lib`; `report-comments` a 0 en los TS del núcleo. Rama `fase-4/comentarios-nucleo` |
