@@ -30,7 +30,79 @@
   "contact": "Contacto",
   "about": "Acerca de",
   "product": "Producto",
-  "legal": "Legal",
+  "legal": {
+    "templateNotice": "Plantilla legal de {productName}. La empresa que publique esta web debe completar los datos entre corchetes y revisar el texto con su asesor legal antes de usarla.",
+    "privacy": {
+      "controller": {
+        "title": "Responsable del tratamiento",
+        "body": "El responsable de los datos personales que se tratan en {productName} es [razón social], con NIF [NIF] y domicilio en [dirección]. Puedes contactar con nosotros en [correo de contacto]."
+      },
+      "purposes": {
+        "title": "Finalidades",
+        "body": "Tratamos tus datos para crear y gestionar tu cuenta, prestarte el servicio contratado, gestionar los pagos de las suscripciones, enviarte las comunicaciones necesarias sobre el servicio y atender las consultas que nos hagas por el formulario de contacto."
+      },
+      "legalBasis": {
+        "title": "Legitimación",
+        "body": "La base legal es la ejecución del contrato que aceptas al registrarte (art. 6.1.b RGPD), el cumplimiento de obligaciones legales, por ejemplo fiscales (art. 6.1.c), y, para las consultas del formulario de contacto, tu consentimiento (art. 6.1.a)."
+      },
+      "recipients": {
+        "title": "Destinatarios",
+        "body": "No cedemos tus datos a terceros salvo obligación legal. Los tratan por cuenta nuestra los proveedores necesarios para prestar el servicio: el alojamiento de la base de datos y de la aplicación, el envío de correos y la pasarela de pago, con los que hemos firmado los correspondientes contratos de encargo del tratamiento. [Indica si alguno está fuera del Espacio Económico Europeo y con qué garantías.]"
+      },
+      "retention": {
+        "title": "Conservación",
+        "body": "Conservamos los datos mientras mantengas tu cuenta y, después, durante los plazos que exija la ley para atender posibles responsabilidades. Los datos de facturación se conservan los plazos que fija la normativa fiscal."
+      },
+      "rights": {
+        "title": "Derechos",
+        "body": "Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a [correo de contacto]. También puedes borrar tu cuenta desde sus ajustes. Si consideras que no hemos tratado bien tus datos, puedes reclamar ante la Agencia Española de Protección de Datos (www.aepd.es)."
+      }
+    },
+    "terms": {
+      "object": {
+        "title": "Objeto",
+        "body": "Estas condiciones regulan el uso de {productName}, prestado por [razón social] (NIF [NIF], [dirección]). Al registrarte declaras haberlas leído y aceptarlas."
+      },
+      "account": {
+        "title": "Registro y cuenta",
+        "body": "Para usar el servicio necesitas una cuenta. Eres responsable de que los datos que facilitas sean veraces y de custodiar tu contraseña y, si lo activas, tu segundo factor de autenticación."
+      },
+      "subscriptions": {
+        "title": "Suscripciones y pagos",
+        "body": "Los planes de pago se contratan por periodos mensuales o anuales y se renuevan automáticamente hasta que los canceles desde el portal de facturación. Los pagos se procesan a través de una pasarela de pago externa; {productName} no almacena los datos de tu tarjeta. [Indica la política de reembolsos y los impuestos aplicables.]"
+      },
+      "use": {
+        "title": "Uso aceptable",
+        "body": "No puedes usar el servicio para fines ilícitos, para acceder a datos de otros clientes ni para comprometer la seguridad de la plataforma. Podemos suspender las cuentas que incumplan estas condiciones."
+      },
+      "liability": {
+        "title": "Responsabilidad",
+        "body": "Ponemos los medios razonables para que el servicio esté disponible y sea seguro, pero no podemos garantizar que funcione sin interrupciones. [Completa las limitaciones de responsabilidad que correspondan a tu actividad.]"
+      },
+      "law": {
+        "title": "Legislación aplicable",
+        "body": "Estas condiciones se rigen por la legislación española. Para cualquier controversia serán competentes los juzgados y tribunales que correspondan según la normativa de consumidores y usuarios o, en su defecto, los de [ciudad]."
+      }
+    },
+    "cookies": {
+      "what": {
+        "title": "Qué son las cookies",
+        "body": "Las cookies son pequeños ficheros que la web guarda en tu navegador para recordar información entre una visita y otra."
+      },
+      "which": {
+        "title": "Cookies que usamos",
+        "body": "En su configuración por defecto, {productName} solo usa cookies técnicas y de preferencias: las de la sesión, que te mantienen identificado cuando inicias sesión, y las que recuerdan el tema claro u oscuro, el idioma y el estado de la barra lateral. No usamos cookies de analítica ni de publicidad. [Si añades alguna, descríbela aquí y pide el consentimiento antes de instalarla.]"
+      },
+      "consent": {
+        "title": "Consentimiento",
+        "body": "Las cookies técnicas y de preferencias son necesarias para prestar el servicio que pides, por lo que no requieren tu consentimiento según el artículo 22.2 de la LSSI-CE."
+      },
+      "manage": {
+        "title": "Cómo gestionarlas",
+        "body": "Puedes borrar o bloquear las cookies desde la configuración de tu navegador. Si bloqueas las de sesión, no podrás iniciar sesión en la plataforma."
+      }
+    }
+  },
   "termsOfService": "Términos del servicio",
   "termsOfServiceDescription": "Nuestros términos y condiciones",
   "cookiePolicy": "Política de cookies",
@@ -50,7 +122,6 @@
   "contactErrorDescription": "Se ha producido un error al enviar tu mensaje. Inténtalo de nuevo más tarde",
   "footerDescription": "Aquí puedes añadir una descripción de tu empresa o producto",
   "copyright": "© Copyright {year} {product}. Todos los derechos reservados.",
-  "legalPlaceholder": "Este es un texto provisional. Sustitúyelo por el contenido legal de tu empresa antes de publicar el sitio.",
   "home": {
     "pillLabel": "Nuevo",
     "pillText": "La base SaaS reutilizable para pymes",

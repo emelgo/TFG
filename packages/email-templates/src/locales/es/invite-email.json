@@ -1,5 +1,6 @@
 {
   "subject": "Te han invitado a unirte a un equipo",
+  "previewText": "Te han invitado a unirte a {teamName} en {productName}",
   "heading": "Únete a {teamName} en {productName}",
   "hello": "Hola {invitedUserEmail}:",
   "mainText": "<strong>{inviter}</strong> te ha invitado al equipo <strong>{teamName}</strong> en <strong>{productName}</strong>.",

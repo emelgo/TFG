@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useTranslations } from 'use-intl';
 
-import { SitePageHeader } from '#/components/marketing/site-page-header.tsx';
+import { LegalPage } from '#/components/marketing/legal-page.tsx';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/_marketing/terms-of-service')({
@@ -19,15 +19,18 @@ function TermsOfServicePage() {
   const t = useTranslations('marketing');
 
   return (
-    <div>
-      <SitePageHeader
-        title={t('termsOfService')}
-        subtitle={t('termsOfServiceDescription')}
-      />
-
-      <div className={'container mx-auto py-8'}>
-        <div>{t('legalPlaceholder')}</div>
-      </div>
-    </div>
+    <LegalPage
+      page={'terms'}
+      title={t('termsOfService')}
+      subtitle={t('termsOfServiceDescription')}
+      sections={[
+        'object',
+        'account',
+        'subscriptions',
+        'use',
+        'liability',
+        'law',
+      ]}
+    />
   );
 }
