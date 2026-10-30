@@ -254,8 +254,8 @@ FUNCTION {format.editors}
     { "" }
     { editor format.names
       editor num.names$ #1 >
-        { ", editors" * }
-        { ", editor" * }
+        { ", eds." * }
+        { ", ed." * }
       if$
     }
   if$
@@ -315,10 +315,10 @@ FUNCTION {either.or.check}
 FUNCTION {format.bvolume}
 { volume empty$
     { "" }
-    { "volume" volume tie.or.space.connect
+    { "volumen" volume tie.or.space.connect
       series empty$
         'skip$
-        { " of " * series emphasize * }
+        { " de " * series emphasize * }
       if$
       "volume and number" number either.or.check
     }
@@ -330,13 +330,13 @@ FUNCTION {format.number.series}
     { number empty$
         { series field.or.null }
         { output.state mid.sentence =
-            { "number" }
-            { "Number" }
+            { "n{\'u}mero" }
+            { "N{\'u}mero" }
           if$
           number tie.or.space.connect
           series empty$
             { "there's a number but no series in " cite$ * warning$ }
-            { " in " * series * }
+            { " en " * series * }
           if$
         }
       if$
@@ -382,8 +382,8 @@ FUNCTION {format.pages}
 { pages empty$
     { "" }
     { pages multi.page.check
-        { "pages" pages n.dashify tie.or.space.connect }
-        { "page" pages tie.or.space.connect }
+        { "p{\'a}gs." pages n.dashify tie.or.space.connect }
+        { "p{\'a}g." pages tie.or.space.connect }
       if$
     }
   if$
@@ -414,7 +414,7 @@ FUNCTION {format.chapter.pages}
 { chapter empty$
     'format.pages
     { type empty$
-        { "chapter" }
+        { "cap{\'\i}tulo" }
         { type "l" change.case$ }
       if$
       chapter tie.or.space.connect
@@ -430,8 +430,8 @@ FUNCTION {format.in.ed.booktitle}
 { booktitle empty$
     { "" }
     { editor empty$
-        { "In " booktitle emphasize * }
-        { "In " format.editors * ", " * booktitle emphasize * }
+        { "En " booktitle emphasize * }
+        { "En " format.editors * ", " * booktitle emphasize * }
       if$
     }
   if$
@@ -448,7 +448,7 @@ FUNCTION {format.thesis.type}
 
 FUNCTION {format.tr.number}
 { type empty$
-    { "Technical Report" }
+    { "Informe t{\'e}cnico" }
     'type
   if$
   number empty$
@@ -458,24 +458,24 @@ FUNCTION {format.tr.number}
 }
 
 FUNCTION {format.article.crossref}
-{ "In"                                                  % this is for apalike
+{ "En"                                                  % this is for apalike
   " \cite{" * crossref * "}" *
 }
 
 FUNCTION {format.book.crossref}
 { volume empty$
     { "empty volume in " cite$ * "'s crossref of " * crossref * warning$
-      "In "
+      "En "
     }
-    { "Volume" volume tie.or.space.connect
-      " of " *
+    { "Volumen" volume tie.or.space.connect
+      " de " *
     }
   if$
   "\cite{" * crossref * "}" *                           % this is for apalike
 }
 
 FUNCTION {format.incoll.inproc.crossref}
-{ "In"                                                  % this is for apalike
+{ "En"                                                  % this is for apalike
   " \cite{" * crossref * "}" *
 }
 
@@ -665,7 +665,7 @@ FUNCTION {mastersthesis}
   new.block
   format.title "title" output.check
   new.block
-  "Master's thesis" format.thesis.type output.nonnull
+  "Trabajo fin de m{\'a}ster" format.thesis.type output.nonnull
   school "school" output.check
   address output
   new.block
@@ -695,7 +695,7 @@ FUNCTION {phdthesis}
   new.block
   format.btitle "title" output.check
   new.block
-  "PhD thesis" format.thesis.type output.nonnull
+  "Tesis doctoral" format.thesis.type output.nonnull
   school "school" output.check
   address output
   new.block
@@ -751,29 +751,29 @@ FUNCTION {unpublished}
 
 FUNCTION {default.type} { misc }
 
-MACRO {jan} {"January"}
+MACRO {jan} {"enero"}
 
-MACRO {feb} {"February"}
+MACRO {feb} {"febrero"}
 
-MACRO {mar} {"March"}
+MACRO {mar} {"marzo"}
 
-MACRO {apr} {"April"}
+MACRO {apr} {"abril"}
 
-MACRO {may} {"May"}
+MACRO {may} {"mayo"}
 
-MACRO {jun} {"June"}
+MACRO {jun} {"junio"}
 
-MACRO {jul} {"July"}
+MACRO {jul} {"julio"}
 
-MACRO {aug} {"August"}
+MACRO {aug} {"agosto"}
 
-MACRO {sep} {"September"}
+MACRO {sep} {"septiembre"}
 
-MACRO {oct} {"October"}
+MACRO {oct} {"octubre"}
 
-MACRO {nov} {"November"}
+MACRO {nov} {"noviembre"}
 
-MACRO {dec} {"December"}
+MACRO {dec} {"diciembre"}
 
 MACRO {acmcs} {"ACM Computing Surveys"}
 

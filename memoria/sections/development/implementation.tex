@@ -29,9 +29,8 @@
 
 Este capítulo describe cómo se ha construido PymeKit: el entorno y las
 herramientas, la estructura del código, el punto de partida y las aportaciones
-del trabajo, la secuencia de incrementos (fases F0 a F3c), una selección
-de extractos de código representativos, el uso de agentes de IA en el
-desarrollo y los problemas más relevantes que se resolvieron.
+del trabajo, la secuencia de incrementos, una selección de extractos de
+código representativos y los problemas más relevantes que se resolvieron.
 
 % ---------------------------------------------------------------------
 \section{Entorno y herramientas}
@@ -60,9 +59,8 @@ filtran explícitamente y la aplicación se consulta a través de un túnel SSH
     Base de datos & Supabase CLI (PostgreSQL, Auth, Storage) en contenedores Docker \\
     Pagos & Stripe en modo de pruebas y su CLI para reenviar \textit{webhooks} \\
     Pruebas & Vitest (unitarias), pgTAP~\cite{pgtap} (base de datos), Playwright~\cite{playwright} (E2E) \\
-    Calidad & ESLint, Prettier, comprobación de tipos y de dependencias del monorepo \\
+    Calidad & Oxlint y Oxfmt (análisis estático y formato), comprobación de tipos y de dependencias del monorepo \\
     Control de versiones & Git, GitHub (repositorio privado) y GitHub Actions; mensajes según Conventional Commits~\cite{conventionalcommits} \\
-    Asistencia de IA & Claude Code~\cite{claudecode} con un \textit{harness} propio (sección~\ref{sec:imp-agentes}) \\
     Memoria & \LaTeX{} con la plantilla oficial de la escuela \\
     \bottomrule
   \end{tabularx}
@@ -107,7 +105,6 @@ packages/
                             y sus paquetes cliente *-ui
 docs/tfg/                   plan, requisitos, decisiones, bitácora, trazabilidad
 scripts/tfg/                controles automáticos del repositorio y etiquetas
-.claude/                    harness de desarrollo asistido (skills, agentes, hooks)
 memoria/                    esta memoria
 \end{lstlisting}
   \caption{Estructura simplificada del repositorio.}
@@ -165,7 +162,6 @@ tabla~\ref{tab:imp-reutilizacion}.
   Endurecimiento de seguridad & Revisiones adversariales de RLS y de seguridad; 29 fallos de seguridad corregidos y cubiertos por pruebas de regresión (ADR-015; capítulo de Pruebas); pruebas pgTAP de aislamiento \\
   Despliegue & Despliegue de la plataforma y su manual (ADR-022) \\
   Evaluación de la reutilización & Escenario de reutilización y medición de los cambios necesarios (anexo~\ref{cap:evaluacion}) \\
-  \textit{Harness} de desarrollo asistido & Directrices, \textit{skills}, subagentes, \textit{hooks} y controles automáticos del repositorio (sección~\ref{sec:imp-agentes}) \\
   Documentación & Plan, requisitos, decisiones, bitácora, trazabilidad, manuales de usuario y de desarrollador, comentarios didácticos en español y bloque académico configurable \\
 \end{longtable}
 
@@ -191,7 +187,7 @@ temporal se presenta en el capítulo de Planificación.
   \endhead
   \bottomrule
   \endfoot
-  F0 & \textit{Harness} de desarrollo: directrices, plan, requisitos, guías, \textit{skills}, agentes, \textit{hooks}, controles del TFG e integración continua mínima & --- \\
+  F0 & Directrices de desarrollo, plan, requisitos, guías, controles automáticos del repositorio e integración continua mínima & --- \\
   F1 & Base de la aplicación web: renombrado del ámbito de paquetes a \texttt{@pymekit/*}, retirada de módulos no necesarios, base de datos local, puerto propio, CI completa & 61 unit.; pgTAP 27/396; E2E 43 \\
   F2.1 & Base de datos del CMS: esquema \texttt{cms}, pegamento super-administrador $\rightarrow$ Root, MFA obligatorio; primera revisión adversarial de RLS y corrección de dos brechas & pgTAP 57/1.550 \\
   F2.2 & API del CMS: 19 paquetes de servidor, Hono en \texttt{/api/cms}, autenticación con la sesión de la web & 1.130 unit.; 11 E2E de la API \\
@@ -202,15 +198,16 @@ temporal se presenta en el capítulo de Planificación.
   F2.6b & Blog en la base de datos gestionado desde el CMS y rutas públicas; formatos legibles & pgTAP 62/1.730; E2E 129 \\
   F2.7 & Ajustes: general, autenticación, miembros, RBAC (roles, grupos y permisos), recursos y diseñador de fichas & pgTAP 67/2.049; E2E 141 \\
   F2.8 & Paneles con \textit{widgets} de métrica, gráfica y tabla & pgTAP 2.060 \\
-  F2.9 & Cierre de la integración del CMS: suite E2E completa, \textit{skills} actualizadas & E2E 149 \\
+  F2.9 & Cierre de la integración del CMS: suite E2E completa & E2E 149 \\
   F3a--b & Español por defecto (unas 1.770 claves), correos y plantillas en español, identidad visual, etiquetas legibles de enumerados, sesión caducada & E2E 150 \\
   F3c & Consola por áreas de negocio, nombres en español de las tablas, retirada del esquema de demostración (ADR-020); solo español (ADR-021); ayuda «?» y resúmenes; bloque académico en la página de inicio & 1.691 unit.; pgTAP 70/2.073; E2E 156 \\
+  F4 & Comentarios didácticos en español en el núcleo de la arquitectura: esquemas SQL, \textit{middleware} de autorización, clientes de base de datos, motor de políticas y \textit{server functions} (ADR-023) & --- \\
+  F5 & Rol intermedio «Encargado» en los equipos (ADR-024), planes de ejemplo para pymes en euros (ADR-025), plantilla de roles del CMS (ADR-026), guía de configuración y generador de paquetes & pgTAP 72/2.098 \\
+  F6 & Evaluación de la reutilización en un caso de estudio (anexo~\ref{cap:evaluacion}); auditoría automática de accesibilidad y medición del rendimiento con 10.000 cuentas, con sus correcciones (B-59, B-60); la verificación del pago con la pasarela sigue abierta & pgTAP 73/2.099; E2E 183 \\
+  F7 & Imagen de contenedor, orquestación y manual de instalación probado desde un clon limpio (ADR-022, ADR-027) & E2E 167 contra la imagen \\
 \end{longtable}
 
-Las cifras de pgTAP se expresan como ficheros/pruebas. Las fases F4
-(comentarios didácticos), F5 (adaptación a pymes), F6 (validación) y F7
-(despliegue) quedan fuera de este capítulo en la fecha de redacción.
-\todo{Actualizar la tabla~\ref{tab:imp-fases} al cerrar F4--F7.}
+Las cifras de pgTAP se expresan como ficheros/pruebas.
 
 % ---------------------------------------------------------------------
 \section{Extractos de código significativos}
@@ -399,72 +396,12 @@ where meta.schema_name = defaults.schema_name
 \end{lstlisting}
 
 % ---------------------------------------------------------------------
-\section{Desarrollo asistido por agentes de IA}
-\label{sec:imp-agentes}
-
-El proyecto se ha desarrollado con la asistencia de un agente de
-programación de IA (Claude Code~\cite{claudecode}). El autor fija el alcance,
-toma las decisiones y revisa los resultados; el agente implementa, prueba y
-documenta bajo unas reglas explícitas. Para que esa asistencia sea
-controlable y reproducible se construyó, antes de escribir código, un
-\textbf{\textit{harness}}: el conjunto de directrices, procedimientos y
-controles automáticos que gobiernan el trabajo del agente
-(tabla~\ref{tab:imp-harness}).
-
-\begin{table}[htbp]
-  \centering
-  \footnotesize
-  \caption{Componentes del \textit{harness} de desarrollo asistido.}
-  \label{tab:imp-harness}
-  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}X@{}}
-    \toprule
-    \textbf{Componente} & \textbf{Contenido} \\
-    \midrule
-    Directrices & \texttt{AGENTS.md} raíz (fuente única) y uno por aplicación o paquete: pila, patrones, reglas de seguridad de la base de datos, convenciones e idioma, y una lista de verificación obligatoria al terminar cada cambio \\
-    Registros & Plan, progreso, requisitos, decisiones (ADR), bitácora de incidencias, trazabilidad y mapa de reutilización en \texttt{docs/tfg/}, que el agente actualiza en cada cambio \\
-    \textit{Skills} & Procedimientos reutilizables: incorporar un módulo, comentar un módulo en español, registrar una decisión, redactar una sección de la memoria, revisión adversarial del \textit{diff}, búsqueda de fallos, revisión de RLS, experto en PostgreSQL y patrones de servicios, formularios y E2E \\
-    Subagentes & Revisor de calidad, revisor de comentarios y redactor de la memoria, con instrucciones y herramientas propias \\
-    \textit{Hooks} & Al iniciar la sesión, muestran la fase actual y sus pendientes; tras cada edición, ejecutan los controles automáticos sobre el fichero; antes de terminar, exigen actualizar el progreso si hay cambios de código \\
-    Permisos & Escritura denegada fuera del repositorio; lectura denegada sobre ficheros de secretos \\
-    Controles en CI & Controles automáticos del repositorio, bloqueantes, e informe de comentarios en inglés; un script aparte regenera la tabla de etiquetas de trazabilidad \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-El procedimiento de revisión de RLS merece mención aparte porque es el que
-más hallazgos ha producido. Su premisa es que leer las políticas no basta:
-hay que \emph{demostrar} el aislamiento. Tras un inventario y una auditoría
-estática con un catálogo de ataques, cada hallazgo plausible se convierte en
-una prueba pgTAP que ejecuta el ataque como el usuario atacante y comprueba
-que falla; después, un agente distinto, que solo recibe la política, la
-prueba y la afirmación, intenta \emph{refutarla}. Una brecha solo se acepta
-si el refutador la reproduce, y un aprobado, solo si no encuentra un vector
-abierto. La refutación encontró, por ejemplo, la lectura del catálogo de
-roles de PostgreSQL que la primera auditoría había dado por buena (B-08). Sus
-resultados se presentan en el capítulo de Pruebas.
-
-La experiencia también mostró los límites del enfoque. La verificación
-exhaustiva con varios agentes por paso (implementador, revisor de seguridad y
-refutador, y la suite E2E completa en cada paso) encontró brechas reales
-(B-45, B-47), pero su coste en \textit{tokens} resultó excesivo, y el autor
-pidió reducirlo (B-48). Desde entonces se trabaja en un «modo ahorro»: un
-agente por paso, E2E completos solo al cerrar cada fase y revisión de RLS
-solo en cambios importantes de permisos. El riesgo se traslada al cierre de
-fase, como mostraron dos pruebas desactualizadas que solo detectó la suite
-completa (B-51, B-54). Además, ninguna revisión automática es exhaustiva: una
-inyección SQL pasó por varias revisiones de agentes sin ser vista y
-la encontró la revisión crítica de sus informes (B-24), y algunos fallos solo
-los descubrió el autor con pruebas manuales (B-14, B-52).
-\todo{Valorar en las Conclusiones el efecto de la asistencia de IA con los
-datos de dedicación (horas del autor frente a tiempo de reloj).}
-
-% ---------------------------------------------------------------------
 \section{Problemas relevantes resueltos}
 \label{sec:imp-problemas}
 
 Todas las incidencias se registraron en una bitácora en el momento de
 producirse, con el formato «qué pasó, causa, solución, evidencia y lección».
-Hasta la fase F3c se registraron 55. La tabla~\ref{tab:imp-bitacora} recoge
+Hasta la fecha de corte se registraron 60. La tabla~\ref{tab:imp-bitacora} recoge
 una selección de las no relacionadas directamente con el control de acceso;
 las de seguridad se analizan en el capítulo de Pruebas
 (sección~\ref{sec:pru-seguridad}).

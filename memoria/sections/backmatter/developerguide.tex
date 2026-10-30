@@ -22,7 +22,7 @@ PymeKit es un monorepo con una única aplicación web que contiene el área
 pública, el área privada de los clientes, la consola de administración y la
 API del CMS, más un conjunto de paquetes reutilizables. Todo comparte una sola
 base de datos PostgreSQL gestionada con Supabase, cuyas políticas RLS son la
-frontera de seguridad. Las directrices completas para personas y agentes de IA
+frontera de seguridad. Las directrices completas del repositorio
 están en el fichero \texttt{AGENTS.md} de la raíz y en los de cada paquete;
 este manual resume lo imprescindible.
 
@@ -118,20 +118,20 @@ La tabla~\ref{tab:dg-estructura} resume dónde está cada cosa.
     \textbf{Ruta} & \textbf{Contenido} \\
     \midrule
     \texttt{apps/web} & Aplicación TanStack Start (React 19): rutas por fichero en \texttt{src/routes}, \textit{server functions} en ficheros \texttt{*.functions.ts}, configuración en \texttt{src/config} \\
-    \texttt{apps/web/src/routes/\_marketing} & Web pública: inicio, precios, blog, contacto, páginas legales \\
-    \texttt{apps/web/src/routes/\_authenticated} & Área privada: panel, ajustes, miembros, facturación, creación de equipos \\
-    \texttt{apps/web/src/routes/admin} & Consola: inicio y gestión de cuentas (\texttt{/admin}) y pantallas del CMS (\texttt{/admin/cms}) \\
-    \texttt{apps/web/src/routes/api} & Rutas de servidor: API del CMS (\texttt{/api/cms/\$}), \textit{webhooks} de pagos y de base de datos, estado de salud \\
-    \texttt{apps/web/supabase} & Esquemas declarativos, migraciones, \textit{seed}, plantillas de correo y pruebas pgTAP de toda la base de datos \\
+    \path{apps/web/src/routes/_marketing} & Web pública: inicio, precios, blog, contacto, páginas legales \\
+    \path{apps/web/src/routes/_authenticated} & Área privada: panel, ajustes, miembros, facturación, creación de equipos \\
+    \path{apps/web/src/routes/admin} & Consola: inicio y gestión de cuentas (\texttt{/admin}) y pantallas del CMS (\texttt{/admin/cms}) \\
+    \path{apps/web/src/routes/api} & Rutas de servidor: API del CMS (\texttt{/api/cms/\$}), \textit{webhooks} de pagos y de base de datos, estado de salud \\
+    \path{apps/web/supabase} & Esquemas declarativos, migraciones, \textit{seed}, plantillas de correo y pruebas pgTAP de toda la base de datos \\
     \texttt{apps/e2e} & Pruebas Playwright de la web y del CMS \\
-    \texttt{packages/features/*} & Autenticación, cuentas, equipos, administración y notificaciones \\
-    \texttt{packages/billing/*} & Núcleo de facturación, pasarela y proveedor Stripe \\
+    \path{packages/features/*} & Autenticación, cuentas, equipos, administración y notificaciones \\
+    \path{packages/billing/*} & Núcleo de facturación, pasarela y proveedor Stripe \\
     \texttt{packages/cms/*} & CMS: servicios Drizzle y rutas Hono (solo servidor), componentes de interfaz, filtros, formateadores, permisos \\
-    \texttt{packages/function-middleware} & \textit{Middleware} de las \textit{server functions}: usuario autenticado, miembro de equipo, super-admin, rol mínimo y permiso \\
-    \texttt{packages/supabase} & Clientes de Supabase y tipos generados de la base de datos \\
+    \path{packages/function-middleware} & \textit{Middleware} de las \textit{server functions}: usuario autenticado, miembro de equipo, super-admin, rol mínimo y permiso \\
+    \path{packages/supabase} & Clientes de Supabase y tipos generados de la base de datos \\
     \texttt{packages/ui}, \texttt{packages/i18n} & Componentes de interfaz y textos (catálogos de mensajes) \\
     \texttt{packages/*} (resto) & Correo, plantillas de correo, analítica, monitorización, OTP, políticas, utilidades compartidas \\
-    \texttt{tooling}, \texttt{turbo/generators} & Configuración compartida y generadores de paquetes \\
+    \texttt{tooling}, \path{turbo/generators} & Configuración compartida y generadores de paquetes \\
     \texttt{docs/tfg}, \texttt{scripts/tfg} & Documentación interna del proyecto y scripts de control \\
     \bottomrule
   \end{tabularx}
@@ -156,17 +156,17 @@ servicios del CMS nunca se importan desde componentes.
         lo mínimo posible, con validación manual y un comentario que lo
         justifique.
   \item \textbf{Formularios}: TanStack Form con los campos de
-        \texttt{@pymekit/ui/field} y validación con Zod, también en el CMS.
+        \path{@pymekit/ui/field} y validación con Zod, también en el CMS.
   \item \textbf{Textos}: ningún texto visible ---tampoco \texttt{aria-label},
         \texttt{title}, \texttt{alt} ni \texttt{placeholder}--- se escribe en
         el código; se añade una clave en
-        \texttt{packages/i18n/src/messages/es/} (sección~\ref{sec:dg-i18n}).
+        \path{packages/i18n/src/messages/es/} (sección~\ref{sec:dg-i18n}).
   \item \textbf{Comentarios} en español didáctico: cabecera en cada fichero
         con lógica, documentación de las funciones exportadas y justificación
         de toda decisión de seguridad. Los puntos que se citan en la memoria
         llevan la etiqueta \texttt{[TFG]} con el requisito.
   \item \textbf{Registro}: \texttt{getLogger()} de
-        \texttt{@pymekit/shared/logger}; nunca \texttt{console.log} en
+        \path{@pymekit/shared/logger}; nunca \texttt{console.log} en
         producción.
   \item \textbf{Git}: ramas \texttt{fase-N/tema}, \textit{commits} en español
         con \textit{Conventional Commits} y el módulo como ámbito.
@@ -317,7 +317,7 @@ textos en el catálogo de mensajes.
 \label{sec:dg-configuracion}
 
 Adaptar PymeKit a un producto nuevo empieza por la configuración, sin tocar el
-núcleo (RNF-01). Los ficheros de \texttt{apps/web/src/config} validan sus
+núcleo (RNF-01). Los ficheros de \path{apps/web/src/config} validan sus
 valores con Zod al arrancar, de modo que un error de configuración se detecta
 de inmediato (tabla~\ref{tab:dg-configuracion}).
 
@@ -330,14 +330,14 @@ de inmediato (tabla~\ref{tab:dg-configuracion}).
     \toprule
     \textbf{Fichero} & \textbf{Qué configura (variables)} \\
     \midrule
-    \texttt{app.config.ts} & Nombre, título, descripción, URL, tema y colores (\texttt{VITE\_PRODUCT\_NAME}, \texttt{VITE\_SITE\_TITLE}, \texttt{VITE\_SITE\_DESCRIPTION}, \texttt{VITE\_SITE\_URL}, \texttt{VITE\_DEFAULT\_THEME\_MODE}, \texttt{VITE\_THEME\_COLOR}, \texttt{VITE\_THEME\_COLOR\_DARK}); en producción exige HTTPS \\
-    \texttt{account-mode.config.ts} & Modo de cuentas: \texttt{personal-only}, \texttt{organizations-only} o \texttt{hybrid} (\texttt{VITE\_ACCOUNT\_MODE}); es la fuente única de qué superficies existen \\
-    \texttt{feature-flags.config.ts} & Interruptores: selector de tema, borrado de cuentas personales y de equipo, creación de equipos, facturación personal y de equipo, notificaciones (\texttt{VITE\_ENABLE\_*}) \\
-    \texttt{auth.config.ts} & Métodos de acceso: contraseña, enlace mágico, CAPTCHA (\texttt{VITE\_AUTH\_PASSWORD}, \texttt{VITE\_AUTH\_MAGIC\_LINK}, \texttt{VITE\_CAPTCHA\_SITE\_KEY}) \\
-    \texttt{billing.config.ts} & Proveedor (\texttt{VITE\_BILLING\_PROVIDER}), planes, periodicidades, precios e identificadores de precio de la pasarela \\
-    \texttt{paths.config.ts} & Rutas de la aplicación (inicio de sesión, panel, ajustes, facturación\ldots) \\
-    \texttt{navigation.config.tsx}, \texttt{marketing-navigation.config.tsx} & Menús del área privada y de la web pública \\
-    \texttt{tfg.config.ts} & Bloque «Proyecto académico» y recorrido de la demostración en la página de inicio (\texttt{VITE\_SHOW\_TFG\_INFO}); una pyme real lo desactiva con \texttt{false} \\
+    \texttt{app.config.ts} & Nombre, título, descripción, URL, tema y colores (\path{VITE_PRODUCT_NAME}, \path{VITE_SITE_TITLE}, \path{VITE_SITE_DESCRIPTION}, \texttt{VITE\_SITE\_URL}, \path{VITE_DEFAULT_THEME_MODE}, \path{VITE_THEME_COLOR}, \path{VITE_THEME_COLOR_DARK}); en producción exige HTTPS \\
+    \path{account-mode.config.ts} & Modo de cuentas: \texttt{personal-only}, \texttt{organizations-only} o \texttt{hybrid} (\path{VITE_ACCOUNT_MODE}); es la fuente única de qué superficies existen \\
+    \path{feature-flags.config.ts} & Interruptores: selector de tema, borrado de cuentas personales y de equipo, creación de equipos, facturación personal y de equipo, notificaciones (\texttt{VITE\_ENABLE\_*}) \\
+    \texttt{auth.config.ts} & Métodos de acceso: contraseña, enlace mágico, CAPTCHA (\path{VITE_AUTH_PASSWORD}, \path{VITE_AUTH_MAGIC_LINK}, \path{VITE_CAPTCHA_SITE_KEY}) \\
+    \path{billing.config.ts} & Proveedor (\path{VITE_BILLING_PROVIDER}), planes, periodicidades, precios e identificadores de precio de la pasarela \\
+    \path{paths.config.ts} & Rutas de la aplicación (inicio de sesión, panel, ajustes, facturación\ldots) \\
+    \path{navigation.config.tsx}, \path{marketing-navigation.config.tsx} & Menús del área privada y de la web pública \\
+    \texttt{tfg.config.ts} & Bloque «Proyecto académico» y recorrido de la demostración en la página de inicio (\path{VITE_SHOW_TFG_INFO}); una pyme real lo desactiva con \texttt{false} \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -358,19 +358,19 @@ los roles y planes de partida y el generador de paquetes
 
 La interfaz solo ofrece el español, pero todos sus textos salen de catálogos
 de mensajes (ADR-021). Para añadir un texto, se crea la clave en inglés en
-\texttt{packages/i18n/src/messages/es/<namespace>.json} con el valor en español
+\path{packages/i18n/src/messages/es/<namespace>.json} con el valor en español
 y se usa con el componente \texttt{Trans} o con las funciones de mensajes. Las
 etiquetas de los valores de los enumerados de la base de datos van en
-\texttt{common.enums.<enumerado>.<valor>}.
+\path{common.enums.<enumerado>.<valor>}.
 
 Añadir un idioma es un punto de extensión documentado en
-\texttt{packages/i18n/README.md}. En resumen: copiar
-\texttt{src/messages/es/} con el código del idioma nuevo y traducir los
-valores; registrarlo en \texttt{src/messages/index.ts} y en
+\path{packages/i18n/README.md}. En resumen: copiar
+\path{src/messages/es/} con el código del idioma nuevo y traducir los
+valores; registrarlo en \path{src/messages/index.ts} y en
 \texttt{supportedLocales} de \texttt{src/config.ts}; crear las traducciones de
-los correos en \texttt{packages/email-templates}; elegir el idioma de los
+los correos en \path{packages/email-templates}; elegir el idioma de los
 mensajes de validación; volver a mostrar el selector de idioma; y ejecutar
-\texttt{pnpm --filter @pymekit/i18n test:unit}, cuya prueba comprueba que el
+\path{pnpm --filter @pymekit/i18n test:unit}, cuya prueba comprueba que el
 nuevo catálogo tiene exactamente las mismas claves y marcadores que el
 español.
 

@@ -1,0 +1,48 @@
+\chapter*{Abstract}
+
+\begin{otherlanguage}{english}
+\noindent Small and medium-sized enterprises (SMEs) increasingly need web
+applications of their own, but they can rarely afford to build from scratch
+the components that almost every SaaS (\textit{Software as a Service})
+application repeats: secure authentication, management of users and teams
+with roles, subscription billing, and a tool to administer data without
+programming. This Bachelor's Thesis designs, implements and validates
+PymeKit, a reusable software architecture that brings those components
+together into a common base on which new SaaS applications for SMEs can be
+developed in an agile way.
+
+PymeKit combines a multi-tenant SaaS application and a content management
+system (CMS) for the database into a single product. The contributions of
+this work are the integration of the CMS into the administration console of
+the application, with a single service, a single sign-in and a single library
+stack; the reorganisation of the console into business areas that an SME can
+understand; a user interface entirely in Spanish on top of an extensible
+internationalisation infrastructure; the centralisation of the reusable
+configuration; and the documented correction of numerous security flaws
+found in adversarial audits.
+
+The solution is organised as a monorepo of decoupled packages written in
+strict TypeScript. The web application uses TanStack Start and React; data,
+authentication and storage rely on Supabase (PostgreSQL); payments, on
+Stripe; and the CMS API, built with Hono and Drizzle, is mounted inside the
+web server itself. Authorisation is enforced in the database through
+row-level security (RLS), so tenant isolation does not depend on the
+application code alone. Access to the console requires a second
+authentication factor, and every action performed from the CMS is recorded in
+an audit log that staff cannot tamper with.
+
+Quality is verified with unit tests, more than two thousand database tests
+with pgTAP ---including cross-tenant attack tests--- and end-to-end tests with
+Playwright, all run in continuous integration. More than fifty issues were
+documented in a log during the process, many of them security flaws detected
+in the audits and fixed during the integration. This report describes the
+planning, analysis, design, construction, testing and deployment of the
+platform, the evaluation of its reusability, and the developer, installation
+and user manuals.
+
+\vspace{.5cm}
+
+\noindent \textbf{Keywords:} SaaS, SMEs, reusable architecture,
+multi-tenancy, row-level security (RLS), Supabase, PostgreSQL, CMS, TanStack
+Start.
+\end{otherlanguage}

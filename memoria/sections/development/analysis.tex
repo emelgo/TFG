@@ -128,12 +128,9 @@ relevantes de cada caso de uso. Los alternativos se numeran con el paso del
 flujo normal en el que se producen.
 
 % --- CU-01 -----------------------------------------------------------
-\begin{table}[H]
-  \centering
-  \footnotesize
-  \caption{CU-01 · Registrarse y acceder al área privada.}
-  \label{tab:ana-cu01}
-  \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+{\footnotesize
+\begin{xltabular}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+  \caption{CU-01 · Registrarse y acceder al área privada.}\label{tab:ana-cu01}\\
     \toprule
     Actor principal & Visitante \\
     Precondiciones & El registro con contraseña está activado en la configuración de autenticación. \\
@@ -159,16 +156,12 @@ flujo normal en el que se producen.
     Postcondición & Existe un usuario verificado con su cuenta personal y una sesión activa. \\
     Requisitos & RF-01, RF-03, RF-04 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{xltabular}}
 
 % --- CU-02 -----------------------------------------------------------
-\begin{table}[H]
-  \centering
-  \footnotesize
-  \caption{CU-02 · Crear un equipo e invitar a un miembro.}
-  \label{tab:ana-cu02}
-  \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+{\footnotesize
+\begin{xltabular}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+  \caption{CU-02 · Crear un equipo e invitar a un miembro.}\label{tab:ana-cu02}\\
     \toprule
     Actor principal & Usuario (pasa a ser propietario del equipo) \\
     Precondiciones & El usuario ha iniciado sesión. Los equipos están activados (\texttt{VITE\_ACCOUNT\_MODE} distinto de \texttt{personal-only}). \\
@@ -194,16 +187,12 @@ flujo normal en el que se producen.
     Postcondición & El equipo tiene dos miembros: el propietario y el empleado con el rol \textit{member}. \\
     Requisitos & RF-06, RF-12 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{xltabular}}
 
 % --- CU-03 -----------------------------------------------------------
-\begin{table}[H]
-  \centering
-  \footnotesize
-  \caption{CU-03 · Contratar un plan.}
-  \label{tab:ana-cu03}
-  \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+{\footnotesize
+\begin{xltabular}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+  \caption{CU-03 · Contratar un plan.}\label{tab:ana-cu03}\\
     \toprule
     Actor principal & Propietario del equipo \\
     Actor secundario & Pasarela de pago \\
@@ -230,16 +219,12 @@ flujo normal en el que se producen.
     Postcondición & La cuenta tiene una suscripción activa sincronizada con la pasarela. \\
     Requisitos & RF-07 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{xltabular}}
 
 % --- CU-04 -----------------------------------------------------------
-\begin{table}[H]
-  \centering
-  \footnotesize
-  \caption{CU-04 · Gestionar la facturación sin permiso (acceso denegado).}
-  \label{tab:ana-cu04}
-  \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+{\footnotesize
+\begin{xltabular}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+  \caption{CU-04 · Gestionar la facturación sin permiso (acceso denegado).}\label{tab:ana-cu04}\\
     \toprule
     Actor principal & Miembro sin el permiso \texttt{billing.manage} \\
     Precondiciones & El miembro pertenece a un equipo con el rol \textit{member}. \\
@@ -260,16 +245,12 @@ flujo normal en el que se producen.
     Postcondición & No se modifica ningún dato; el intento no tiene efecto en ninguna capa. \\
     Requisitos & RF-06, RNF-02, RNF-03 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{xltabular}}
 
 % --- CU-05 -----------------------------------------------------------
-\begin{table}[H]
-  \centering
-  \footnotesize
-  \caption{CU-05 · Bloquear y suplantar a un usuario.}
-  \label{tab:ana-cu05}
-  \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+{\footnotesize
+\begin{xltabular}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+  \caption{CU-05 · Bloquear y suplantar a un usuario.}\label{tab:ana-cu05}\\
     \toprule
     Actor principal & Super-administrador \\
     Precondiciones & El actor es super-administrador y tiene un segundo factor configurado. \\
@@ -295,16 +276,12 @@ flujo normal en el que se producen.
     Postcondición & El usuario queda bloqueado; la suplantación se usa solo durante la sesión de soporte. \\
     Requisitos & RF-08, RNF-02 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{xltabular}}
 
 % --- CU-06 -----------------------------------------------------------
-\begin{table}[H]
-  \centering
-  \footnotesize
-  \caption{CU-06 · Editar registros en el CMS con auditoría.}
-  \label{tab:ana-cu06}
-  \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+{\footnotesize
+\begin{xltabular}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+  \caption{CU-06 · Editar registros en el CMS con auditoría.}\label{tab:ana-cu06}\\
     \toprule
     Actor principal & Personal del CMS (por ejemplo, con el rol Soporte) \\
     Precondiciones & El actor tiene una cuenta activa del CMS, un rol con permiso de lectura y actualización sobre la tabla y sesión \texttt{aal2}. \\
@@ -331,16 +308,12 @@ flujo normal en el que se producen.
     Postcondición & El registro está modificado y la auditoría conserva quién, cuándo y qué cambió. \\
     Requisitos & RF-09, RF-10, RNF-02 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{xltabular}}
 
 % --- CU-08 -----------------------------------------------------------
-\begin{table}[H]
-  \centering
-  \footnotesize
-  \caption{CU-08 · Publicar una entrada del blog.}
-  \label{tab:ana-cu08}
-  \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+{\footnotesize
+\begin{xltabular}{\textwidth}{@{}>{\bfseries}p{2.6cm}X@{}}
+  \caption{CU-08 · Publicar una entrada del blog.}\label{tab:ana-cu08}\\
     \toprule
     Actor principal & Personal del CMS con permiso sobre las tablas del blog \\
     Actor secundario & Visitante (lector) \\
@@ -366,8 +339,7 @@ flujo normal en el que se producen.
     Postcondición & La entrada es visible en la web pública y en el mapa del sitio. \\
     Requisitos & RF-01, RF-09, RNF-02 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{xltabular}}
 
 El caso CU-07 (\emph{arrancar un producto nuevo}) no tiene interacción con la
 interfaz: el desarrollador clona el repositorio, ajusta los ficheros de
@@ -546,7 +518,8 @@ aplica. Todas se hacen cumplir en la base de datos (restricciones,
 \textit{triggers}, políticas o funciones), además de en la interfaz cuando
 procede, y cada una está cubierta por pruebas pgTAP.
 
-\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{10.2cm}l@{}}
+{\footnotesize
+\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{11.4cm}l@{}}
   \caption{Reglas de negocio.}\label{tab:ana-reglas}\\
   \toprule
   \textbf{ID} & \textbf{Regla} & \textbf{Req.} \\
@@ -575,4 +548,4 @@ procede, y cada una está cubierta por pruebas pgTAP.
   RN-15 & Un \textit{widget} de un panel solo muestra datos de tablas que puede leer quien lo ve, aunque el panel esté compartido. & RF-11 \\
   RN-16 & En la web pública solo es visible una entrada del blog publicada cuya fecha de publicación ya se ha alcanzado. & RF-01 \\
   RN-17 & Los esquemas del sistema (\texttt{auth}, catálogos de PostgreSQL y otros protegidos) nunca se exploran ni se buscan desde el CMS. & RF-09, RNF-02 \\
-\end{longtable}
+\end{longtable}}

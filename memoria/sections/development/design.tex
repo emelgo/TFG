@@ -446,14 +446,14 @@ tras la incidencia B-04). Los secretos nunca se versionan.
 \label{sec:dis-pagos}
 
 La facturación se diseña detrás de una \emph{pasarela abstracta}
-(\texttt{@pymekit/billing-gateway}) con una estrategia por proveedor: la
+(\path{@pymekit/billing-gateway}) con una estrategia por proveedor: la
 aplicación pide «crear una sesión de pago» o «abrir el portal de cliente» sin
 conocer el proveedor concreto, que se elige con la variable
-\texttt{VITE\_BILLING\_PROVIDER} y se valida al construir la aplicación.
+\path{VITE_BILLING_PROVIDER} y se valida al construir la aplicación.
 Actualmente se registra Stripe.
 
 Los planes, sus precios y sus características se declaran en
-\texttt{billing.config.ts}, validado con un esquema. El flujo tiene dos
+\path{billing.config.ts}, validado con un esquema. El flujo tiene dos
 sentidos (figura~\ref{fig:dis-arquitectura}): las \textit{server functions}
 crean la sesión de pago tras comprobar el permiso \texttt{billing.manage}; y
 la pasarela notifica cada cambio a la ruta \texttt{/api/billing/webhook}, que
@@ -515,64 +515,26 @@ Las tablas de esquemas protegidos no aparecen en la navegación.
 
 \begin{figure}[htbp]
   \centering
-  \begin{tikzpicture}[
-      font=\scriptsize,
-      item/.style={anchor=west, inner sep=1pt},
-      head/.style={anchor=west, font=\scriptsize\bfseries, inner sep=1pt}
-    ]
-    \draw[rounded corners] (0,0) rectangle (4.2,-8.6);
-    \node[head] at (0.2,-0.35) {Gestión};
-    \node[item] at (0.35,-0.8)  {Inicio};
-    \node[item] at (0.35,-1.2)  {Gestión de cuentas$^{*}$};
-    \node[item] at (0.35,-1.6)  {Usuarios};
-    \node[item] at (0.35,-2.0)  {Archivos};
-    \node[item] at (0.35,-2.4)  {Paneles};
-    \node[item] at (0.35,-2.8)  {Auditoría};
-    \node[item] at (0.35,-3.2)  {Ajustes};
-    \node[head] at (0.2,-3.8) {Datos};
-    \node[item] at (0.35,-4.25) {$-$ Blog};
-    \node[item] at (0.75,-4.65) {Entradas};
-    \node[item] at (0.75,-5.0)  {Categorías};
-    \node[item] at (0.75,-5.35) {Etiquetas};
-    \node[item] at (0.35,-5.8)  {$+$ Cuentas};
-    \node[item] at (0.35,-6.2)  {$+$ Facturación};
-    \node[item] at (0.35,-6.6)  {$+$ Sistema};
-    \node[item] at (0.35,-7.0)  {$+$ Otros datos};
-    \node[item] at (0.35,-7.5)  {Todas las tablas};
-    \node[item, font=\tiny] at (0.2,-8.25) {$^{*}$ solo super-administrador};
+  \begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/consola-explorador.png}
+    \caption{Barra lateral con los bloques «Gestión» y «Datos» (área «Blog»
+      desplegada) y listado de las entradas del blog con el resumen de la
+      tabla bajo el título.}
+    \label{fig:dis-consola-explorador}
+  \end{subfigure}
 
-    \draw[rounded corners] (4.5,0) rectangle (11.4,-8.6);
-    \node[anchor=west, font=\small\bfseries] at (4.8,-0.45) {Entradas};
-    \node[anchor=west, text width=6.3cm, font=\tiny] at (4.8,-1.0)
-      {Resumen: «Artículos del blog. Solo los publicados se muestran en la web.»};
-    \draw (4.8,-1.5) rectangle (11.1,-2.0);
-    \node[anchor=west, font=\tiny] at (4.9,-1.75) {Buscar\ldots \quad Filtros \quad Columnas \quad Vistas};
-    \foreach \y in {-2.4,-2.9,-3.4,-3.9,-4.4} { \draw[gray] (4.8,\y) -- (11.1,\y); }
-    \node[anchor=west, font=\tiny] at (4.9,-2.65) {Título \hspace{1.6cm} Estado \hspace{0.9cm} Publicada};
-    \draw (4.8,-5.0) rectangle (11.1,-8.3);
-    \node[anchor=west, font=\tiny\bfseries] at (4.9,-5.3) {Editar entrada};
-    \node[anchor=west, font=\tiny] at (4.9,-5.8) {Título \textcircled{\scalebox{0.7}{?}}};
-    \draw (4.9,-6.05) rectangle (10.9,-6.4);
-    \node[anchor=west, font=\tiny] at (4.9,-6.8) {Estado \textcircled{\scalebox{0.7}{?}}};
-    \draw (4.9,-7.05) rectangle (10.9,-7.4);
-    \node[anchor=east, font=\tiny] at (10.9,-7.9) {[Guardar]};
-  \end{tikzpicture}
-  \caption{Esquema de la consola: navegación por bloques y áreas (izquierda)
-    y una pantalla del explorador con su resumen, el listado y un formulario
-    con ayuda contextual «?» (derecha).}
+  \vspace{0.6cm}
+  \begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/consola-ayuda.png}
+    \caption{Formulario de alta de una entrada con la ayuda contextual «?» del
+      campo «Resumen» abierta.}
+    \label{fig:dis-consola-ayuda}
+  \end{subfigure}
+  \caption{Consola de administración de PymeKit (capturas de la aplicación).}
   \label{fig:dis-consola}
-  % Texto alternativo: a la izquierda, la barra lateral con el bloque Gestión
-  % (Inicio, Gestión de cuentas solo para el super-administrador, Usuarios,
-  % Archivos, Paneles, Auditoría y Ajustes) y el bloque Datos con las áreas
-  % plegables Blog (desplegada: Entradas, Categorías, Etiquetas), Cuentas,
-  % Facturación, Sistema y Otros datos, y Todas las tablas. A la derecha, la
-  % pantalla de Entradas con un resumen bajo el título, la barra de búsqueda
-  % y filtros, el listado y un formulario de edición con un icono de ayuda
-  % junto a cada campo.
 \end{figure}
-\todo{Sustituir o complementar la figura~\ref{fig:dis-consola} con capturas
-reales de la consola (pueden generarse con el script de capturas de
-\texttt{apps/e2e/scripts}).}
 
 \subsection{Ayuda contextual y resúmenes}
 \label{sec:dis-ayudas}
@@ -609,7 +571,7 @@ alternativas y consecuencias. La tabla~\ref{tab:dis-adr} las resume; las
 decisiones no se borran, sino que se marcan como sustituidas cuando dejan de
 valer.
 
-\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{6.2cm}l@{}}
+\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{5.6cm}>{\raggedright\arraybackslash}p{2.4cm}@{}}
   \caption{Resumen de decisiones de diseño (ADR) y alternativas descartadas.}\label{tab:dis-adr}\\
   \toprule
   \textbf{ADR} & \textbf{Decisión} & \textbf{Alternativas descartadas (motivo)} & \textbf{Req.} \\
@@ -679,7 +641,7 @@ un mensaje claro, en lugar de en tiempo de ejecución.
     \texttt{feature-flags.config.ts} & Interruptores de funcionalidad derivados del modo y de las variables de entorno \\
     \texttt{billing.config.ts} & Proveedor de pago, productos, planes y precios \\
     \texttt{paths.config.ts} & Rutas de la aplicación \\
-    \texttt{navigation.config.tsx}, \texttt{marketing-navigation.config.tsx} & Menús del área privada y de la web pública \\
+    \path{navigation.config.tsx}, \path{marketing-navigation.config.tsx} & Menús del área privada y de la web pública \\
     \texttt{tfg.config.ts} & Bloque académico de la página de inicio \\
     \bottomrule
   \end{tabularx}
@@ -691,19 +653,19 @@ se leen de variables de entorno. Las públicas llevan el prefijo
 nunca. Los interruptores de los módulos opcionales son:
 
 \begin{itemize}
-  \item \textbf{Equipos}: \texttt{VITE\_ACCOUNT\_MODE}
+  \item \textbf{Equipos}: \path{VITE_ACCOUNT_MODE}
         (\texttt{personal-only}, \texttt{organizations-only} o
         \texttt{hybrid}) decide qué superficies de cuenta existen, y
-        \texttt{VITE\_ENABLE\_TEAM\_ACCOUNTS\_CREATION} y
+        \path{VITE_ENABLE_TEAM_ACCOUNTS_CREATION} y
         \texttt{\ldots\_DELETION} las afinan. El modo es la única fuente de
         verdad: un interruptor granular nunca puede reactivar una superficie
         que el modo desactiva.
-  \item \textbf{Facturación}: \texttt{VITE\_BILLING\_PROVIDER} y
-        \texttt{VITE\_ENABLE\_PERSONAL\_ACCOUNT\_BILLING} /
-        \texttt{VITE\_ENABLE\_TEAM\_ACCOUNTS\_BILLING}; la base de datos
+  \item \textbf{Facturación}: \path{VITE_BILLING_PROVIDER} y
+        \path{VITE_ENABLE_PERSONAL_ACCOUNT_BILLING} /
+        \path{VITE_ENABLE_TEAM_ACCOUNTS_BILLING}; la base de datos
         mantiene el mismo interruptor en su tabla de configuración para que
         las políticas RLS también lo respeten.
-  \item \textbf{Bloque TFG}: \texttt{VITE\_SHOW\_TFG\_INFO=false} deja la web
+  \item \textbf{Bloque TFG}: \path{VITE_SHOW_TFG_INFO=false} deja la web
         limpia de cualquier referencia académica.
   \item \textbf{Otros}: notificaciones (y su modo en tiempo real), selector
         de tema, baja de cuentas y métodos de autenticación.

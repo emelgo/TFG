@@ -20,12 +20,12 @@ sola aplicación más los servicios gestionados de los que depende.
 \section{Arquitectura de despliegue}
 \label{sec:despliegue-arquitectura}
 
-La Figura~\ref{fig:despliegue} muestra los nodos que intervienen en una
+La figura~\ref{fig:despliegue} muestra los nodos que intervienen en una
 instalación de PymeKit. El único componente propio es el servidor de la
 aplicación, un proceso Node.js sin estado que sirve tanto las páginas
 renderizadas en el servidor como las rutas de API (\emph{server functions},
 \emph{webhooks} y la API del CMS). Todo el estado persistente reside en la
-plataforma de base de datos como servicio (Postgres, autenticación y
+plataforma de base de datos como servicio (PostgreSQL, autenticación y
 almacenamiento de ficheros), y los pagos se delegan en la pasarela externa.
 
 \begin{figure}[htbp]
@@ -42,7 +42,7 @@ almacenamiento de ficheros), y los pagos se delegan en la pasarela externa.
     ]
     \node[box] (browser) {Navegador\\(usuario o administrador)};
     \node[box, right=of browser] (web) {Servidor de la aplicación\\Node.js (contenedor)\\\texttt{/}, \texttt{/admin/cms}, \texttt{/api/*}};
-    \node[box, above right=0.6cm and 2.2cm of web] (db) {Postgres\\(RLS, esquema \texttt{cms})};
+    \node[box, above right=0.6cm and 2.2cm of web] (db) {PostgreSQL\\(RLS, esquema \texttt{cms})};
     \node[box, right=2.2cm of web] (auth) {Auth y Storage};
     \node[box, below right=0.6cm and 2.2cm of web] (stripe) {Pasarela de pagos\\(modo test)};
     \node[group, fit=(db)(auth), label={[font=\scriptsize]above:Plataforma BaaS}] {};
@@ -59,12 +59,14 @@ almacenamiento de ficheros), y los pagos se delegan en la pasarela externa.
   \label{fig:despliegue}
 \end{figure}
 
-La Tabla~\ref{tab:componentes-despliegue} resume la función de cada componente
+La tabla~\ref{tab:componentes-despliegue} resume la función de cada componente
 y el artefacto que lo configura dentro del repositorio.
 
 \begin{table}[htbp]
   \centering
   \small
+  \caption{Componentes del despliegue y su configuración.}
+  \label{tab:componentes-despliegue}
   \begin{tabularx}{\textwidth}{@{}lXl@{}}
     \toprule
     \textbf{Componente} & \textbf{Función} & \textbf{Configuración} \\
@@ -77,8 +79,6 @@ y el artefacto que lo configura dentro del repositorio.
     Plataforma de alojamiento & Build, arranque y sonda de salud en la nube & \texttt{railway.json} \\
     \bottomrule
   \end{tabularx}
-  \caption{Componentes del despliegue y su configuración.}
-  \label{tab:componentes-despliegue}
 \end{table}
 
 \section{Contenerización de la aplicación}
@@ -126,7 +126,7 @@ El fichero \texttt{docker-compose.yml} de la raíz describe el servicio de la
 aplicación. No levanta la base de datos: la aplicación se conecta a una
 instancia ya existente, sea la del entorno de desarrollo local o un proyecto
 en la nube, y el mismo fichero sirve para ambos casos. El
-Listado~\ref{lst:compose} recoge su parte esencial.
+extracto~\ref{lst:compose} recoge su parte esencial.
 
 \begin{lstlisting}[language=bash, caption={Servicio de la aplicación en \texttt{docker-compose.yml} (extracto).}, label={lst:compose}, basicstyle=\ttfamily\footnotesize]
 services:

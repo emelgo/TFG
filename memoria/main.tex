@@ -7,7 +7,7 @@
 % ------------------------------------------------------------------------------
 
 
-\documentclass[12pt, twoside]{report}
+\documentclass[12pt, oneside]{report}
 
 % Paquetes LaTeX y estilos globales
 \input{config/packages}
@@ -15,7 +15,7 @@
 
 % Con \hypersetup podremos introducir los metadatos para la descripción del documento PDF. Recuerda modificarlo cuando transformes el documento.
 \hypersetup{
-    pdfauthor={Enrique Mellado},
+    pdfauthor={Enrique Mellado Gómez},
     pdftitle={Diseño e implementación de una arquitectura software reutilizable para el desarrollo ágil de aplicaciones SaaS orientadas a pymes},
     pdfsubject={Trabajo Fin de Grado. Grado en Ingeniería Informática. Universidad de Cádiz},
     pdfkeywords={SaaS, pymes, arquitectura reutilizable, multi-tenant, Supabase, CMS},
@@ -26,11 +26,13 @@
 % Comienzo del documento
 \begin{document}
 
-    % FRONTMATTER: portadas y secciones no numeradas
+    % FRONTMATTER: portadas, agradecimientos, resumen e índices. Se numeran en
+    % romanos (las portadas no muestran número) para que los números del cuerpo
+    % no se repitan y los enlaces del PDF lleven a la página correcta.
+    \pagenumbering{roman}
     \input{sections/1-frontmatter}
  
-     \setcounter{page}{1} % Comienza a incluir números de página a partir de aquí
-     % Cambia el estilo de números de página a normal
+    % El cuerpo empieza en la página 1 (\pagenumbering reinicia el contador)
     \clearpage\pagenumbering{arabic}
     
     % PROLEGÓMENO

@@ -234,32 +234,9 @@ su contenido.
 
 \begin{figure}[htbp]
   \centering
-  \begin{tikzpicture}[
-      font=\small,
-      box/.style={draw, rounded corners=2pt, text width=3.95cm, minimum height=0.55cm, anchor=west, inner sep=3pt},
-      head/.style={font=\small\bfseries, anchor=west},
-    ]
-    \node[draw, thick, rounded corners=4pt, minimum width=4.8cm, minimum height=9.6cm, anchor=north west] (frame) at (0,0) {};
-    \node[head] at (0.25,-0.4) {Gestión};
-    \node[box] at (0.3,-0.95) {Inicio \hfill\textit{(super-admin)}};
-    \node[box] at (0.3,-1.55) {Gestión de cuentas \hfill\textit{(super-admin)}};
-    \node[box] at (0.3,-2.15) {Usuarios};
-    \node[box] at (0.3,-2.75) {Archivos};
-    \node[box] at (0.3,-3.35) {Paneles};
-    \node[box] at (0.3,-3.95) {Auditoría};
-    \node[box] at (0.3,-4.55) {Ajustes};
-    \node[head] at (0.25,-5.25) {Datos};
-    \node[box] at (0.3,-5.8) {$\triangleright$ Blog};
-    \node[box] at (0.3,-6.4) {$\triangleright$ Cuentas};
-    \node[box] at (0.3,-7.0) {$\triangleright$ Facturación};
-    \node[box] at (0.3,-7.6) {$\triangleright$ Sistema};
-    \node[box] at (0.3,-8.2) {$\triangleright$ Otros datos};
-    \node[box] at (0.3,-8.8) {Todas las tablas};
-    \node[draw, dashed, rounded corners=4pt, minimum width=7.6cm, minimum height=9.6cm, anchor=north west, align=center] (main) at (5.2,0) {};
-    \node[align=center, text width=7cm] at (main.center) {Área de trabajo:\\ listado de una tabla, ficha de un\\ registro, explorador de archivos,\\ panel, auditoría o ajustes};
-    \node[draw, rounded corners=2pt, anchor=north, minimum width=7.2cm] at ([yshift=-0.2cm]main.north) {Búsqueda global (Ctrl/Cmd+K)};
-  \end{tikzpicture}
-  \caption{Esquema de la consola de administración: bloques Gestión y Datos.}
+  \includegraphics[width=0.92\textwidth]{figures/consola-explorador.png}
+  \caption{Consola de administración: bloques «Gestión» y «Datos» en la barra
+    lateral y, a la derecha, el listado de una tabla.}
   \label{fig:ug-consola}
 \end{figure}
 
