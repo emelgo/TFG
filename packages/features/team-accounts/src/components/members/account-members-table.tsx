@@ -219,6 +219,7 @@ function ActionsDropdown({
   currentTeamAccountId: string;
   currentRoleHierarchy: number;
 }) {
+  const t = useTranslations('teams');
   const isCurrentUser = member.user_id === currentUserId;
   const isPrimaryOwner = member.primary_owner_user_id === member.user_id;
 
@@ -251,7 +252,15 @@ function ActionsDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant={'ghost'} size={'icon'}>
+            <Button
+              variant={'ghost'}
+              size={'icon'}
+              // Botón con solo un icono: el nombre accesible dice sobre qué
+              // miembro actúa el menú.
+              aria-label={t('memberActions', {
+                name: member.name ?? member.email,
+              })}
+            >
               <Ellipsis className={'h-5 w-5'} />
             </Button>
           }

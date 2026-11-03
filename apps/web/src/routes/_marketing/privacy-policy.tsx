@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useTranslations } from 'use-intl';
 
-import { SitePageHeader } from '#/components/marketing/site-page-header.tsx';
+import { LegalPage } from '#/components/marketing/legal-page.tsx';
 import { getTranslator } from '#/lib/i18n/translator.ts';
 
 export const Route = createFileRoute('/_marketing/privacy-policy')({
@@ -17,15 +17,18 @@ function PrivacyPolicyPage() {
   const t = useTranslations('marketing');
 
   return (
-    <div>
-      <SitePageHeader
-        title={t('privacyPolicy')}
-        subtitle={t('privacyPolicyDescription')}
-      />
-
-      <div className={'container mx-auto py-8'}>
-        <div>{t('legalPlaceholder')}</div>
-      </div>
-    </div>
+    <LegalPage
+      page={'privacy'}
+      title={t('privacyPolicy')}
+      subtitle={t('privacyPolicyDescription')}
+      sections={[
+        'controller',
+        'purposes',
+        'legalBasis',
+        'recipients',
+        'retention',
+        'rights',
+      ]}
+    />
   );
 }

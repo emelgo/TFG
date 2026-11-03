@@ -277,8 +277,10 @@ test.describe('Admin', () => {
   });
 
   test.describe('Impersonation', () => {
-    // TODO: fix this test - unclear why it fails in the CI
-    test.skip('can sign in as a user', async ({ page }) => {
+    // Estuvo desactivado (heredado) porque fallaba sin causa conocida: la
+    // suplantación de verdad no funcionaba, porque el `signOut()` previo
+    // hacía que el oyente de sesión redirigiera a la portada (B-61).
+    test('can sign in as a user', async ({ page }) => {
       const auth = new AuthPageObject(page);
 
       await auth.loginAsSuperAdmin({});

@@ -2,7 +2,7 @@
 
 <!-- El hook SessionStart lee la línea «Fase actual» y las casillas sin marcar de la fase actual. Mantén este formato. -->
 
-**Fase actual:** F4
+**Fase actual:** F8
 
 ## F0 · Harness y planificación
 - [x] Directrices (`AGENTS.md`, `CLAUDE.md`)
@@ -14,7 +14,7 @@
 - [x] Primer commit y push a `main`
 
 ## Pendientes transversales (no bloquean el avance de fase)
-- [ ] P-04 · Plantilla LaTeX de Overleaf: el autor pasará el `.zip` → integrarla en `memoria/` (ver `memoria/README.md`)
+- [x] P-04 · Plantilla LaTeX de Overleaf integrada en `memoria/` el 2026-10-20 (ver `memoria/README.md`)
 - [x] P-01 · Escenario de ejemplo «Fisioterapia Bahía» en la rama `fase-6/escenario-ejemplo` (no se fusiona); resultados en `docs/tfg/EVALUACION.md`
 - [x] P-06 · Confirmar con el tutor cómo presenta la memoria la parte reutilizada sin nombrar las referencias (ADR-007) — resuelto el 2026-10-20: el autor decide una mención mínima (Antecedentes, Construcción y licencia), sin nombrar los productos; el resto de la memoria habla solo de las aportaciones
 
@@ -91,7 +91,8 @@
 - [x] F3c · Barra lateral: bloques «Gestión» y «Datos», «Gestión de cuentas» fuera de la carpeta Cuentas, iconos solo en el primer nivel y nombres sin truncar (petición del autor)
 - [x] F3c · Solo español (ADR-021): retirar el locale `en`, el selector de idioma y los mensajes en inglés, conservar la infraestructura i18n como punto de extensión documentado y pasar los E2E a español
 - [x] F3c · Ayuda contextual «?» (solo en español) junto a cada campo de los formularios de la consola (componente reutilizable en `@pymekit/ui` + textos es/en), petición del autor
-- [ ] Plantillas de email solo tienen locale `en`: añadir `es`; revisar `EMAIL_TEMPLATE_RENDERERS` (no tiene consumidores)
+- [x] Plantillas de email en `es` (`packages/email-templates/src/locales/es`, comprobado el 2026-10-29)
+- [ ] `EMAIL_TEMPLATE_RENDERERS` no tiene consumidores; el texto de vista previa del correo de invitación sigue en inglés (`invite.email.tsx:45`, sin i18n)
 
 ## F4 · Comentarios en español
 | Módulo | Estado | Revisado |
@@ -116,18 +117,23 @@
 - [ ] Pendiente (F5): verificar los planes con Stripe real en modo test (F6/F7, cuenta del autor); `playwright.config.ts` ya acepta `E2E_BASE_URL`, pero `i18n.po.ts`, `cms-settings-auth.spec.ts` y las cabeceras `Origin` de varios E2E del CMS siguen con `localhost:3100` fijo (en otro puerto, los del CMS necesitan una *build* con `VITE_SITE_URL` en 3100 y los de equipos e invitaciones, una con el puerto real, porque los enlaces de los correos salen de esa variable); restos sin uso en `.env` (`VITE_KEYSTATIC_CONTENT_PATH`, `VITE_LOCALES_PATH`)
 
 ## F6 · Validación
-- [ ] E2E de CU-01 a CU-06
-- [ ] pgTAP de aislamiento
-- [ ] Integración con Stripe
+- [x] E2E de CU-01 a CU-06: CU-04 nuevo (`team-billing/billing-permissions.spec.ts`: aviso en la interfaz y petición de pago repetida con la sesión del miembro rechazada por el servidor); CU-05 con la suplantación reactivada tras corregir B-61
+- [x] pgTAP de aislamiento (73 ficheros / 2.099, incluida `rls-initplan.test.sql`)
+- [x] Integración con Stripe en modo test con la cuenta del autor (2026-10-30): 6 precios en EUR creados por API (`lookup_key` `pymekit_*`), CLI de Stripe reenviando los avisos, E2E de facturación de equipo y personal en verde y suscripciones `active` en la BD. Claves en `apps/web/.env.test.local` (no versionado). Ajustes en pruebas y scripts (B-62)
 - [x] Evaluación de la reutilización (CU-07): `docs/tfg/EVALUACION.md` y anexo de la memoria
-- [ ] Resultados documentados
+- [x] Auditoría automática de accesibilidad WCAG 2.1 AA de 15 pantallas (18 con las páginas legales) (`apps/e2e/tests/accessibility/`, axe-core): infracciones en todas, corregidas en los componentes compartidos; 15/15 sin infracciones (B-59)
+- [x] Medición de rendimiento con 10.000 cuentas (`apps/e2e/scripts/measure-performance.mjs`): 34 políticas RLS evaluaban funciones por fila; migración `20261030120000_rls_policies_initplan.sql` y `rls-initplan.test.sql` (B-60). Gestión de cuentas: 3,7 s → 1,2 s
+- [x] `auth.uid()` envuelto también en `delete_team_account` y las cuatro `account_image_*` (`20261030130000_rls_auth_uid_initplan.sql`)
+- [ ] Mejora pendiente: la lista de miembros de un equipo no se pagina (2,1 s con 300 miembros)
+- [x] Resultados documentados en el capítulo de Pruebas de la memoria
+- [x] Mejoras menores: vista previa del correo de invitación en español, sin «Por defecto:» vacío en el CMS, plantillas legales RGPD/LSSI-CE en las páginas legales (auditadas también por accesibilidad)
 
 ## F7 · Despliegue
 - [x] Dockerfile único de la web (incluye el CMS y su API; ADR-022) + `docker-compose.yml`, ajuste para la Supabase local y `.env.docker.example`; imagen construida y arrancada contra la Supabase local
 - [x] Manual de instalación y despliegue (`docs/DESPLIEGUE.md`) y borrador del capítulo de la memoria (`memoria/sections/development/deployment.tex`)
-- [ ] Railway + Supabase en la nube (necesita las cuentas del autor; pasos en `docs/DESPLIEGUE.md` §4 y §6)
-- [ ] Stripe en modo test con webhook público
-- [ ] Manual de instalación probado desde cero
+- [x] ~~Railway + Supabase en la nube~~ y ~~Stripe con webhook público~~: documentados y no ejecutados; pasan a trabajo futuro (ADR-027, la propuesta no exige una instancia pública)
+- [x] Manual probado desde cero (2026-10-29): clon limpio, Supabase nueva (32 migraciones + *seed*), imagen sin caché *healthy* y E2E completa contra la imagen (167 ✔, 1 omitido). Encontró B-58 (500 en todas las rutas con la plantilla de variables) y la falta de `VITE_STRIPE_PRICE_*`/`VITE_SHOW_TFG_INFO` en la imagen; corregidos
+- [x] Manual en la memoria: anexo B «Manual de instalación y puesta en marcha» (`memoria/sections/backmatter/installguide.tex`) y capítulo 9 actualizado
 
 ## F8 · Memoria
 - [x] Plantilla oficial integrada y capítulos 1–9 redactados (compila: ~151 páginas; quedan `\todo` del autor)
@@ -168,6 +174,9 @@ Se distinguen dos medidas:
 ## Registro de sesiones
 | Fecha | Fase | Resumen |
 |---|---|---|
+| 2026-10-30 | F6 | F6 cerrada: pago con Stripe verificado con la cuenta de pruebas del autor (B-62), E2E de CU-04, suplantación reparada y reactivada (B-61), `auth.uid()` envuelto en 5 políticas, plantillas legales y mejoras menores. Memoria sin notas pendientes |
+| 2026-10-30 | F6 / F8 | Memoria maquetada (rama `fase-8/maquetacion-memoria`): sin páginas en blanco (132–133 págs.), frontmatter en romanos, portadillas propias, *Abstract*, riesgos con matriz, bibliografía verificada y en español, IA reducida a una mención (decisión del autor), capturas reales de la consola. Accesibilidad WCAG 2.1 AA (B-59) y rendimiento con 10.000 cuentas (B-60). pgTAP 73/2.099, E2E 183 |
+| 2026-10-29 | F7 / F8 | Revisión completa del PDF y de la app (`docs/tfg/REVISION-2026-10-29.md`). F7 cerrada con ADR-027: manual probado desde cero en un clon limpio, B-58 corregido (imagen Docker con 500 por `VITE_*` vacías) y anexo B de instalación en la memoria. Rama `fase-7/despliegue-local` |
 | 2026-10-20 | F5 | Adaptación a pymes (modo ahorro, rama `fase-5/adaptacion-pymes`): rol «Encargado» (ADR-024), planes en euros (ADR-025), plantilla de roles del CMS (ADR-026), `docs/CONFIGURACION.md` y generador `package` revisado. Incidencias B-56 y B-57 |
 | 2026-10-20 | F4 | F4 recortada al núcleo (ADR-023, modo ahorro, un agente): comentarios didácticos en `schemas/*.sql` (fuera de los cuerpos de función), `function-middleware`, `supabase`, `policies` y `apps/web/src/lib`; `report-comments` a 0 en los TS del núcleo. Rama `fase-4/comentarios-nucleo` |
 | 2026-10-02 | F3c | F3 fusionada (PR #2, B-54). El autor aclara el enfoque: base para la web de una pyme (landing, blog y login de super-admin, personal o cliente), conservando equipos y Stripe como módulos. Tablas del CMS en español, demo retirada y consola por áreas (ADR-020) |

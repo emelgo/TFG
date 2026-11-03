@@ -42,7 +42,12 @@ export async function renderInviteEmail(props: Props) {
     namespace,
   });
 
-  const previewText = `Join ${props.invitedUserEmail} on ${props.productName}`;
+  // Texto que el cliente de correo muestra junto al asunto: también pasa por
+  // el catálogo de mensajes (antes estaba escrito en inglés en el código).
+  const previewText = t(`previewText`, {
+    teamName: props.teamName,
+    productName: props.productName,
+  });
   const subject = t(`subject`);
 
   const heading = t(`heading`, {

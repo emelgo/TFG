@@ -22,9 +22,6 @@ web, sobre una sola base de datos en la que se aplica la autorización. La
 tabla~\ref{tab:concl-objetivos} detalla el resultado de cada objetivo
 específico (tabla~\ref{tab:intro-objetivos}).
 
-\todo{Actualizar el estado de OE-4, OE-7, OE-8 y OE-9 al cerrar las fases
-F4--F7.}
-
 \begin{table}[htbp]
   \centering
   \footnotesize
@@ -34,15 +31,15 @@ F4--F7.}
     \toprule
     \textbf{Obj.} & \textbf{Resultado} & \textbf{Estado} \\
     \midrule
-    OE-1 & Contexto analizado, componentes comunes identificados y requisitos definidos: 13 funcionales, 9 no funcionales y 7 casos de uso, trazados al código, a las pruebas y a la memoria. & Cumplido \\
+    OE-1 & Contexto analizado, componentes comunes identificados y requisitos definidos: 13 funcionales, 9 no funcionales y 8 casos de uso, trazados al código, a las pruebas y a la memoria. & Cumplido \\
     OE-2 & Monorepo de paquetes desacoplados con exportaciones separadas de cliente y servidor; la API del CMS se monta dentro del servidor web, sin servicios adicionales (ADR-011). & Cumplido \\
-    OE-3 & Registro, verificación de correo, contraseña, enlace mágico y MFA; cuentas personales y de equipo con invitaciones, roles y permisos; MFA obligatorio en la consola. Autorización aplicada en la base de datos mediante RLS. & Cumplido; roles adaptados a pymes pendientes (F5) \\
-    OE-4 & Suscripciones con Stripe (planes, \textit{checkout}, portal del cliente y \textit{webhooks}) operativas en modo de pruebas. & Parcial: planes de ejemplo y pruebas E2E de pago pendientes (F5, F6) \\
+    OE-3 & Registro, verificación de correo, contraseña, enlace mágico y MFA; cuentas personales y de equipo con invitaciones, roles y permisos; MFA obligatorio en la consola. Autorización aplicada en la base de datos mediante RLS; rol intermedio «Encargado» pensado para pymes (ADR-024). & Cumplido \\
+    OE-4 & Suscripciones con Stripe (planes, \textit{checkout}, portal del cliente y \textit{webhooks}) detrás de una pasarela abstracta, con planes de ejemplo para pymes en euros (ADR-025). & Cumplido: pago verificado de punta a punta con la pasarela en modo de pruebas \\
     OE-5 & CMS de datos integrado en la consola: explorador de tablas con CRUD, relaciones y vistas guardadas, gestión de usuarios y archivos, auditoría no falsificable, búsqueda global, RBAC propio y paneles configurables (RF-08 a RF-11). & Cumplido \\
     OE-6 & Modelo multicliente con tablas compartidas y RLS; más de dos mil pruebas pgTAP, incluidas pruebas de ataque entre clientes; las auditorías posteriores a cada corrección concluyeron que el aislamiento se mantiene. & Cumplido \\
-    OE-7 & Configuración centralizada en ficheros \texttt{*.config.ts} y variables \texttt{VITE\_*}; consola por áreas configurable desde la propia interfaz; interfaz solo en español con la traducción como punto de extensión documentado. & Parcial: documentación de la configuración (F5) y comentarios didácticos (F4) pendientes \\
-    OE-8 & Pruebas unitarias, de base de datos y E2E en integración continua. & Parcial: E2E de CU-01 a CU-06 y evaluación de la reutilización (F6) pendientes \\
-    OE-9 & Memoria y manuales redactados; configuración de despliegue en la nube preparada. & En curso (F7, F8) \\
+    OE-7 & Configuración centralizada en ficheros \texttt{*.config.ts} y variables \texttt{VITE\_*}; consola por áreas configurable desde la propia interfaz; interfaz solo en español con la traducción como punto de extensión documentado; guía de configuración y comentarios didácticos en el núcleo de la arquitectura (ADR-023). & Cumplido \\
+    OE-8 & Pruebas unitarias, de base de datos y E2E en integración continua; evaluación de la reutilización en un caso de estudio (anexo~\ref{cap:evaluacion}); auditoría de accesibilidad WCAG~2.1~AA de dieciocho pantallas y medición del rendimiento con 10.000 cuentas. & Cumplido\\
+    OE-9 & Memoria y manuales de desarrollador, instalación y usuario; despliegue con contenedores verificado desde cero y despliegue en la nube documentado (ADR-027). & Cumplido \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -58,22 +55,19 @@ recurrir al recorte previsto.
 \section{Lecciones aprendidas}
 \label{sec:concl-lecciones}
 
-\subsection{Esfuerzo dedicado}
+\subsection{Volumen del trabajo}
 
-Hasta la fecha de corte (20/10/2026) el repositorio registra 54
-\textit{commits}, 21 decisiones de arquitectura y 55 incidencias documentadas
-en la bitácora. Las fases F0 a F3 ---arnés, base de la aplicación web,
-integración completa del CMS y español--- se ejecutaron en tres jornadas de trabajo con
-un total de 23 horas del autor (tabla~\ref{tab:plan-dedicacion}). Al cierre de
-la F2 la base de datos contaba con más de dos mil pruebas pgTAP y la suite E2E
-superaba las 140 pruebas.
-\todo{Completar con la dedicación total del proyecto y las cifras finales de
-pruebas al cerrar F6.}
+Hasta la fecha de corte (30/10/2026) el repositorio registra más de 80
+\textit{commits}, 27 decisiones de arquitectura y 60 incidencias documentadas
+en la bitácora. El resultado es un monorepo de 51 paquetes, 27 de ellos del
+CMS, verificado por 1.691 pruebas unitarias, 2.099 pruebas de base de datos
+y 189 pruebas de extremo a extremo, además de la auditoría de accesibilidad,
+la medición del rendimiento y la evaluación de la reutilización.
 
 \subsection{Sobre reutilización y verificación}
 
 \begin{itemize}
-  \item \textbf{Reutilizar no exime de verificar.} De las 55 incidencias, 29
+  \item \textbf{Reutilizar no exime de verificar.} De las 60 incidencias, 29
         son de seguridad, entre ellas: escalada
         de privilegios por un \texttt{UPDATE} sin \texttt{WITH CHECK} (B-05),
         comprobaciones de MFA y de bloqueo que fallaban en abierto (B-06,
@@ -111,36 +105,53 @@ pruebas al cerrar F6.}
         el motor de contenedores puede saltarse el cortafuegos (B-04).
 \end{itemize}
 
-\subsection{Sobre el desarrollo asistido por IA}
+\subsection{Sobre el proceso}
 
 \begin{itemize}
-  \item \textbf{El cuello de botella se desplaza a la verificación.} La
-        integración del CMS se estimó en semanas de desarrollo convencional y
-        se ejecutó en días (sección~\ref{sec:plan-estimado-real}), pero buena
-        parte del tiempo del autor se dedicó a revisar, probar y decidir.
-  \item \textbf{La revisión humana sigue siendo necesaria.} El autor detectó
-        con una prueba manual que la consola se cargaba sin segundo factor
-        (B-14); una inyección SQL pasó desapercibida en varias
-        pasadas de los agentes por el mismo fichero (B-24), y otra latente
-        solo la encontró una revisión
-        posterior que buscaba otra cosa (B-45).
-  \item \textbf{El nivel de revisión se decide por riesgo.} La verificación
-        exhaustiva con varios agentes encontró brechas reales, pero su coste
-        obligó a ajustarla (B-48); al reducirla, aparecieron pruebas
-        desactualizadas en zonas no revisadas (B-51, B-54). La regla resultante
-        es ejecutar siempre la suite completa antes de fusionar.
-  \item \textbf{Las directrices escritas son el mecanismo de control.} Las
-        reglas del arnés (leer el progreso antes de empezar, no reabrir
-        decisiones sin un ADR, verificar antes de cerrar, registrar cada
-        incidencia) son las que hacen que el trabajo de los agentes sea
-        evaluable y que esta memoria pueda apoyarse en evidencias.
+  \item \textbf{La revisión manual sigue siendo necesaria.} Una prueba
+        manual detectó que la consola se cargaba sin segundo factor (B-14);
+        una inyección SQL pasó por varias revisiones sin ser vista y la
+        encontró una revisión crítica posterior (B-24), y otra latente solo
+        apareció en una revisión que buscaba otra cosa (B-45).
+  \item \textbf{La suite completa, antes de fusionar.} Verificar solo las
+        pruebas de la zona tocada dejó pasar pruebas desactualizadas en
+        otras zonas (B-51, B-54).
+  \item \textbf{Medir con volumen real y auditar todas las pantallas.} La
+        medición con 10.000 cuentas destapó políticas RLS que evaluaban una
+        función por fila (B-60), y la auditoría automática de accesibilidad,
+        fallos en componentes compartidos que las pruebas funcionales no
+        tocaban (B-59). Ninguno de los dos se ve con los datos y los recorridos
+        de las pruebas habituales.
+  \item \textbf{Un manual solo está probado si se sigue desde cero.} La
+        prueba del manual de instalación en un clon limpio, con la plantilla
+        de variables tal cual, encontró un fallo que la verificación hecha
+        con el entorno de desarrollo no había visto (B-58).
+  \item \textbf{Registrar en el momento.} Anotar cada decisión y cada
+        incidencia cuando ocurre, con su causa y su lección, es lo que hace
+        el trabajo evaluable y lo que permite que esta memoria se apoye en
+        evidencias.
   \item \textbf{Cada incremento, su \textit{commit}.} Un corte de conexión
-        con un agente trabajando dejó cambios de distinta naturaleza mezclados
-        en el árbol de trabajo (B-15).
+        durante una tarea dejó cambios de distinta naturaleza mezclados en el
+        árbol de trabajo (B-15).
 \end{itemize}
 
-\todo{El autor añade su valoración personal: qué ha aprendido, qué haría de
-otra manera y cómo ha cambiado su forma de trabajar con agentes de IA.}
+\subsection{Valoración personal}
+
+Este trabajo me ha enseñado, ante todo, que reutilizar no es copiar. Partir
+de componentes ya construidos ahorró meses de desarrollo, pero me obligó a
+entenderlos a fondo: integrarlos en una sola aplicación, adaptarlos a una
+pyme española y, sobre todo, comprobar que eran seguros. Las incidencias de
+seguridad de la bitácora me han convencido de que una base reutilizable solo
+acelera si antes se ha verificado, y de que la base de datos es el lugar
+donde esa verificación tiene que hacerse.
+
+También he aprendido a trabajar de otra manera: con decisiones registradas
+en el momento, incrementos pequeños que se cierran con sus pruebas y una
+bitácora en la que cada error deja una lección. Sin esa disciplina no habría
+podido escribir esta memoria con evidencias. Si empezara de nuevo, mediría
+antes ---el rendimiento con volumen real y la accesibilidad de todas las
+pantallas--- en lugar de dejarlo para la validación, y probaría el manual de
+instalación desde cero en cuanto existiera, no al final.
 
 \section{Trabajo futuro}
 \label{sec:concl-futuro}
@@ -148,21 +159,14 @@ otra manera y cómo ha cambiado su forma de trabajar con agentes de IA.}
 Las líneas de trabajo futuro se dividen entre lo que queda del plan del
 proyecto y las mejoras detectadas durante su desarrollo.
 
-\paragraph{Fases pendientes del plan.}
+\paragraph{Pendientes del plan.}
 \begin{itemize}
-  \item \textbf{F4, comentarios didácticos}: reescribir en español
-        didáctico los comentarios de todos los módulos, empezando por los
-        esquemas de la base de datos y el \textit{middleware} de
-        autorización.
-  \item \textbf{F5, adaptación a pymes}: roles y permisos de equipo
-        orientados a pymes, planes de suscripción de ejemplo, una plantilla de
-        permisos inicial del CMS (soporte y gestor de contenidos) y la
-        documentación completa de la configuración reutilizable.
-  \item \textbf{F6, validación}: pruebas E2E de los casos de uso CU-01 a
-        CU-06, pruebas de integración con los \textit{webhooks} de Stripe y la
-        evaluación de la reutilización (CU-07).
-  \item \textbf{F7, despliegue}: despliegue de demostración en la nube y
-        manual de instalación probado desde cero.
+  \item \textbf{Comentarios didácticos} en el resto de los módulos: la fase
+        F4 se limitó al núcleo de la arquitectura (ADR-023), y los demás
+        paquetes conservan comentarios heredados en inglés.
+  \item \textbf{Despliegue en la nube}: publicar una instancia de
+        demostración con Supabase en la nube y una plataforma de
+        contenedores, siguiendo el procedimiento documentado (ADR-027).
 \end{itemize}
 
 \paragraph{Mejoras del producto.}
@@ -174,9 +178,9 @@ proyecto y las mejoras detectadas durante su desarrollo.
   \item Cerrar los pendientes documentados: el total incorrecto de
         la lista de paneles y la denegación de almacenamiento sobre una
         subruta.
-  \item Plantillas de correo en español para todos los mensajes y fechas
-        del CMS según el idioma activo.
   \item Estabilizar las pruebas E2E inestables bajo carga.
+  \item Paginar la lista de miembros de un equipo, que crece con su tamaño
+        (2,1~s con 300 miembros, sección~\ref{sec:pru-rendimiento}).
   \item Ofrecer otros idiomas siguiendo el punto de extensión documentado.
   \item Un generador que cree un proyecto nuevo a partir de PymeKit con su
         configuración inicial, para reducir aún más el tiempo de puesta en

@@ -300,3 +300,16 @@ Cada decisión relevante de arquitectura o de alcance se registra aquí con la s
 - **Alternativas consideradas:** mantenerlo en el *seed* (no llega a producción); marcarlos como roles de sistema (la pyme no podría adaptarlos); un permiso de almacenamiento solo para un *bucket* nuevo de contenidos (habría que crear el *bucket* y sus políticas, fuera del alcance).
 - **Consecuencias:** no cambia ninguna política, `grant` ni función, por eso no se pasa `/rls-review`. Al poder leer usuarios, el personal de soporte ve ahora el explorador de usuarios (sin acciones: la API le responde 403 a bloquear, restablecer, borrar, crear o dar acceso); se actualizaron los E2E `cms-ui.spec.ts` y `cms-users-explorer.spec.ts`. `cms-role-templates.test.sql` (8 pruebas) comprueba los dos roles y sus permisos efectivos exactos (directos y por grupo).
 - **Requisitos relacionados:** RF-09, RNF-01, RNF-02.
+
+## ADR-027 · Despliegue de referencia local con Docker, sin instancia pública en la nube
+- **Fecha:** 2026-10-29 · **Fase:** F7 · **Estado:** Aceptada. Cambia el criterio de «hecho» de F7 en `PLAN.md` y completa ADR-022.
+- **Contexto:** el plan de F7 pedía un «despliegue de demostración accesible» (Railway, Supabase en la nube y *webhook* público de Stripe). La propuesta aprobada no lo exige: pide «mecanismos básicos de despliegue y puesta en funcionamiento», «ficheros de configuración y despliegue» y un «manual de instalación y puesta en marcha». El autor no tiene cuentas en Railway ni en Supabase, Railway es de pago y servir la demo desde el servidor propio obligaría a publicar la API de Supabase (riesgo de B-04).
+- **Decisión:**
+  - El despliegue de referencia del TFG es la imagen Docker de producción (`apps/web/Dockerfile` + `docker-compose.yml`) contra una Supabase creada desde cero con las migraciones, siguiendo el manual en un clon limpio del repositorio.
+  - El despliegue en la nube (Supabase en la nube + Railway o cualquier plataforma de contenedores) queda documentado en `docs/DESPLIEGUE.md` y en el anexo de la memoria como procedimiento preparado y no ejecutado, y pasa a trabajo futuro. `railway.json` se conserva.
+  - Stripe se verificará en modo de pruebas en local, con la CLI reenviando los *webhooks*, sin URL pública.
+  - Nuevo criterio de «hecho» de F7: la imagen se construye y arranca desde un clon limpio siguiendo el manual, la base de datos se crea desde cero con las migraciones, la suite E2E pasa contra esa imagen y el manual está en un anexo de la memoria.
+- **Alternativas consideradas:** Railway + Supabase en la nube (cuentas y coste, no lo pide la propuesta); demo pública en el servidor propio (exige exponer y endurecer la API de Supabase con HTTPS); solo un vídeo de la demo (queda como complemento si el tutor lo pide).
+- **Consecuencias:** no hay URL pública para el tribunal: la demostración se hace en local o por túnel SSH. RNF-07 se verifica con el despliegue local reproducible. Si el tutor pide una demo en vivo, se reabre con un ADR nuevo. La prueba desde cero destapó B-58.
+- **Requisitos relacionados:** RNF-07 (OE-9).
+

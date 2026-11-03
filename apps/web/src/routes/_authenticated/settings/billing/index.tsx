@@ -114,7 +114,10 @@ function BillingPage() {
 
 function CannotManageBillingAlert() {
   return (
-    <Alert className={alertExtras.warning}>
+    <Alert
+      className={alertExtras.warning}
+      data-testid={'cannot-manage-billing-alert'}
+    >
       <TriangleAlert className={'h-4'} />
 
       <AlertTitle>

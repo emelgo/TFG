@@ -94,80 +94,84 @@ grant execute on function public.is_mfa_compliant() to authenticated;
 -- por sí mismas, solo pueden quitar acceso. A los usuarios sin MFA activada no
 -- les afectan; a los que la tienen les bloquean el acceso a los datos de cada
 -- tabla hasta completar el segundo factor.
+-- La función se envuelve en `(select …)`: así PostgreSQL la evalúa una
+-- sola vez por consulta (como un InitPlan) y no una vez por fila. No depende
+-- de la fila, así que el resultado es el mismo; con 10.000 cuentas, la lista
+-- de la consola pasaba de casi un segundo a unos milisegundos (B-60).
 
 -- Cuentas.
 create policy restrict_mfa_accounts
     on public.accounts
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Membresías.
 create policy restrict_mfa_accounts_memberships
     on public.accounts_memberships
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Suscripciones.
 create policy restrict_mfa_subscriptions
     on public.subscriptions
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Líneas de suscripción.
 create policy restrict_mfa_subscription_items
     on public.subscription_items
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Permisos de los roles.
 create policy restrict_mfa_role_permissions
     on public.role_permissions
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Invitaciones.
 create policy restrict_mfa_invitations
     on public.invitations
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Pedidos.
 create policy restrict_mfa_orders
     on public.orders
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Líneas de pedido.
 create policy restrict_mfa_order_items
     on public.order_items
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Notificaciones.
 create policy restrict_mfa_notifications
     on public.notifications
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Clientes de facturación.
 create policy restrict_mfa_billing_customers
     on public.billing_customers
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 -- Tokens de un solo uso.
 create policy restrict_mfa_nonces
     on public.nonces
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));

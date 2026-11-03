@@ -13,8 +13,27 @@ export class StripePageObject {
 
   async waitForForm() {
     return expect(async () => {
+      // Cuando la cuenta de Stripe tiene varios métodos de pago activos (en una
+      // cuenta española: tarjeta, Klarna, Satispay…), el pago muestra un
+      // acordeón y los campos de la tarjeta solo aparecen al elegirla. Se pulsa
+      // solo si aún no se ven, porque un segundo clic plegaría el acordeón.
+      const cardMethod = this.cardPaymentMethod();
+
+      if (
+        !(await this.billingCountry().isVisible()) &&
+        (await cardMethod.isVisible())
+      ) {
+        await cardMethod.click();
+      }
+
       await expect(this.billingCountry()).toBeVisible();
     }).toPass();
+  }
+
+  cardPaymentMethod() {
+    return this.getStripeCheckoutIframe().locator(
+      '[data-testid="card-accordion-item"]',
+    );
   }
 
   async fillForm(

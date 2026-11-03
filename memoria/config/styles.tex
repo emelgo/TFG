@@ -9,9 +9,13 @@
 
 % Formato del código fuente con lstlisting
 \lstset{
-  basicstyle=\ttfamily,
+  basicstyle=\ttfamily\footnotesize,
   breaklines=true,
 }
+
+% Holgura extra solo para los párrafos que de otro modo se saldrían del margen
+% (identificadores largos en monoespaciada, URLs); no cambia el resto.
+\setlength{\emergencystretch}{3em}
 
 % Márgenes
 \geometry{
@@ -32,3 +36,18 @@
 \DeclareCaptionLabelSeparator*{spaced}{\\[1.5ex]}
 \captionsetup[table]{textfont=it,format=plain,justification=justified,
   singlelinecheck=false,labelsep=spaced,skip=0pt}
+
+% Portadillas de las partes: el texto de presentación va en la misma página que
+% el título, centrado debajo de él, en lugar de en una página aparte empujado
+% al pie. Por eso \@endpart ya no salta de página: lo hace \introparte al final.
+\makeatletter
+\renewcommand\@endpart{\par\vspace{3em}}
+\makeatother
+\newcommand{\introparte}[1]{%
+  \begin{center}
+    \begin{minipage}{0.8\textwidth}
+      \normalsize\normalfont #1
+    \end{minipage}
+  \end{center}
+  \vfil\clearpage}
+

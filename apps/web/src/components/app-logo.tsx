@@ -80,7 +80,13 @@ export function AppLogo({
   const t = useTranslations('common.ui');
 
   return (
-    <Link aria-label={label ?? t('homePage')} to="/">
+    // El nombre accesible empieza por el texto visible del logo (el nombre
+    // del producto): WCAG 2.5.3 pide que lo contenga para que quien usa
+    // control por voz pueda activarlo diciendo lo que ve.
+    <Link
+      aria-label={label ?? t('homePageOf', { name: appConfig.name })}
+      to="/"
+    >
       <LogoImage className={className} />
     </Link>
   );

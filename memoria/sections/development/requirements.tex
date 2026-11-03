@@ -279,17 +279,17 @@ en el capítulo de Construcción (sección~\ref{sec:imp-reutilizacion}).
     \textbf{Req.} & \textbf{Módulo} & \textbf{Solución} \\
     \midrule
     RF-01 & \texttt{apps/web} (rutas públicas y área privada) & Página de inicio, precios y blog en la base de datos con lectura pública por RLS (ADR-017); identidad propia \\
-    RF-02 & \texttt{apps/web}, \texttt{packages/function-middleware} & \textit{Server functions} tipadas y validadas con \textit{middleware} de autenticación y de permisos \\
-    RF-03, RF-04 & \texttt{packages/features/auth} & Contraseña, enlace mágico, MFA y OAuth configurables; comprobación de sesión viva en las rutas protegidas \\
-    RF-05, RF-06 & \texttt{packages/features/accounts}, \texttt{team-accounts} & Cuentas personales y de equipo con roles y permisos por funcionalidad, aplicados por RLS \\
-    RF-07 & \texttt{packages/billing/*} & Planes, \textit{checkout}, portal de cliente y \textit{webhooks}, como módulo opcional configurable \\
-    RF-08 & \texttt{packages/features/admin} & Consola de super-administración compartida con el CMS y con MFA obligatorio \\
+    RF-02 & \texttt{apps/web}, \path{packages/function-middleware} & \textit{Server functions} tipadas y validadas con \textit{middleware} de autenticación y de permisos \\
+    RF-03, RF-04 & \path{packages/features/auth} & Contraseña, enlace mágico, MFA y OAuth configurables; comprobación de sesión viva en las rutas protegidas \\
+    RF-05, RF-06 & \path{packages/features/accounts}, \texttt{team-accounts} & Cuentas personales y de equipo con roles y permisos por funcionalidad, aplicados por RLS \\
+    RF-07 & \path{packages/billing/*} & Planes, \textit{checkout}, portal de cliente y \textit{webhooks}, como módulo opcional configurable \\
+    RF-08 & \path{packages/features/admin} & Consola de super-administración compartida con el CMS y con MFA obligatorio \\
     RF-09 & \texttt{packages/cms/*}, rutas \texttt{/admin/cms} y \texttt{/api/cms} & CMS integrado en la consola (ADR-011), organizado por áreas de negocio con nombres en español (ADR-020) y con seguridad endurecida (ADR-015) \\
-    RF-10 & \texttt{packages/cms/audit-logs} & Auditoría no falsificable que conserva el autor (ADR-018) \\
-    RF-11 & \texttt{packages/cms/dashboards} & Paneles con \textit{widgets} sin dependencias nuevas (ADR-019) \\
-    RF-12 & \texttt{packages/features/notifications}, \texttt{mailers}, \texttt{email-templates} & Notificaciones en la aplicación y correos transaccionales en español \\
+    RF-10 & \path{packages/cms/audit-logs} & Auditoría no falsificable que conserva el autor (ADR-018) \\
+    RF-11 & \path{packages/cms/dashboards} & Paneles con \textit{widgets} sin dependencias nuevas (ADR-019) \\
+    RF-12 & \path{packages/features/notifications}, \texttt{mailers}, \texttt{email-templates} & Notificaciones en la aplicación y correos transaccionales en español \\
     RF-13 & \texttt{packages/i18n} & Un único sistema de traducción y toda la interfaz en español (ADR-021) \\
-    RNF-02, RNF-03 & \texttt{apps/web/supabase} (esquemas, RLS y pgTAP) & Autorización en la base de datos, revisiones adversariales y pruebas de aislamiento \\
+    RNF-02, RNF-03 & \path{apps/web/supabase} (esquemas, RLS y pgTAP) & Autorización en la base de datos, revisiones adversariales y pruebas de aislamiento \\
     RNF-05 & \texttt{scripts/tfg}, integración continua & Comentarios didácticos en español y controles automáticos del repositorio \\
     \bottomrule
   \end{tabularx}

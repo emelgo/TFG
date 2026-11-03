@@ -52,7 +52,7 @@ select
   to authenticated using (
     bucket_id = 'account_image'
     and (
-      kit.get_storage_filename_as_uuid (name) = auth.uid ()
+      kit.get_storage_filename_as_uuid (name) = (select auth.uid ())
       or public.has_role_on_account (kit.get_storage_filename_as_uuid (name))
     )
   );
@@ -62,9 +62,9 @@ with
   check (
     bucket_id = 'account_image'
     and (
-      kit.get_storage_filename_as_uuid (name) = auth.uid ()
+      kit.get_storage_filename_as_uuid (name) = (select auth.uid ())
       or public.has_permission (
-        auth.uid (),
+        (select auth.uid ()),
         kit.get_storage_filename_as_uuid (name),
         'settings.manage'
       )
@@ -76,9 +76,9 @@ for update
   to authenticated using (
     bucket_id = 'account_image'
     and (
-      kit.get_storage_filename_as_uuid (name) = auth.uid ()
+      kit.get_storage_filename_as_uuid (name) = (select auth.uid ())
       or public.has_permission (
-        auth.uid (),
+        (select auth.uid ()),
         kit.get_storage_filename_as_uuid (name),
         'settings.manage'
       )
@@ -88,9 +88,9 @@ with
   check (
     bucket_id = 'account_image'
     and (
-      kit.get_storage_filename_as_uuid (name) = auth.uid ()
+      kit.get_storage_filename_as_uuid (name) = (select auth.uid ())
       or public.has_permission (
-        auth.uid (),
+        (select auth.uid ()),
         kit.get_storage_filename_as_uuid (name),
         'settings.manage'
       )
@@ -100,9 +100,9 @@ with
 create policy account_image_delete on storage.objects for delete to authenticated using (
   bucket_id = 'account_image'
   and (
-    kit.get_storage_filename_as_uuid (name) = auth.uid ()
+    kit.get_storage_filename_as_uuid (name) = (select auth.uid ())
     or public.has_permission (
-      auth.uid (),
+      (select auth.uid ()),
       kit.get_storage_filename_as_uuid (name),
       'settings.manage'
     )

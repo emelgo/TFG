@@ -16,7 +16,7 @@
   "scripts": {
     "clean": "git clean -xdf .turbo node_modules",
     "typecheck": "tsc --noEmit",
-    "start": "docker run --rm -it --name=stripe -v ~/.config/stripe:/root/.config/stripe stripe/stripe-cli:latest listen --forward-to http://host.docker.internal:3100/api/billing/webhook"
+    "start": "docker run --rm -it --name=stripe --add-host=host.docker.internal:host-gateway -v ~/.config/stripe:/root/.config/stripe stripe/stripe-cli:latest listen --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,customer.subscription.updated,customer.subscription.deleted,invoice.paid --forward-to http://host.docker.internal:3100/api/billing/webhook"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "catalog:",

@@ -425,6 +425,14 @@ describe('getFieldPlaceholder', () => {
     });
     expect(
       getFieldPlaceholder(
+        column('body', 'text', { default_value: "''::text" }),
+      ),
+    ).toEqual({
+      key: 'record.placeholder.default',
+      values: { name: 'body' },
+    });
+    expect(
+      getFieldPlaceholder(
         column('id', 'uuid', { default_value: 'gen_random_uuid()' }),
       ),
     ).toEqual({ key: 'record.placeholder.uuid' });

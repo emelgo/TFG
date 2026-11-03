@@ -85,7 +85,7 @@ jobs:
 
   test:
     name: Supabase + E2E
-    timeout-minutes: 20
+    timeout-minutes: 30
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     if: ${{ vars.ENABLE_E2E_JOB == 'true' && github.event_name != 'push' }}
     env:

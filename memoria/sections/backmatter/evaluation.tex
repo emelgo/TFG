@@ -11,7 +11,7 @@ en un escenario de ejemplo. Este capítulo presenta esa evaluación como un
 investigación en ciencia del diseño, en el que el artefacto se aplica a una
 situación realista y se estudia en profundidad lo que ocurre
 \cite{hevner2004}. Se construye un escenario verosímil, se registran el
-esfuerzo y los cambios necesarios y se contrastan con una estimación razonada
+cambios necesarios y se contrastan con una estimación razonada
 del mismo resultado sin la plataforma.
 
 \section{Pregunta de evaluación y escenario}
@@ -29,11 +29,12 @@ que se considera cubierta cada una.
 
 \begin{table}[htbp]
   \centering
-  \caption{Necesidades del escenario y criterios de aceptación}
+  \footnotesize
+  \caption{Necesidades del escenario y criterios de aceptación.}
   \label{tab:eval-necesidades}
   \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.6cm}X@{}}
     \toprule
-    \# & Necesidad & Criterio de aceptación \\
+    \textbf{\#} & \textbf{Necesidad} & \textbf{Criterio de aceptación} \\
     \midrule
     a & Identidad propia & Nombre, título, descripción y colores de la
       clínica sin modificar los paquetes de la plataforma \\
@@ -60,7 +61,6 @@ línea principal. El procedimiento fue el siguiente:
   \item Se fijó la versión inicial del repositorio y se tomó una
     instantánea de la base de datos local (metadatos del CMS, objetos del
     esquema público, migraciones, políticas y registro de auditoría).
-  \item Se registró la hora de inicio y fin de cada paso.
   \item Se desarrolló siguiendo solo los patrones ya documentados en el
     repositorio: la plantilla de tabla con seguridad a nivel de fila, las
     migraciones de metadatos del CMS y el formulario de contacto existente
@@ -74,11 +74,9 @@ línea principal. El procedimiento fue el siguiente:
     comparó con la instantánea inicial.
 \end{enumerate}
 
-El desarrollo lo realizó un asistente de programación basado en IA que ya
-conocía el repositorio. Por eso los tiempos medidos no se presentan como
-tiempos de una persona, y la comparación con un desarrollo desde cero
-(sección~\ref{sec:eval-comparacion}) se hace con estimaciones para un
-desarrollador humano en ambos lados.
+La comparación con un desarrollo desde cero
+(sección~\ref{sec:eval-comparacion}) se hace con estimaciones del esfuerzo
+de un desarrollador en ambos lados, no con tiempos medidos.
 
 \section{Solución construida}
 \label{sec:eval-solucion}
@@ -105,47 +103,21 @@ internas nunca proceden del formulario.
 \section{Métricas}
 \label{sec:eval-metricas}
 
-\subsection{Tiempo}
-
-La tabla~\ref{tab:eval-tiempos} muestra el tiempo de reloj de cada paso. La
-mayor parte del tiempo de las pruebas de extremo a extremo se dedicó a
-resolver fricciones del entorno (sección~\ref{sec:eval-fricciones}), no a
-escribir la prueba.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Tiempo de reloj por paso del experimento}
-  \label{tab:eval-tiempos}
-  \begin{tabularx}{0.8\textwidth}{@{}Xr@{}}
-    \toprule
-    Paso & Minutos \\
-    \midrule
-    Lectura de directrices y patrones & 3 \\
-    Identidad (a) & 3 \\
-    Base de datos, metadatos del CMS y pruebas de políticas (b, c, e) & 4 \\
-    Formulario, función de servidor y textos (d) & 3 \\
-    Prueba de extremo a extremo (e) & 21 \\
-    Verificación global y limpieza & 3 \\
-    \midrule
-    \textbf{Total} & \textbf{$\approx$ 36} \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
 \subsection{Volumen de cambios}
 
 El experimento añadió 1415 líneas y eliminó 10 en 18 ficheros. La
 tabla~\ref{tab:eval-cambios} las clasifica. Sin contar comentarios ni líneas
-en blanco, el código escrito suma unas 830 líneas, de las que casi la mitad
-son pruebas.
+en blanco, el código escrito suma unas 830 líneas, de las que alrededor de un
+tercio son pruebas.
 
 \begin{table}[htbp]
   \centering
-  \caption{Cambios respecto a la versión inicial}
+  \footnotesize
+  \caption{Cambios respecto a la versión inicial.}
   \label{tab:eval-cambios}
   \begin{tabularx}{\textwidth}{@{}Xrrr@{}}
     \toprule
-    Clase de fichero & Ficheros & Líneas & De código \\
+    \textbf{Clase de fichero} & \textbf{Ficheros} & \textbf{Líneas} & \textbf{De código} \\
     \midrule
     Nuevos: interfaz y servidor web & 4 & 501 & 370 \\
     Nuevos: esquema y migración SQL & 2 & 317 & 187 \\
@@ -176,11 +148,12 @@ plataforma y lo que tuvo que aportar a cambio.
 
 \begin{table}[htbp]
   \centering
-  \caption{Capacidades reutilizadas y aportación del escenario}
+  \footnotesize
+  \caption{Capacidades reutilizadas y aportación del escenario.}
   \label{tab:eval-gratis}
   \begin{tabularx}{\textwidth}{@{}X>{\raggedright\arraybackslash}p{5cm}@{}}
     \toprule
-    Capacidad reutilizada & Aportación del escenario \\
+    \textbf{Capacidad reutilizada} & \textbf{Aportación del escenario} \\
     \midrule
     Inicio de sesión del personal con doble factor & Ninguna \\
     Listado, búsqueda, filtros, ficha y edición de las solicitudes en el CMS
@@ -209,11 +182,12 @@ imprescindible para el escenario, sin un CMS genérico
 
 \begin{table}[htbp]
   \centering
-  \caption{Estimación del esfuerzo sin la plataforma}
+  \footnotesize
+  \caption{Estimación del esfuerzo sin la plataforma.}
   \label{tab:eval-estimacion}
   \begin{tabularx}{\textwidth}{@{}Xr@{}}
     \toprule
-    Componente & Horas \\
+    \textbf{Componente} & \textbf{Horas} \\
     \midrule
     Autenticación del personal con doble factor y protección de rutas & 12--20 \\
     Panel de gestión de la tabla (listado, búsqueda, ficha, edición) & 16--32 \\
@@ -246,11 +220,12 @@ experimento, porque señalan mejoras concretas para la plataforma.
 
 \begin{table}[htbp]
   \centering
-  \caption{Fricciones detectadas y mejora propuesta}
+  \footnotesize
+  \caption{Fricciones detectadas y mejora propuesta.}
   \label{tab:eval-fricciones}
   \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{6.2cm}X@{}}
     \toprule
-    Fricción & Mejora propuesta \\
+    \textbf{Fricción} & \textbf{Mejora propuesta} \\
     \midrule
     El logotipo no leía el nombre de la configuración & Nombre y logotipo
       configurables \\
@@ -305,7 +280,7 @@ los bordes, como el logotipo, las pruebas que suponen datos de la propia
 plataforma y la ergonomía del entorno de pruebas.
 
 La evaluación tiene limitaciones que conviene explicitar: se basa en un único
-escenario, sencillo y diseñado por el propio autor; el desarrollo lo realizó
-un asistente que ya conocía el repositorio; y el esfuerzo desde cero es una
-estimación, no una medida. Repetir el experimento con otros escenarios y con
+escenario, sencillo y diseñado por el propio autor; se desarrolló con
+conocimiento previo de la plataforma; y los esfuerzos comparados son
+estimaciones, no medidas. Repetir el experimento con otros escenarios y con
 desarrolladores ajenos al proyecto reforzaría las conclusiones.

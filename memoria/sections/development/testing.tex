@@ -91,8 +91,8 @@ usadas existen en los mensajes en español.
 \subsection{Base de datos: RLS y aislamiento multi-tenant}
 \label{sec:pru-pgtap}
 
-La batería pgTAP tiene 70 ficheros (68 de pruebas y 2 de utilidades) con
-2.073 pruebas. Cada fichero se ejecuta dentro de una transacción que se
+La batería pgTAP tiene 73 ficheros (71 de pruebas y 2 de utilidades) con
+2.099 pruebas. Cada fichero se ejecuta dentro de una transacción que se
 deshace al terminar; crea usuarios de prueba, se \emph{autentica} como cada
 uno de ellos (fijando su JWT y el rol \texttt{authenticated} en la sesión,
 como hace el servicio de autenticación) y comprueba qué puede ver y hacer.
@@ -176,8 +176,8 @@ no se sabe por qué se produjo (B-26).
 \subsection{Pruebas funcionales por caso de uso}
 \label{sec:pru-funcionales}
 
-Las pruebas E2E se organizan en 33 ficheros (unas 164 pruebas declaradas),
-19 de ellos del CMS, con 99 pruebas. Se ejecutan en español, el único idioma
+Las pruebas E2E se organizan en 35 ficheros, 19 de ellos del CMS; la última
+ejecución completa, con las de facturación, ejecutó 189 pruebas. Se ejecutan en español, el único idioma
 de la interfaz, y un fichero específico comprueba que no queda ningún texto
 en inglés visible. La tabla~\ref{tab:pru-cu} relaciona cada caso de uso con
 las pruebas que lo cubren.
@@ -192,12 +192,12 @@ las pruebas que lo cubren.
     \textbf{CU} & \textbf{Ficheros de prueba} & \textbf{Estado} \\
     \midrule
     CU-01 & \texttt{authentication/*} (registro, acceso, recuperación de contraseña, redirecciones, sesión caducada), \texttt{account} & Cubierto \\
-    CU-02 & \texttt{team-accounts/*}, \texttt{invitations} (incluida la aceptación con MFA) & Cubierto con los roles actuales; roles orientados a pymes pendientes (F5) \\
-    CU-03 & \texttt{team-billing}, \texttt{user-billing} & Escritos, pero desactivados mientras no se configuren las claves de la pasarela en modo de pruebas (F5/F6) \\
-    CU-04 & pgTAP de facturación y permisos (capa de datos) & Parcial: falta la prueba E2E de la interfaz y de la \textit{server function} (F6) \\
-    CU-05 & \texttt{admin} (404 sin permiso, MFA obligatorio, bloquear, reactivar, borrar) & Parcial: la prueba de suplantación está desactivada \\
+    CU-02 & \texttt{team-accounts/*}, \texttt{invitations} (incluida la aceptación con MFA) & Cubierto, incluida la promoción a «Encargado» \\
+    CU-03 & \texttt{team-billing}, \texttt{user-billing} (pago con la tarjeta de prueba y suscripción activa tras el aviso de la pasarela) & Cubierto con la cuenta de pruebas de Stripe \\
+    CU-04 & \texttt{billing-permissions} (aviso en la interfaz y petición de pago rechazada por el servidor); pgTAP de facturación (base de datos) & Cubierto en las tres capas \\
+    CU-05 & \texttt{admin} (404 sin permiso, MFA obligatorio, bloquear, reactivar, borrar, suplantar) & Cubierto; la suplantación se reactivó tras corregir B-61 \\
     CU-06 & \texttt{cms-data-explorer*}, \texttt{cms-audit-logs}, \texttt{cms-settings-*}, \texttt{cms-ui}, \texttt{cms-sidebar-areas}, \texttt{cms-field-help}, \texttt{cms-page-summaries} & Cubierto \\
-    CU-07 & --- & Pendiente: evaluación de la reutilización (F6, P-01) \\
+    CU-07 & --- (caso de estudio, anexo~\ref{cap:evaluacion}) & Evaluado \\
     CU-08 & \texttt{blog} (lectura anónima, borradores invisibles, Markdown seguro, publicación desde el CMS, \textit{sitemap}) & Cubierto \\
     \bottomrule
   \end{tabularx}
@@ -217,10 +217,18 @@ una sesión sin segundo factor (B-14).
 
 La seguridad se ha verificado con revisiones adversariales en dos niveles:
 una revisión del \textit{diff} orientada a la búsqueda de fallos al terminar
-cada funcionalidad, y una revisión específica de RLS (descrita en la
-sección~\ref{sec:imp-agentes}) en cada cambio relevante de políticas,
-privilegios o funciones de privilegios elevados. La tabla~\ref{tab:pru-rls}
-resume las revisiones de RLS realizadas.
+cada funcionalidad, y una revisión específica de RLS en cada cambio relevante
+de políticas, privilegios o funciones de privilegios elevados.
+
+La revisión de RLS parte de que leer las políticas no basta: hay que
+\emph{demostrar} el aislamiento. Tras un inventario y una auditoría estática
+con un catálogo de ataques, cada hallazgo plausible se convierte en una
+prueba pgTAP que ejecuta el ataque como el usuario atacante y comprueba que
+falla. Después, una revisión independiente, que solo recibe la política, la
+prueba y la afirmación, intenta \emph{refutarla}: una brecha solo se acepta
+si esa segunda revisión la reproduce, y un aprobado, solo si no encuentra un
+vector abierto. La tabla~\ref{tab:pru-rls} resume las revisiones de RLS
+realizadas.
 
 \begin{table}[htbp]
   \centering
@@ -235,7 +243,7 @@ resume las revisiones de RLS realizadas.
     F2.6 & Auditoría y búsqueda global & Aislado; cuatro debilidades menores endurecidas (B-31 a B-34); +31 pruebas \\
     F2.6b & Blog y apertura del esquema \texttt{public} al rol anónimo & Aislado; riesgo latente de privilegios por defecto documentado y vigilado por prueba (B-39) \\
     F2.7a & Miembros del CMS y autor de la auditoría & Aislado; +68 pruebas; una inyección SQL latente (B-45) \\
-    F2.7b & RBAC del CMS con administradores delegados de distintos rangos & Brecha de escape de denegaciones mediante delegación, reproducida por el refutador y corregida (B-47) \\
+    F2.7b & RBAC del CMS con administradores delegados de distintos rangos & Brecha de escape de denegaciones mediante delegación, reproducida por la revisión independiente y corregida (B-47) \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -289,8 +297,8 @@ seguían exigiendo el segundo factor.
 \subsection{Pruebas no funcionales: rendimiento}
 \label{sec:pru-rendimiento}
 
-No se han realizado pruebas de carga formales; el requisito RNF-09 pide un
-rendimiento \emph{razonable} y se verifica por diseño (carga en el servidor,
+El requisito RNF-09 pide un rendimiento \emph{razonable}, sin un objetivo
+numérico, y se apoya en el diseño (carga en el servidor,
 caché de consultas, paginación en el servidor con recuento aproximado en
 tablas grandes y tiempo máximo de 5~s en la búsqueda global, B-32) y con
 pruebas puntuales. La incidencia más ilustrativa (B-55) surgió de forma
@@ -304,9 +312,51 @@ evaluaba una vez por cada fila de \texttt{accounts}. Envolverla en
 \textit{InitPlan} y la consulta volvió a ser inmediata. El mismo patrón se
 aplica de forma sistemática a \texttt{auth.uid()} en las políticas RLS
 (extracto~\ref{lst:imp-rls}).
-\todo{Si se quiere reforzar RNF-09, medir tiempos de respuesta de las
-pantallas principales con un volumen de datos representativo (por ejemplo,
-10.000 cuentas) y añadir la tabla de resultados.}
+
+Para comprobarlo con un volumen representativo se midió el tiempo de carga
+de las pantallas que crecen con los datos, primero con los datos del entorno
+de desarrollo (unas 470 cuentas) y después tras insertar 10.000 usuarios con
+sus cuentas personales y hacer a 300 de ellos miembros de un mismo equipo. Un
+\textit{script} del repositorio (\texttt{measure-performance.mjs}) inserta
+esos datos en una transacción, mide cada pantalla como la mediana de cinco
+cargas completas tras una de calentamiento y los borra al terminar
+(tabla~\ref{tab:pru-rendimiento}).
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Tiempo de carga completa de las pantallas (mediana de cinco cargas, en segundos).}
+  \label{tab:pru-rendimiento}
+  \begin{tabularx}{\textwidth}{@{}Xccc@{}}
+    \toprule
+    \textbf{Pantalla} & \textbf{470 cuentas} & \textbf{10.000 cuentas, antes} & \textbf{10.000 cuentas, después} \\
+    \midrule
+    Gestión de cuentas (consola) & 1,3 & 3,7 & 1,2 \\
+    Explorador del CMS: cuentas & 1,8 & 1,8 & 1,8 \\
+    Explorador de usuarios & 1,3 & 1,3 & 1,3 \\
+    Auditoría & 1,5 & 1,5 & 1,5 \\
+    Miembros de un equipo (4 y 300 miembros) & 0,9 & 2,3 & 2,1 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Las pantallas del CMS no notaron el volumen, gracias a la paginación en el
+servidor con recuento aproximado. La de gestión de cuentas de la consola, en
+cambio, pasó de 1,3 a 3,7~s, con una respuesta del servidor de 2,8~s. La
+causa era el mismo patrón de B-55, ahora en las políticas RLS: las políticas
+restrictivas de MFA y las de lectura del super-administrador llamaban a
+\texttt{is\_mfa\_compliant()} e \texttt{is\_super\_admin()}, que no
+dependen de la fila, sin envolverlas en \texttt{(select \ldots)}, de modo
+que PostgreSQL las evaluaba en cada una de las 10.000 filas (B-60). Una
+migración envolvió las 34 políticas afectadas ---y otra, cinco más que
+llamaban igual a \texttt{auth.uid()}---: la consulta de la lista pasó de
+unos 900~ms a unos 7~ms y la pantalla volvió a cargar en 1,2~s. Dos
+políticas del CMS se quedaron como estaban, porque sus tablas se consultan
+mutuamente y la subconsulta hacía que PostgreSQL detectara una recursión; una
+prueba pgTAP falla si alguna otra política vuelve a llamar a estas funciones
+sin el envoltorio. La lista de miembros de un equipo crece con su tamaño
+porque no se pagina; con 300 miembros sigue por debajo de los 2,5~s, y
+paginarla queda como mejora para equipos más grandes.
 
 \subsection{Pruebas no funcionales: usabilidad y accesibilidad}
 \label{sec:pru-usabilidad}
@@ -317,8 +367,37 @@ nombres en español, ayuda contextual y resúmenes, ADR-020), y mediante
 pruebas E2E que, en buena parte, localizan los elementos por su rol y su
 nombre accesible, de modo que fallan si un control pierde su etiqueta; la
 prueba de solo español revisa también los atributos accesibles.
-\todo{Añadir, si se realiza, una evaluación de accesibilidad automatizada
-(por ejemplo, con una herramienta de auditoría de páginas) o con usuarios.}
+
+Además, una prueba E2E específica (\texttt{accessibility.spec.ts}) audita
+dieciocho pantallas ---diez de la web pública, tres del área privada y cinco de
+la consola--- con axe-core~\cite{axe-core}, el motor de reglas de
+accesibilidad más extendido, contra las reglas de WCAG~2.1~\cite{wcag21} de
+nivel A y AA, y falla ante cualquier infracción de gravedad seria o crítica.
+La primera ejecución encontró infracciones en todas las pantallas, aunque
+procedían de pocos componentes compartidos (tabla~\ref{tab:pru-accesibilidad}).
+Se corrigieron en esos componentes, y la auditoría pasa ahora en las
+dieciocho pantallas sin ninguna infracción, ni siquiera de gravedad menor. Al
+corregirlas aparecieron además dos textos en inglés escritos en el código,
+uno de ellos visible en las tablas de datos, que se pasaron al catálogo de
+mensajes. Una auditoría automática no sustituye a la evaluación con personas,
+que queda como trabajo futuro.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \caption{Infracciones de accesibilidad encontradas por la auditoría automática y su corrección.}
+  \label{tab:pru-accesibilidad}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{1.6cm}X@{}}
+    \toprule
+    \textbf{Infracción (criterio WCAG)} & \textbf{Pantallas} & \textbf{Causa y corrección} \\
+    \midrule
+    El nombre accesible no contiene el texto visible (2.5.3) & 15 & El enlace del logotipo se anunciaba como «Página de inicio» y el menú de perfil, con una etiqueta fija; ahora empiezan por el texto que se ve \\
+    Botón sin nombre accesible (4.1.2) & 6 & Botones con solo un icono (paginación de las tablas, mostrar la contraseña, notificaciones, acciones sobre un miembro): se les da una etiqueta traducida \\
+    Contraste insuficiente (1.4.3) & 8 & Atajo de teclado del buscador, distintivos de rol y de aviso, color de las acciones destructivas y tendencias del panel de ejemplo: tonos más oscuros en el tema claro y más claros en el oscuro \\
+    Controles interactivos anidados (4.1.2) & 1 & En la página de inicio, un botón contenía un enlace; ahora el botón se pinta como el propio enlace \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
 
 % ---------------------------------------------------------------------
 \section{Pruebas de aceptación}
@@ -329,30 +408,32 @@ TFG desde el punto de vista de su destinatario. Durante el desarrollo, el
 autor ha actuado como cliente: probó a mano cada incremento (por ejemplo,
 CU-01 al cierre de F1) y de esas pruebas surgieron incidencias (B-14, B-40,
 B-52) y cambios de diseño (ADR-017, ADR-020, ADR-021).
-\todo{Completar tras F6: sesión de aceptación con el tutor recorriendo CU-01
-a CU-08 con un guion (precondición, pasos, resultado esperado y obtenido),
-resultado de la evaluación de la reutilización (CU-07, P-01) y conformidad
-final.}
+Cada caso de uso tiene además sus pruebas E2E
+(tabla~\ref{tab:pru-cu}), que hacen de criterio de aceptación automático y
+repetible, y el caso CU-07, que no tiene interfaz, se aceptó con el caso de
+estudio del anexo~\ref{cap:evaluacion}. La conformidad final con el alcance
+de la propuesta corresponde al tutor, en la revisión de esta memoria y de la
+plataforma.
 
 % ---------------------------------------------------------------------
 \section{Resultados}
 \label{sec:pru-resultados}
 
 La tabla~\ref{tab:pru-cifras} resume el estado de las pruebas en la última
-verificación completa (cierre de F3c).
+verificación completa (30/10/2026).
 
 \begin{table}[htbp]
   \centering
   \footnotesize
-  \caption{Resultados de las pruebas automáticas (cierre de F3c).}
+  \caption{Resultados de las pruebas automáticas (30/10/2026).}
   \label{tab:pru-cifras}
   \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.4cm}rr>{\raggedright\arraybackslash}X@{}}
     \toprule
     \textbf{Tipo} & \textbf{Ficheros} & \textbf{Pruebas} & \textbf{Resultado} \\
     \midrule
     Unitarias (Vitest) & 116 & 1.692 & 1.691 superadas, 1 omitida \\
-    Base de datos (pgTAP) & 70 & 2.073 & Todas superadas \\
-    E2E (Playwright) & 33 & $\approx$164 & 156 superadas; el resto, condicionadas a configuración (facturación, gestión de equipos y suplantación) \\
+    Base de datos (pgTAP) & 73 & 2.099 & Todas superadas \\
+    E2E (Playwright) & 35 & 189 & 188 superadas y 1 inestable conocida, que pasó al reintentarla; incluye los pagos con la cuenta de pruebas de Stripe \\
     Controles automáticos del repositorio & --- & --- & Sin avisos \\
     \bottomrule
   \end{tabularx}
@@ -360,16 +441,19 @@ verificación completa (cierre de F3c).
 
 La evolución de las cifras a lo largo de los incrementos se recoge en la
 tabla~\ref{tab:imp-fases}: la batería pgTAP pasó de 396 pruebas al cierre de F1 a
-2.073, y la E2E de 43 a 156, en buena parte por las pruebas de regresión de
-seguridad. Quedan algunas pruebas E2E inestables bajo ejecución paralela, que
-pasan al reintentarlas o en serie y cuya estabilización está prevista antes
-de la validación final.
+2.099, y la E2E de 43 a 189, en buena parte por las pruebas de regresión de
+seguridad. Con tres procesos en paralelo, algunas pruebas que inician sesión
+fallan de vez en cuando por tiempo de espera y pasan al reintentarlas; la
+última ejecución completa contra la imagen de producción construida desde
+cero (anexo~\ref{anx:manual-instalacion}) no tuvo ninguna inestable. Una prueba de cierre de sesión que compartía el usuario de
+pruebas con otras y fallaba según el orden de ejecución se aisló con su
+propio usuario.
 
 La tabla~\ref{tab:pru-trazabilidad} cierra el capítulo con la trazabilidad
 entre cada requisito y su evidencia de verificación.
 
 \begin{longtable}{@{}l>{\raggedright\arraybackslash}p{8.4cm}>{\raggedright\arraybackslash}p{3.6cm}@{}}
-  \caption{Trazabilidad entre requisitos y pruebas (cierre de F3c).}\label{tab:pru-trazabilidad}\\
+  \caption{Trazabilidad entre requisitos y pruebas (29/10/2026).}\label{tab:pru-trazabilidad}\\
   \toprule
   \textbf{Req.} & \textbf{Evidencia} & \textbf{Estado} \\
   \midrule
@@ -385,23 +469,21 @@ entre cada requisito y su evidencia de verificación.
   RF-03 & E2E \texttt{authentication} & Verificado \\
   RF-04 & pgTAP \texttt{super-admin}, \texttt{cms-verify-admin-access}; E2E \texttt{admin}, \texttt{team-invitation-mfa}, \texttt{cms-settings-auth} & MFA verificado; OAuth configurable sin prueba \\
   RF-05 & E2E \texttt{account} & Verificado \\
-  RF-06 & pgTAP de cuentas, membresías, invitaciones y permisos; E2E \texttt{team-accounts}, \texttt{invitations} & Parcial (roles para pymes en F5) \\
-  RF-07 & pgTAP de facturación; E2E de facturación desactivados & Parcial (F5/F6) \\
-  RF-08 & E2E \texttt{admin}, \texttt{cms-ui} & Parcial (suplantación sin E2E) \\
+  RF-06 & pgTAP de cuentas, membresías, invitaciones y permisos; E2E \texttt{team-accounts}, \texttt{invitations}; pgTAP \texttt{team-roles-manager} & Verificado \\
+  RF-07 & pgTAP de facturación; E2E de pago con la cuenta de pruebas de Stripe y de permisos (CU-03, CU-04) & Verificado \\
+  RF-08 & E2E \texttt{admin} (incluida la suplantación), \texttt{cms-ui} & Verificado \\
   RF-09 & pgTAP del CMS (41 ficheros); unitarias del CMS; E2E del CMS (19 ficheros) & Verificado \\
   RF-10 & pgTAP de auditoría e integridad; E2E \texttt{cms-audit-logs} & Verificado \\
   RF-11 & pgTAP de paneles; unitarias de paneles; E2E \texttt{cms-dashboards} & Verificado \\
   RF-12 & pgTAP \texttt{notifications} & Parcial \\
   RF-13 & Unitaria de coherencia de claves; E2E \texttt{i18n-solo-espanol} & Verificado \\
-  RNF-01 & Configuración tipada; evaluación de la reutilización & Pendiente (F6) \\
+  RNF-01 & Configuración tipada; caso de estudio (anexo~\ref{cap:evaluacion}) & Verificado \\
   RNF-02 & pgTAP; revisiones adversariales (tabla~\ref{tab:pru-rls}) & Verificado \\
   RNF-03 & pgTAP de aislamiento de la plataforma y del CMS & Verificado \\
   RNF-04 & Estructura del monorepo; comprobación de tipos y dependencias & Verificado \\
-  RNF-05 & CI (tipos, \textit{lint}, formato, controles automáticos) & Parcial (comentarios en F4) \\
-  RNF-06 & CI con las tres suites & Parcial (completar en F6) \\
-  RNF-07 & Despliegue de prueba y manual & Pendiente (F7) \\
-  RNF-08 & Revisión manual; E2E por rol y nombre accesible & Parcial \\
-  RNF-09 & Revisión del diseño; B-55 & Parcial \\
+  RNF-05 & CI (tipos, \textit{lint}, formato, controles automáticos); comentarios del núcleo & Verificado en el núcleo (ADR-023) \\
+  RNF-06 & CI con las tres suites; E2E de pagos con la cuenta de pruebas & Verificado \\
+  RNF-07 & Despliegue desde un clon limpio y E2E contra la imagen (anexo~\ref{anx:manual-instalacion}) & Verificado \\
+  RNF-08 & Auditoría automática WCAG 2.1 AA de 18 pantallas (\texttt{accessibility.spec.ts}); E2E por rol y nombre accesible; revisión manual & Verificado (sin evaluación con usuarios) \\
+  RNF-09 & Medición con 10.000 cuentas (tabla~\ref{tab:pru-rendimiento}); pgTAP \texttt{rls-initplan}; B-55, B-60 & Verificado \\
 \end{longtable}
-\todo{Actualizar la tabla~\ref{tab:pru-trazabilidad} y las cifras de la
-tabla~\ref{tab:pru-cifras} tras F4--F7.}

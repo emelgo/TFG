@@ -76,7 +76,7 @@ create policy restrict_mfa_user_active_account
     on public.user_active_account
     as restrictive
     to authenticated
-    using (public.is_mfa_compliant());
+    using ((select public.is_mfa_compliant()));
 
 --
 -- Función `public.set_active_account`: valida la membresía y guarda la cuenta

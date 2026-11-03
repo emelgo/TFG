@@ -641,7 +641,10 @@ export function getFieldPlaceholder(column: ColumnMetadata): FieldPlaceholder {
   const name = column.display_name || column.name;
   const dataType = column.ui_config?.data_type?.toLowerCase() ?? '';
 
-  if (!def || def === "''" || def === 'null') {
+  // La cadena vacía, también con *cast* (`''::text`, el valor por defecto del
+  // cuerpo del blog), no es un valor que merezca enseñar: sin esto el campo
+  // mostraba un «Por defecto:» seguido de nada.
+  if (!def || def === "''" || def.startsWith("''::") || def === 'null') {
     return { key: 'record.placeholder.default', values: { name } };
   }
 
